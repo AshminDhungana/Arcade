@@ -56,7 +56,7 @@ Arcade is a self-hosted, offline-first gaming cafe management system. It runs on
 
 > These tasks must be completed before any feature development begins. They de-risk the entire architecture.
 
-- [ ] **ARCH-01: Validate SQLite WAL + async SQLAlchemy (aiosqlite) under concurrent writes**
+- [x] **ARCH-01: Validate SQLite WAL + async SQLAlchemy (aiosqlite) under concurrent writes**
   - Spin up a minimal FastAPI app with WAL mode enabled
   - Run 10 concurrent write requests; confirm no `database is locked` errors
   - Confirm pragmas: `PRAGMA journal_mode = WAL`, `PRAGMA busy_timeout = 5000`, `PRAGMA synchronous = NORMAL`, `PRAGMA foreign_keys = ON`, `PRAGMA mmap_size = 134217728`
