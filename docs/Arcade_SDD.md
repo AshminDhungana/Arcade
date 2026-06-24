@@ -1,0 +1,1909 @@
+# Software Design Document
+
+## Arcade — Gaming Cafe Management System
+
+**Document Version:** 1.0  
+**Project Version:** 2.0  
+**Date:** June 2026  
+**Prepared by:** Ashmin Dhungana
+**Status:** Pre-Development · Design Complete  
+**Classification:** Internal / Private  
+**Reference SRS:** Arcade_SRS v1.0
+
+---
+
+## Table of Contents
+
+1. [Introduction](#1-introduction)
+2. [System Overview](#2-system-overview)
+3. [Architecture Design](#3-architecture-design)
+4. [Backend Design](#4-backend-design)
+5. [Database Design](#5-database-design)
+6. [Frontend Design](#6-frontend-design)
+7. [Electron Agent Design](#7-electron-agent-design)
+8. [Launcher Design](#8-launcher-design)
+9. [Real-time Communication Design](#9-real-time-communication-design)
+10. [Billing Engine Design](#10-billing-engine-design)
+11. [Security Design](#11-security-design)
+12. [Integration Design](#12-integration-design)
+13. [Error Handling and Resilience](#13-error-handling-and-resilience)
+14. [Configuration Design](#14-configuration-design)
+15. [Deployment Design](#15-deployment-design)
+16. [Licensing and Activation Design](#16-licensing-and-activation-design)
+17. [Design Decisions and Trade-offs](#17-design-decisions-and-trade-offs)
+
+---
+
+## 1. Introduction
+
+### 1.1 Purpose
+
+This Software Design Document (SDD) describes the architectural and detailed design of Arcade, a self-hosted gaming cafe management system. It translates the requirements defined in the SRS into concrete design decisions, component structures, data models, interface contracts, and implementation guidance for the development team at Neurotech Biratnagar.
+
+### 1.2 Scope
+
+This document covers the design of all four primary Arcade components:
+
+- **Arcade Server** — FastAPI backend, SQLite database, business logic
+- **Arcade Dashboard** — React staff interface and owner mobile view
+- **Arcade Agent** — Electron client application on each gaming PC
+- **Arcade Launcher** — Tkinter GUI for server management, including license activation
+
+It also covers cross-cutting concerns: real-time communication, billing logic, security, license activation and verification, external integrations (Tuya, thermal printing), resilience, and deployment.
+
+### 1.3 Intended Audience
+
+- Backend and frontend developers implementing the system
+- QA engineers designing test plans
+- Future maintainers of the codebase
+
+### 1.4 Relationship to SRS
+
+This document maps directly to the requirements in `Arcade_SRS v1.0`. Where a design decision satisfies a specific requirement, the relevant `FR-XXX` or `NFR-XXX` identifier is referenced.
+
+### 1.5 Document Conventions
+
+- **Module paths** use dot notation: `backend.services.billing`
+- **API routes** use HTTP method + path: `POST /api/sessions`
+- **WebSocket events** use the prefix `ws:`
+- Code samples are illustrative and not necessarily final implementation
+
+---
+
+## 2. System Overview
+
+Arcade is a four-component client-server system operating entirely on a local area network.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        COUNTER PC (Server)                      │
+│                                                                 │
+│  ┌──────────────┐     ┌─────────────────────────────────────┐  │
+│  │   Launcher   │────▶│         FastAPI Server              │  │
+│  │  (Tkinter)   │     │  ┌──────────┐  ┌────────────────┐  │  │
+│  │  ┌────────┐  │     │  │  Routers │  │    Services    │  │  │
+│  │  │License │  │     │  └──────────┘  └────────────────┘  │  │
+│  │  │ Check  │  │     │  ┌──────────┐  ┌────────────────┐  │  │
+│  │  └────────┘  │      │  │  Schemas │  │ Repositories   │  │  │
+│  └──────────────┘      │  └──────────┘  └────────────────┘  │  │
+│                        │         ▼               ▼           │  │
+│  ┌──────────────┐      │  ┌─────────────────────────────┐   │  │
+│  │   React      │◀────▶│  │     SQLite (WAL mode)        │   │  │
+│  │  Dashboard   │      │  └─────────────────────────────┘   │  │
+│  └──────────────┘      └─────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+         │  WebSocket + REST (LAN)         │  WoL (UDP)
+         ▼                                 ▼
+┌─────────────────┐              ┌──────────────────┐
+│  Owner's Phone  │              │   Client PCs     │
+│  (Mobile View)  │              │ ┌──────────────┐ │
+└─────────────────┘              │ │Electron Agent│ │
+                                 │ └──────────────┘ │
+                                 └──────────────────┘
+         │  Tuya Cloud API (internet)
+         ▼
+┌─────────────────┐
+│  Smart Plugs    │
+│  (PS5 / Xbox)   │
+└─────────────────┘
+```
+
+The Launcher's License Check runs once at every startup, entirely offline against the locally stored `license.key`. It gates the Tkinter setup wizard and the FastAPI server subprocess — neither runs unless the check passes. It never blocks on, or talks to, any network.
+
+### 2.1 Communication Summary
+
+| Direction                | Protocol              | Purpose                                               |
+| ------------------------ | --------------------- | ----------------------------------------------------- |
+| Dashboard ↔ Server       | REST (HTTP/JSON)      | CRUD operations, checkout, settings                   |
+| Dashboard ↔ Server       | WebSocket             | Real-time seat status, health metrics, announcements  |
+| Agent ↔ Server           | WebSocket             | Lock/unlock commands, health metrics, remote commands |
+| Server → Client PCs      | UDP (WoL)             | Wake-on-LAN magic packets                             |
+| Server → Tuya Cloud      | HTTPS                 | Smart plug on/off                                     |
+| Server → Thermal Printer | USB/Network (ESC/POS) | Receipt printing                                      |
+
+---
+
+## 3. Architecture Design
+
+### 3.1 Layered Backend Architecture
+
+The backend follows a strict four-layer architecture. Each layer communicates only with the layer directly below it.
+
+```
+┌─────────────────────────────────────────┐
+│           HTTP / WebSocket Layer        │  ← FastAPI routers, request validation,
+│         backend/api/routers/            │    response serialisation (Pydantic schemas)
+├─────────────────────────────────────────┤
+│              Service Layer              │  ← Business logic, billing engine,
+│           backend/services/             │    orchestration, feature flag checks
+├─────────────────────────────────────────┤
+│            Repository Layer             │  ← All SQL queries, no business logic,
+│         backend/repositories/           │    returns ORM models or typed dicts
+├─────────────────────────────────────────┤
+│           Database / ORM Layer          │  ← SQLAlchemy models, Alembic migrations,
+│     backend/models/ + backend/core/     │    SQLite connection and WAL config
+└─────────────────────────────────────────┘
+```
+
+**Rules enforced:**
+
+- Routers MUST NOT contain SQL queries or business logic
+- Services MUST NOT import SQLAlchemy models directly — they call repositories
+- Repositories MUST NOT import services
+- Services contain all feature flag checks before delegating to repositories
+
+### 3.2 Full Directory Structure
+
+```
+arcade-cafe/
+├── backend/
+│   ├── api/
+│   │   ├── routers/
+│   │   │   ├── seats.py
+│   │   │   ├── sessions.py
+│   │   │   ├── billing.py
+│   │   │   ├── pos.py
+│   │   │   ├── inventory.py
+│   │   │   ├── members.py
+│   │   │   ├── packages.py
+│   │   │   ├── promotions.py
+│   │   │   ├── vouchers.py
+│   │   │   ├── reservations.py
+│   │   │   ├── staff.py
+│   │   │   ├── shifts.py
+│   │   │   ├── expenses.py
+│   │   │   ├── events.py
+│   │   │   ├── analytics.py
+│   │   │   ├── settings.py
+│   │   │   ├── audit.py
+│   │   │   └── ws.py               # WebSocket endpoints
+│   │   └── deps.py                 # Shared FastAPI dependencies (DB session, auth)
+│   ├── services/
+│   │   ├── session_service.py
+│   │   ├── billing_service.py
+│   │   ├── pos_service.py
+│   │   ├── member_service.py
+│   │   ├── package_service.py
+│   │   ├── promotion_service.py
+│   │   ├── voucher_service.py
+│   │   ├── reservation_service.py
+│   │   ├── shift_service.py
+│   │   ├── expense_service.py
+│   │   ├── event_service.py
+│   │   ├── analytics_service.py
+│   │   ├── wol_service.py
+│   │   ├── tuya_service.py
+│   │   ├── print_service.py
+│   │   ├── audit_service.py
+│   │   └── backup_service.py
+│   ├── repositories/
+│   │   ├── seat_repo.py
+│   │   ├── session_repo.py
+│   │   ├── invoice_repo.py
+│   │   ├── member_repo.py
+│   │   ├── package_repo.py
+│   │   ├── promotion_repo.py
+│   │   ├── voucher_repo.py
+│   │   ├── pos_repo.py
+│   │   ├── inventory_repo.py
+│   │   ├── reservation_repo.py
+│   │   ├── shift_repo.py
+│   │   ├── expense_repo.py
+│   │   ├── event_repo.py
+│   │   ├── staff_repo.py
+│   │   └── audit_repo.py
+│   ├── models/
+│   │   └── (SQLAlchemy ORM models — one file per entity or grouped)
+│   ├── schemas/
+│   │   └── (Pydantic request/response schemas — one file per domain)
+│   ├── licensing/
+│   │   ├── verify.py                # Ed25519 signature verification
+│   │   ├── fingerprint.py           # Hardware ID generation
+│   │   └── public_key.py            # Embedded Ed25519 public key (constant)
+│   └── core/
+│       ├── config.py               # arcade.config.json loader
+│       ├── database.py             # SQLAlchemy engine, WAL, session factory
+│       ├── feature_flags.py        # Feature flag loader and checker
+│       ├── security.py             # PIN hashing, token generation, lockout
+│       └── ws_manager.py           # WebSocket connection manager
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Dashboard.tsx       # Seat grid
+│   │   │   ├── Session.tsx         # Session detail
+│   │   │   ├── Checkout.tsx
+│   │   │   ├── POS.tsx
+│   │   │   ├── Members.tsx
+│   │   │   ├── Packages.tsx
+│   │   │   ├── Reservations.tsx
+│   │   │   ├── Shifts.tsx
+│   │   │   ├── Events.tsx
+│   │   │   ├── Analytics.tsx
+│   │   │   ├── Settings.tsx
+│   │   │   └── Login.tsx
+│   │   ├── components/
+│   │   │   ├── SeatCard.tsx
+│   │   │   ├── SeatGrid.tsx
+│   │   │   ├── SessionTimer.tsx
+│   │   │   ├── InvoicePanel.tsx
+│   │   │   ├── POSPanel.tsx
+│   │   │   ├── MemberSearch.tsx
+│   │   │   ├── HealthBadge.tsx
+│   │   │   └── ...
+│   │   ├── hooks/
+│   │   │   ├── useWebSocket.ts
+│   │   │   ├── useSeats.ts
+│   │   │   ├── useSession.ts
+│   │   │   └── ...
+│   │   ├── api/                    # React Query API client functions
+│   │   ├── store/                  # Global state (auth, feature flags)
+│   │   └── utils/
+│   │       ├── currency.ts         # Paise ↔ display conversion
+│   │       └── time.ts
+├── agent/
+│   ├── src/
+│   │   ├── main.ts                 # Electron main process
+│   │   ├── preload.ts              # Context bridge
+│   │   ├── ipc/                    # IPC handlers (lock, unlock, screenshot)
+│   │   ├── ws/                     # WebSocket client to server
+│   │   ├── health/                 # systeminformation collector
+│   │   └── renderer/               # React UI (splash, tray, countdown)
+│   └── package.json
+├── alembic/
+│   ├── env.py
+│   ├── alembic.ini
+│   └── versions/                   # Migration scripts
+├── launcher.py                     # Tkinter GUI (incl. License Activation screen)
+├── arcade.config.json              # Created on first run
+├── license.key                     # Placed by owner after activation (not in repo)
+└── requirements.txt
+
+tools/                              # NOT shipped to customers — internal only
+└── keygen/
+    ├── generate_license.py         # Offline keygen CLI — holds the private signing key
+    └── private_key.pem             # NEVER committed, NEVER distributed (kept outside VCS)
+```
+
+---
+
+## 4. Backend Design
+
+### 4.1 Application Entry Point
+
+The FastAPI application is instantiated in `backend/main.py` and assembled as follows. The Launcher only spawns this process after a successful license check (see §16) — `main.py` itself does not re-verify the license, since FastAPI startup assumes the Launcher has already gated entry.
+
+```python
+# Startup sequence (pseudo-code)
+1. Load arcade.config.json via core.config
+2. Run alembic upgrade head
+3. Load feature flags from DB settings table
+4. Initialise WebSocket manager
+5. Register all routers with prefix /api
+6. Register WebSocket router at /ws
+7. Send Wake-on-LAN packets to all registered seats
+8. Schedule nightly backup task via python-schedule
+9. Start Uvicorn server on configured host:port
+```
+
+### 4.2 Router Design
+
+Each router is a `FastAPI.APIRouter` registered with a prefix and tags. Routers handle only:
+
+- Request parsing (via Pydantic schemas)
+- Auth dependency injection (via `deps.py`)
+- Calling the appropriate service method
+- Returning the response schema
+
+**Example — Session Router (`routers/sessions.py`):**
+
+```
+POST   /api/sessions                → session_service.start_session()
+PATCH  /api/sessions/{id}/pause     → session_service.pause_session()
+PATCH  /api/sessions/{id}/resume    → session_service.resume_session()
+POST   /api/sessions/{id}/checkout  → billing_service.checkout()
+GET    /api/sessions/{id}           → session_service.get_session()
+GET    /api/sessions/active         → session_service.list_active()
+```
+
+**Standard router dependencies:**
+
+- `db: Session = Depends(get_db)` — SQLAlchemy session per request
+- `staff: StaffSchema = Depends(get_current_staff)` — authenticated staff from token
+- `flags: FeatureFlags = Depends(get_feature_flags)` — current feature flag state
+
+### 4.3 Service Layer Design
+
+Services are plain Python classes (or modules) with no HTTP concern. They implement all business logic and call repositories for data access.
+
+#### 4.3.1 Session Service (`services/session_service.py`)
+
+```
+start_session(seat_id, member_id?, db) → Session
+  1. Validate seat is Available or Reserved
+  2. If require_member_for_session flag ON and no member_id → raise error
+  3. Call billing_service.resolve_rate(seat, member, time_now) → locked_rate
+  4. Call package_service.get_active_package(member_id) → active_package?
+  5. Call promotion_service.get_applicable(seat, member, time_now) → promotion?
+  6. Create Session record (rate locked, promo locked, package linked)
+  7. Update seat status → IN_USE
+  8. Send ws:seat_updated broadcast
+  9. Call ws_manager.send_to_agent(seat_id, command=UNLOCK)
+  10. If console seat → call tuya_service.power_on(plug_id)
+  11. Write audit log entry
+  12. Return session
+
+checkout(session_id, payment_method, db) → Invoice
+  1. Load session, validate IN_USE or PAUSED
+  2. Compute elapsed seconds
+  3. Call billing_service.calculate_invoice(session, elapsed) → InvoiceLineItems
+  4. Create Invoice record
+  5. If member → deduct wallet / update loyalty points
+  6. Update seat status → AVAILABLE
+  7. Send ws:seat_updated broadcast
+  8. Call ws_manager.send_to_agent(seat_id, command=LOCK)
+  9. If console → call tuya_service.power_off(plug_id)
+  10. Write audit log entry
+  11. Trigger print_service.print_receipt(invoice) async
+  12. Return invoice
+```
+
+#### 4.3.2 Billing Service (`services/billing_service.py`)
+
+See Section 10 for detailed billing engine design.
+
+#### 4.3.3 WebSocket Manager (`core/ws_manager.py`)
+
+```python
+class WebSocketManager:
+    # Two connection registries:
+    dashboard_connections: list[WebSocket]       # All dashboard clients
+    agent_connections: dict[str, WebSocket]      # seat_id → agent WebSocket
+
+    async def broadcast_to_dashboards(event: str, payload: dict)
+    async def send_to_agent(seat_id: str, command: AgentCommand)
+    async def register_agent(seat_id: str, ws: WebSocket)
+    async def unregister_agent(seat_id: str)
+    async def heartbeat_loop()                   # Pings all connections every 30s
+```
+
+### 4.4 Repository Layer Design
+
+Repositories contain all SQLAlchemy queries. They accept a `db: Session` parameter and return ORM model instances or typed dicts. No business logic lives in repositories.
+
+**Example — Session Repository (`repositories/session_repo.py`):**
+
+```python
+def create(db, seat_id, member_id, rate_paise, promo_id, package_id, ...) → SessionModel
+def get_by_id(db, session_id) → SessionModel | None
+def get_active_by_seat(db, seat_id) → SessionModel | None
+def list_active(db) → list[SessionModel]
+def update_status(db, session_id, status) → SessionModel
+def list_by_shift(db, shift_id) → list[SessionModel]
+```
+
+### 4.5 Schema Design (Pydantic)
+
+All request bodies and response payloads are typed Pydantic models. Monetary fields are always integers (paise) in API schemas; display conversion happens in the frontend.
+
+**Example schemas:**
+
+```python
+class SessionStartRequest(BaseModel):
+    seat_id: str
+    member_id: str | None = None
+
+class SessionResponse(BaseModel):
+    id: str
+    seat_id: str
+    member_id: str | None
+    started_at: datetime
+    status: SessionStatus
+    locked_rate_paise: int
+    package_id: str | None
+    promotion_id: str | None
+
+class InvoiceResponse(BaseModel):
+    id: str
+    session_id: str
+    time_charge_paise: int
+    package_credit_used_paise: int
+    discount_paise: int
+    pos_items: list[InvoiceLineItem]
+    total_paise: int
+    payment_method: PaymentMethod
+```
+
+### 4.6 API Route Reference (Complete)
+
+| Method    | Path                        | Auth    | Description                                                            |
+| --------- | --------------------------- | ------- | ---------------------------------------------------------------------- |
+| GET       | /health                     | None    | Server health check (includes license status summary)                  |
+| GET       | /api/settings/license       | Admin   | View license status (cafe name, type, activation date, hardware match) |
+| POST      | /api/auth/login             | None    | Staff PIN login → token                                                |
+| GET       | /api/seats                  | Cashier | List all seats with status                                             |
+| PATCH     | /api/seats/{id}/maintenance | Admin   | Toggle maintenance mode                                                |
+| POST      | /api/sessions               | Cashier | Start session                                                          |
+| PATCH     | /api/sessions/{id}/pause    | Cashier | Pause session                                                          |
+| PATCH     | /api/sessions/{id}/resume   | Cashier | Resume session                                                         |
+| POST      | /api/sessions/{id}/checkout | Cashier | Checkout and generate invoice                                          |
+| GET       | /api/sessions/{id}          | Cashier | Session detail                                                         |
+| GET       | /api/sessions/active        | Cashier | All active sessions                                                    |
+| GET       | /api/invoices/{id}          | Cashier | Invoice detail                                                         |
+| POST      | /api/pos/items              | Cashier | Add POS item to session tab                                            |
+| DELETE    | /api/pos/items/{id}         | Cashier | Remove POS item from tab                                               |
+| GET       | /api/menu                   | Cashier | List menu items                                                        |
+| POST      | /api/menu                   | Admin   | Create menu item                                                       |
+| PATCH     | /api/menu/{id}              | Admin   | Update menu item                                                       |
+| POST      | /api/inventory/restock      | Admin   | Record restock event                                                   |
+| GET       | /api/members                | Cashier | Search/list members                                                    |
+| POST      | /api/members                | Cashier | Create member                                                          |
+| GET       | /api/members/{id}           | Cashier | Member detail + active packages                                        |
+| POST      | /api/members/{id}/topup     | Cashier | Wallet top-up                                                          |
+| GET       | /api/packages               | Admin   | List package types                                                     |
+| POST      | /api/packages               | Admin   | Create package type                                                    |
+| POST      | /api/members/{id}/packages  | Cashier | Sell package to member                                                 |
+| GET       | /api/promotions             | Admin   | List promotions                                                        |
+| POST      | /api/promotions             | Admin   | Create promotion                                                       |
+| PATCH     | /api/promotions/{id}        | Admin   | Update/toggle promotion                                                |
+| POST      | /api/vouchers/generate      | Admin   | Generate voucher batch                                                 |
+| POST      | /api/vouchers/redeem        | Cashier | Redeem voucher                                                         |
+| GET       | /api/reservations           | Cashier | List reservations                                                      |
+| POST      | /api/reservations           | Cashier | Create reservation                                                     |
+| DELETE    | /api/reservations/{id}      | Cashier | Cancel reservation                                                     |
+| GET       | /api/staff                  | Admin   | List staff                                                             |
+| POST      | /api/staff                  | Admin   | Create staff member                                                    |
+| POST      | /api/shifts/open            | Cashier | Open shift                                                             |
+| POST      | /api/shifts/close           | Cashier | Close shift                                                            |
+| GET       | /api/shifts/{id}/report     | Admin   | Shift report                                                           |
+| POST      | /api/expenses               | Admin   | Log expense                                                            |
+| GET       | /api/expenses               | Admin   | List expenses                                                          |
+| GET       | /api/analytics/summary      | Admin   | Analytics dashboard data                                               |
+| GET       | /api/events                 | Admin   | List events                                                            |
+| POST      | /api/events                 | Admin   | Create event                                                           |
+| POST      | /api/events/{id}/register   | Cashier | Register participant                                                   |
+| PATCH     | /api/events/{id}/match      | Admin   | Record match result                                                    |
+| GET       | /api/settings               | Admin   | Get all settings + feature flags                                       |
+| PATCH     | /api/settings               | Admin   | Update settings/feature flags                                          |
+| POST      | /api/commands/{seat_id}     | Admin   | Send remote command to agent                                           |
+| GET       | /api/audit                  | Admin   | Paginated audit log                                                    |
+| WebSocket | /ws/dashboard               | Cashier | Dashboard real-time feed                                               |
+| WebSocket | /ws/agent/{seat_id}         | Agent   | Agent command channel                                                  |
+
+---
+
+## 5. Database Design
+
+### 5.1 ORM Models
+
+All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings). All timestamps are UTC. All monetary amounts are integers (paise).
+
+#### seats
+
+| Column      | Type        | Notes                                                     |
+| ----------- | ----------- | --------------------------------------------------------- |
+| id          | String PK   | UUID                                                      |
+| name        | String      | Display name (e.g., "PC-01")                              |
+| zone_id     | String FK   | → zones.id                                                |
+| mac_address | String      | Registered by agent on first connect                      |
+| status      | Enum        | AVAILABLE, IN_USE, RESERVED, PAUSED, MAINTENANCE, OFFLINE |
+| plug_id     | String NULL | Tuya plug ID for console seats                            |
+| is_console  | Boolean     | True for PS5/Xbox seats                                   |
+| notes       | String NULL | Maintenance note                                          |
+| created_at  | DateTime    |                                                           |
+| updated_at  | DateTime    |                                                           |
+
+#### zones
+
+| Column                | Type         | Notes                                      |
+| --------------------- | ------------ | ------------------------------------------ |
+| id                    | String PK    | UUID                                       |
+| name                  | String       | Standard PC, VIP PC, Console Corner, Other |
+| rate_per_minute_paise | Integer      | Base per-minute rate                       |
+| rate_per_hour_paise   | Integer      | Flat hourly rate                           |
+| pricing_model         | Enum         | PER_MINUTE, FLAT_HOURLY, TIME_BLOCK        |
+| block_minutes         | Integer NULL | Block size (e.g., 30) for TIME_BLOCK       |
+
+#### sessions
+
+| Column                 | Type              | Notes                                |
+| ---------------------- | ----------------- | ------------------------------------ |
+| id                     | String PK         | UUID                                 |
+| seat_id                | String FK         | → seats.id                           |
+| member_id              | String FK NULL    | → members.id                         |
+| shift_id               | String FK NULL    | → shifts.id                          |
+| status                 | Enum              | ACTIVE, PAUSED, COMPLETED, ABANDONED |
+| started_at             | DateTime UTC      |                                      |
+| ended_at               | DateTime UTC NULL |                                      |
+| paused_at              | DateTime UTC NULL |                                      |
+| total_paused_seconds   | Integer           | Accumulates across multiple pauses   |
+| locked_rate_paise      | Integer           | Rate per minute locked at start      |
+| locked_pricing_model   | Enum              | Locked at start                      |
+| package_entitlement_id | String FK NULL    | → member_package_entitlements.id     |
+| promotion_id           | String FK NULL    | → promotions.id                      |
+| discount_paise         | Integer           | 0 if no discount                     |
+| created_at             | DateTime UTC      |                                      |
+
+#### invoices
+
+| Column                    | Type           | Notes                       |
+| ------------------------- | -------------- | --------------------------- |
+| id                        | String PK      | UUID                        |
+| session_id                | String FK      | → sessions.id               |
+| member_id                 | String FK NULL |                             |
+| shift_id                  | String FK NULL |                             |
+| time_charge_paise         | Integer        |                             |
+| package_credit_used_paise | Integer        |                             |
+| discount_paise            | Integer        |                             |
+| pos_total_paise           | Integer        |                             |
+| total_paise               | Integer        |                             |
+| payment_method            | Enum           | CASH, CARD, WALLET, PACKAGE |
+| created_at                | DateTime UTC   |                             |
+
+#### invoice_line_items
+
+| Column           | Type      | Notes                                           |
+| ---------------- | --------- | ----------------------------------------------- |
+| id               | String PK | UUID                                            |
+| invoice_id       | String FK | → invoices.id                                   |
+| type             | Enum      | TIME_CHARGE, POS_ITEM, DISCOUNT, PACKAGE_CREDIT |
+| description      | String    | Human-readable label                            |
+| quantity         | Integer   |                                                 |
+| unit_price_paise | Integer   |                                                 |
+| total_paise      | Integer   |                                                 |
+
+#### members
+
+| Column               | Type          | Notes                         |
+| -------------------- | ------------- | ----------------------------- |
+| id                   | String PK     | UUID                          |
+| name                 | String        |                               |
+| phone                | String UNIQUE |                               |
+| wallet_balance_paise | Integer       | Default 0                     |
+| loyalty_points       | Integer       | Default 0                     |
+| tier                 | Enum          | BRONZE, SILVER, GOLD          |
+| birth_month          | Integer NULL  | 1–12, for birthday promotions |
+| total_visits         | Integer       | Default 0                     |
+| total_seconds_played | Integer       | Default 0                     |
+| created_at           | DateTime UTC  |                               |
+
+#### packages (types/products)
+
+| Column              | Type         | Notes                                      |
+| ------------------- | ------------ | ------------------------------------------ |
+| id                  | String PK    | UUID                                       |
+| name                | String       | e.g., "10-Hour Bundle"                     |
+| type                | Enum         | HOUR_BUNDLE, DAY_PASS, NIGHT_PASS, MONTHLY |
+| total_minutes       | Integer      |                                            |
+| price_paise         | Integer      |                                            |
+| valid_days          | Integer NULL | e.g., 30 for monthly                       |
+| zone_restriction_id | String NULL  | NULL = all zones                           |
+| is_active           | Boolean      |                                            |
+
+#### member_package_entitlements
+
+| Column            | Type          | Notes                      |
+| ----------------- | ------------- | -------------------------- |
+| id                | String PK     | UUID                       |
+| member_id         | String FK     | → members.id               |
+| package_id        | String FK     | → packages.id              |
+| remaining_minutes | Integer       |                            |
+| expires_at        | DateTime NULL |                            |
+| purchased_at      | DateTime UTC  |                            |
+| status            | Enum          | ACTIVE, EXHAUSTED, EXPIRED |
+
+#### promotions
+
+| Column              | Type          | Notes                                           |
+| ------------------- | ------------- | ----------------------------------------------- |
+| id                  | String PK     | UUID                                            |
+| name                | String        |                                                 |
+| type                | Enum          | HAPPY_HOUR, FLASH, FIRST_VISIT, GROUP, BIRTHDAY |
+| discount_type       | Enum          | PERCENTAGE, FIXED_PAISE, BONUS_MINUTES          |
+| discount_value      | Integer       | Percentage (0–100) or paise or minutes          |
+| active_days         | String NULL   | JSON: ["MON","TUE"] — NULL = all days           |
+| active_from_hour    | Integer NULL  | 0–23                                            |
+| active_to_hour      | Integer NULL  | 0–23                                            |
+| min_group_size      | Integer NULL  | For GROUP type                                  |
+| zone_restriction_id | String NULL   |                                                 |
+| is_active           | Boolean       |                                                 |
+| valid_from          | DateTime NULL |                                                 |
+| valid_until         | DateTime NULL |                                                 |
+
+#### vouchers
+
+| Column                | Type          | Notes                                |
+| --------------------- | ------------- | ------------------------------------ |
+| id                    | String PK     | UUID                                 |
+| code                  | String UNIQUE | Alphanumeric, 8–12 chars             |
+| value_paise           | Integer NULL  | Credit value                         |
+| value_minutes         | Integer NULL  | Time value                           |
+| status                | Enum          | UNUSED, REDEEMED, EXPIRED            |
+| redeemed_by_member_id | String NULL   |                                      |
+| redeemed_at           | DateTime NULL |                                      |
+| expires_at            | DateTime NULL |                                      |
+| batch_id              | String        | Groups codes from one generation run |
+| created_at            | DateTime UTC  |                                      |
+
+#### menu_items
+
+| Column              | Type         | Notes                            |
+| ------------------- | ------------ | -------------------------------- |
+| id                  | String PK    | UUID                             |
+| name                | String       |                                  |
+| category            | String NULL  | e.g., Drinks, Snacks             |
+| price_paise         | Integer      |                                  |
+| stock_quantity      | Integer NULL | NULL = not tracked               |
+| low_stock_threshold | Integer NULL |                                  |
+| is_available        | Boolean      | Auto-set to false when stock = 0 |
+
+#### session_pos_items
+
+| Column           | Type         | Notes                   |
+| ---------------- | ------------ | ----------------------- |
+| id               | String PK    | UUID                    |
+| session_id       | String FK    | → sessions.id           |
+| menu_item_id     | String FK    | → menu_items.id         |
+| quantity         | Integer      |                         |
+| unit_price_paise | Integer      | Locked at time of order |
+| added_at         | DateTime UTC |                         |
+
+#### reservations
+
+| Column               | Type          | Notes                                 |
+| -------------------- | ------------- | ------------------------------------- |
+| id                   | String PK     | UUID                                  |
+| seat_id              | String FK     | → seats.id                            |
+| customer_name        | String        |                                       |
+| member_id            | String NULL   |                                       |
+| reserved_from        | DateTime UTC  |                                       |
+| reserved_until       | DateTime NULL |                                       |
+| group_reservation_id | String NULL   | Groups linked reservations            |
+| status               | Enum          | PENDING, ACTIVE, COMPLETED, CANCELLED |
+| created_by_staff_id  | String FK     |                                       |
+| created_at           | DateTime UTC  |                                       |
+
+#### staff
+
+| Column          | Type          | Notes          |
+| --------------- | ------------- | -------------- |
+| id              | String PK     | UUID           |
+| name            | String        |                |
+| role            | Enum          | ADMIN, CASHIER |
+| pin_hash        | String        | bcrypt hash    |
+| failed_attempts | Integer       | Default 0      |
+| lockout_until   | DateTime NULL |                |
+| is_active       | Boolean       |                |
+
+#### shifts
+
+| Column             | Type          | Notes                 |
+| ------------------ | ------------- | --------------------- |
+| id                 | String PK     | UUID                  |
+| opened_by_staff_id | String FK     |                       |
+| closed_by_staff_id | String NULL   |                       |
+| opened_at          | DateTime UTC  |                       |
+| closed_at          | DateTime NULL |                       |
+| float_paise        | Integer       | Cash float at open    |
+| counted_paise      | Integer NULL  | Cash counted at close |
+| status             | Enum          | OPEN, CLOSED          |
+
+#### expenses
+
+| Column             | Type         | Notes                                                                     |
+| ------------------ | ------------ | ------------------------------------------------------------------------- |
+| id                 | String PK    | UUID                                                                      |
+| date               | Date         |                                                                           |
+| category           | Enum         | RENT, ELECTRICITY, INTERNET, RESTOCK, HARDWARE, MAINTENANCE, WAGES, OTHER |
+| amount_paise       | Integer      |                                                                           |
+| note               | String NULL  |                                                                           |
+| logged_by_staff_id | String FK    |                                                                           |
+| created_at         | DateTime UTC |                                                                           |
+
+#### events
+
+| Column           | Type         | Notes                                  |
+| ---------------- | ------------ | -------------------------------------- |
+| id               | String PK    | UUID                                   |
+| name             | String       |                                        |
+| game_title       | String       |                                        |
+| event_date       | DateTime UTC |                                        |
+| entry_fee_paise  | Integer      |                                        |
+| prize_pool_paise | Integer      |                                        |
+| bracket_type     | Enum         | SINGLE_ELIMINATION, DOUBLE_ELIMINATION |
+| status           | Enum         | UPCOMING, ACTIVE, COMPLETED            |
+
+#### event_participants
+
+| Column           | Type         | Notes                    |
+| ---------------- | ------------ | ------------------------ |
+| id               | String PK    | UUID                     |
+| event_id         | String FK    |                          |
+| member_id        | String NULL  |                          |
+| name             | String       | For walk-in participants |
+| seat_id          | String NULL  |                          |
+| bracket_position | Integer NULL |                          |
+| eliminated       | Boolean      |                          |
+
+#### audit_log
+
+| Column      | Type         | Notes                                                                                                                           |
+| ----------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| id          | String PK    | UUID                                                                                                                            |
+| timestamp   | DateTime UTC |                                                                                                                                 |
+| staff_id    | String FK    |                                                                                                                                 |
+| action      | Enum         | SESSION_START, SESSION_END, PAYMENT, WALLET_TOPUP, VOUCHER_GENERATED, VOUCHER_REDEEMED, SETTINGS_CHANGED, SCREENSHOT_TAKEN, ... |
+| entity_type | String       | "session", "member", "invoice", etc.                                                                                            |
+| entity_id   | String       |                                                                                                                                 |
+| detail      | String       | JSON blob of relevant fields                                                                                                    |
+
+#### settings
+
+| Column     | Type         | Notes                  |
+| ---------- | ------------ | ---------------------- |
+| key        | String PK    | e.g., "enable_members" |
+| value      | String       | JSON-encoded value     |
+| updated_at | DateTime UTC |                        |
+
+#### restock_log
+
+| Column             | Type         | Notes |
+| ------------------ | ------------ | ----- |
+| id                 | String PK    | UUID  |
+| menu_item_id       | String FK    |       |
+| quantity_added     | Integer      |       |
+| logged_by_staff_id | String FK    |       |
+| created_at         | DateTime UTC |       |
+
+#### license_status
+
+| Column           | Type         | Notes                                                  |
+| ---------------- | ------------ | ------------------------------------------------------ |
+| id               | String PK    | Always a fixed singleton value, e.g. `"current"`       |
+| cafe_name        | String       | From the verified license payload                      |
+| hardware_id      | String       | Hardware ID this license is bound to                   |
+| license_type     | Enum         | PERPETUAL, TRIAL                                       |
+| issue_date       | Date         |                                                        |
+| trial_expires_at | Date NULL    | Only set for TRIAL licenses                            |
+| last_verified_at | DateTime UTC | Updated each time the Launcher re-verifies the license |
+
+This table is a **read-only cache for display purposes** (FR-LIC-012), populated by the Launcher after a successful license check and surfaced at `GET /api/settings/license`. It is never the source of truth — that is always the signed `license.key` file plus the embedded public key, verified by the Launcher before the database or server process even start. A row existing here implies the corresponding `license.key` passed verification at last launch; it does not independently grant access.
+
+### 5.2 Indexes
+
+```sql
+-- Performance-critical indexes
+CREATE INDEX idx_sessions_seat_status ON sessions(seat_id, status);
+CREATE INDEX idx_sessions_shift ON sessions(shift_id);
+CREATE INDEX idx_sessions_member ON sessions(member_id);
+CREATE INDEX idx_invoices_session ON invoices(session_id);
+CREATE INDEX idx_audit_timestamp ON audit_log(timestamp);
+CREATE INDEX idx_audit_staff ON audit_log(staff_id);
+CREATE INDEX idx_members_phone ON members(phone);
+CREATE INDEX idx_reservations_seat_time ON reservations(seat_id, reserved_from);
+CREATE INDEX idx_entitlements_member_status ON member_package_entitlements(member_id, status);
+CREATE INDEX idx_vouchers_code ON vouchers(code);
+CREATE UNIQUE INDEX idx_vouchers_code_unique ON vouchers(code);
+```
+
+### 5.3 Database Configuration
+
+```python
+# backend/core/database.py
+engine = create_engine(
+    f"sqlite:///{db_path}",
+    connect_args={"check_same_thread": False},
+)
+
+# Enable WAL mode and performance pragmas on every connection
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_conn, _):
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA cache_size=-64000")   # 64MB cache
+    cursor.close()
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+```
+
+### 5.4 Migration Strategy
+
+All schema changes go through Alembic. No direct schema edits.
+
+```bash
+# Developer workflow for schema change:
+# 1. Edit the SQLAlchemy model in backend/models/
+# 2. Generate a migration:
+alembic revision --autogenerate -m "describe the change"
+# 3. Review the generated migration file in alembic/versions/
+# 4. Apply:
+alembic upgrade head
+# 5. Rollback if needed:
+alembic downgrade -1
+```
+
+Migrations run automatically on server startup via `alembic upgrade head` before the FastAPI app begins serving requests.
+
+---
+
+## 6. Frontend Design
+
+### 6.1 Technology Stack
+
+| Concern      | Tool                                                   |
+| ------------ | ------------------------------------------------------ |
+| Framework    | React 18 + TypeScript                                  |
+| Build        | Vite                                                   |
+| Styling      | TailwindCSS                                            |
+| Server state | React Query (TanStack Query)                           |
+| WebSocket    | Custom hook (`useWebSocket`) wrapping native WebSocket |
+| Charts       | Recharts                                               |
+| Routing      | React Router v6                                        |
+
+### 6.2 Application Structure
+
+```
+frontend/src/
+├── pages/            # One file per route
+├── components/       # Reusable UI components
+├── hooks/            # Custom React hooks
+├── api/              # React Query query/mutation functions
+├── store/            # Zustand or Context stores (auth, feature flags)
+└── utils/
+    ├── currency.ts   # paise → "Rs. X.XX" formatting
+    └── time.ts       # seconds → "HH:MM:SS" formatting
+```
+
+### 6.3 Key Pages and Components
+
+#### Dashboard Page (`pages/Dashboard.tsx`)
+
+- Renders `<SeatGrid>` — full grid of `<SeatCard>` components
+- Subscribes to `ws:seat_updated` events to update seat state
+- Seat card colour coding:
+
+| Status      | Colour |
+| ----------- | ------ |
+| AVAILABLE   | Green  |
+| IN_USE      | Blue   |
+| RESERVED    | Yellow |
+| PAUSED      | Orange |
+| MAINTENANCE | Red    |
+| OFFLINE     | Grey   |
+
+#### SeatCard Component (`components/SeatCard.tsx`)
+
+- Displays: seat name, zone badge, status indicator, elapsed time (live), health badge (if `enable_health_monitoring` ON)
+- Click actions vary by status:
+  - AVAILABLE → Start Session modal
+  - IN_USE → Session Detail panel (POS, Checkout, Commands)
+  - RESERVED → Start Session or Cancel Reservation
+  - MAINTENANCE → Clear Maintenance modal (Admin only)
+
+#### Checkout Panel (`components/CheckoutPanel.tsx`)
+
+- Displays invoice preview with live-computed time charge
+- POS item list with quantities
+- Package credit deduction (if applicable)
+- Promotion discount line
+- Total line
+- Payment method selector
+- Confirm Checkout button → `POST /api/sessions/{id}/checkout`
+
+### 6.4 State Management
+
+**React Query** manages all server state (seats, sessions, members, packages). It handles caching, background refetching, and optimistic updates.
+
+**WebSocket events** trigger React Query cache invalidations:
+
+```typescript
+// hooks/useWebSocket.ts
+ws.on("seat_updated", (payload) => {
+  queryClient.setQueryData(["seats", payload.seat_id], payload);
+});
+ws.on("health_update", (payload) => {
+  queryClient.setQueryData(["health", payload.seat_id], payload);
+});
+ws.on("announcement", (payload) => {
+  showAnnouncementBanner(payload.message);
+});
+```
+
+**Auth store** (Zustand or Context): holds the staff token, role, and current shift ID. Token is stored in memory only (not localStorage) and lost on page refresh — re-login required.
+
+**Feature flags** are fetched once at login and stored in context. Components conditionally render based on flag state:
+
+```typescript
+const { flags } = useFeatureFlags()
+{flags.enable_pos && <POSPanel sessionId={session.id} />}
+```
+
+### 6.5 Currency Display
+
+All API responses carry paise integers. Display conversion occurs only in the UI:
+
+```typescript
+// utils/currency.ts
+export const formatCurrency = (paise: number): string => {
+  const rupees = paise / 100;
+  return `Rs. ${rupees.toFixed(2)}`;
+};
+```
+
+### 6.6 Mobile Responsive Layout
+
+The dashboard uses TailwindCSS responsive utilities. On mobile (`sm:` breakpoint and below):
+
+- The seat grid collapses to a single-column scrollable list
+- The analytics sidebar is hidden behind a tab
+- All interactive controls are touch-friendly (min 44px tap targets)
+
+The owner mobile view is the same React app — no separate codebase. Feature flags suppress admin-only controls automatically.
+
+---
+
+## 7. Electron Agent Design
+
+### 7.1 Process Architecture
+
+The Electron agent uses standard main/renderer process separation:
+
+```
+┌─────────────────────────────────────┐
+│          Main Process (Node.js)     │
+│  ├── ws/client.ts  (WS to server)   │
+│  ├── health/collector.ts            │
+│  ├── ipc/handlers.ts                │
+│  └── tray.ts                        │
+│           ↕ IPC (contextBridge)     │
+│  ┌──────────────────────────────┐   │
+│  │     Renderer Process (React) │   │
+│  │  ├── SplashScreen.tsx        │   │
+│  │  ├── CountdownOverlay.tsx    │   │
+│  │  └── Announcement.tsx        │   │
+│  └──────────────────────────────┘   │
+└─────────────────────────────────────┘
+```
+
+### 7.2 Startup Sequence
+
+```
+1. Agent process starts (Windows Startup)
+2. Read server config from agent.config.json (SERVER_URL)
+3. Connect WebSocket to ws://{SERVER_URL}/ws/agent/{mac_address}
+4. On connection:
+   a. Send REGISTER message: { mac_address, hostname, hardware_specs }
+   b. Server responds with { seat_id, status }
+5. Begin health metric collection loop (every 60s)
+6. Show system tray icon (grey = no session)
+7. Listen for commands from server
+```
+
+### 7.3 Session Start Sequence (Agent Side)
+
+```
+Server sends: { command: "UNLOCK", session: { id, duration_minutes?, started_at } }
+
+Agent:
+1. Receive UNLOCK command
+2. Cache session locally: { session_id, started_at, duration_minutes }
+3. Unlock Windows desktop (simulate key press or use Win32 API)
+4. Show SplashScreen (5 seconds): cafe logo, session info, menu, Call Staff button
+5. After 5s: minimize splash, show tray icon (green, shows elapsed time)
+6. Start local countdown timer
+7. At 5 minutes remaining: show CountdownOverlay with warning
+```
+
+### 7.4 LAN Resilience
+
+If the WebSocket connection to the server drops mid-session:
+
+```typescript
+// ws/client.ts
+onDisconnect():
+  1. Log disconnect time
+  2. Continue local timer from cached started_at
+  3. Begin reconnection loop with exponential backoff:
+     Attempt 1: wait 2s, Attempt 2: wait 4s, ... cap at 60s + random jitter
+  4. On reconnect: send SYNC message:
+     { session_id, local_elapsed_seconds, disconnect_at, reconnect_at }
+  5. Server reconciles and corrects its record if needed
+```
+
+### 7.5 Health Metrics Collection
+
+```typescript
+// health/collector.ts  (using systeminformation library)
+setInterval(async () => {
+  const cpu = await si.currentLoad();
+  const mem = await si.mem();
+  const temp = await si.cpuTemperature();
+  const disk = await si.fsSize();
+
+  ws.send({
+    type: "HEALTH_METRICS",
+    seat_id: registeredSeatId,
+    cpu_percent: cpu.currentLoad,
+    ram_percent: (mem.used / mem.total) * 100,
+    cpu_temp_celsius: temp.main,
+    disk_free_gb: disk[0].available / 1e9,
+    collected_at: new Date().toISOString(),
+  });
+}, 60_000);
+```
+
+### 7.6 Remote Commands
+
+| Command      | Agent Action                                                             |
+| ------------ | ------------------------------------------------------------------------ |
+| `UNLOCK`     | Unlock Windows desktop, show splash                                      |
+| `LOCK`       | Lock Windows desktop (`rundll32.exe user32.dll,LockWorkStation`)         |
+| `RESTART`    | Execute `shutdown /r /t 10` with 10s countdown                           |
+| `SHUTDOWN`   | Execute `shutdown /s /t 10`                                              |
+| `MESSAGE`    | Show `<Announcement>` overlay on renderer with message text and duration |
+| `SCREENSHOT` | Capture screen via `screenshot-desktop`, send base64 PNG back to server  |
+
+### 7.7 Agent Configuration File
+
+```json
+{
+  "server_url": "ws://192.168.1.100:8000",
+  "reconnect_max_seconds": 60,
+  "health_interval_seconds": 60
+}
+```
+
+`agent.config.json` is bundled with the agent distributable. The `server_url` must be set before distribution to each PC.
+
+---
+
+## 8. Launcher Design
+
+### 8.1 Responsibilities
+
+The Launcher (`launcher.py`) is the only entry point for starting the Arcade server on the counter PC. It is a Tkinter GUI that:
+
+1. On every start, runs the license check (see §16) before anything else
+2. If the license check fails: shows the License Activation screen and stops here
+3. If the license check passes and `arcade.config.json` does not exist: runs the setup wizard
+4. If the license check passes and `arcade.config.json` exists: starts the FastAPI server as a subprocess
+5. Displays live server logs in a scrollable text area
+6. Shows a status indicator (Activation Required / Starting / Running / Stopped / Error)
+7. Provides Start/Stop buttons (enabled only once licensed)
+
+### 8.2 Launcher Startup Flow
+
+```
+Launcher starts
+  │
+  ▼
+licensing.verify.check_license()   ← see §16.3
+  │
+  ├── FAIL (no license.key / bad signature / hardware mismatch / expired trial)
+  │     │
+  │     ▼
+  │   Show License Activation screen (§16.4)
+  │   Block setup wizard and server start until license check passes
+  │
+  └── PASS
+        │
+        ▼
+      arcade.config.json exists?
+        │
+        ├── NO  → Run setup wizard (§8.3)
+        └── YES → Start FastAPI server subprocess (§8.4)
+```
+
+This ordering means the license check is a precondition for _every_ launch, not just the first — re-running the Launcher with a removed or corrupted `license.key` always re-enters the Activation screen rather than starting the server (FR-SYS-008, FR-LIC-013).
+
+### 8.3 Setup Wizard Flow
+
+```
+Step 1: Welcome screen
+Step 2: Enter cafe name
+Step 3: Enter server IP (auto-detects local IP as default) + port (default: 8000)
+Step 4: Set Admin PIN (4–6 digits, enter twice)
+Step 5: Set Cashier PIN (4–6 digits, enter twice)
+Step 6: Confirm and save → writes arcade.config.json
+Step 7: Offer to start the server immediately
+```
+
+The setup wizard is only reachable after §8.2's license check passes (FR-SYS-001).
+
+### 8.4 Server Process Management
+
+```python
+# launcher.py (simplified)
+proc = subprocess.Popen(
+    ["uvicorn", "backend.main:app", "--host", host, "--port", str(port)],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    text=True
+)
+
+# Stream output to Tkinter text widget in a background thread
+threading.Thread(target=stream_logs, args=(proc, log_widget), daemon=True).start()
+```
+
+On Stop: sends `SIGTERM` to the subprocess, waits up to 10 seconds for graceful shutdown, then `SIGKILL` if needed.
+
+---
+
+## 9. Real-time Communication Design
+
+### 9.1 WebSocket Endpoints
+
+| Endpoint              | Clients          | Direction       | Events                                                         |
+| --------------------- | ---------------- | --------------- | -------------------------------------------------------------- |
+| `/ws/dashboard`       | React dashboards | Server → Client | `seat_updated`, `health_update`, `announcement`, `alert`       |
+| `/ws/agent/{seat_id}` | Electron agents  | Bidirectional   | Server → Agent: commands. Agent → Server: health metrics, sync |
+
+### 9.2 Message Envelope
+
+All WebSocket messages use a standard JSON envelope:
+
+```json
+{
+  "type": "EVENT_TYPE",
+  "payload": { ... },
+  "timestamp": "2026-06-01T10:00:00Z"
+}
+```
+
+### 9.3 Event Catalogue
+
+**Server → Dashboard:**
+
+| Event           | Payload                             | Trigger                              |
+| --------------- | ----------------------------------- | ------------------------------------ |
+| `seat_updated`  | Full seat object                    | Any seat status change               |
+| `health_update` | `{ seat_id, cpu, ram, temp, disk }` | Agent health report received         |
+| `announcement`  | `{ message, duration_seconds }`     | Staff sends announcement             |
+| `alert`         | `{ type, seat_id, message }`        | Health threshold exceeded, low stock |
+
+**Server → Agent:**
+
+| Event        | Payload                                         |
+| ------------ | ----------------------------------------------- |
+| `UNLOCK`     | `{ session_id, started_at, duration_minutes? }` |
+| `LOCK`       | `{ session_id }`                                |
+| `RESTART`    | `{ delay_seconds: 10 }`                         |
+| `SHUTDOWN`   | `{ delay_seconds: 10 }`                         |
+| `MESSAGE`    | `{ text, duration_seconds }`                    |
+| `SCREENSHOT` | `{}`                                            |
+
+**Agent → Server:**
+
+| Event               | Payload                                                                      |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `REGISTER`          | `{ mac_address, hostname, cpu_model, ram_gb, os_version }`                   |
+| `HEALTH_METRICS`    | `{ cpu_percent, ram_percent, cpu_temp_celsius, disk_free_gb, collected_at }` |
+| `SYNC`              | `{ session_id, local_elapsed_seconds, disconnect_at, reconnect_at }`         |
+| `SCREENSHOT_RESULT` | `{ seat_id, image_base64, captured_at }`                                     |
+
+### 9.4 Connection Lifecycle
+
+```
+Agent connects to /ws/agent/{mac}
+  └── Server registers in agent_connections[seat_id]
+  └── Server marks seat as ONLINE (if was OFFLINE)
+  └── Server broadcasts seat_updated to dashboards
+
+Agent disconnects
+  └── Server detects via missed heartbeat (30s timeout)
+  └── Server marks seat as OFFLINE
+  └── Server broadcasts seat_updated to dashboards
+  └── Server removes from agent_connections
+
+Agent reconnects
+  └── Resume from step 1
+  └── If session was active: server re-sends current UNLOCK state
+```
+
+### 9.5 Heartbeat Design
+
+```python
+# core/ws_manager.py
+HEARTBEAT_INTERVAL = 30  # seconds
+HEARTBEAT_TIMEOUT = 10   # seconds to wait for pong
+
+async def heartbeat_loop():
+    while True:
+        await asyncio.sleep(HEARTBEAT_INTERVAL)
+        for seat_id, ws in list(agent_connections.items()):
+            try:
+                await ws.send_json({"type": "PING"})
+                # Expect PONG within 10s (enforced by receive timeout)
+            except Exception:
+                await unregister_agent(seat_id)
+```
+
+---
+
+## 10. Billing Engine Design
+
+### 10.1 Overview
+
+The billing engine is implemented entirely in `backend/services/billing_service.py`. It performs two operations:
+
+1. **`resolve_rate(seat, member, now)`** — called at session start to determine and lock the applicable rate
+2. **`calculate_invoice(session, pos_items)`** — called at checkout to compute the final invoice
+
+All arithmetic is integer arithmetic in paise throughout.
+
+### 10.2 Rate Resolution (`resolve_rate`)
+
+```
+resolve_rate(seat, member, now) → LockedRate
+
+1. Load zone for seat → base rate (per_minute_paise or per_hour_paise)
+2. Check peak/off-peak schedule for current time and day:
+   - If peak schedule matches → use peak_rate
+   - Else → use standard rate
+3. Check device-type override:
+   - Console seat → use console_rate if configured
+4. Result so far: effective_rate_paise (per minute)
+
+5. Check active promotions (ordered by priority):
+   - HAPPY_HOUR: active_from_hour ≤ now.hour < active_to_hour and today in active_days
+   - FLASH: valid_from ≤ now ≤ valid_until and matches zone
+   - FIRST_VISIT: member.total_visits == 0
+   - BIRTHDAY: member.birth_month == now.month
+   - GROUP: session is part of group start with ≥ min_group_size seats
+   → Select highest-value applicable promotion (one only)
+
+6. Return LockedRate:
+   {
+     rate_paise: int,              # per-minute rate after peak/device adjustment
+     pricing_model: Enum,          # PER_MINUTE | FLAT_HOURLY | TIME_BLOCK
+     block_minutes: int | None,    # for TIME_BLOCK
+     promotion_id: str | None,
+     discount_type: Enum | None,   # PERCENTAGE | FIXED_PAISE | BONUS_MINUTES
+     discount_value: int | None,
+   }
+```
+
+### 10.3 Invoice Calculation (`calculate_invoice`)
+
+```
+calculate_invoice(session, pos_items) → InvoiceLineItems
+
+1. Compute billable_seconds:
+   elapsed = (now - session.started_at).total_seconds()
+   billable_seconds = elapsed - session.total_paused_seconds
+
+2. Compute raw_time_charge based on pricing_model:
+   PER_MINUTE:
+     minutes = ceil(billable_seconds / 60)
+     raw_time_charge = minutes × session.locked_rate_paise
+
+   FLAT_HOURLY:
+     hours = ceil(billable_seconds / 3600)
+     raw_time_charge = hours × session.locked_rate_paise × 60
+
+   TIME_BLOCK:
+     blocks = ceil(billable_seconds / (session.block_minutes × 60))
+     raw_time_charge = blocks × session.locked_rate_paise × session.block_minutes
+
+3. Apply package entitlement (if linked):
+   package = load active entitlement
+   package_minutes_available = min(package.remaining_minutes, ceil(billable_seconds/60))
+   package_credit_paise = package_minutes_available × session.locked_rate_paise
+   overflow_minutes = ceil(billable_seconds/60) - package_minutes_available
+   time_charge_after_package = overflow_minutes × session.locked_rate_paise
+   # Deduct from package: package.remaining_minutes -= package_minutes_available
+
+4. Apply promotion discount (if linked):
+   if discount_type == PERCENTAGE:
+     discount_paise = (time_charge_after_package × discount_value) // 100
+   elif discount_type == FIXED_PAISE:
+     discount_paise = min(discount_value, time_charge_after_package)
+   elif discount_type == BONUS_MINUTES:
+     bonus_credit = discount_value × session.locked_rate_paise
+     discount_paise = min(bonus_credit, time_charge_after_package)
+   time_charge_final = time_charge_after_package - discount_paise
+
+5. Apply member tier discount (if member):
+   tier_discount_pct = { BRONZE: 0, SILVER: 5, GOLD: 10 }[member.tier]
+   member_discount = (time_charge_final × tier_discount_pct) // 100
+   time_charge_final -= member_discount
+
+6. Compute POS total:
+   pos_total_paise = sum(item.unit_price_paise × item.quantity for item in pos_items)
+
+7. Return InvoiceLineItems:
+   {
+     time_charge_paise: time_charge_final,
+     package_credit_used_paise: package_credit_paise,
+     discount_paise: discount_paise + member_discount,
+     pos_items: [...],
+     pos_total_paise: pos_total_paise,
+     total_paise: time_charge_final + pos_total_paise
+   }
+```
+
+### 10.4 Billing Precision Rules
+
+- All intermediate values remain integers in paise
+- `ceil()` (not `floor()` or `round()`) is used for minutes and blocks — the customer is billed for any started unit
+- Division that would produce a fraction is deferred until the final step using integer `//`
+- The total is always: `time_charge_final + pos_total_paise` — never recomputed from parts after storage
+
+---
+
+## 11. Security Design
+
+### 11.1 Authentication Flow
+
+```
+Staff enters PIN on dashboard login screen
+  │
+  ▼
+POST /api/auth/login { pin: "1234" }
+  │
+  ├── Load all active staff records
+  ├── For each: bcrypt.checkpw(pin, staff.pin_hash)
+  ├── If match found:
+  │   ├── Reset failed_attempts to 0
+  │   ├── Generate JWT: { staff_id, role, shift_id, exp: now+8h }
+  │   └── Return { token, role, staff_name }
+  └── If no match:
+      ├── Increment failed_attempts for all staff (or track per-PIN attempt)
+      ├── If failed_attempts >= 5:
+      │   └── Set lockout_until = now + 60 seconds
+      └── Return 401
+```
+
+### 11.2 Token Validation
+
+Every protected endpoint uses a FastAPI dependency:
+
+```python
+# api/deps.py
+async def get_current_staff(token: str = Header(...), db: Session = Depends(get_db)):
+    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    staff = staff_repo.get_by_id(db, payload["staff_id"])
+    if not staff or not staff.is_active:
+        raise HTTPException(401)
+    return staff
+
+async def require_admin(staff = Depends(get_current_staff)):
+    if staff.role != Role.ADMIN:
+        raise HTTPException(403)
+    return staff
+```
+
+### 11.3 PIN Storage
+
+```python
+# core/security.py
+import bcrypt
+
+def hash_pin(pin: str) -> str:
+    return bcrypt.hashpw(pin.encode(), bcrypt.gensalt()).decode()
+
+def verify_pin(pin: str, hashed: str) -> bool:
+    return bcrypt.checkpw(pin.encode(), hashed.encode())
+```
+
+PINs are never logged, never returned in API responses, and stored only as bcrypt hashes.
+
+### 11.4 Agent Authentication
+
+Agent WebSocket connections are authenticated by MAC address + a pre-shared token embedded in `agent.config.json`. The server validates the token on the initial `REGISTER` message and rejects connections with invalid tokens.
+
+### 11.5 Screenshot Security
+
+- Screenshot command is `ADMIN` role only (enforced at API layer)
+- Screenshot images are transmitted over the local WebSocket connection only
+- Images are NOT persisted to disk — returned in-memory to the requesting dashboard session only
+- Each screenshot request is logged in the audit log with: staff ID, seat ID, timestamp
+
+### 11.6 Audit Log Immutability
+
+The audit log table has no `UPDATE` or `DELETE` grants at the application level. The repository layer exposes only `create` and `list` methods — no `update` or `delete`. This is enforced in code, not at the SQLite level (SQLite does not support column-level grants).
+
+---
+
+## 12. Integration Design
+
+### 12.1 Wake-on-LAN
+
+```python
+# services/wol_service.py
+import socket
+import struct
+
+def send_magic_packet(mac_address: str, broadcast: str = "255.255.255.255", port: int = 9):
+    mac_bytes = bytes.fromhex(mac_address.replace(":", "").replace("-", ""))
+    magic_packet = b'\xff' * 6 + mac_bytes * 16
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.sendto(magic_packet, (broadcast, port))
+
+def boot_all_seats(db):
+    seats = seat_repo.list_with_mac(db)
+    for seat in seats:
+        if seat.mac_address:
+            send_magic_packet(seat.mac_address)
+```
+
+Called on server startup and available as an individual action from the dashboard.
+
+### 12.2 Tuya Smart Plug Integration
+
+```python
+# services/tuya_service.py
+# Uses tinytuya library or direct Tuya Cloud REST API
+
+class TuyaService:
+    def __init__(self, access_key, secret_key, region):
+        self.client = TuyaCloudClient(access_key, secret_key, region)
+
+    def power_on(self, device_id: str):
+        self.client.send_command(device_id, [{"code": "switch_1", "value": True}])
+
+    def power_off(self, device_id: str):
+        self.client.send_command(device_id, [{"code": "switch_1", "value": False}])
+```
+
+Tuya calls are made asynchronously and do not block session operations. Failures are logged but do not prevent the session from proceeding. Tuya credentials (access_key, secret_key, region) are stored in Settings.
+
+### 12.3 Thermal Printing
+
+```python
+# services/print_service.py
+from escpos.printer import Usb, Network
+
+def print_receipt(invoice: InvoiceResponse, printer_config: dict):
+    p = get_printer(printer_config)   # USB or Network based on config
+
+    p.set(align="center", text_type="B", width=2, height=2)
+    p.text(f"{cafe_name}\n")
+    p.set(align="left", text_type="NORMAL", width=1, height=1)
+    p.text(f"Seat: {invoice.seat_name}\n")
+    p.text(f"Date: {invoice.created_at}\n")
+    p.text(f"Duration: {format_duration(invoice.duration_seconds)}\n")
+    p.text("-" * 32 + "\n")
+
+    for item in invoice.pos_items:
+        p.text(f"{item.name} x{item.quantity}  {format_currency(item.total_paise)}\n")
+
+    p.text("-" * 32 + "\n")
+    p.text(f"Time charge:  {format_currency(invoice.time_charge_paise)}\n")
+    if invoice.discount_paise > 0:
+        p.text(f"Discount:    -{format_currency(invoice.discount_paise)}\n")
+    p.set(text_type="B")
+    p.text(f"TOTAL:        {format_currency(invoice.total_paise)}\n")
+    p.set(text_type="NORMAL")
+    p.text(f"Paid by: {invoice.payment_method}\n")
+    p.cut()
+```
+
+PDF fallback: the dashboard exposes a `/api/invoices/{id}/pdf` endpoint that returns a browser-printable HTML receipt. Staff trigger `window.print()` for PDF or paper output.
+
+### 12.4 Nightly Backup
+
+```python
+# services/backup_service.py
+import schedule, shutil, os
+from datetime import datetime
+
+def run_backup(db_path: str, backup_dir: str, retain_days: int = 7):
+    os.makedirs(backup_dir, exist_ok=True)
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    dest = os.path.join(backup_dir, f"arcade_{timestamp}.db")
+    shutil.copy2(db_path, dest)
+    # Prune old backups
+    backups = sorted(Path(backup_dir).glob("arcade_*.db"))
+    for old in backups[:-retain_days]:
+        old.unlink()
+
+# Scheduled at server startup
+schedule.every().day.at("03:00").do(run_backup, ...)
+```
+
+---
+
+## 13. Error Handling and Resilience
+
+### 13.1 HTTP Error Responses
+
+All errors return a standard JSON envelope:
+
+```json
+{
+  "error": "SESSION_CONFLICT",
+  "message": "Seat PC-04 already has an active session.",
+  "detail": { "seat_id": "abc123", "session_id": "xyz789" }
+}
+```
+
+Standard error codes used across routers:
+
+| Code                   | HTTP | Meaning                                           |
+| ---------------------- | ---- | ------------------------------------------------- |
+| `SEAT_UNAVAILABLE`     | 409  | Seat is not in AVAILABLE status                   |
+| `SESSION_NOT_FOUND`    | 404  | Session ID does not exist                         |
+| `MEMBER_NOT_FOUND`     | 404  | Member ID does not exist                          |
+| `FEATURE_DISABLED`     | 503  | Feature flag is OFF                               |
+| `INSUFFICIENT_BALANCE` | 402  | Wallet has insufficient funds                     |
+| `VOUCHER_INVALID`      | 400  | Code not found, already used, or expired          |
+| `AUTH_FAILED`          | 401  | Wrong PIN                                         |
+| `AUTH_LOCKED`          | 423  | Too many failed attempts                          |
+| `FORBIDDEN`            | 403  | Role does not have permission                     |
+| `AGENT_OFFLINE`        | 503  | Agent not connected — command cannot be delivered |
+
+### 13.2 LAN Interruption Handling
+
+| Scenario                    | Server Behaviour                                                                                            | Agent Behaviour                                               |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Agent drops mid-session     | Marks seat OFFLINE after heartbeat timeout. Session stays ACTIVE in DB.                                     | Keeps local timer. Begins reconnect loop with backoff.        |
+| Agent reconnects            | Receives SYNC message. Reconciles elapsed time. Sends current session state to agent.                       | Sends SYNC with local elapsed time. Resumes normal operation. |
+| Server restarts mid-session | On restart, all sessions in ACTIVE or PAUSED state in DB are reconciled when agents reconnect.              | Agent reconnects, sends SYNC.                                 |
+| Tuya API unavailable        | Console session starts/ends normally. Tuya failure logged as WARNING. Staff manually power-cycles the plug. | N/A                                                           |
+
+### 13.3 Feature Flag Middleware
+
+```python
+# services base pattern
+def ensure_feature_enabled(flag_name: str, flags: FeatureFlags):
+    if not getattr(flags, flag_name):
+        raise HTTPException(
+            status_code=503,
+            detail={"error": "FEATURE_DISABLED", "flag": flag_name}
+        )
+```
+
+All service methods that handle optional features call this check first. Existing data is preserved — the flag gates the UI and API, not the stored records.
+
+### 13.4 Graceful Shutdown
+
+```python
+# backend/main.py
+@app.on_event("shutdown")
+async def shutdown_event():
+    # 1. Stop accepting new WebSocket connections
+    # 2. Notify all connected agents: server shutting down
+    # 3. Close all WebSocket connections cleanly
+    # 4. Flush any pending audit log writes
+    # 5. Close SQLAlchemy connection pool
+```
+
+The Launcher sends `SIGTERM` and waits up to 10 seconds for the process to exit before forcing termination.
+
+---
+
+## 14. Configuration Design
+
+### 14.1 File-based Config (`arcade.config.json`)
+
+Created by the setup wizard. Read-only at runtime — changes require re-running the wizard or manual edit followed by server restart.
+
+Note: `license.key` is a separate file from `arcade.config.json`, checked earlier in the boot sequence and owned by the licensing subsystem (§16), not by `core.config`. It exists before the wizard ever runs and is never written to or parsed by the FastAPI application itself — only by the Launcher.
+
+```json
+{
+  "cafe_name": "Arcade",
+  "host": "192.168.1.100",
+  "port": 8000,
+  "db_path": "arcade.db",
+  "backup_dir": "backups/",
+  "backup_retain_days": 7,
+  "backup_time": "03:00",
+  "admin_pin": "<bcrypt_hash>",
+  "cashier_pin": "<bcrypt_hash>",
+  "tuya_access_key": "",
+  "tuya_secret_key": "",
+  "tuya_region": "us",
+  "printer_type": "usb",
+  "printer_usb_vendor": "0x04b8",
+  "printer_usb_product": "0x0202",
+  "jwt_secret": "<random_256bit_hex>"
+}
+```
+
+### 14.2 Database-stored Settings
+
+All operational settings (pricing, feature flags, menu, zones, promotions) are stored in the `settings` table and editable from the dashboard Settings page without a server restart.
+
+```
+Key                          → Value (JSON)
+---------------------------------------------------------------------------
+enable_members               → true
+enable_packages              → true
+enable_pos                   → true
+enable_inventory             → false
+enable_reservations          → true
+enable_vouchers              → false
+enable_tournaments           → false
+enable_expense_tracking      → false
+enable_health_monitoring     → true
+require_member_for_session   → false
+loyalty_silver_threshold_pts → 500
+loyalty_gold_threshold_pts   → 2000
+loyalty_silver_discount_pct  → 5
+loyalty_gold_discount_pct    → 10
+low_time_warning_minutes     → 5
+```
+
+### 14.3 Feature Flag Loading
+
+Feature flags are loaded from the database at startup and cached in memory. The `GET /api/settings` endpoint returns the current flag state. The `PATCH /api/settings` endpoint updates flags and reloads the in-memory cache.
+
+---
+
+## 15. Deployment Design
+
+### 15.1 Server Deployment (Counter PC)
+
+```
+Prerequisite: Python 3.11+, Node.js 20+, Git
+
+1. git clone https://github.com/neurotech/arcade-cafe.git
+2. pip install -r requirements.txt
+3. cd frontend && npm install && npm run build && cd ..
+4. python launcher.py     # Shows License Activation screen on first launch;
+                           # runs setup wizard once activated
+5. Add launcher.py shortcut to Windows Startup folder
+   (or register via Task Scheduler for pre-login startup)
+```
+
+The frontend is built to `frontend/dist/` and served as static files by the FastAPI app at `/`. No separate web server is needed.
+
+### 15.2 Client Agent Deployment
+
+```
+On development machine:
+1. cd agent && npm install && npm run build
+   → Produces agent/dist/ (Electron distributable)
+
+Per client PC:
+1. Copy agent/dist/ to the client PC (USB, network share, or mapped drive)
+2. Run the installer (or extract the distributable)
+3. Edit agent.config.json: set server_url to the counter PC's IP:port
+4. Copy the agent shortcut to:
+   C:\Users\<User>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+```
+
+### 15.3 Network Requirements
+
+| Requirement     | Detail                                                                                                                                               |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server PC       | Static local IP (e.g., 192.168.1.100) — set via router DHCP reservation                                                                              |
+| Client PCs      | Wired ethernet, Wake-on-LAN enabled in BIOS                                                                                                          |
+| Firewall        | Open TCP port 8000 on server PC for inbound LAN connections                                                                                          |
+| UDP broadcast   | Port 9 open for Wake-on-LAN magic packets                                                                                                            |
+| Internet access | Required for Tuya API only. License activation and ongoing verification are fully offline (see §16) — no internet needed for licensing at any point. |
+
+### 15.4 First-run Checklist
+
+- [ ] Hardware ID generated and sent to Neurotech Biratnagar; `license.key` received and placed in the app folder
+- [ ] License Activation screen confirms a valid, matching license
+- [ ] Setup wizard completed — `arcade.config.json` created
+- [ ] Frontend built — `frontend/dist/` populated
+- [ ] Server starts and `/health` returns 200
+- [ ] At least one zone configured in Settings
+- [ ] At least one seat registered (agent connects and registers MAC)
+- [ ] Thermal printer connected and tested (or PDF fallback confirmed)
+- [ ] Tuya credentials entered (if consoles present)
+- [ ] Feature flags configured for this cafe's needs
+- [ ] Admin PIN and Cashier PIN tested
+- [ ] Launcher shortcut added to server Startup folder
+- [ ] Agent added to Startup folder on all client PCs
+
+---
+
+## 16. Licensing and Activation Design
+
+This section details the design referenced from §8 (Launcher) and satisfies FR-LIC-001 through FR-LIC-013 in the SRS. It is a self-contained subsystem: the rest of the application (backend, frontend, agent) has no awareness of licensing beyond reading the cached `license_status` row for display (§5.1) and exposing it at `GET /api/settings/license`.
+
+### 16.1 Design Goals
+
+- **Zero ongoing network dependency.** Verification must work forever with no internet, no server, no phone-home call — consistent with Arcade's core "owns the box" positioning.
+- **Hard to forge, easy to verify.** Asymmetric cryptography means anyone can verify a license (they have the public key, embedded in the binary) but only Neurotech Biratnagar can issue one (they alone hold the private key).
+- **Hard to casually copy.** Binding to a Hardware ID means a `license.key` copied to a different PC fails verification, without requiring a server-side seat-tracking system.
+- **Fails safe, not silent.** An invalid, missing, or mismatched license blocks the setup wizard and server start cleanly — it never partially starts the system or corrupts existing data.
+
+### 16.2 Cryptographic Scheme
+
+Arcade uses **Ed25519** (RFC 8032) for license signing and verification:
+
+- One Ed25519 keypair exists for the entire product line, generated once and stored only on Neurotech Biratnagar's internal keygen machine.
+- The **private key** (`tools/keygen/private_key.pem`) signs every issued license. It is never committed to the `arcade-cafe` repository, never bundled into any build artifact, and never present on a customer's machine.
+- The **public key** is a hardcoded constant in `backend/licensing/public_key.py`, compiled into every distributed copy of Arcade. It can verify signatures but cannot create them.
+
+```python
+# backend/licensing/public_key.py
+# Public key only. Never add a private key to this file or this repository.
+ARCADE_PUBLIC_KEY_HEX = "c9a1...<32-byte Ed25519 public key, hex-encoded>...4f3e"
+```
+
+### 16.3 Hardware Fingerprinting
+
+```python
+# backend/licensing/fingerprint.py
+import hashlib
+import subprocess
+
+def get_hardware_id() -> str:
+    """
+    Combines several stable Windows machine identifiers so that no single
+    blank/duplicated field (common on cheap OEM boards) breaks fingerprinting.
+    """
+    motherboard_serial = _wmic("baseboard", "serialnumber")
+    disk_serial        = _wmic("diskdrive", "serialnumber", index=0)
+    machine_guid        = _registry_machine_guid()  # HKLM\...\Cryptography\MachineGuid
+
+    raw = f"{motherboard_serial}|{disk_serial}|{machine_guid}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:32]  # Displayed as the Hardware ID
+```
+
+- The Hardware ID is deterministic across reboots (FR-LIC-002) because all three inputs are stable hardware/OS identifiers, not session-specific values.
+- Combining three signals means a single flaky or blank field (e.g. a motherboard that doesn't report a serial) degrades robustness rather than breaking fingerprinting outright.
+- The Hardware ID is displayed in the Activation screen as an uppercase, hyphenated, copy-pasteable string (e.g. `A1B2-C3D4-E5F6-...`) — never as the raw hash, to reduce transcription errors.
+
+### 16.4 License File Format
+
+`license.key` is a base64-encoded JSON payload plus signature, generated entirely offline:
+
+```json
+{
+  "payload": {
+    "cafe_name": "Galaxy Gaming Lounge",
+    "hardware_id": "a1b2c3d4e5f6...",
+    "license_type": "PERPETUAL",
+    "issue_date": "2026-07-01",
+    "trial_expires_at": null
+  },
+  "signature": "base64-encoded Ed25519 signature over canonical JSON of `payload`"
+}
+```
+
+- Signing covers the canonical (sorted-key, no-whitespace) JSON encoding of `payload` to avoid signature mismatches from formatting differences.
+- The file is _signed, not encrypted_ (FR-LIC-005) — there's nothing secret inside it worth hiding, only something that must not be tampered with. Anyone can read a `license.key`; nobody but Neurotech Biratnagar can produce one that verifies.
+
+### 16.5 Keygen Tool (Internal Only)
+
+```python
+# tools/keygen/generate_license.py  (NEVER shipped to customers)
+import json, base64
+from nacl.signing import SigningKey
+
+def generate_license(hardware_id: str, cafe_name: str, license_type: str = "PERPETUAL", trial_days: int | None = None) -> str:
+    signing_key = SigningKey(open("private_key.pem", "rb").read())
+    payload = {
+        "cafe_name": cafe_name,
+        "hardware_id": hardware_id,
+        "license_type": license_type,
+        "issue_date": date.today().isoformat(),
+        "trial_expires_at": (date.today() + timedelta(days=trial_days)).isoformat() if trial_days else None,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    signature = signing_key.sign(canonical).signature
+    return base64.b64encode(json.dumps({
+        "payload": payload,
+        "signature": base64.b64encode(signature).decode(),
+    }).encode()).decode()
+```
+
+Run manually, per sale, by Neurotech Biratnagar staff: paste in the customer's Hardware ID and cafe name, get back a `license.key` file to send to the customer. This tool — and the `private_key.pem` it depends on — lives in a separate, private repository from `arcade-cafe`, never in the same VCS history as the shipped product (FR-LIC-001).
+
+### 16.6 Verification Flow
+
+```python
+# backend/licensing/verify.py
+from nacl.signing import VerifyKey
+from nacl.exceptions import BadSignatureError
+
+class LicenseError(Enum):
+    MISSING = "no license.key found"
+    INVALID_SIGNATURE = "signature verification failed"
+    HARDWARE_MISMATCH = "license is bound to a different machine"
+    TRIAL_EXPIRED = "trial period has ended"
+
+def check_license(license_path: str) -> LicenseResult:
+    if not os.path.exists(license_path):
+        return LicenseResult(ok=False, error=LicenseError.MISSING)
+
+    raw = base64.b64decode(open(license_path, "rb").read())
+    parsed = json.loads(raw)
+    payload, signature = parsed["payload"], base64.b64decode(parsed["signature"])
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+
+    try:
+        VerifyKey(bytes.fromhex(ARCADE_PUBLIC_KEY_HEX)).verify(canonical, signature)
+    except BadSignatureError:
+        return LicenseResult(ok=False, error=LicenseError.INVALID_SIGNATURE)
+
+    if payload["hardware_id"] != get_hardware_id():
+        return LicenseResult(ok=False, error=LicenseError.HARDWARE_MISMATCH)
+
+    if payload["license_type"] == "TRIAL" and date.today() > date.fromisoformat(payload["trial_expires_at"]):
+        return LicenseResult(ok=False, error=LicenseError.TRIAL_EXPIRED)
+
+    return LicenseResult(ok=True, payload=payload)
+```
+
+This function is called by the Launcher (§8.2) before the setup wizard or server subprocess can run, and on every subsequent Launcher start (FR-SYS-008). On success, the Launcher writes/refreshes the `license_status` cache row (§5.1) so the running dashboard can display it without re-reading the key file.
+
+### 16.7 Activation Screen (Launcher UI)
+
+| State                                    | What's shown                                                                                                                                                           | What's allowed                                            |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| No `license.key` present                 | Hardware ID (copyable), instructions to send it to Neurotech Biratnagar, a "Browse for license.key" file picker                                                        | Nothing else — setup wizard and server start are disabled |
+| `license.key` present, invalid signature | Error: "This license file isn't valid. Please confirm you received it correctly, or contact support."                                                                  | Re-try / browse for a different file                      |
+| `license.key` present, hardware mismatch | Error: "This license is registered to a different machine. Contact Neurotech Biratnagar with your Hardware ID below to get this license reissued." + Hardware ID shown | Re-try / browse for a different file                      |
+| `license.key` present, trial expired     | Error: "Your trial period has ended. Contact Neurotech Biratnagar to purchase a full license."                                                                         | Re-try / browse for a different file                      |
+| Valid license                            | Brief confirmation (cafe name, license type), then proceeds automatically to setup wizard or server start                                                              | Continues normally                                        |
+
+This mirrors FR-LIC-008's requirement to distinguish "invalid file" from "wrong machine" rather than showing one generic failure.
+
+### 16.8 Hardware-Change Re-activation (FR-LIC-010)
+
+There is no self-service transfer flow in V1. If a cafe's hardware changes (e.g. motherboard replacement) and the Hardware ID no longer matches:
+
+1. Owner reaches the "hardware mismatch" Activation screen state and reads off the new Hardware ID
+2. Owner contacts Neurotech Biratnagar with proof of original purchase and the new Hardware ID
+3. Neurotech Biratnagar re-runs the keygen tool with the new Hardware ID, same cafe name and license type
+4. Owner replaces `license.key` with the reissued file
+
+This is intentionally a manual, support-mediated process rather than an automated transfer API — there is no license server to host such an API against, and the volume of hardware-replacement events for a single-location product is expected to be low.
+
+### 16.9 Trial / Demo Mode (FR-LIC-011)
+
+The same `license_type` field supports a `"TRIAL"` value with a `trial_expires_at` date, generated by the same keygen tool with a `--trial-days N` flag. No separate code path, license format, or verification logic is needed — `check_license()` simply adds the expiry check shown in §16.6 when `license_type == "TRIAL"`. This lets Neurotech Biratnagar hand a prospective cafe a 14- or 30-day evaluation license using the exact mechanism that powers paid licenses.
+
+### 16.10 What This Design Deliberately Does Not Do
+
+- **No phone-home, ever, post-activation.** There is no license server, so there is nothing to call. This is a deliberate trade-off against piracy-resistance: a sufficiently motivated user could patch the public key check out of the binary. The design accepts this risk in exchange for the zero-infrastructure, zero-recurring-cost positioning that is core to the product. Tying licensing to a model that requires Neurotech Biratnagar to run a server would directly contradict the product's main selling point.
+- **No automated hardware-transfer or seat-reassignment system.** Handled manually per §16.8, by design, given expected volume.
+- **No encryption of the license payload.** Signing, not secrecy, is the integrity mechanism (§16.4) — there is no confidential data in a license file worth protecting from the customer who already legitimately holds it.
+
+---
+
+## 17. Design Decisions and Trade-offs
+
+| Decision               | Choice                                           | Alternative Considered                                      | Rationale                                                                                                                                                                                                                                                                                   |
+| ---------------------- | ------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Database**           | SQLite + WAL                                     | PostgreSQL                                                  | No installation or service management required. WAL mode handles concurrent reads. Single-location scope means SQLite performance is more than sufficient. PostgreSQL is the documented V2 upgrade path.                                                                                    |
+| **ORM**                | SQLAlchemy                                       | Raw SQL, Tortoise ORM                                       | Industry standard, excellent Alembic integration, strong typing support, wide community.                                                                                                                                                                                                    |
+| **Migrations**         | Alembic                                          | Manual SQL scripts                                          | Versioned, reversible, auto-detects model diffs. Essential as the project evolves across phases.                                                                                                                                                                                            |
+| **Backend framework**  | FastAPI                                          | Flask, Django                                               | Async-native, automatic API docs, Pydantic integration, excellent WebSocket support, fastest Python web framework.                                                                                                                                                                          |
+| **Real-time**          | WebSockets                                       | Polling, SSE                                                | Sub-second updates are a core UX requirement. WebSocket is the only approach that satisfies this without hammering the server with polling.                                                                                                                                                 |
+| **Client agent**       | Electron                                         | Native Win32 app, Python script                             | Full Windows API access (lock/unlock), hardware metrics via `systeminformation`, cross-platform build tooling, modern UI for splash/countdown.                                                                                                                                              |
+| **Auth**               | PIN + JWT                                        | Password + session cookie                                   | PINs are appropriate for the counter context — fast entry, shared terminal. JWT stateless tokens avoid server-side session storage complexity.                                                                                                                                              |
+| **Billing precision**  | Integer (paise)                                  | Float/Decimal                                               | Float rounding errors accumulate across hundreds of daily transactions. Integer arithmetic is exact. Decimal would also work but adds library dependency.                                                                                                                                   |
+| **Console control**    | Tuya smart plugs                                 | HDMI-CEC, custom hardware                                   | No agent possible on consoles. Smart plugs are inexpensive, widely available in Nepal, and the Tuya API is well-documented.                                                                                                                                                                 |
+| **Printing**           | python-escpos + PDF                              | Receipt service, cloud printing                             | Local-first principle. python-escpos supports all common thermal printers. PDF fallback covers any regular printer with zero additional setup.                                                                                                                                              |
+| **Feature flags**      | DB-stored, runtime                               | Code-level flags, env vars                                  | DB storage allows the cafe owner to toggle features from the dashboard UI without any technical knowledge or server restart.                                                                                                                                                                |
+| **Modularity**         | Feature flags                                    | Separate product editions                                   | One codebase serves all cafe sizes. Flags suppress UI and gate APIs cleanly. Simpler to maintain and test than multiple editions.                                                                                                                                                           |
+| **Frontend state**     | React Query + WebSocket                          | Redux, SWR                                                  | React Query handles server state (caching, refetch, mutations) cleanly. WebSocket events trigger targeted cache invalidations. No global Redux boilerplate needed.                                                                                                                          |
+| **Auth token storage** | In-memory (JS variable)                          | localStorage                                                | localStorage is not supported in sandboxed environments and is a XSS risk. In-memory token is lost on refresh (re-login required), which is acceptable and correct for a shared counter terminal.                                                                                           |
+| **Licensing**          | Offline Ed25519 signature + hardware fingerprint | Online license server, time-bombed trial only, no licensing | A license server would require Neurotech Biratnagar to run permanent infrastructure, directly contradicting the product's zero-cloud-dependency pitch. Offline asymmetric signing makes licenses unforgeable without the private key while needing no network call, ever, after activation. |
+
+---
+
+_This document is the authoritative design specification for Arcade v2.0._  
+_It must be updated whenever a significant design decision changes during implementation._
