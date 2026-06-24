@@ -2,13 +2,13 @@
 
 ## Arcade — Gaming Cafe Management System
 
-**Document Version:** 1.1  
+**Document Version:** 2.0  
 **Project Version:** 2.0  
 **Date:** June 2026  
 **Prepared by:** Ashmin Dhungana  
 **Status:** Pre‑Development · Design Complete  
 **Classification:** Internal / Private  
-**Reference SRS:** Arcade_SRS v1.1
+**Reference SRS:** Arcade_SRS v2.0
 
 ---
 
@@ -59,7 +59,7 @@ It also covers cross-cutting concerns: real-time communication, billing logic, s
 
 ### 1.4 Relationship to SRS
 
-This document maps directly to the requirements in `Arcade_SRS v1.1`. Where a design decision satisfies a specific requirement, the relevant `FR-XXX` or `NFR-XXX` identifier is referenced.
+This document maps directly to the requirements in `Arcade_SRS v2.0`. Where a design decision satisfies a specific requirement, the relevant `FR-XXX` or `NFR-XXX` identifier is referenced.
 
 ### 1.5 Document Conventions
 
@@ -108,26 +108,26 @@ Arcade is a four-component client-server system operating entirely on a local ar
                                  │ │ └──────────────────────┘ │ │
                                  │ └──────────────────────────┘ │
                                  └──────────────────────────────┘
-         │  Tuya Cloud API (internet)
-         ▼
-┌─────────────────┐
-│  Smart Plugs    │
-│  (PS5 / Xbox)   │
-└─────────────────┘
+         │  Tuya Cloud API (internet)  │  (Local LAN after pairing)
+         ▼                             ▼
+┌─────────────────┐              ┌─────────────────┐
+│  Smart Plugs    │              │    Smart Plugs  │
+│  (PS5 / Xbox)   │              │  (PS5 / Xbox)   │
+└─────────────────┘              └─────────────────┘
 ```
 
 The Launcher's License Check runs once at every startup, entirely offline against the locally stored `license.key`. It gates the Tkinter setup wizard and the FastAPI server subprocess — neither runs unless the check passes. It never blocks on, or talks to, any network.
 
 ### 2.1 Communication Summary
 
-| Direction                | Protocol              | Purpose                                               |
-| ------------------------ | --------------------- | ----------------------------------------------------- |
-| Dashboard ↔ Server       | REST (HTTP/JSON)      | CRUD operations, checkout, settings                   |
-| Dashboard ↔ Server       | WebSocket             | Real-time seat status, health metrics, announcements  |
-| Agent ↔ Server           | WebSocket             | Lock/unlock commands, health metrics, remote commands |
-| Server → Client PCs      | UDP (WoL)             | Wake-on-LAN magic packets (cross‑platform)            |
-| Server → Tuya Cloud      | HTTPS                 | Smart plug on/off                                     |
-| Server → Thermal Printer | USB/Network (ESC/POS) | Receipt printing                                      |
+| Direction                | Protocol              | Purpose                                              |
+| ------------------------ | --------------------- | ---------------------------------------------------- |
+| Dashboard ↔ Server       | REST (HTTP/JSON)      | CRUD operations, checkout, settings                  |
+| Dashboard ↔ Server       | WebSocket             | Real-time seat status, health metrics, announcements |
+| Agent ↔ Server           | WebSocket             | Overlay commands, health metrics, remote commands    |
+| Server → Client PCs      | UDP (WoL)             | Wake-on-LAN magic packets (cross‑platform)           |
+| Server → Tuya Cloud      | HTTPS (initial only)  | Smart plug on/off (local after pairing)              |
+| Server → Thermal Printer | USB/Network (ESC/POS) | Receipt printing                                     |
 
 ---
 
@@ -163,7 +163,7 @@ The backend follows a strict four-layer architecture. Each layer communicates on
 ### 3.2 Full Directory Structure
 
 ```
-arcade-cafe/
+arcade/
 ├── backend/
 │   ├── api/
 │   │   ├── routers/
@@ -185,7 +185,7 @@ arcade-cafe/
 │   │   │   ├── settings.py
 │   │   │   ├── audit.py
 │   │   │   └── ws.py               # WebSocket endpoints
-│   │   └── deps.py                 # Shared FastAPI dependencies (DB session, auth)
+│   │   └── deps.py                 # Shared FastAPI dependencies (AsyncSession, auth)
 │   ├── services/
 │   │   ├── session_service.py
 │   │   ├── billing_service.py
@@ -203,7 +203,7 @@ arcade-cafe/
 │   │   ├── tuya_service.py
 │   │   ├── print_service.py
 │   │   ├── audit_service.py
-│   │   └── backup_service.py
+│   │   └── backup_service.py       # Uses APScheduler AsyncIOScheduler
 │   ├── repositories/
 │   │   ├── seat_repo.py
 │   │   ├── session_repo.py
@@ -221,24 +221,60 @@ arcade-cafe/
 │   │   ├── staff_repo.py
 │   │   └── audit_repo.py
 │   ├── models/
-│   │   └── (SQLAlchemy ORM models — one file per entity or grouped)
-│   ├── schemas/
-│   │   └── (Pydantic request/response schemas — one file per domain)
+│   │   ├── __init__.py
+│   │   ├── seat.py
+│   │   ├── session.py
+│   │   ├── invoice.py
+│   │   ├── member.py
+│   │   ├── package.py
+│   │   ├── promotion.py
+│   │   ├── voucher.py
+│   │   ├── menu_item.py
+│   │   ├── reservation.py
+│   │   ├── staff.py                # includes token_version INTEGER DEFAULT 0
+│   │   ├── shift.py
+│   │   ├── expense.py
+│   │   ├── event.py
+│   │   ├── audit_log.py
+│   │   ├── settings.py
+│   │   └── license_status.py       # Read-only cache for display
+│   ├── schemas/                    # Pydantic request/response schemas
+│   │   ├── seat.py
+│   │   ├── session.py
+│   │   ├── invoice.py
+│   │   ├── member.py
+│   │   ├── package.py
+│   │   ├── promotion.py
+│   │   ├── voucher.py
+│   │   ├── pos.py
+│   │   ├── reservation.py
+│   │   ├── staff.py
+│   │   ├── shift.py
+│   │   ├── expense.py
+│   │   ├── event.py
+│   │   ├── analytics.py
+│   │   ├── settings.py
+│   │   └── audit.py
 │   ├── licensing/
-│   │   ├── verify.py                # Ed25519 signature verification
-│   │   ├── fingerprint.py           # Hardware ID generation (cross‑platform)
-│   │   └── public_key.py            # Embedded Ed25519 public key (constant)
-│   └── core/
-│       ├── config.py               # arcade.config.json loader
-│       ├── database.py             # SQLAlchemy engine, WAL, session factory
-│       ├── feature_flags.py        # Feature flag loader and checker
-│       ├── security.py             # PIN hashing, token generation, lockout
-│       └── ws_manager.py           # WebSocket connection manager
-├── frontend/
+│   │   ├── verify.py               # Ed25519 signature verification
+│   │   ├── fingerprint.py          # Uses py-machineid (primary) + OS fallbacks
+│   │   └── public_key.py           # Embedded Ed25519 public key (hardcoded)
+│   ├── core/
+│   │   ├── config.py               # arcade.config.json loader
+│   │   ├── database.py             # SQLAlchemy AsyncEngine, WAL pragmas with busy_timeout=5000,
+│   │   │                            # AsyncSessionLocal, get_db() dependency
+│   │   ├── feature_flags.py        # Feature flag loader and checker (DB-backed)
+│   │   ├── security.py             # Argon2id hashing (argon2-cffi), JWT with token_version,
+│   │   │                            # rate limiting, lockout
+│   │   └── ws_manager.py           # WebSocket connection manager (heartbeat, agent_secret validation)
+│   ├── main.py                     # FastAPI app with lifespan context manager
+│   ├── requirements.txt            # Python dependencies
+│   └── alembic.ini                 # Alembic configuration
+├── frontend/                       # React dashboard (Vite + TailwindCSS)
 │   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Dashboard.tsx       # Seat grid
-│   │   │   ├── Session.tsx         # Session detail
+│   │   ├── pages/                  # Route pages
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── Session.tsx
 │   │   │   ├── Checkout.tsx
 │   │   │   ├── POS.tsx
 │   │   │   ├── Members.tsx
@@ -249,7 +285,7 @@ arcade-cafe/
 │   │   │   ├── Analytics.tsx
 │   │   │   ├── Settings.tsx
 │   │   │   └── Login.tsx
-│   │   ├── components/
+│   │   ├── components/             # Reusable UI components
 │   │   │   ├── SeatCard.tsx
 │   │   │   ├── SeatGrid.tsx
 │   │   │   ├── SessionTimer.tsx
@@ -258,43 +294,73 @@ arcade-cafe/
 │   │   │   ├── MemberSearch.tsx
 │   │   │   ├── HealthBadge.tsx
 │   │   │   └── ...
-│   │   ├── hooks/
+│   │   ├── hooks/                  # Custom hooks
 │   │   │   ├── useWebSocket.ts
 │   │   │   ├── useSeats.ts
 │   │   │   ├── useSession.ts
 │   │   │   └── ...
 │   │   ├── api/                    # React Query API client functions
-│   │   ├── store/                  # Global state (auth, feature flags)
+│   │   ├── store/                  # Zustand/Context stores (auth, feature flags)
 │   │   └── utils/
-│   │       ├── currency.ts         # Paise ↔ display conversion
+│   │       ├── currency.ts         # Paise → display conversion
 │   │       └── time.ts
-├── agent/
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
+├── agent/                          # Electron client agent (cross‑platform)
 │   ├── src/
-│   │   ├── main.ts                 # Electron main process
-│   │   ├── preload.ts              # Context bridge
-│   │   ├── ipc/                    # IPC handlers
-│   │   ├── ws/                     # WebSocket client to server
-│   │   ├── health/                 # systeminformation collector
-│   │   ├── platform/               # OS‑specific modules
-│   │   │   ├── index.ts            # exports unified PlatformService
-│   │   │   ├── windows.ts          # Windows implementation (lock, restart, etc.)
-│   │   │   ├── macos.ts            # macOS implementation (AppleScript, LaunchAgent)
-│   │   │   └── linux.ts            # Linux implementation (xdg-screensaver, systemd)
-│   │   └── renderer/               # React UI (splash, tray, countdown)
-│   └── package.json
-├── alembic/
+│   │   ├── main/                   # Electron main process entry
+│   │   │   ├── index.ts
+│   │   │   ├── platform/           # Platform abstraction layer
+│   │   │   │   ├── index.ts        # Exports unified PlatformService interface
+│   │   │   │   │                    # (showKioskOverlay, hideKioskOverlay, updateTimer,
+│   │   │   │   │                    #  restartPC, shutdownPC, captureScreenshot,
+│   │   │   │   │                    #  sendAnnouncement, enableAutoStart, disableAutoStart)
+│   │   │   │   ├── windows.ts
+│   │   │   │   ├── macos.ts
+│   │   │   │   └── linux.ts
+│   │   │   ├── storage/            # Local SQLite for session persistence (better-sqlite3)
+│   │   │   │   └── session_store.ts
+│   │   │   ├── ipc/                # IPC handlers (kiosk overlay, screenshot, restart, shutdown)
+│   │   │   │   └── handlers.ts
+│   │   │   ├── ws/                 # WebSocket client to server (exponential backoff)
+│   │   │   │   └── client.ts
+│   │   │   ├── health/             # systeminformation collector (60s interval)
+│   │   │   │   └── collector.ts
+│   │   │   └── tray/               # System tray integration
+│   │   │       └── tray.ts
+│   │   ├── preload.ts              # Context bridge for IPC
+│   │   └── renderer/               # React UI (kiosk overlay UI, splash, countdown, announcements)
+│   │       ├── KioskOverlay.tsx    # Full‑screen kiosk overlay (branded, Call Staff button)
+│   │       ├── SplashScreen.tsx    # 5‑second splash on session start
+│   │       ├── CountdownOverlay.tsx # Low‑time warning popup
+│   │       ├── Announcement.tsx    # Staff‑pushed announcements
+│   │       └── App.tsx
+│   ├── package.json
+│   ├── electron-builder.yml        # Build config for all platforms
+│   └── agent.config.json           # Per‑machine config (server_url, agent_secret) — chmod 600 on Linux/macOS
+├── alembic/                        # Database migration scripts
 │   ├── env.py
-│   ├── alembic.ini
-│   └── versions/                   # Migration scripts
-├── launcher.py                     # Tkinter GUI (incl. License Activation screen)
-├── arcade.config.json              # Created on first run
-├── license.key                     # Placed by owner after activation (not in repo)
-└── requirements.txt
-
-tools/                              # NOT shipped to customers — internal only
-└── keygen/
-    ├── generate_license.py         # Offline keygen CLI — holds the private signing key
-    └── private_key.pem             # NEVER committed, NEVER distributed (kept outside VCS)
+│   ├── script.py.mako
+│   └── versions/
+│       ├── 001_initial.py
+│       └── ...
+├── tools/                          # INTERNAL — NOT SHIPPED TO CUSTOMERS
+│   └── keygen/                     # Offline license key generation tool
+│       ├── generate_license.py     # CLI tool — holds the private signing key
+│       └── private_key.pem         # Ed25519 private key — NEVER committed to VCS
+├── launcher.py                     # Tkinter GUI launcher (cross‑platform)
+│                                   # - License Activation screen (py-machineid hardware ID)
+│                                   # - Setup wizard (creates arcade.config.json with agent_secrets)
+│                                   # - Server process management (starts FastAPI subprocess)
+│                                   # - Live server logs display
+├── arcade.config.json              # Runtime config (created by setup wizard — per server)
+│                                   # Contains: cafe_name, host, port, db_path, backup settings,
+│                                   # admin/cashier PIN hashes (Argon2id), jwt_secret,
+│                                   # agent_secrets: {seat_id: agent_secret}
+├── license.key                     # License file (placed by owner after activation — not in repo)
+├── README.md
+└── LICENSE                         # Apache 2.0
 ```
 
 ---
@@ -303,19 +369,37 @@ tools/                              # NOT shipped to customers — internal only
 
 ### 4.1 Application Entry Point
 
-The FastAPI application is instantiated in `backend/main.py` and assembled as follows. The Launcher only spawns this process after a successful license check (see §16) — `main.py` itself does not re-verify the license, since FastAPI startup assumes the Launcher has already gated entry.
+The FastAPI application is instantiated in `backend/main.py` using the **`lifespan` context manager pattern** (FastAPI 0.93+). The Launcher only spawns this process after a successful license check (see §16) — `main.py` itself does not re-verify the license, since FastAPI startup assumes the Launcher has already gated entry.
 
 ```python
-# Startup sequence (pseudo-code)
-1. Load arcade.config.json via core.config
-2. Run alembic upgrade head
-3. Load feature flags from DB settings table
-4. Initialise WebSocket manager
-5. Register all routers with prefix /api
-6. Register WebSocket router at /ws
-7. Send Wake-on-LAN packets to all registered seats
-8. Schedule nightly backup task via python-schedule
-9. Start Uvicorn server on configured host:port
+# backend/main.py
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- STARTUP ---
+    # 1. Load arcade.config.json via core.config
+    # 2. Run alembic upgrade head
+    # 3. Load feature flags from DB settings table
+    # 4. Initialise WebSocket manager
+    # 5. Register all routers with prefix /api
+    # 6. Register WebSocket router at /ws
+    # 7. Send Wake-on-LAN packets to all registered seats
+    # 8. Schedule nightly backup task via APScheduler
+    yield
+    # --- SHUTDOWN ---
+    # 1. Stop accepting new WebSocket connections
+    # 2. Notify all connected agents: server shutting down
+    # 3. Close all WebSocket connections cleanly
+    # 4. Flush any pending audit log writes
+    # 5. Shutdown APScheduler
+    # 6. Close SQLAlchemy connection pool
+
+app = FastAPI(lifespan=lifespan)
 ```
 
 ### 4.2 Router Design
@@ -340,18 +424,18 @@ GET    /api/sessions/active         → session_service.list_active()
 
 **Standard router dependencies:**
 
-- `db: Session = Depends(get_db)` — SQLAlchemy session per request
+- `db: AsyncSession = Depends(get_db)` — async SQLAlchemy session per request
 - `staff: StaffSchema = Depends(get_current_staff)` — authenticated staff from token
 - `flags: FeatureFlags = Depends(get_feature_flags)` — current feature flag state
 
 ### 4.3 Service Layer Design
 
-Services are plain Python classes (or modules) with no HTTP concern. They implement all business logic and call repositories for data access.
+Services are plain Python classes (or modules) with no HTTP concern. They implement all business logic and call repositories for data access. All service methods are `async def` and use `AsyncSession` from repositories.
 
 #### 4.3.1 Session Service (`services/session_service.py`)
 
 ```
-start_session(seat_id, member_id?, db) → Session
+async def start_session(seat_id, member_id?, db: AsyncSession) → Session
   1. Validate seat is Available or Reserved
   2. If require_member_for_session flag ON and no member_id → raise error
   3. Call billing_service.resolve_rate(seat, member, time_now) → locked_rate
@@ -360,12 +444,12 @@ start_session(seat_id, member_id?, db) → Session
   6. Create Session record (rate locked, promo locked, package linked)
   7. Update seat status → IN_USE
   8. Send ws:seat_updated broadcast
-  9. Call ws_manager.send_to_agent(seat_id, command=UNLOCK)
+  9. Call ws_manager.send_to_agent(seat_id, command=HIDE_OVERLAY)
   10. If console seat → call tuya_service.power_on(plug_id)
   11. Write audit log entry
   12. Return session
 
-checkout(session_id, payment_method, db) → Invoice
+async def checkout(session_id, payment_method, db: AsyncSession) → Invoice
   1. Load session, validate IN_USE or PAUSED
   2. Compute elapsed seconds
   3. Call billing_service.calculate_invoice(session, elapsed) → InvoiceLineItems
@@ -373,7 +457,7 @@ checkout(session_id, payment_method, db) → Invoice
   5. If member → deduct wallet / update loyalty points
   6. Update seat status → AVAILABLE
   7. Send ws:seat_updated broadcast
-  8. Call ws_manager.send_to_agent(seat_id, command=LOCK)
+  8. Call ws_manager.send_to_agent(seat_id, command=SHOW_OVERLAY)
   9. If console → call tuya_service.power_off(plug_id)
   10. Write audit log entry
   11. Trigger print_service.print_receipt(invoice) async
@@ -397,21 +481,23 @@ class WebSocketManager:
     async def register_agent(seat_id: str, ws: WebSocket)
     async def unregister_agent(seat_id: str)
     async def heartbeat_loop()                   # Pings all connections every 30s
+    async def close_all()                        # Graceful shutdown
 ```
 
 ### 4.4 Repository Layer Design
 
-Repositories contain all SQLAlchemy queries. They accept a `db: Session` parameter and return ORM model instances or typed dicts. No business logic lives in repositories.
+Repositories contain all SQLAlchemy queries. They accept a `db: AsyncSession` parameter and return ORM model instances or typed dicts. No business logic lives in repositories. All repository methods are `async def`.
 
 **Example — Session Repository (`repositories/session_repo.py`):**
 
 ```python
-def create(db, seat_id, member_id, rate_paise, promo_id, package_id, ...) → SessionModel
-def get_by_id(db, session_id) → SessionModel | None
-def get_active_by_seat(db, seat_id) → SessionModel | None
-def list_active(db) → list[SessionModel]
-def update_status(db, session_id, status) → SessionModel
-def list_by_shift(db, shift_id) → list[SessionModel]
+async def create(db: AsyncSession, seat_id, member_id, rate_paise, promo_id, package_id, ...) → SessionModel
+async def get_by_id(db: AsyncSession, session_id) → SessionModel | None
+async def get_active_by_seat(db: AsyncSession, seat_id) → SessionModel | None
+async def list_active(db: AsyncSession) → list[SessionModel]
+async def update_status(db: AsyncSession, session_id, status) → SessionModel
+async def list_by_shift(db: AsyncSession, shift_id) → list[SessionModel]
+async def list_active_sessions(db: AsyncSession) → list[SessionModel]  # For server recovery
 ```
 
 ### 4.5 Schema Design (Pydantic)
@@ -485,6 +571,8 @@ class InvoiceResponse(BaseModel):
 | DELETE    | /api/reservations/{id}      | Cashier | Cancel reservation                                                     |
 | GET       | /api/staff                  | Admin   | List staff                                                             |
 | POST      | /api/staff                  | Admin   | Create staff member                                                    |
+| POST      | /api/staff/{id}/change-pin  | Admin   | Change staff PIN (increments token_version)                            |
+| POST      | /api/staff/{id}/deactivate  | Admin   | Deactivate staff (increments token_version)                            |
 | POST      | /api/shifts/open            | Cashier | Open shift                                                             |
 | POST      | /api/shifts/close           | Cashier | Close shift                                                            |
 | GET       | /api/shifts/{id}/report     | Admin   | Shift report                                                           |
@@ -523,7 +611,7 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 | is_console  | Boolean     | True for PS5/Xbox seats                                   |
 | notes       | String NULL | Maintenance note                                          |
 | created_at  | DateTime    |                                                           |
-| updated_at  | DateTime    |                                                           |
+| updated_at  | DateTime    | Set explicitly in service code (not via onupdate trigger) |
 
 #### zones
 
@@ -555,6 +643,7 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 | promotion_id           | String FK NULL    | → promotions.id                      |
 | discount_paise         | Integer           | 0 if no discount                     |
 | created_at             | DateTime UTC      |                                      |
+| updated_at             | DateTime UTC      | Set explicitly in service code       |
 
 #### invoices
 
@@ -586,18 +675,19 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 
 #### members
 
-| Column               | Type          | Notes                         |
-| -------------------- | ------------- | ----------------------------- |
-| id                   | String PK     | UUID                          |
-| name                 | String        |                               |
-| phone                | String UNIQUE |                               |
-| wallet_balance_paise | Integer       | Default 0                     |
-| loyalty_points       | Integer       | Default 0                     |
-| tier                 | Enum          | BRONZE, SILVER, GOLD          |
-| birth_month          | Integer NULL  | 1–12, for birthday promotions |
-| total_visits         | Integer       | Default 0                     |
-| total_seconds_played | Integer       | Default 0                     |
-| created_at           | DateTime UTC  |                               |
+| Column               | Type          | Notes                          |
+| -------------------- | ------------- | ------------------------------ |
+| id                   | String PK     | UUID                           |
+| name                 | String        |                                |
+| phone                | String UNIQUE |                                |
+| wallet_balance_paise | Integer       | Default 0                      |
+| loyalty_points       | Integer       | Default 0                      |
+| tier                 | Enum          | BRONZE, SILVER, GOLD           |
+| birth_month          | Integer NULL  | 1–12, for birthday promotions  |
+| total_visits         | Integer       | Default 0                      |
+| total_seconds_played | Integer       | Default 0                      |
+| created_at           | DateTime UTC  |                                |
+| updated_at           | DateTime UTC  | Set explicitly in service code |
 
 #### packages (types/products)
 
@@ -614,15 +704,16 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 
 #### member_package_entitlements
 
-| Column            | Type          | Notes                      |
-| ----------------- | ------------- | -------------------------- |
-| id                | String PK     | UUID                       |
-| member_id         | String FK     | → members.id               |
-| package_id        | String FK     | → packages.id              |
-| remaining_minutes | Integer       |                            |
-| expires_at        | DateTime NULL |                            |
-| purchased_at      | DateTime UTC  |                            |
-| status            | Enum          | ACTIVE, EXHAUSTED, EXPIRED |
+| Column            | Type          | Notes                          |
+| ----------------- | ------------- | ------------------------------ |
+| id                | String PK     | UUID                           |
+| member_id         | String FK     | → members.id                   |
+| package_id        | String FK     | → packages.id                  |
+| remaining_minutes | Integer       |                                |
+| expires_at        | DateTime NULL |                                |
+| purchased_at      | DateTime UTC  |                                |
+| status            | Enum          | ACTIVE, EXHAUSTED, EXPIRED     |
+| updated_at        | DateTime UTC  | Set explicitly in service code |
 
 #### promotions
 
@@ -668,6 +759,7 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 | stock_quantity      | Integer NULL | NULL = not tracked               |
 | low_stock_threshold | Integer NULL |                                  |
 | is_available        | Boolean      | Auto-set to false when stock = 0 |
+| updated_at          | DateTime UTC | Set explicitly in service code   |
 
 #### session_pos_items
 
@@ -694,18 +786,21 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 | status               | Enum          | PENDING, ACTIVE, COMPLETED, CANCELLED |
 | created_by_staff_id  | String FK     |                                       |
 | created_at           | DateTime UTC  |                                       |
+| updated_at           | DateTime UTC  | Set explicitly in service code        |
 
 #### staff
 
-| Column          | Type          | Notes          |
-| --------------- | ------------- | -------------- |
-| id              | String PK     | UUID           |
-| name            | String        |                |
-| role            | Enum          | ADMIN, CASHIER |
-| pin_hash        | String        | bcrypt hash    |
-| failed_attempts | Integer       | Default 0      |
-| lockout_until   | DateTime NULL |                |
-| is_active       | Boolean       |                |
+| Column          | Type          | Notes                                             |
+| --------------- | ------------- | ------------------------------------------------- |
+| id              | String PK     | UUID                                              |
+| name            | String        |                                                   |
+| role            | Enum          | ADMIN, CASHIER                                    |
+| pin_hash        | String        | Argon2id hash                                     |
+| token_version   | Integer       | Default 0. Incremented on PIN change/deactivation |
+| failed_attempts | Integer       | Default 0                                         |
+| lockout_until   | DateTime NULL |                                                   |
+| is_active       | Boolean       |                                                   |
+| updated_at      | DateTime UTC  | Set explicitly in service code                    |
 
 #### shifts
 
@@ -771,11 +866,11 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 
 #### settings
 
-| Column     | Type         | Notes                  |
-| ---------- | ------------ | ---------------------- |
-| key        | String PK    | e.g., "enable_members" |
-| value      | String       | JSON-encoded value     |
-| updated_at | DateTime UTC |                        |
+| Column     | Type         | Notes                          |
+| ---------- | ------------ | ------------------------------ |
+| key        | String PK    | e.g., "enable_members"         |
+| value      | String       | JSON-encoded value             |
+| updated_at | DateTime UTC | Set explicitly in service code |
 
 #### restock_log
 
@@ -799,7 +894,7 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 | trial_expires_at | Date NULL    | Only set for TRIAL licenses                            |
 | last_verified_at | DateTime UTC | Updated each time the Launcher re-verifies the license |
 
-This table is a **read-only cache for display purposes** (FR-LIC-012), populated by the Launcher after a successful license check and surfaced at `GET /api/settings/license`. It is never the source of truth — that is always the signed `license.key` file plus the embedded public key, verified by the Launcher before the database or server process even start. A row existing here implies the corresponding `license.key` passed verification at last launch; it does not independently grant access.
+This table is a **read-only cache for display purposes** (FR-LIC-014), populated by the Launcher after a successful license check and surfaced at `GET /api/settings/license`. It is never the source of truth — that is always the signed `license.key` file plus the embedded public key, verified by the Launcher before the database or server process even start. A row existing here implies the corresponding `license.key` passed verification at last launch; it does not independently grant access.
 
 ### 5.2 Indexes
 
@@ -822,31 +917,48 @@ CREATE UNIQUE INDEX idx_vouchers_code_unique ON vouchers(code);
 
 ```python
 # backend/core/database.py
-engine = create_engine(
-    f"sqlite:///{db_path}",
-    connect_args={"check_same_thread": False},
-)
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy import event
+
+# Async SQLAlchemy with aiosqlite
+DATABASE_URL = "sqlite+aiosqlite:///./arcade.db"
+engine = create_async_engine(DATABASE_URL, echo=False)
 
 # Enable WAL mode and performance pragmas on every connection
-@event.listens_for(engine, "connect")
+@event.listens_for(engine.sync_engine, "connect")
 def set_sqlite_pragma(dbapi_conn, _):
     cursor = dbapi_conn.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA synchronous=NORMAL")
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.execute("PRAGMA cache_size=-64000")   # 64MB cache
+    cursor.execute("PRAGMA synchronous=NORMAL")      # Safe with WAL; much faster than FULL
+    cursor.execute("PRAGMA busy_timeout=5000")       # Wait up to 5s before SQLITE_BUSY
+    cursor.execute("PRAGMA foreign_keys=ON")         # Enforce FK constraints
+    cursor.execute("PRAGMA wal_autocheckpoint=1000") # Checkpoint every ~4MB
+    cursor.execute("PRAGMA cache_size=-64000")       # 64MB cache
     cursor.close()
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+AsyncSessionLocal = async_sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        yield session
 ```
+
+**Important notes on this configuration:**
+
+- `busy_timeout=5000` is **mandatory** — without it, any concurrent write results in an immediate `SQLITE_BUSY` error
+- `synchronous=NORMAL` is safe with WAL mode and significantly faster than `FULL`
+- `updated_at` fields are set explicitly in service code (`entity.updated_at = datetime.utcnow()`) rather than using SQLAlchemy's `onupdate` trigger, to ensure reliable updates with async operations
 
 ### 5.4 Migration Strategy
 
-All schema changes go through Alembic. No direct schema edits.
+All schema changes go through Alembic. No direct schema edits. `alembic.ini` lives in `backend/` — run all Alembic commands from that directory.
 
 ```bash
 # Developer workflow for schema change:
 # 1. Edit the SQLAlchemy model in backend/models/
+cd backend
 # 2. Generate a migration:
 alembic revision --autogenerate -m "describe the change"
 # 3. Review the generated migration file in alembic/versions/
@@ -997,6 +1109,7 @@ The Electron agent uses standard main/renderer process separation. The **platfor
 │           ↕ IPC (contextBridge)     │
 │  ┌──────────────────────────────┐   │
 │  │     Renderer Process (React) │   │
+│  │  ├── KioskOverlay.tsx        │   │
 │  │  ├── SplashScreen.tsx        │   │
 │  │  ├── CountdownOverlay.tsx    │   │
 │  │  └── Announcement.tsx        │   │
@@ -1006,77 +1119,176 @@ The Electron agent uses standard main/renderer process separation. The **platfor
 
 ### 7.2 Platform Abstraction Layer Interface
 
+**Updated to reflect kiosk overlay approach** — no OS lock/unlock methods.
+
 ```typescript
 // agent/src/platform/index.ts
 export interface PlatformService {
-  lockScreen(): Promise<void>;
-  unlockScreen(): Promise<void>; // Usually not needed – user unlocks manually
-  showOverlay(content: OverlayContent): void;
-  hideOverlay(): void;
+  // Kiosk overlay management (primary access control)
+  showKioskOverlay(content: OverlayContent): void;
+  hideKioskOverlay(): void;
   updateTimer(timeString: string): void;
+
+  // System operations
   restartPC(): Promise<void>;
   shutdownPC(): Promise<void>;
-  sendMessage(text: string): Promise<void>;
+  captureScreenshot(): Promise<Buffer>; // Returns JPEG compressed, max 1280x720
+
+  // Announcements
+  sendAnnouncement(text: string, durationMs: number): void;
+
+  // Auto-start
   enableAutoStart(): Promise<void>;
   disableAutoStart(): Promise<void>;
-  getHardwareId(): Promise<string>; // For registration, though server uses its own fingerprint
+}
+
+export interface OverlayContent {
+  cafeLogo?: string; // base64 or file path
+  cafeName: string;
+  announcements: string[];
+  callStaffEnabled: boolean;
+  sessionActive: boolean;
+  remainingTime?: string; // "HH:MM:SS" or "Unlimited"
+  lowTimeWarning?: boolean;
 }
 ```
 
 Each OS module implements this interface using OS-specific APIs:
 
-- **Windows**: `rundll32 user32.dll,LockWorkStation`; `shutdown /r /t 0`; registry for auto-start.
-- **macOS**: `osascript -e 'tell application "System Events" to keystroke "q" using {command down, control down}'` to lock (or use `pmset displaysleepnow` with password requirement); `sudo shutdown -r now`; LaunchAgent plist.
-- **Linux**: `xdg-screensaver lock` (or `gnome-screensaver-command -l`, `loginctl lock-session` fallback); `sudo systemctl reboot`; `~/.config/autostart/` `.desktop` file.
+- **Windows:** Overlay uses Electron `BrowserWindow` with `kiosk: true`, `closable: false`; restart/shutdown via `shutdown`; screenshot via `desktopCapturer`; auto-start via registry.
+- **macOS:** Overlay uses `kiosk: true`; restart/shutdown via `sudo shutdown`; screenshot via `desktopCapturer` (requires Screen Recording permission); auto-start via LaunchAgent plist.
+- **Linux:** Overlay uses `kiosk: true`; restart/shutdown via `systemctl`/`shutdown`; screenshot via `desktopCapturer` (Wayland may require additional permissions); auto-start via `.desktop` file.
 
 The correct module is selected at runtime via `process.platform`.
 
-### 7.3 Startup Sequence
+### 7.3 Kiosk Overlay Hardening
+
+**FR-AGENT-002a and FR-AGENT-002b:** The agent's `BrowserWindow` SHALL be configured to prevent bypass:
+
+```typescript
+// agent/src/main/index.ts
+import { app, BrowserWindow, globalShortcut } from "electron";
+
+function createOverlayWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    fullscreen: true,
+    kiosk: true, // Electron's native kiosk mode — blocks Cmd+Tab, Cmd+Space on macOS
+    alwaysOnTop: true,
+    frame: false,
+    closable: false, // Prevents Alt+F4/Cmd+Q
+    webPreferences: {
+      devTools: false, // Disable F12 DevTools
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+    },
+  });
+  return win;
+}
+
+// Register global shortcuts to intercept before the OS handles them
+app.on("browser-window-focus", () => {
+  globalShortcut.registerAll(
+    [
+      "Alt+F4", // Windows/Linux close
+      "CommandOrControl+W", // macOS/Windows close tab
+      "CommandOrControl+Q", // macOS/Windows quit
+      "F12", // DevTools
+      "Alt+Shift+I", // DevTools (Chrome)
+      "CommandOrControl+Shift+I", // DevTools (macOS/Windows)
+      "CommandOrControl+P", // Print dialog (potential shell access on Windows)
+    ],
+    () => {}, // consume and discard
+  );
+});
+```
+
+**Known platform gaps (documented):**
+
+- `Ctrl+Alt+Del` on Windows cannot be intercepted without a dedicated SAS filter driver or Windows Kiosk Mode assignment
+- Wayland compositors on Linux may require additional configuration for `alwaysOnTop` to work reliably across all DEs — the agent SHALL gracefully degrade with a fallback to a maximised window
+
+### 7.4 Startup Sequence
 
 ```
 1. Agent process starts (via OS-specific auto-start)
-2. Read server config from agent.config.json (SERVER_URL)
-3. Connect WebSocket to ws://{SERVER_URL}/ws/agent/{mac_address}
+2. Read server config from agent.config.json (SERVER_URL + AGENT_SECRET + SEAT_ID)
+3. Connect WebSocket to ws://{SERVER_URL}/ws/agent/{seat_id}?secret={AGENT_SECRET}
 4. On connection:
-   a. Send REGISTER message: { mac_address, hostname, hardware_specs, os_version }
-   b. Server responds with { seat_id, status }
+   a. Send REGISTER message: { seat_id, mac_address, hostname, hardware_specs, os_version, agent_version }
+   b. Server validates agent_secret; responds with { seat_id, status, session_state? }
 5. Begin health metric collection loop (every 60s)
 6. Show system tray icon (grey = no session)
 7. Listen for commands from server
 ```
 
-### 7.4 Session Start Sequence (Agent Side)
+### 7.5 Session Start Sequence (Agent Side)
+
+Server sends: `{ command: "HIDE_OVERLAY", session: { id, duration_minutes?, started_at } }`
 
 ```
-Server sends: { command: "UNLOCK", session: { id, duration_minutes?, started_at } }
-
 Agent:
-1. Receive UNLOCK command
-2. Cache session locally: { session_id, started_at, duration_minutes }
-3. Unlock desktop using platform.lockScreen() (though unlock is usually a no-op)
-4. Show SplashScreen (5 seconds): cafe logo, session info, menu, Call Staff button
-5. After 5s: minimize splash, show tray icon (green, shows elapsed time)
+1. Receive HIDE_OVERLAY command
+2. Cache session locally in SQLite: { session_id, started_at, duration_minutes, last_sync_at }
+3. Hide kiosk overlay using platform.hideOverlay()
+4. Show SplashScreen (5 seconds) as a temporary overlay window:
+   - Cafe logo and branding
+   - Session info (seat name, duration, package info)
+   - Menu items (from server)
+   - "Call Staff" button
+5. After 5s: close splash, show tray icon (green, shows elapsed time)
 6. Start local countdown timer
 7. At 5 minutes remaining: show CountdownOverlay with warning
 ```
 
-### 7.5 LAN Resilience
+### 7.6 Session End Sequence (Agent Side)
+
+Server sends: `{ command: "SHOW_OVERLAY", session: { id } }`
+
+```
+Agent:
+1. Receive SHOW_OVERLAY command
+2. Show kiosk overlay using platform.showKioskOverlay()
+3. Display "Session ended. Thank you!" message on overlay
+4. Clear local session cache (set status to COMPLETED in SQLite)
+5. Tray icon returns to grey
+```
+
+### 7.7 LAN Resilience
 
 If the WebSocket connection to the server drops mid-session:
 
 ```typescript
 // ws/client.ts
 onDisconnect():
-  1. Log disconnect time
+  1. Log disconnect time to SQLite
   2. Continue local timer from cached started_at
   3. Begin reconnection loop with exponential backoff:
      Attempt 1: wait 2s, Attempt 2: wait 4s, ... cap at 60s + random jitter
   4. On reconnect: send SYNC message:
      { session_id, local_elapsed_seconds, disconnect_at, reconnect_at }
   5. Server reconciles and corrects its record if needed
+
+// session_store.ts (SQLite persistence)
+interface LocalSessionCache {
+  session_id: string;
+  started_at: string;      // ISO timestamp
+  last_sync_at: string;    // ISO timestamp
+  local_elapsed_seconds: number;
+  disconnect_count: number;
+  status: 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+  updated_at: string;      // ISO timestamp
+}
 ```
 
-### 7.6 Health Metrics Collection
+The agent writes to SQLite:
+
+- Every 10 seconds during an active session
+- On every pause/resume
+- On every reconnect
+- On session end
+
+### 7.8 Health Metrics Collection
 
 ```typescript
 // health/collector.ts  (using systeminformation library, cross‑platform)
@@ -1098,28 +1310,52 @@ setInterval(async () => {
 }, 60_000);
 ```
 
-### 7.7 Remote Commands
+### 7.9 Remote Commands
 
-| Command      | Agent Action (OS‑specific)                                                                                                         |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `UNLOCK`     | Unlock desktop (platform.unlockScreen) – usually just dismisses overlay, but may involve simulating keystrokes                     |
-| `LOCK`       | Lock desktop using `platform.lockScreen()`                                                                                         |
-| `RESTART`    | Execute `platform.restartPC()` – `shutdown /r /t 10` on Windows, `sudo shutdown -r now` on macOS, `sudo systemctl reboot` on Linux |
-| `SHUTDOWN`   | Execute `platform.shutdownPC()` – similarly                                                                                        |
-| `MESSAGE`    | Show `<Announcement>` overlay on renderer with message text and duration (common UI)                                               |
-| `SCREENSHOT` | Capture screen via `screenshot-desktop` (cross‑platform), send base64 PNG back to server                                           |
+| Command           | Agent Action                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `HIDE_OVERLAY`    | Hide kiosk overlay using `platform.hideKioskOverlay()` — allows desktop access                                                     |
+| `SHOW_OVERLAY`    | Show kiosk overlay using `platform.showKioskOverlay()` — blocks desktop access                                                     |
+| `SHOW_MESSAGE`    | Show `<Announcement>` overlay on renderer with message text and duration (common UI)                                               |
+| `RESTART`         | Execute `platform.restartPC()` — `shutdown /r /t 10` on Windows, `sudo shutdown -r now` on macOS, `sudo systemctl reboot` on Linux |
+| `SHUTDOWN`        | Execute `platform.shutdownPC()` — similarly                                                                                        |
+| `TAKE_SCREENSHOT` | Capture screen via `desktopCapturer`, compress to JPEG 80% quality, scale to max 1280×720, return base64                           |
 
-### 7.8 Agent Configuration File
+### 7.10 Screenshot Constraints (FR-AGENT-006a)
+
+The `TAKE_SCREENSHOT` command SHALL:
+
+1. Capture screen via `desktopCapturer`
+2. Compress to **JPEG at 80% quality** (not PNG)
+3. **Scale down to a maximum of 1280×720** before encoding
+4. Return base64-encoded image
+5. Maximum WebSocket message size: **5 MB** per frame
+
+```typescript
+// ipc/handlers.ts
+async function handleScreenshot(): Promise<string> {
+  const sources = await desktopCapturer.getSources({ types: ["screen"] });
+  const image = sources[0].thumbnail;
+  const resized = image.resize({ width: 1280, height: 720 });
+  return resized.toJPEG(80).toString("base64");
+}
+```
+
+### 7.11 Agent Configuration File
 
 ```json
 {
   "server_url": "ws://192.168.1.100:8000",
+  "seat_id": "seat_001",
+  "agent_secret": "c9a1b2c3d4e5f6...",
   "reconnect_max_seconds": 60,
   "health_interval_seconds": 60
 }
 ```
 
-`agent.config.json` is bundled with the agent distributable. The `server_url` must be set before distribution to each PC.
+`agent_secret` is generated by the setup wizard using `secrets.token_hex(32)` and stored in both `arcade.config.json` (server) and the agent's `agent.config.json` during deployment. The agent uses this secret to authenticate with the server on the REGISTER message and on every reconnection.
+
+`agent.config.json` SHALL be treated as a secret file — file permissions SHALL be set to owner-read-only on Linux and macOS (`chmod 600`).
 
 ---
 
@@ -1136,8 +1372,9 @@ The Launcher (`launcher.py`) is the only entry point for starting the Arcade ser
 5. Displays live server logs in a scrollable text area
 6. Shows a status indicator (Activation Required / Starting / Running / Stopped / Error)
 7. Provides Start/Stop buttons (enabled only once licensed)
+8. Prompts for confirmation if the user attempts to close the window while the server is running
 
-**Cross‑platform note:** Tkinter is included with Python on all OSes. The Launcher uses `os.path.join` and `subprocess` appropriately. Hardware fingerprinting (see §16) uses OS‑specific commands but is wrapped in a cross‑platform utility.
+**Cross‑platform note:** Tkinter is included with Python on all OSes. The Launcher uses `os.path.join` and `subprocess` appropriately. Hardware fingerprinting (see §16) uses `py-machineid` as the primary source (no admin privileges required).
 
 ### 8.2 Launcher Startup Flow
 
@@ -1145,12 +1382,12 @@ The Launcher (`launcher.py`) is the only entry point for starting the Arcade ser
 Launcher starts
   │
   ▼
-licensing.verify.check_license()   ← see §16.3
+licensing.verify.check_license()   ← see §16.6 (uses py-machineid, no admin)
   │
   ├── FAIL (no license.key / bad signature / hardware mismatch / expired trial)
   │     │
   │     ▼
-  │   Show License Activation screen (§16.4)
+  │   Show License Activation screen (§16.7)
   │   Block setup wizard and server start until license check passes
   │
   └── PASS
@@ -1172,8 +1409,11 @@ Step 2: Enter cafe name
 Step 3: Enter server IP (auto-detects local IP as default) + port (default: 8000)
 Step 4: Set Admin PIN (4–6 digits, enter twice)
 Step 5: Set Cashier PIN (4–6 digits, enter twice)
-Step 6: Confirm and save → writes arcade.config.json
-Step 7: Offer to start the server immediately
+Step 6: Generate agent secrets for each seat:
+        - For each seat (e.g., "PC-01" to "PC-N"): generate unique agent_secret with secrets.token_hex(32)
+        - Write agent.config.json for each seat (to be deployed)
+Step 7: Confirm and save → writes arcade.config.json
+Step 8: Offer to start the server immediately
 ```
 
 The setup wizard is only reachable after §8.2's license check passes (FR-SYS-001).
@@ -1195,6 +1435,8 @@ threading.Thread(target=stream_logs, args=(proc, log_widget), daemon=True).start
 
 On Stop: sends `SIGTERM` to the subprocess, waits up to 10 seconds for graceful shutdown, then `SIGKILL` if needed.
 
+On Window Close: if the server is running, show a confirmation dialog: "The Arcade server is still running. Closing the Launcher will stop the server. Are you sure?" If confirmed, terminate the server gracefully and exit. If cancelled, keep the Launcher open.
+
 ---
 
 ## 9. Real-time Communication Design
@@ -1205,6 +1447,8 @@ On Stop: sends `SIGTERM` to the subprocess, waits up to 10 seconds for graceful 
 | --------------------- | ---------------- | --------------- | -------------------------------------------------------------- |
 | `/ws/dashboard`       | React dashboards | Server → Client | `seat_updated`, `health_update`, `announcement`, `alert`       |
 | `/ws/agent/{seat_id}` | Electron agents  | Bidirectional   | Server → Agent: commands. Agent → Server: health metrics, sync |
+
+**Agent authentication:** The agent must include its `agent_secret` as a query parameter: `ws://{server}/ws/agent/{seat_id}?secret={AGENT_SECRET}`. The server validates the secret on every REGISTER message and rejects connections with invalid or missing secrets.
 
 ### 9.2 Message Envelope
 
@@ -1231,31 +1475,33 @@ All WebSocket messages use a standard JSON envelope:
 
 **Server → Agent:**
 
-| Event        | Payload                                         |
-| ------------ | ----------------------------------------------- |
-| `UNLOCK`     | `{ session_id, started_at, duration_minutes? }` |
-| `LOCK`       | `{ session_id }`                                |
-| `RESTART`    | `{ delay_seconds: 10 }`                         |
-| `SHUTDOWN`   | `{ delay_seconds: 10 }`                         |
-| `MESSAGE`    | `{ text, duration_seconds }`                    |
-| `SCREENSHOT` | `{}`                                            |
+| Event             | Payload                                         |
+| ----------------- | ----------------------------------------------- |
+| `HIDE_OVERLAY`    | `{ session_id, started_at, duration_minutes? }` |
+| `SHOW_OVERLAY`    | `{ session_id }`                                |
+| `SHOW_MESSAGE`    | `{ text, duration_seconds }`                    |
+| `RESTART`         | `{ delay_seconds: 10 }`                         |
+| `SHUTDOWN`        | `{ delay_seconds: 10 }`                         |
+| `TAKE_SCREENSHOT` | `{}`                                            |
 
 **Agent → Server:**
 
-| Event               | Payload                                                                      |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `REGISTER`          | `{ mac_address, hostname, cpu_model, ram_gb, os_version }`                   |
-| `HEALTH_METRICS`    | `{ cpu_percent, ram_percent, cpu_temp_celsius, disk_free_gb, collected_at }` |
-| `SYNC`              | `{ session_id, local_elapsed_seconds, disconnect_at, reconnect_at }`         |
-| `SCREENSHOT_RESULT` | `{ seat_id, image_base64, captured_at }`                                     |
+| Event               | Payload                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `REGISTER`          | `{ seat_id, mac_address, hostname, cpu_model, ram_gb, os_version, agent_version }` |
+| `HEALTH_METRICS`    | `{ cpu_percent, ram_percent, cpu_temp_celsius, disk_free_gb, collected_at }`       |
+| `SYNC`              | `{ session_id, local_elapsed_seconds, disconnect_at, reconnect_at }`               |
+| `SCREENSHOT_RESULT` | `{ seat_id, image_base64, captured_at }`                                           |
 
 ### 9.4 Connection Lifecycle
 
 ```
-Agent connects to /ws/agent/{mac}
+Agent connects to /ws/agent/{seat_id}?secret={AGENT_SECRET}
+  └── Server validates secret; rejects if invalid
   └── Server registers in agent_connections[seat_id]
   └── Server marks seat as ONLINE (if was OFFLINE)
   └── Server broadcasts seat_updated to dashboards
+  └── If session was active: server re-sends current HIDE_OVERLAY state
 
 Agent disconnects
   └── Server detects via missed heartbeat (30s timeout)
@@ -1264,8 +1510,8 @@ Agent disconnects
   └── Server removes from agent_connections
 
 Agent reconnects
-  └── Resume from step 1
-  └── If session was active: server re-sends current UNLOCK state
+  └── Resume from step 1 (with secret validation)
+  └── If session was active: server re-sends current HIDE_OVERLAY state
 ```
 
 ### 9.5 Heartbeat Design
@@ -1359,7 +1605,10 @@ calculate_invoice(session, pos_items) → InvoiceLineItems
    package_credit_paise = package_minutes_available × session.locked_rate_paise
    overflow_minutes = ceil(billable_seconds/60) - package_minutes_available
    time_charge_after_package = overflow_minutes × session.locked_rate_paise
-   # Deduct from package: package.remaining_minutes -= package_minutes_available
+   # Deduct from package atomically:
+   UPDATE member_package_entitlements
+   SET remaining_minutes = remaining_minutes - package_minutes_available
+   WHERE id = package_id AND remaining_minutes >= package_minutes_available
 
 4. Apply promotion discount (if linked):
    if discount_type == PERCENTAGE:
@@ -1396,6 +1645,7 @@ calculate_invoice(session, pos_items) → InvoiceLineItems
 - `ceil()` (not `floor()` or `round()`) is used for minutes and blocks — the customer is billed for any started unit
 - Division that would produce a fraction is deferred until the final step using integer `//`
 - The total is always: `time_charge_final + pos_total_paise` — never recomputed from parts after storage
+- Package updates use atomic `UPDATE ... WHERE remaining_minutes >= amount` to prevent race conditions
 
 ---
 
@@ -1410,55 +1660,107 @@ Staff enters PIN on dashboard login screen
 POST /api/auth/login { pin: "1234" }
   │
   ├── Load all active staff records
-  ├── For each: bcrypt.checkpw(pin, staff.pin_hash)
+  ├── For each: argon2id.verify(staff.pin_hash, pin)  (Argon2id, not bcrypt)
   ├── If match found:
   │   ├── Reset failed_attempts to 0
-  │   ├── Generate JWT: { staff_id, role, shift_id, exp: now+8h }
+  │   ├── Generate JWT: { staff_id, role, shift_id, token_version, exp: now+60m }
   │   └── Return { token, role, staff_name }
   └── If no match:
-      ├── Increment failed_attempts for all staff (or track per-PIN attempt)
+      ├── Increment failed_attempts for the specific Staff ID
       ├── If failed_attempts >= 5:
       │   └── Set lockout_until = now + 60 seconds
       └── Return 401
 ```
 
-### 11.2 Token Validation
+### 11.2 Token Validation with Revocation
 
-Every protected endpoint uses a FastAPI dependency:
+Every protected endpoint uses a FastAPI dependency that validates both the JWT signature **and** the `token_version` claim against the database:
 
 ```python
 # api/deps.py
-async def get_current_staff(token: str = Header(...), db: Session = Depends(get_db)):
-    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    staff = staff_repo.get_by_id(db, payload["staff_id"])
+async def get_current_staff(
+    token: str = Header(...),
+    db: AsyncSession = Depends(get_db)
+) -> StaffSchema:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    except jwt.InvalidTokenError:
+        raise HTTPException(401, "Invalid token")
+
+    staff = await staff_repo.get_by_id(db, payload["staff_id"])
     if not staff or not staff.is_active:
-        raise HTTPException(401)
+        raise HTTPException(401, "Staff not found or inactive")
+
+    # Token revocation check
+    if payload.get("token_version", 0) != staff.token_version:
+        raise HTTPException(401, "Token invalidated — PIN changed or account deactivated")
+
     return staff
 
 async def require_admin(staff = Depends(get_current_staff)):
     if staff.role != Role.ADMIN:
-        raise HTTPException(403)
+        raise HTTPException(403, "Admin role required")
     return staff
 ```
 
-### 11.3 PIN Storage
+**Token revocation triggers:**
+
+- `POST /api/staff/{id}/change-pin` — increments `token_version`
+- `POST /api/staff/{id}/deactivate` — increments `token_version` (in addition to setting `is_active=False`)
+
+### 11.3 PIN Storage (Argon2id)
 
 ```python
 # core/security.py
-import bcrypt
+from argon2 import PasswordHasher
+from argon2.exceptions import VerificationError
+
+ph = PasswordHasher(
+    time_cost=2,        # Number of iterations
+    memory_cost=102400, # 100 MB
+    parallelism=8,
+    hash_len=32,
+    salt_len=16,
+)
 
 def hash_pin(pin: str) -> str:
-    return bcrypt.hashpw(pin.encode(), bcrypt.gensalt()).decode()
+    return ph.hash(pin)
 
 def verify_pin(pin: str, hashed: str) -> bool:
-    return bcrypt.checkpw(pin.encode(), hashed.encode())
+    try:
+        ph.verify(hashed, pin)
+        return True
+    except VerificationError:
+        return False
 ```
 
-PINs are never logged, never returned in API responses, and stored only as bcrypt hashes.
+PINs are never logged, never returned in API responses, and stored only as Argon2id hashes. **No bcrypt fallback shall be implemented** — Argon2id is the OWASP-recommended algorithm for new systems.
 
 ### 11.4 Agent Authentication
 
-Agent WebSocket connections are authenticated by MAC address + a pre-shared token embedded in `agent.config.json`. The server validates the token on the initial `REGISTER` message and rejects connections with invalid tokens.
+Agent WebSocket connections are authenticated by **agent_secret** — a randomly generated token created during the setup wizard and embedded in `agent.config.json`.
+
+```python
+# core/ws_manager.py
+AGENT_SECRETS: dict[str, str]  # seat_id → agent_secret (loaded from arcade.config.json)
+
+async def handle_agent_connection(seat_id: str, secret: str, ws: WebSocket):
+    expected = AGENT_SECRETS.get(seat_id)
+    if not expected or secret != expected:
+        await ws.close(code=4001, reason="Invalid agent secret")
+        return
+    # Continue with registration...
+```
+
+The agent_secret is:
+
+- Generated using `secrets.token_hex(32)` during setup
+- Stored in `arcade.config.json` on the server
+- Embedded in each agent's `agent.config.json` during deployment
+- Validated on every REGISTER message and on every reconnection
+- Never hardcoded in the source repository
+
+`agent.config.json` SHALL be treated as a secret file — file permissions SHALL be set to owner-read-only on Linux and macOS (`chmod 600`).
 
 ### 11.5 Screenshot Security
 
@@ -1466,10 +1768,12 @@ Agent WebSocket connections are authenticated by MAC address + a pre-shared toke
 - Screenshot images are transmitted over the local WebSocket connection only
 - Images are NOT persisted to disk — returned in-memory to the requesting dashboard session only
 - Each screenshot request is logged in the audit log with: staff ID, seat ID, timestamp
+- **Screenshot payload constraints:** JPEG at 80% quality, max 1280×720, max message size 5 MB
+- **Rate limiting:** At most one in-flight screenshot per seat
 
 ### 11.6 Audit Log Immutability
 
-The audit log table has no `UPDATE` or `DELETE` grants at the application level. The repository layer exposes only `create` and `list` methods — no `update` or `delete`. This is enforced in code, not at the SQLite level (SQLite does not support column-level grants).
+The audit log table has no `UPDATE` or `DELETE` grants at the application level. The repository layer exposes only `create` and `list` methods — no `update` or `delete`. This is enforced in code, not at the SQLite level (SQLite does not support column-level grants). Direct database access is not protected by the application.
 
 ---
 
@@ -1502,20 +1806,24 @@ Called on server startup and available as an individual action from the dashboar
 
 ```python
 # services/tuya_service.py
-# Uses tinytuya library or direct Tuya Cloud REST API
+# Uses TinyTuya library for local LAN communication
 
 class TuyaService:
-    def __init__(self, access_key, secret_key, region):
-        self.client = TuyaCloudClient(access_key, secret_key, region)
+    def __init__(self):
+        # Uses local_key, device_id, ip_address from settings
+        # No cloud credentials needed after initial pairing
+        pass
 
     def power_on(self, device_id: str):
-        self.client.send_command(device_id, [{"code": "switch_1", "value": True}])
+        # Send local command via TinyTuya
+        pass
 
     def power_off(self, device_id: str):
-        self.client.send_command(device_id, [{"code": "switch_1", "value": False}])
+        # Send local command via TinyTuya
+        pass
 ```
 
-Tuya calls are made asynchronously and do not block session operations. Failures are logged but do not prevent the session from proceeding. Tuya credentials (access_key, secret_key, region) are stored in Settings.
+Tuya calls are made asynchronously and do not block session operations. Failures are logged but do not prevent the session from proceeding. Tuya credentials (device_id, local_key, ip_address, protocol_version) are stored in Settings.
 
 ### 12.3 Thermal Printing
 
@@ -1550,26 +1858,48 @@ def print_receipt(invoice: InvoiceResponse, printer_config: dict):
 
 PDF fallback: the dashboard exposes a `/api/invoices/{id}/pdf` endpoint that returns a browser-printable HTML receipt. Staff trigger `window.print()` for PDF or paper output.
 
-### 12.4 Nightly Backup
+### 12.4 Nightly Backup (APScheduler)
+
+**Updated to use APScheduler's `AsyncIOScheduler`** instead of the blocking `python-schedule` library.
 
 ```python
 # services/backup_service.py
-import schedule, shutil, os
-from datetime import datetime
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import shutil, os
+from datetime import datetime, timedelta
 
-def run_backup(db_path: str, backup_dir: str, retain_days: int = 7):
+scheduler = AsyncIOScheduler()
+
+async def run_backup(db_path: str, backup_dir: str, retain_days: int = 30):
     os.makedirs(backup_dir, exist_ok=True)
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     dest = os.path.join(backup_dir, f"arcade_{timestamp}.db")
     shutil.copy2(db_path, dest)
+
     # Prune old backups
     backups = sorted(Path(backup_dir).glob("arcade_*.db"))
     for old in backups[:-retain_days]:
         old.unlink()
 
-# Scheduled at server startup
-schedule.every().day.at("03:00").do(run_backup, ...)
+# Scheduled at server startup (within lifespan)
+scheduler.add_job(
+    run_backup,
+    "cron",
+    hour=3,
+    minute=0,
+    args=[db_path, backup_dir, retain_days],
+)
+scheduler.start()
+
+# On shutdown (within lifespan): scheduler.shutdown()
 ```
+
+**Why APScheduler over python-schedule:**
+
+- `python-schedule` is single-threaded and blocking by design, requiring a separate daemon thread
+- `AsyncIOScheduler` integrates natively with FastAPI's event loop
+- Handles exceptions gracefully without silently dying
+- Supports persistence across restarts (optional, not required for V1)
 
 ---
 
@@ -1599,19 +1929,34 @@ Standard error codes used across routers:
 | `VOUCHER_INVALID`      | 400  | Code not found, already used, or expired          |
 | `AUTH_FAILED`          | 401  | Wrong PIN                                         |
 | `AUTH_LOCKED`          | 423  | Too many failed attempts                          |
+| `AUTH_TOKEN_REVOKED`   | 401  | Token invalidated (PIN change or deactivation)    |
 | `FORBIDDEN`            | 403  | Role does not have permission                     |
 | `AGENT_OFFLINE`        | 503  | Agent not connected — command cannot be delivered |
 
 ### 13.2 LAN Interruption Handling
 
-| Scenario                    | Server Behaviour                                                                                            | Agent Behaviour                                               |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Agent drops mid-session     | Marks seat OFFLINE after heartbeat timeout. Session stays ACTIVE in DB.                                     | Keeps local timer. Begins reconnect loop with backoff.        |
-| Agent reconnects            | Receives SYNC message. Reconciles elapsed time. Sends current session state to agent.                       | Sends SYNC with local elapsed time. Resumes normal operation. |
-| Server restarts mid-session | On restart, all sessions in ACTIVE or PAUSED state in DB are reconciled when agents reconnect.              | Agent reconnects, sends SYNC.                                 |
-| Tuya API unavailable        | Console session starts/ends normally. Tuya failure logged as WARNING. Staff manually power-cycles the plug. | N/A                                                           |
+| Scenario                    | Server Behaviour                                                                                            | Agent Behaviour                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Agent drops mid-session     | Marks seat OFFLINE after heartbeat timeout. Session stays ACTIVE in DB.                                     | Keeps local timer in SQLite. Begins reconnect loop with backoff. |
+| Agent reconnects            | Receives SYNC message. Reconciles elapsed time. Sends current session state to agent.                       | Sends SYNC with local elapsed time. Resumes normal operation.    |
+| Server restarts mid-session | On restart, loads all ACTIVE sessions from DB. When agents reconnect, reconciles via SYNC.                  | Agent reconnects, sends SYNC.                                    |
+| Tuya API unavailable        | Console session starts/ends normally. Tuya failure logged as WARNING. Staff manually power-cycles the plug. | N/A                                                              |
 
-### 13.3 Feature Flag Middleware
+### 13.3 Server Session Recovery
+
+```python
+# services/session_service.py
+async def recover_active_sessions(db: AsyncSession):
+    """Called during server startup to prepare for agent reconnection."""
+    active_sessions = await session_repo.list_active(db)
+    for session in active_sessions:
+        # Mark seat as IN_USE (agents will re-sync)
+        await seat_repo.update_status(db, session.seat_id, SeatStatus.IN_USE)
+        # Broadcast seat status to dashboard
+        ws_manager.broadcast_to_dashboards("seat_updated", seat)
+```
+
+### 13.4 Feature Flag Middleware
 
 ```python
 # services base pattern
@@ -1625,17 +1970,27 @@ def ensure_feature_enabled(flag_name: str, flags: FeatureFlags):
 
 All service methods that handle optional features call this check first. Existing data is preserved — the flag gates the UI and API, not the stored records.
 
-### 13.4 Graceful Shutdown
+### 13.5 Graceful Shutdown
+
+**Updated to use `lifespan` context manager** (FastAPI 0.93+), replacing the deprecated `@app.on_event` decorator.
 
 ```python
 # backend/main.py
-@app.on_event("shutdown")
-async def shutdown_event():
-    # 1. Stop accepting new WebSocket connections
-    # 2. Notify all connected agents: server shutting down
-    # 3. Close all WebSocket connections cleanly
-    # 4. Flush any pending audit log writes
-    # 5. Close SQLAlchemy connection pool
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- STARTUP ---
+    await init_db()
+    scheduler.start()
+    # ... other startup tasks
+    yield
+    # --- SHUTDOWN ---
+    await ws_manager.close_all()
+    scheduler.shutdown()
+    await engine.dispose()
+
+app = FastAPI(lifespan=lifespan)
 ```
 
 The Launcher sends `SIGTERM` and waits up to 10 seconds for the process to exit before forcing termination.
@@ -1657,19 +2012,31 @@ Note: `license.key` is a separate file from `arcade.config.json`, checked earlie
   "port": 8000,
   "db_path": "arcade.db",
   "backup_dir": "backups/",
-  "backup_retain_days": 7,
+  "backup_retain_days": 30,
   "backup_time": "03:00",
-  "admin_pin": "<bcrypt_hash>",
-  "cashier_pin": "<bcrypt_hash>",
-  "tuya_access_key": "",
-  "tuya_secret_key": "",
-  "tuya_region": "us",
+  "admin_pin_hash": "<argon2id_hash>",
+  "cashier_pin_hash": "<argon2id_hash>",
+  "jwt_secret": "<random_256bit_hex>",
+  "agent_secrets": {
+    "seat_001": "c9a1b2c3d4e5f6...",
+    "seat_002": "a1b2c3d4e5f6..."
+  },
+  "tuya_devices": [
+    {
+      "seat_id": "console_01",
+      "device_id": "abc123",
+      "local_key": "key456",
+      "ip_address": "192.168.1.50",
+      "protocol_version": "3.3"
+    }
+  ],
   "printer_type": "usb",
   "printer_usb_vendor": "0x04b8",
-  "printer_usb_product": "0x0202",
-  "jwt_secret": "<random_256bit_hex>"
+  "printer_usb_product": "0x0202"
 }
 ```
+
+`agent_secrets` is a mapping of `seat_id` → `agent_secret` (hex string, 32 bytes). Generated during setup wizard; used to authenticate agent WebSocket connections.
 
 ### 14.2 Database-stored Settings
 
@@ -1693,6 +2060,7 @@ loyalty_gold_threshold_pts   → 2000
 loyalty_silver_discount_pct  → 5
 loyalty_gold_discount_pct    → 10
 low_time_warning_minutes     → 5
+backup_time                  → "03:00"
 ```
 
 ### 14.3 Feature Flag Loading
@@ -1710,7 +2078,7 @@ Feature flags are loaded from the database at startup and cached in memory. The 
 #### Windows
 
 ```
-1. git clone https://github.com/neurotech/arcade-cafe.git
+1. git clone https://github.com/neurotech/arcade.git
 2. pip install -r requirements.txt
 3. cd frontend && npm install && npm run build && cd ..
 4. python launcher.py     # Shows License Activation screen on first launch
@@ -1743,32 +2111,36 @@ On development machine (any OS):
 Per client PC:
 1. Copy the appropriate distributable to the client machine
 2. Install or extract it
-3. Edit agent.config.json: set server_url to the counter PC's IP:port
+3. Edit agent.config.json:
+   - Set server_url to the counter PC's IP:port
+   - Set seat_id to the seat identifier (e.g., "seat_001")
+   - Set agent_secret to the value generated by setup wizard (unique per seat)
 4. Enable auto-start:
    - Windows: copy shortcut to Startup folder
    - macOS: drag app to Applications, add Login Item via System Preferences
    - Linux: create .desktop in ~/.config/autostart/
+5. Set file permissions on agent.config.json (Linux/macOS): chmod 600
 ```
 
 ### 15.3 Network Requirements
 
-| Requirement     | Detail                                                                                                                                               |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server PC       | Static local IP (e.g., 192.168.1.100) — set via router DHCP reservation                                                                              |
-| Client PCs      | Wired ethernet, Wake-on-LAN enabled in BIOS (works on all OSes)                                                                                      |
-| Firewall        | Open TCP port 8000 on server PC for inbound LAN connections                                                                                          |
-| UDP broadcast   | Port 9 open for Wake-on-LAN magic packets                                                                                                            |
-| Internet access | Required for Tuya API only. License activation and ongoing verification are fully offline (see §16) — no internet needed for licensing at any point. |
+| Requirement     | Detail                                                                                                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server PC       | Static local IP (e.g., 192.168.1.100) — set via router DHCP reservation                                                                                                     |
+| Client PCs      | Wired ethernet, Wake-on-LAN enabled in BIOS (works on all OSes)                                                                                                             |
+| Firewall        | Open TCP port 8000 on server PC for inbound LAN connections                                                                                                                 |
+| UDP broadcast   | Port 9 open for Wake-on-LAN magic packets                                                                                                                                   |
+| Internet access | Required for Tuya API only during initial pairing. License activation and ongoing verification are fully offline (see §16) — no internet needed for licensing at any point. |
 
 ### 15.4 First-run Checklist
 
 - [ ] Hardware ID generated and sent to Neurotech Biratnagar; `license.key` received and placed in the app folder
 - [ ] License Activation screen confirms a valid, matching license
-- [ ] Setup wizard completed — `arcade.config.json` created
+- [ ] Setup wizard completed — `arcade.config.json` created with `agent_secrets`
 - [ ] Frontend built — `frontend/dist/` populated
 - [ ] Server starts and `/health` returns 200
 - [ ] At least one zone configured in Settings
-- [ ] At least one seat registered (agent connects and registers MAC)
+- [ ] At least one seat registered (agent connects with valid `agent_secret`)
 - [ ] Thermal printer connected and tested (or PDF fallback confirmed)
 - [ ] Tuya credentials entered (if consoles present)
 - [ ] Feature flags configured for this cafe's needs
@@ -1780,7 +2152,7 @@ Per client PC:
 
 ## 16. Licensing and Activation Design
 
-This section details the design referenced from §8 (Launcher) and satisfies FR-LIC-001 through FR-LIC-013 in the SRS. It is a self-contained subsystem: the rest of the application (backend, frontend, agent) has no awareness of licensing beyond reading the cached `license_status` row for display (§5.1) and exposing it at `GET /api/settings/license`.
+This section details the design referenced from §8 (Launcher) and satisfies FR-LIC-001 through FR-LIC-014 in the SRS. It is a self-contained subsystem: the rest of the application (backend, frontend, agent) has no awareness of licensing beyond reading the cached `license_status` row for display (§5.1) and exposing it at `GET /api/settings/license`.
 
 ### 16.1 Design Goals
 
@@ -1805,32 +2177,43 @@ ARCADE_PUBLIC_KEY_HEX = "c9a1...<32-byte Ed25519 public key, hex-encoded>...4f3e
 
 ### 16.3 Hardware Fingerprinting
 
-The Hardware ID must be stable and reproducible across reboots, but also cross‑platform. We use a combination of OS‑specific stable identifiers:
+**Updated to use `py-machineid` as the primary source** (no admin privileges required on any OS), with fallbacks only if `py-machineid` returns an empty result.
 
 ```python
 # backend/licensing/fingerprint.py
-import hashlib, platform, subprocess, uuid
+import hashlib
+import machineid  # py-machineid
+import uuid
 
 def get_hardware_id() -> str:
-    system = platform.system()
-    if system == "Windows":
-        motherboard_serial = _wmic("baseboard", "serialnumber")
-        disk_serial = _wmic("diskdrive", "serialnumber", index=0)
-        machine_guid = _windows_machine_guid()  # from registry
-    elif system == "Darwin":  # macOS
-        motherboard_serial = _osx_system_profiler("SPHardwareDataType", "Serial Number")
-        disk_serial = _osx_disk_serial()  # diskutil info
-        machine_guid = _osx_io_registry_guid()
-    else:  # Linux
-        motherboard_serial = _linux_dmidecode("baseboard", "Serial Number")
-        disk_serial = _linux_disk_serial()  # hdparm or lsblk
-        machine_guid = _linux_machine_id()  # /etc/machine-id
+    # Primary: py-machineid (no admin, cross-platform)
+    machine_id = machineid.hardware_id()
+    if machine_id:
+        raw = f"py-machineid:{machine_id}"
+    else:
+        # Fallback: combine available OS-specific identifiers
+        fallback_parts = []
+        if platform.system() == "Windows":
+            fallback_parts.append(_wmic("baseboard", "serialnumber"))
+            fallback_parts.append(_wmic("diskdrive", "serialnumber", index=0))
+        elif platform.system() == "Darwin":
+            fallback_parts.append(_osx_system_profiler("SPHardwareDataType", "Serial Number"))
+            fallback_parts.append(_osx_disk_serial())
+        else:  # Linux
+            fallback_parts.append(_linux_dmidecode("baseboard", "Serial Number"))
+            fallback_parts.append(_linux_disk_serial())
+            fallback_parts.append(_linux_machine_id())
+        raw = "|".join(p for p in fallback_parts if p)
 
-    raw = f"{motherboard_serial}|{disk_serial}|{machine_guid}"
     return hashlib.sha256(raw.encode()).hexdigest()[:32]  # Displayed as the Hardware ID
 ```
 
-Each OS-specific function attempts to read the identifier, falling back to a stable fallback (e.g., MAC address) if unavailable. The combination of three signals degrades robustly.
+**Key points:**
+
+- `py-machineid` is the primary source — it works on all three OSes without admin privileges
+- Fallback OS-specific commands are only used if `py-machineid` returns empty
+- Missing individual identifiers do not fail activation — the system uses whatever is available
+- The result is hashed to produce a consistent 32-character Hardware ID
 
 ### 16.4 License File Format
 
@@ -1953,24 +2336,32 @@ The same `license_type` field supports a `"TRIAL"` value with a `trial_expires_a
 
 ## 17. Design Decisions and Trade-offs
 
-| Decision               | Choice                                                | Alternative Considered                                      | Rationale                                                                                                                                                                                                                                                                     |
-| ---------------------- | ----------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Database**           | SQLite + WAL                                          | PostgreSQL                                                  | No installation or service management required. WAL mode handles concurrent reads. Single-location scope means SQLite performance is more than sufficient. PostgreSQL is the documented V2 upgrade path.                                                                      |
-| **ORM**                | SQLAlchemy                                            | Raw SQL, Tortoise ORM                                       | Industry standard, excellent Alembic integration, strong typing support, wide community.                                                                                                                                                                                      |
-| **Migrations**         | Alembic                                               | Manual SQL scripts                                          | Versioned, reversible, auto-detects model diffs. Essential as the project evolves across phases.                                                                                                                                                                              |
-| **Backend framework**  | FastAPI                                               | Flask, Django                                               | Async-native, automatic API docs, Pydantic integration, excellent WebSocket support, fastest Python web framework.                                                                                                                                                            |
-| **Real-time**          | WebSockets                                            | Polling, SSE                                                | Sub-second updates are a core UX requirement. WebSocket is the only approach that satisfies this without hammering the server with polling.                                                                                                                                   |
-| **Client agent**       | Electron with platform abstraction                    | Native per-OS apps, Python script                           | Single codebase for UI, cross-platform via abstraction, full OS APIs via Node.js, hardware metrics via `systeminformation`, modern UI for splash/countdown.                                                                                                                   |
-| **Auth**               | PIN + JWT                                             | Password + session cookie                                   | PINs are appropriate for the counter context — fast entry, shared terminal. JWT stateless tokens avoid server-side session storage complexity.                                                                                                                                |
-| **Billing precision**  | Integer (paise)                                       | Float/Decimal                                               | Float rounding errors accumulate across hundreds of daily transactions. Integer arithmetic is exact. Decimal would also work but adds library dependency.                                                                                                                     |
-| **Console control**    | Tuya smart plugs                                      | HDMI-CEC, custom hardware                                   | No agent possible on consoles. Smart plugs are inexpensive, widely available in Nepal, and the Tuya API is well-documented.                                                                                                                                                   |
-| **Printing**           | python-escpos + PDF                                   | Receipt service, cloud printing                             | Local-first principle. python-escpos supports all common thermal printers. PDF fallback covers any regular printer with zero additional setup.                                                                                                                                |
-| **Feature flags**      | DB-stored, runtime                                    | Code-level flags, env vars                                  | DB storage allows the cafe owner to toggle features from the dashboard UI without any technical knowledge or server restart.                                                                                                                                                  |
-| **Modularity**         | Feature flags                                         | Separate product editions                                   | One codebase serves all cafe sizes. Flags suppress UI and gate APIs cleanly. Simpler to maintain and test than multiple editions.                                                                                                                                             |
-| **Frontend state**     | React Query + WebSocket                               | Redux, SWR                                                  | React Query handles server state (caching, refetch, mutations) cleanly. WebSocket events trigger targeted cache invalidations. No global Redux boilerplate needed.                                                                                                            |
-| **Auth token storage** | In-memory (JS variable)                               | localStorage                                                | localStorage is not supported in sandboxed environments and is a XSS risk. In-memory token is lost on refresh (re-login required), which is acceptable and correct for a shared counter terminal.                                                                             |
-| **Licensing**          | Offline Ed25519 signature + hardware fingerprint      | Online license server, time-bombed trial only, no licensing | A license server would require Seller to run permanent infrastructure, directly contradicting the product's zero-cloud-dependency pitch. Offline asymmetric signing makes licenses unforgeable without the private key while needing no network call, ever, after activation. |
-| **Cross‑platform**     | Platform abstraction in agent; cross‑platform backend | Separate codebases per OS                                   | Single codebase for UI, but OS-specific modules for system calls. This minimises duplication while supporting all three OSes.                                                                                                                                                 |
+| Decision                 | Choice                                                | Alternative Considered                                      | Rationale                                                                                                                                                                                                                                                                     |
+| ------------------------ | ----------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Database**             | SQLite + WAL                                          | PostgreSQL                                                  | No installation or service management required. WAL mode handles concurrent reads. Single-location scope means SQLite performance is more than sufficient. PostgreSQL is the documented V2 upgrade path.                                                                      |
+| **ORM**                  | SQLAlchemy (async)                                    | Raw SQL, Tortoise ORM                                       | Industry standard, excellent Alembic integration, strong typing support, wide community. Async support via `AsyncSession` prevents blocking the event loop.                                                                                                                   |
+| **Database driver**      | aiosqlite (async)                                     | sqlite3 (sync)                                              | FastAPI is async-native; sync SQLAlchemy blocks the event loop on every DB operation. `aiosqlite` allows async DB calls without threadpool overhead.                                                                                                                          |
+| **Migrations**           | Alembic                                               | Manual SQL scripts                                          | Versioned, reversible, auto-detects model diffs. Essential as the project evolves across phases.                                                                                                                                                                              |
+| **Backend framework**    | FastAPI                                               | Flask, Django                                               | Async-native, automatic API docs, Pydantic integration, excellent WebSocket support, fastest Python web framework.                                                                                                                                                            |
+| **Real-time**            | WebSockets                                            | Polling, SSE                                                | Sub-second updates are a core UX requirement. WebSocket is the only approach that satisfies this without hammering the server with polling.                                                                                                                                   |
+| **Client agent**         | Electron with platform abstraction                    | Native per-OS apps, Python script                           | Single codebase for UI, cross-platform via abstraction, full OS APIs via Node.js, hardware metrics via `systeminformation`, modern UI for splash/countdown.                                                                                                                   |
+| **Auth**                 | PIN + JWT + token_version revocation                  | Password + session cookie                                   | PINs are appropriate for the counter context — fast entry, shared terminal. JWT with `token_version` allows revocation without a blacklist.                                                                                                                                   |
+| **Billing precision**    | Integer (paise)                                       | Float/Decimal                                               | Float rounding errors accumulate across hundreds of daily transactions. Integer arithmetic is exact. Decimal would also work but adds library dependency.                                                                                                                     |
+| **Console control**      | Tuya smart plugs                                      | HDMI-CEC, custom hardware                                   | No agent possible on consoles. Smart plugs are inexpensive, widely available in Nepal, and the Tuya API is well-documented.                                                                                                                                                   |
+| **Printing**             | python-escpos + PDF                                   | Receipt service, cloud printing                             | Local-first principle. python-escpos supports all common thermal printers. PDF fallback covers any regular printer with zero additional setup.                                                                                                                                |
+| **Feature flags**        | DB-stored, runtime                                    | Code-level flags, env vars                                  | DB storage allows the cafe owner to toggle features from the dashboard UI without any technical knowledge or server restart.                                                                                                                                                  |
+| **Modularity**           | Feature flags                                         | Separate product editions                                   | One codebase serves all cafe sizes. Flags suppress UI and gate APIs cleanly. Simpler to maintain and test than multiple editions.                                                                                                                                             |
+| **Frontend state**       | React Query + WebSocket                               | Redux, SWR                                                  | React Query handles server state (caching, refetch, mutations) cleanly. WebSocket events trigger targeted cache invalidations. No global Redux boilerplate needed.                                                                                                            |
+| **Auth token storage**   | In-memory (JS variable)                               | localStorage                                                | localStorage is not supported in sandboxed environments and is a XSS risk. In-memory token is lost on refresh (re-login required), which is acceptable and correct for a shared counter terminal.                                                                             |
+| **Licensing**            | Offline Ed25519 signature + hardware fingerprint      | Online license server, time-bombed trial only, no licensing | A license server would require Seller to run permanent infrastructure, directly contradicting the product's zero-cloud-dependency pitch. Offline asymmetric signing makes licenses unforgeable without the private key while needing no network call, ever, after activation. |
+| **PIN hashing**          | Argon2id (`argon2-cffi`)                              | bcrypt                                                      | Argon2id is the OWASP-recommended algorithm for new systems. It provides configurable memory hardness that bcrypt lacks. No fallback is implemented.                                                                                                                          |
+| **Hardware fingerprint** | py-machineid (primary) + OS fallbacks                 | OS-specific commands only                                   | `py-machineid` works on all three OSes without admin privileges. OS-specific fallbacks only used if `py-machineid` returns empty.                                                                                                                                             |
+| **Cross‑platform**       | Platform abstraction in agent; cross‑platform backend | Separate codebases per OS                                   | Single codebase for UI, but OS-specific modules for system calls. This minimises duplication while supporting all three OSes.                                                                                                                                                 |
+| **Shutdown lifecycle**   | `lifespan` context manager                            | `@app.on_event("shutdown")`                                 | `@app.on_event` is deprecated in FastAPI 0.93+. `lifespan` consolidates startup and shutdown in one place and is the modern pattern.                                                                                                                                          |
+| **Task scheduling**      | APScheduler `AsyncIOScheduler`                        | `python-schedule`                                           | `python-schedule` is blocking and single-threaded; `AsyncIOScheduler` integrates natively with FastAPI's event loop and handles exceptions gracefully.                                                                                                                        |
+| **Screenshot payload**   | JPEG 80% quality, max 1280×720, 5MB limit             | PNG full resolution                                         | PNG screenshots are 3–8 MB, encoding to 4–11 MB base64. JPEG at 80% quality provides 5–10× compression with acceptable quality for monitoring.                                                                                                                                |
+| **Server recovery**      | Load active sessions from DB on startup               | No recovery, lost sessions                                  | Preserves billing data and allows agents to re-sync. Critical for reliability.                                                                                                                                                                                                |
+| **Agent offline start**  | Prohibited — sessions only from server                | Allow local session start offline                           | Simplifies billing reconciliation and prevents fraud. Agent is a client, not a peer.                                                                                                                                                                                          |
 
 ---
 

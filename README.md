@@ -1,12 +1,12 @@
 <div align="center">
 
-# 🕹️ Arcade - Gaming Cafe Management Software
+# 🕹️ Arcade — Gaming Cafe Management Software
 
 **The self‑hosted operating system for gaming cafes.**
 
 Sessions, billing, POS, members, PC control, and analytics — one system, zero subscriptions, zero internet dependency.
 
-[![Status](https://img.shields.io/badge/status-in%20development-orange)](#build-phases)
+[![Status](https://img.shields.io/badge/status-design%20complete-blue)](#build-phases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Python](https://img.shields.io/badge/backend-Python%203.11%2B-3776AB?logo=python&logoColor=white)](#tech-stack)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](#tech-stack)
@@ -25,7 +25,7 @@ Most gaming cafes run on a patchwork of a generic timer app, a separate POS, a n
 
 No internet required during operation. No subscription fees. No per-seat licensing. You own the box it runs on.
 
-> **Project status:** Arcade is in active early development. The architecture and feature set below reflect the plan for v1 — see [Build Phases](#build-phases) for what's actually built versus what's designed but not yet implemented.
+> **Project status:** Arcade is in the design-complete phase, ready for development. The architecture and feature set below reflect the plan for v1 — see [Build Phases](#build-phases) for what's planned.
 
 ---
 
@@ -58,6 +58,9 @@ No internet required during operation. No subscription fees. No per-seat licensi
 - **Modular by design.** Feature flags let a 6-seat shop run a bare-bones timer, while a full esports venue turns on members, packages, tournaments, and inventory.
 - **Hardware-aware.** Wake-on-LAN boot, Tuya-controlled consoles, and a branded lock screen mean staff manage the whole floor from one dashboard — not six.
 - **Runs everywhere.** The server can be a Windows, macOS, or Linux machine; client agents run on all three platforms, giving you the freedom to choose your hardware.
+- **Hardened kiosk overlay.** The agent uses Electron's `kiosk: true` mode, not OS lock/unlock, for consistent access control across all platforms. Alt+F4, Cmd+Q, F12, and Ctrl+P are intercepted and discarded.
+- **Resilient by design.** Agent persists session state locally in SQLite. Server restarts preserve active sessions. No billing data is lost during LAN interruptions or agent crashes.
+- **Secure by default.** Agent authentication uses per-seat random secrets. Staff PINs are hashed with Argon2id. JWT tokens include `token_version` for immediate revocation.
 
 ---
 
@@ -65,11 +68,12 @@ No internet required during operation. No subscription fees. No per-seat licensi
 
 ### Core Operations
 
-- **Live seat dashboard** — colour-coded grid of all seats with real-time status, zone grouping, and health badges
+- **Live seat dashboard** — colour-coded grid of all seats with real-time status (Available, In Use, Reserved, Paused, Maintenance, Offline, Booting, Unreachable), zone grouping, and health badges
 - **Session management** — start, stop, pause, and resume timed sessions per seat
 - **Seat reservations** — staff can reserve seats in advance for groups, parties, or call-ahead bookings
 - **Maintenance mode** — mark any seat as out of order with a note; track downtime per machine over time
-- **Auto-boot** — Wake-on-LAN magic packets boot all client PCs on server startup; Tuya powers consoles
+- **Auto-boot** — Wake-on-LAN magic packets boot all client PCs on server startup; seats show **Booting** status while waiting for agent heartbeat, and **Unreachable** if no connection arrives within 60 seconds; Tuya powers consoles locally via TinyTuya
+- **Session recovery** — active sessions are preserved when the server restarts; agents re-sync on reconnect
 
 ### Billing
 
@@ -78,6 +82,7 @@ No internet required during operation. No subscription fees. No per-seat licensi
 - **Promotions engine** — happy hours, flash discounts, first-visit offers, group discounts, birthday bonuses
 - **Prepaid vouchers** — generate and print one-time codes redeemable at the counter or client screen
 - **Billing precision** — all amounts stored as integers (paise) to eliminate rounding errors
+- **Atomic package updates** — prevents race conditions when multiple sessions draw from the same package
 
 ### POS & Inventory
 
@@ -93,16 +98,20 @@ No internet required during operation. No subscription fees. No per-seat licensi
 
 ### PC & Console Control
 
-- **Client agent** — locks/unlocks Windows/macOS/Linux screens, shows countdown timer and low-time warnings
+- **Client agent (kiosk overlay model)** — full‑screen always‑on‑top overlay blocks desktop access when no session is active. `HIDE_OVERLAY` removes it during a session; `SHOW_OVERLAY` re‑enables it on session end. **Consistent across Windows, macOS, and Linux** — no OS lock/unlock.
+- **Kiosk hardening** — `kiosk: true`, `closable: false`, DevTools disabled, global shortcuts intercepted (Alt+F4, Cmd+Q, F12, Ctrl+P). Known gaps documented (`Ctrl+Alt+Del` on Windows, Wayland compositor variations on Linux).
 - **Remote commands** — restart, shutdown, send message, or screenshot any client from the dashboard
 - **PC health monitoring** — CPU%, RAM%, temperature, and disk space reported from every agent every 60 seconds
-- **Console control** — power PS5/Xbox on and off via Tuya-compatible smart plugs
+- **Console control** — power PS5/Xbox on and off via **local LAN** (TinyTuya), no cloud dependency after initial pairing
 - **Branded lock screen** — cafe logo, session time, food menu, and "Call Staff" button on every client screen
 - **Announcements** — push a message from the dashboard that appears on all client screens instantly
+- **Agent authentication** — each agent uses a random `agent_secret` generated at setup time, validated on every connection. Not hardcoded in source.
+- **Agent offline behavior** — sessions cannot be started offline; agents continue tracking active sessions and sync on reconnect
 
 ### Staff & Shifts
 
-- **Staff roles** — Admin (full access) and Cashier (billing + POS only); PIN lockout after 5 failed attempts
+- **Staff roles** — Admin (full access) and Cashier (billing + POS only); **Staff ID + PIN** authentication; **Argon2id** PIN hashing (OWASP-recommended); lockout after 5 failed attempts
+- **JWT with token_version** — changing a PIN or deactivating a staff member immediately invalidates all previously issued tokens; JWT payload includes `staff_id`, `role`, and `token_version`
 - **Shift management** — open and close shifts with cash float; per-shift revenue reporting
 - **Audit log** — write-only log of all sensitive operations for billing disputes and accountability
 
@@ -132,28 +141,32 @@ No internet required during operation. No subscription fees. No per-seat licensi
 Arcade is sold as a **one-time, perpetual license per cafe location**, hardware-locked to the counter PC running the server. There are no subscriptions and no recurring per-seat fees.
 
 - **Fully offline.** Activation does not require a license server. A `license.key` file, signed with an Ed25519 key by Seller, is verified locally against the embedded public key — no network call needed, ever, consistent with Arcade's zero-cloud-dependency design.
-- **How it works:** On first launch, the Launcher computes a Hardware ID from this PC and shows it on the Activation screen. Send that ID to Seller with proof of purchase; you'll receive a `license.key` file back. Drop it in the app folder and the setup wizard unlocks.
+- **How it works:** On first launch, the Launcher computes a Hardware ID from this PC using `py-machineid` (**no admin privileges required**) and shows it on the Activation screen. Send that ID to Seller with proof of purchase; you'll receive a `license.key` file back. Drop it in the app folder (`arcade/license.key`) and the setup wizard unlocks.
+- **Trial licenses:** Time-limited trial licenses are supported using the same signature mechanism, with an expiry date encoded in the license payload.
 - **Hardware changes:** If you replace major hardware (e.g. the motherboard) and the Hardware ID changes, contact Seller with the new ID for a reissued license. This is a manual process in V1.
 - **What's checked, and when:** The license is verified once at activation and again locally on every subsequent Launcher start. Tampering with or removing `license.key` simply returns the app to the Activation screen — it never touches or corrupts your session/billing data.
-- **Cross‑platform note:** Hardware ID generation uses a combination of system UUID, MAC address, and disk serial – works reliably on all three OSes.
+- **Cross‑platform note:** `py-machineid` works on all three OSes without admin/root privileges. OS-specific fallbacks (using `wmic`, `system_profiler`, `dmidecode`) are only used if `py-machineid` returns empty.
 
 ---
 
 ## Tech Stack
 
-| Layer           | Technology                                                       |
-| --------------- | ---------------------------------------------------------------- |
-| Backend API     | Python · FastAPI · Uvicorn                                       |
-| Database        | SQLite (WAL mode) · SQLAlchemy · Alembic                         |
-| Frontend        | React · Vite · TypeScript · TailwindCSS · React Query            |
-| Server launcher | Python · Tkinter                                                 |
-| Client agent    | Electron · React · `systeminformation`                           |
-| Console control | Tuya smart plug API                                              |
-| Printing        | `python-escpos` · PDF fallback                                   |
-| Real-time comms | WebSockets (exponential backoff reconnection + heartbeat)        |
-| Charts          | Recharts                                                         |
-| Task queue      | Python `schedule` (nightly backup)                               |
-| Cross‑platform  | Electron (agent) + Python (backend) run on Windows, macOS, Linux |
+| Layer              | Technology                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Backend API        | Python · FastAPI · Uvicorn                                                                                  |
+| Database           | SQLite (WAL mode, `busy_timeout=5000`, `synchronous=NORMAL`) · **Async** SQLAlchemy · `aiosqlite` · Alembic |
+| Frontend           | React · Vite · TypeScript · TailwindCSS · React Query                                                       |
+| Server launcher    | Python · Tkinter                                                                                            |
+| Client agent       | Electron · React · `systeminformation` · `better-sqlite3`                                                   |
+| Console control    | **Local LAN** Tuya (TinyTuya) — no cloud dependency                                                         |
+| Printing           | `python-escpos` · PDF fallback                                                                              |
+| Real-time comms    | WebSockets (exponential backoff reconnection + heartbeat)                                                   |
+| Charts             | Recharts                                                                                                    |
+| Task queue         | **APScheduler** `AsyncIOScheduler` (nightly backup)                                                         |
+| Shutdown lifecycle | FastAPI **`lifespan` context manager** — replaces deprecated `@app.on_event`                                |
+| PIN hashing        | **Argon2id** via `argon2-cffi` (OWASP-recommended)                                                          |
+| Hardware ID        | `py-machineid` (primary) + OS fallbacks — no admin required                                                 |
+| Cross‑platform     | Electron (agent) + Python (backend) run on Windows, macOS, Linux                                            |
 
 ---
 
@@ -165,28 +178,34 @@ Arcade is sold as a **one-time, perpetual license per cafe location**, hardware-
        ▼
 Main Counter PC  ──  launcher.py (Tkinter GUI)
        │                    │
-       │              License check (offline, signature + Hardware ID)
+       │              License check (offline, Ed25519 signature + Hardware ID via py-machineid)
        │                    │ pass                          │ fail
        │                    ▼                                ▼
        │           Setup wizard / server start      License Activation screen
        │                    │
-       │              FastAPI backend  ◄──  React dashboard (staff UI)
-       │              SQLite database        └── Mobile view (owner phone)
+       │              FastAPI backend (async SQLAlchemy)  ◄──  React dashboard (staff UI)
+       │              SQLite database (WAL + pragmas)       └── Mobile view (owner phone)
+       │              APScheduler (nightly backup)
        │
-       ├── Wake-on-LAN (magic packet) ──────► Client machines
-       │                                       └── Electron agent (cross‑platform)
-       │                                           ├── Screen lock / unlock (OS‑specific)
+       ├── Wake-on-LAN (magic packet) ──────► Client machines (Windows/macOS/Linux)
+       │                                       └── Electron agent (kiosk overlay model)
+       │                                           ├── Kiosk overlay (hardened: kiosk: true, closable: false)
+       │                                           ├── Local SQLite session persistence
+       │                                           ├── Platform abstraction (restart, shutdown, screenshot)
        │                                           ├── Countdown + low-time warning
        │                                           ├── Branded splash screen
        │                                           ├── Health metrics (CPU, RAM, temp)
-       │                                           └── Remote commands (restart, message)
+       │                                           ├── Remote commands (HIDE_OVERLAY, SHOW_OVERLAY, message, restart, screenshot)
+       │                                           └── Agent_secret authentication (generated at setup)
        │
-       └── Tuya API ───────────────────────► Smart plugs
+       └── Local TinyTuya ─────────────────► Smart plugs (no cloud after pairing)
                                               └── PS5 / Xbox (boot on power restore)
 ```
 
 The server PC is the only machine that needs to be on wired ethernet. All communication is local — no cloud dependency.  
-The agent uses a **platform abstraction layer** inside Electron – the same UI code works on Windows, macOS, and Linux, with OS‑specific modules for lock screen, shutdown, and auto‑start.
+The agent uses a **platform abstraction layer** inside Electron – the same UI code works on Windows, macOS, and Linux, with OS‑specific modules for **kiosk overlay control**, shutdown, restart, screenshot capture, and auto‑start. **OS lock/unlock is not used** — the kiosk overlay model is consistent across all platforms.
+
+On server startup, active sessions are loaded from the database and agents are notified to re-sync, ensuring no billing data is lost.
 
 ---
 
@@ -214,21 +233,22 @@ source venv/bin/activate   # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
 
 # Install frontend dependencies
-cd frontend && npm install && cd ..
+cd frontend && npm install && npm run build && cd ..
 
 # First run — launcher handles license activation, DB init, and the setup wizard
 python launcher.py
 ```
 
-On first launch, the Launcher shows a **License Activation** screen before anything else. It displays a Hardware ID generated from this PC. Send that Hardware ID to Seller to receive a `license.key` file, place it in the app folder (or import it via the Activation screen), and the Launcher will verify it and unlock the setup wizard.
+On first launch, the Launcher shows a **License Activation** screen before anything else. It displays a Hardware ID generated from this PC using `py-machineid` (no admin/root required). Send that Hardware ID to Seller to receive a `license.key` file, place it in the app folder (`arcade/license.key`), and the Launcher will verify it and unlock the setup wizard.
 
 The setup wizard then asks for:
 
 - Cafe name
 - Server host and port
-- Admin PIN and Cashier PIN
+- Admin Staff ID + PIN and Cashier Staff ID + PIN
+- Agent secrets per seat (generated automatically using `secrets.token_hex(32)`)
 
-These are saved to `arcade.config.json`. Subsequent launches re-verify the license locally (no internet needed) and skip straight to starting the server.
+These are saved to `arcade.config.json`. The JWT signing secret is also generated during setup. Subsequent launches re-verify the license locally (no internet needed) and skip straight to starting the server.
 
 ### Client agent setup
 
@@ -244,12 +264,14 @@ The build step creates platform‑specific packages:
 - **macOS**: `.dmg` and `.app` bundle
 - **Linux**: AppImage, `.deb`, or `.rpm` (depending on configuration)
 
-Copy the built agent to each client machine and install it. On first run, it will ask for the server address (or you can pre‑configure it). The agent connects back to the server automatically on boot, registers its hardware info, and begins sending health metrics.
+Copy the built agent to each client machine and install it. Place the `agent.config.json` file (generated by the setup wizard) in the agent's config directory. **Set file permissions** on Linux/macOS: `chmod 600 agent.config.json` — this file contains the `agent_secret` and `seat_id` and must not be world‑readable.
+
+On first run, the agent reads `agent.config.json`, connects to the server via `ws://{server}/ws/agent/{seat_id}?secret={AGENT_SECRET}`, authenticates with its `agent_secret`, registers its hardware info, and begins sending health metrics.
 
 ### Auto‑start on server boot
 
 - **Windows**: Place a shortcut to `launcher.py` (or the built `.exe`) in the Startup folder, or register it via Task Scheduler.
-- **macOS**: Use `launchd` – a sample plist is provided in the repository.
+- **macOS**: Create a LaunchAgent plist in `~/Library/LaunchAgents/` — a sample plist is provided in the repository.
 - **Linux**: Use `systemd` or autostart `.desktop` file – sample units are included.
 
 Detailed instructions are available in the `/docs` folder.
@@ -266,8 +288,28 @@ All runtime config lives in `arcade.config.json` (created by the setup wizard):
   "host": "192.168.1.100",
   "port": 8000,
   "db_path": "arcade.db",
-  "admin_pin": "****",
-  "cashier_pin": "****"
+  "backup_dir": "backups/",
+  "backup_retain_days": 30,
+  "backup_time": "03:00",
+  "admin_staff_id": "S001",
+  "admin_pin_hash": "<argon2id_hash>",
+  "cashier_staff_id": "S002",
+  "cashier_pin_hash": "<argon2id_hash>",
+  "jwt_secret": "<random_256bit_hex>",
+  "agent_secrets": {
+    "seat_001": "c9a1b2c3d4e5f6...",
+    "seat_002": "a1b2c3d4e5f6..."
+  },
+  "tuya_devices": [
+    {
+      "seat_id": "console_01",
+      "device_id": "abc123",
+      "local_key": "key456",
+      "ip_address": "192.168.1.50",
+      "protocol_version": "3.3"
+    }
+  ],
+  "printer_type": "usb"
 }
 ```
 
@@ -293,6 +335,43 @@ Arcade is modular. Features can be toggled on or off from the Settings screen to
 | `require_member_for_session` | Require member login to unlock   | OFF     |
 
 A cafe that just wants a simple timer and receipt can turn off most of these. A full esports venue turns them all on.
+
+---
+
+## Project Structure
+
+The key architectural directories:
+
+```
+arcade/
+├── backend/
+│   ├── api/routers/          # FastAPI route handlers (async)
+│   ├── services/             # Business logic (async) — billing, sessions, etc.
+│   ├── repositories/         # All database queries (async, no business logic)
+│   ├── models/               # SQLAlchemy ORM models
+│   ├── schemas/              # Pydantic request/response schemas
+│   ├── licensing/            # Offline license verification (py-machineid, Ed25519)
+│   ├── core/
+│   │   ├── database.py       # Async SQLAlchemy + WAL + busy_timeout=5000
+│   │   ├── security.py       # Argon2id hashing + JWT with token_version
+│   │   └── ws_manager.py     # WebSocket manager (agent_secret validation)
+│   ├── main.py               # FastAPI app — lifespan context manager (startup/shutdown)
+│   └── alembic.ini           # Alembic configuration
+├── frontend/                 # React dashboard (Vite + TailwindCSS)
+├── agent/
+│   └── src/
+│       ├── main/
+│       │   ├── platform/     # OS abstraction: kiosk overlay, restart, screenshot
+│       │   ├── storage/      # Local SQLite session persistence
+│       │   ├── ipc/          # IPC handlers (overlay, screenshot, restart, shutdown)
+│       │   └── ws/           # WebSocket client (agent_secret auth, exponential backoff)
+│       └── renderer/         # Kiosk overlay UI (hardened: kiosk: true, closable: false)
+├── alembic/                  # Database migration scripts
+├── tools/keygen/             # INTERNAL — private signing key, NOT shipped
+├── launcher.py               # Tkinter GUI (License Activation, setup wizard, server mgmt)
+├── arcade.config.json        # Runtime config (created by setup wizard)
+└── license.key               # License file (placed by owner at arcade/license.key)
+```
 
 ---
 
@@ -333,10 +412,11 @@ Rates are locked at session start. A mid-day rate change never affects an in-pro
 **Walk-in:**
 
 1. Customer arrives → staff selects an available seat
-2. Session starts → PC unlocks, branded splash shows, timer begins
-3. At 5-minute warning → countdown popup on client screen
-4. Customer finishes → staff clicks Checkout → invoice generated
-5. Payment marked → PC locks → receipt printed
+2. Session starts → agent receives `HIDE_OVERLAY`, kiosk overlay removed, desktop accessible, branded splash shows for 5 seconds
+3. Timer begins — server authoritative, agent caches locally in SQLite for LAN‑drop resilience
+4. At 5-minute warning → countdown popup on client screen
+5. Customer finishes → staff clicks Checkout → invoice generated
+6. Payment marked → agent receives `SHOW_OVERLAY`, kiosk overlay re‑enabled → receipt printed
 
 **Member with package:**
 
@@ -355,16 +435,20 @@ Rates are locked at session start. A mid-day rate change never affects an in-pro
 
 ## Console Control
 
-PS5 and Xbox cannot run a custom agent. Each console is connected to a **Tuya-compatible smart plug**. The server calls the Tuya API to power plugs on/off when a console session starts or ends. Enable "boot on power restore" in the console's settings once — after that, power-cycling the plug is enough to boot it.
+PS5 and Xbox cannot run a custom agent. Each console is connected to a **Tuya-compatible smart plug**. Arcade controls them via **local LAN** using the TinyTuya library — **no internet dependency during normal operation**. An initial one‑time pairing (requiring internet) is performed via the Tuya app to retrieve the `local_key`, `device_id`, and `ip_address`, after which all control is local.
+
+Enable "boot on power restore" in the console's settings once — after that, power-cycling the plug is enough to boot it.
 
 ---
 
 ## Database Migrations
 
-Arcade uses **Alembic** for schema migrations. Never edit the schema manually.
+Arcade uses **Alembic** for schema migrations. Never edit the schema manually. `alembic.ini` lives in `backend/` — run all Alembic commands from that directory.
 
 ```bash
-# Apply all pending migrations (run automatically on server start)
+cd backend
+
+# Apply all pending migrations (run automatically on server startup)
 alembic upgrade head
 
 # Generate a new migration after changing a model
@@ -378,15 +462,15 @@ alembic downgrade -1
 
 ## Build Phases
 
-| Phase                                  | Scope                                                                                                                                                       | Status     |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| **1 — Core**                           | License activation (offline signature + Hardware ID), Launcher, FastAPI scaffold, Alembic, WoL boot, session API, seat dashboard, Electron agent, WebSocket | 🔲 Planned |
-| **2 — Billing, POS & Printing**        | Time billing, food/drink POS, inventory tracking, receipt printing, audit log                                                                               | 🔲 Planned |
-| **3 — Members, Packages & Promotions** | Member profiles, wallet, loyalty, time packages, day passes, voucher codes, promotions engine, per-zone pricing, staff roles                                | 🔲 Planned |
-| **4 — Operations & Experience**        | Remote PC commands, PC health monitoring, shift management, expense tracking, seat reservations, lock screen upgrade, announcements                         | 🔲 Planned |
-| **5 — Events & Analytics**             | Tournament/event mode, analytics dashboard, maintenance mode, configurable feature flags                                                                    | 🔲 Planned |
-| **6 — Cross‑Platform Polish**          | Full testing and packaging for Windows, macOS, Linux; auto‑start scripts for all OSes; platform-specific documentation                                      | 🔲 Planned |
-| **7 — Growth (V2)**                    | Online booking portal, WhatsApp/SMS notifications, optional WAN remote access, multi-location                                                               | 🔲 Future  |
+| Phase                                  | Scope                                                                                                                                                                                                                                                                                                                     | Status     |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| **1 — Core**                           | License activation (Ed25519 + `py-machineid`), Launcher, FastAPI scaffold with `lifespan`, Alembic, Async SQLAlchemy + WAL pragmas (`busy_timeout=5000`), WoL boot, session API, seat dashboard, Electron agent with hardened kiosk overlay (Windows first), WebSocket with `agent_secret` auth, local SQLite persistence | 🔲 Planned |
+| **2 — Billing, POS & Printing**        | Time billing, food/drink POS, inventory tracking, receipt printing, audit log, integer paise precision                                                                                                                                                                                                                    | 🔲 Planned |
+| **3 — Members, Packages & Promotions** | Member profiles, wallet, loyalty, time packages, day passes, voucher codes, promotions engine, per-zone pricing, staff roles (Argon2id PIN hashing, JWT with `token_version`)                                                                                                                                             | 🔲 Planned |
+| **4 — Operations & Experience**        | Remote PC commands, PC health monitoring, shift management, expense tracking, seat reservations, branded kiosk overlay, announcements, APScheduler nightly backup, server session recovery                                                                                                                                | 🔲 Planned |
+| **5 — Events & Analytics**             | Tournament/event mode, analytics dashboard, maintenance mode, configurable feature flags, screenshot rate-limiting (JPEG 80%, 1280×720)                                                                                                                                                                                   | 🔲 Planned |
+| **6 — Cross‑Platform Polish**          | Complete agent platform abstraction (macOS/Linux), packaging for all OSes, auto‑start scripts, kiosk hardening verification on all platforms                                                                                                                                                                              | 🔲 Planned |
+| **7 — Growth (V2)**                    | Online booking portal, WhatsApp/SMS notifications, optional WAN remote access, multi-location                                                                                                                                                                                                                             | 🔲 Future  |
 
 **Legend:** 🔲 Planned · 🟡 In progress · ✅ Done
 
@@ -401,6 +485,17 @@ These are out of scope for the initial release but architecturally planned for:
 - **Optional WAN access** — read-only owner dashboard accessible from outside the LAN
 - **Multi-location support** — one owner account, multiple cafe locations, cross-location reporting
 - **Game library management** — track which titles are installed on which machines
+- **PostgreSQL migration path** — for larger deployments or multi-location
+
+---
+
+## Known Limitations (V1)
+
+- **Ctrl+Alt+Del** on Windows cannot be intercepted by the agent without a dedicated SAS filter driver or Windows Kiosk Mode assignment
+- **Wayland compositors** on Linux may require additional configuration for `alwaysOnTop` to work reliably across all desktop environments
+- **macOS Screen Recording** permission must be granted for screenshot capture to work
+- **Agent offline session start** is not supported — all sessions must be initiated from the dashboard
+- **No self-service license transfer** — hardware changes require manual support contact
 
 ---
 
