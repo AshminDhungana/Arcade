@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🕹️ Arcade - Gaming Cafe Management
+# 🕹️ Arcade - Gaming Cafe Management Software
 
-**The self-hosted operating system for gaming cafes.**
+**The self‑hosted operating system for gaming cafes.**
 
 Sessions, billing, POS, members, PC control, and analytics — one system, zero subscriptions, zero internet dependency.
 
@@ -13,12 +13,15 @@ Sessions, billing, POS, members, PC control, and analytics — one system, zero 
 [![React](https://img.shields.io/badge/frontend-React%20%2B%20Vite-61DAFB?logo=react&logoColor=white)](#tech-stack)
 [![Electron](https://img.shields.io/badge/client-Electron-47848F?logo=electron&logoColor=white)](#tech-stack)
 [![SQLite](<https://img.shields.io/badge/database-SQLite%20(WAL)-003B57?logo=sqlite&logoColor=white>)](#tech-stack)
+[![Cross‑Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#getting-started)
 
 </div>
 
 ---
 
 Most gaming cafes run on a patchwork of a generic timer app, a separate POS, a notebook for expenses, and a lot of manual math at checkout. **Arcade replaces all of it with one system that runs entirely on your local network** — a FastAPI backend on the counter PC, a React dashboard for staff, and a lightweight agent on every client machine.
+
+**Arcade is fully cross‑platform** — the server runs on Windows, macOS, or Linux, and the client agent works on all three OSes. You are not locked into a single ecosystem.
 
 No internet required during operation. No subscription fees. No per-seat licensing. You own the box it runs on.
 
@@ -54,6 +57,7 @@ No internet required during operation. No subscription fees. No per-seat licensi
 - **Billing you can trust.** All money is stored as integer paise — no floating-point rounding errors, ever.
 - **Modular by design.** Feature flags let a 6-seat shop run a bare-bones timer, while a full esports venue turns on members, packages, tournaments, and inventory.
 - **Hardware-aware.** Wake-on-LAN boot, Tuya-controlled consoles, and a branded lock screen mean staff manage the whole floor from one dashboard — not six.
+- **Runs everywhere.** The server can be a Windows, macOS, or Linux machine; client agents run on all three platforms, giving you the freedom to choose your hardware.
 
 ---
 
@@ -89,8 +93,8 @@ No internet required during operation. No subscription fees. No per-seat licensi
 
 ### PC & Console Control
 
-- **Client agent** — locks/unlocks Windows PCs, shows countdown timer and low-time warnings
-- **Remote commands** — restart, shutdown, send message, or screenshot any PC from the dashboard
+- **Client agent** — locks/unlocks Windows/macOS/Linux screens, shows countdown timer and low-time warnings
+- **Remote commands** — restart, shutdown, send message, or screenshot any client from the dashboard
 - **PC health monitoring** — CPU%, RAM%, temperature, and disk space reported from every agent every 60 seconds
 - **Console control** — power PS5/Xbox on and off via Tuya-compatible smart plugs
 - **Branded lock screen** — cafe logo, session time, food menu, and "Call Staff" button on every client screen
@@ -131,23 +135,25 @@ Arcade is sold as a **one-time, perpetual license per cafe location**, hardware-
 - **How it works:** On first launch, the Launcher computes a Hardware ID from this PC and shows it on the Activation screen. Send that ID to Seller with proof of purchase; you'll receive a `license.key` file back. Drop it in the app folder and the setup wizard unlocks.
 - **Hardware changes:** If you replace major hardware (e.g. the motherboard) and the Hardware ID changes, contact Seller with the new ID for a reissued license. This is a manual process in V1.
 - **What's checked, and when:** The license is verified once at activation and again locally on every subsequent Launcher start. Tampering with or removing `license.key` simply returns the app to the Activation screen — it never touches or corrupts your session/billing data.
+- **Cross‑platform note:** Hardware ID generation uses a combination of system UUID, MAC address, and disk serial – works reliably on all three OSes.
 
 ---
 
 ## Tech Stack
 
-| Layer           | Technology                                                |
-| --------------- | --------------------------------------------------------- |
-| Backend API     | Python · FastAPI · Uvicorn                                |
-| Database        | SQLite (WAL mode) · SQLAlchemy · Alembic                  |
-| Frontend        | React · Vite · TypeScript · TailwindCSS · React Query     |
-| Server launcher | Python · Tkinter                                          |
-| Client agent    | Electron · React · `systeminformation`                    |
-| Console control | Tuya smart plug API                                       |
-| Printing        | `python-escpos` · PDF fallback                            |
-| Real-time comms | WebSockets (exponential backoff reconnection + heartbeat) |
-| Charts          | Recharts                                                  |
-| Task queue      | Python `schedule` (nightly backup)                        |
+| Layer           | Technology                                                       |
+| --------------- | ---------------------------------------------------------------- |
+| Backend API     | Python · FastAPI · Uvicorn                                       |
+| Database        | SQLite (WAL mode) · SQLAlchemy · Alembic                         |
+| Frontend        | React · Vite · TypeScript · TailwindCSS · React Query            |
+| Server launcher | Python · Tkinter                                                 |
+| Client agent    | Electron · React · `systeminformation`                           |
+| Console control | Tuya smart plug API                                              |
+| Printing        | `python-escpos` · PDF fallback                                   |
+| Real-time comms | WebSockets (exponential backoff reconnection + heartbeat)        |
+| Charts          | Recharts                                                         |
+| Task queue      | Python `schedule` (nightly backup)                               |
+| Cross‑platform  | Electron (agent) + Python (backend) run on Windows, macOS, Linux |
 
 ---
 
@@ -167,9 +173,9 @@ Main Counter PC  ──  launcher.py (Tkinter GUI)
        │              FastAPI backend  ◄──  React dashboard (staff UI)
        │              SQLite database        └── Mobile view (owner phone)
        │
-       ├── Wake-on-LAN (magic packet) ──────► Client PCs
-       │                                       └── Electron agent
-       │                                           ├── Screen lock / unlock
+       ├── Wake-on-LAN (magic packet) ──────► Client machines
+       │                                       └── Electron agent (cross‑platform)
+       │                                           ├── Screen lock / unlock (OS‑specific)
        │                                           ├── Countdown + low-time warning
        │                                           ├── Branded splash screen
        │                                           ├── Health metrics (CPU, RAM, temp)
@@ -179,7 +185,8 @@ Main Counter PC  ──  launcher.py (Tkinter GUI)
                                               └── PS5 / Xbox (boot on power restore)
 ```
 
-The server PC is the only machine that needs to be on wired ethernet. All communication is local — no cloud dependency.
+The server PC is the only machine that needs to be on wired ethernet. All communication is local — no cloud dependency.  
+The agent uses a **platform abstraction layer** inside Electron – the same UI code works on Windows, macOS, and Linux, with OS‑specific modules for lock screen, shutdown, and auto‑start.
 
 ---
 
@@ -187,10 +194,10 @@ The server PC is the only machine that needs to be on wired ethernet. All commun
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ (any OS)
 - Node.js 20+
-- Windows 10/11 on server and client PCs
-- All client PCs on wired ethernet with Wake-on-LAN enabled in BIOS
+- Client machines can run Windows, macOS, or Linux (the agent is packaged for each)
+- Wake-on-LAN enabled in BIOS for client PCs (if using Ethernet)
 
 ### Server setup
 
@@ -198,6 +205,10 @@ The server PC is the only machine that needs to be on wired ethernet. All commun
 # Clone the repo
 git clone https://github.com/AshminDhungana/arcade.git
 cd arcade
+
+# Create a virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate   # or `venv\Scripts\activate` on Windows
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -227,17 +238,21 @@ npm install
 npm run build        # Produces a distributable in agent/dist/
 ```
 
-Copy the built agent to each client PC and add it to the Windows Startup folder. The agent connects back to the server automatically on boot, registers its hardware info, and begins sending health metrics.
+The build step creates platform‑specific packages:
 
-### Auto-start on server boot
+- **Windows**: `.exe` installer (NSIS)
+- **macOS**: `.dmg` and `.app` bundle
+- **Linux**: AppImage, `.deb`, or `.rpm` (depending on configuration)
 
-Place a shortcut to `launcher.py` (or the built `.exe`) in:
+Copy the built agent to each client machine and install it. On first run, it will ask for the server address (or you can pre‑configure it). The agent connects back to the server automatically on boot, registers its hardware info, and begins sending health metrics.
 
-```
-C:\Users\<YourUser>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
-```
+### Auto‑start on server boot
 
-Or register it via Task Scheduler to run at system startup before any user logs in.
+- **Windows**: Place a shortcut to `launcher.py` (or the built `.exe`) in the Startup folder, or register it via Task Scheduler.
+- **macOS**: Use `launchd` – a sample plist is provided in the repository.
+- **Linux**: Use `systemd` or autostart `.desktop` file – sample units are included.
+
+Detailed instructions are available in the `/docs` folder.
 
 ---
 
@@ -370,7 +385,8 @@ alembic downgrade -1
 | **3 — Members, Packages & Promotions** | Member profiles, wallet, loyalty, time packages, day passes, voucher codes, promotions engine, per-zone pricing, staff roles                                | 🔲 Planned |
 | **4 — Operations & Experience**        | Remote PC commands, PC health monitoring, shift management, expense tracking, seat reservations, lock screen upgrade, announcements                         | 🔲 Planned |
 | **5 — Events & Analytics**             | Tournament/event mode, analytics dashboard, maintenance mode, configurable feature flags                                                                    | 🔲 Planned |
-| **6 — Growth (V2)**                    | Online booking portal, WhatsApp/SMS notifications, optional WAN remote access, multi-location                                                               | 🔲 Future  |
+| **6 — Cross‑Platform Polish**          | Full testing and packaging for Windows, macOS, Linux; auto‑start scripts for all OSes; platform-specific documentation                                      | 🔲 Planned |
+| **7 — Growth (V2)**                    | Online booking portal, WhatsApp/SMS notifications, optional WAN remote access, multi-location                                                               | 🔲 Future  |
 
 **Legend:** 🔲 Planned · 🟡 In progress · ✅ Done
 
@@ -387,3 +403,7 @@ These are out of scope for the initial release but architecturally planned for:
 - **Game library management** — track which titles are installed on which machines
 
 ---
+
+## License
+
+Arcade is licensed under the **Apache License, Version 2.0**. See [LICENSE](LICENSE) for details.

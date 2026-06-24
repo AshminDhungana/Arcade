@@ -2,11 +2,11 @@
 
 ## Arcade — Gaming Cafe Management System
 
-**Document Version:** 1.0  
+**Document Version:** 1.1  
 **Project Version:** 2.0  
 **Date:** June 2026  
-**Prepared by:** Ashmin Dhungana
-**Status:** Pre-Development · Planning Complete  
+**Prepared by:** Ashmin Dhungana  
+**Status:** Pre‑Development · Planning Complete  
 **Classification:** Internal / Private
 
 ---
@@ -51,6 +51,8 @@ Arcade is a local-network management platform for independent gaming cafes. It r
 
 The system runs entirely on the cafe's local network. No internet connection is required during daily operation. No cloud infrastructure, subscription fees, or per-seat licensing applies.
 
+**Cross‑platform:** The server (FastAPI + Launcher) runs on Windows, macOS, and Linux. The client agent (Electron) runs on all three operating systems, with a platform abstraction layer that handles OS‑specific screen locking, remote commands, and auto‑start. This gives cafe owners the freedom to choose their hardware without being locked into a single OS.
+
 ### 1.3 Intended Audience
 
 | Audience              | Use                                               |
@@ -91,7 +93,7 @@ Arcade is a greenfield self-hosted application. It does not integrate with or de
 - Multi-model billing engine with integer-precision arithmetic
 - Food and drink POS with optional inventory tracking
 - Member account management with wallet, loyalty, and packages
-- Remote PC lock/unlock and command dispatch via Electron agent
+- Remote PC lock/unlock and command dispatch via Electron agent (cross‑platform)
 - Console power control via Tuya smart plug API
 - Staff role management with PIN authentication and shift tracking
 - Owner analytics dashboard and mobile-responsive view
@@ -111,11 +113,11 @@ Arcade is a greenfield self-hosted application. It does not integrate with or de
 
 ### 2.4 Operating Environment
 
-- **Server OS:** Windows 10/11
-- **Client OS:** Windows 10/11
+- **Server OS:** Windows 10/11, macOS 11+, or Linux (Ubuntu 20.04+ / Debian 11+ recommended)
+- **Client OS:** Windows 10/11, macOS 11+, or Linux (any modern distribution with Electron support)
 - **Network:** Local area network (wired ethernet on server; WiFi acceptable for owner mobile view)
 - **Internet:** Not required during operation; required (or a manual offline path available) only for initial license activation, the setup wizard, and Tuya API calls for console control
-- **Hardware:** Counter PC (server), individual gaming PCs (clients), PS5/Xbox via Tuya smart plugs
+- **Hardware:** Counter PC (server), individual gaming PCs or Macs (clients), PS5/Xbox via Tuya smart plugs
 - **Printing:** ESC/POS thermal printer or any regular printer (PDF fallback)
 
 ### 2.5 Design Constraints
@@ -126,16 +128,18 @@ Arcade is a greenfield self-hosted application. It does not integrate with or de
 - The system MUST remain operable if the LAN connection between server and one or more client agents is temporarily interrupted
 - The server MUST be the single source of truth for all session timers
 - The license verification mechanism MUST NOT require an active internet connection or any phone-home call during normal day-to-day operation, once activated, consistent with the product's zero-cloud-dependency design
+- The client agent MUST abstract all OS‑specific operations (screen locking, shutdown, restart, auto‑start) behind a platform service interface to support Windows, macOS, and Linux without duplicating UI code
 
 ### 2.6 Assumptions and Dependencies
 
-- All client PCs run Windows 10 or Windows 11
-- Client PCs support Wake-on-LAN and have it enabled in BIOS
-- Client PCs are connected via wired ethernet
+- Client machines run one of the supported OSes (Windows, macOS, Linux) and are capable of running Electron
+- Client machines support Wake-on-LAN (if using wired Ethernet) – for macOS/Linux, WoL is also supported
+- Client machines are connected via wired ethernet for reliable WoL and low‑latency communication; WiFi is supported but not recommended for production
 - Consoles (PS5, Xbox) have "boot on power restore" enabled in their system settings
 - Tuya-compatible smart plugs are used for all consoles
-- Python 3.11+ and Node.js 20+ are available on the server PC
+- Python 3.11+ and Node.js 20+ are available on the server PC (or the packaged build includes them)
 - A thermal printer compatible with `python-escpos` is available (or PDF fallback is acceptable)
+- For screen locking on macOS, the system must allow the agent to control the screen saver/lock (Accessibility permissions may be required); on Linux, the agent will attempt to use `xdg-screensaver` or DE‑specific tools
 
 ---
 
@@ -149,7 +153,7 @@ Arcade is composed of four primary components communicating over LAN:
 [Power strip ON]
        │
        ▼
-Main Counter PC  ──  Arcade Launcher (Tkinter GUI)
+Main Counter PC  ──  Arcade Launcher (Tkinter GUI, cross‑platform)
        │                    │
        │              License check (offline, Ed25519 signature + Hardware ID)
        │                    │ pass                          │ fail
@@ -159,13 +163,17 @@ Main Counter PC  ──  Arcade Launcher (Tkinter GUI)
        │              FastAPI Backend  ◄──  React Dashboard (staff UI)
        │              SQLite Database        └── Mobile View (owner phone)
        │
-       ├── Wake-on-LAN (magic packet) ──────► Client PCs
+       ├── Wake-on-LAN (magic packet) ──────► Client machines (Windows/macOS/Linux)
        │                                       └── Electron Agent
-       │                                           ├── Screen lock / unlock
+       │                                           ├── Platform abstraction layer
+       │                                           │   ├── Windows: user32, shutdown
+       │                                           │   ├── macOS: AppleScript, pmset
+       │                                           │   └── Linux: xdg-screensaver, systemctl
+       │                                           ├── Screen lock / unlock (OS‑specific)
        │                                           ├── Countdown + low-time warning
        │                                           ├── Branded splash screen
        │                                           ├── Health metrics (CPU, RAM, temp)
-       │                                           └── Remote commands
+       │                                           └── Remote commands (restart, message)
        │
        └── Tuya API ───────────────────────► Smart Plugs
                                               └── PS5 / Xbox
@@ -173,27 +181,29 @@ Main Counter PC  ──  Arcade Launcher (Tkinter GUI)
 
 ### 3.2 Component Descriptions
 
-| Component            | Technology                                                       | Responsibility                                                                       |
-| -------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Arcade Server**    | Python · FastAPI · Uvicorn · SQLite                              | Authoritative business logic, session timing, database, REST API, WebSocket hub      |
-| **Arcade Dashboard** | React · Vite · TypeScript · TailwindCSS · React Query · Recharts | Staff UI, seat grid, billing, POS, analytics, settings                               |
-| **Arcade Launcher**  | Python · Tkinter                                                 | GUI wrapper to start/stop the server; setup wizard on first run; displays live logs  |
-| **Arcade Agent**     | Electron · React · `systeminformation`                           | Per-client-PC process; lock/unlock desktop; health metrics; remote command execution |
+| Component            | Technology                                                       | Responsibility                                                                                       |
+| -------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Arcade Server**    | Python · FastAPI · Uvicorn · SQLite                              | Authoritative business logic, session timing, database, REST API, WebSocket hub (cross‑platform)     |
+| **Arcade Dashboard** | React · Vite · TypeScript · TailwindCSS · React Query · Recharts | Staff UI, seat grid, billing, POS, analytics, settings (browser‑based, OS‑agnostic)                  |
+| **Arcade Launcher**  | Python · Tkinter                                                 | GUI wrapper to start/stop the server; setup wizard on first run; displays live logs (cross‑platform) |
+| **Arcade Agent**     | Electron · React · `systeminformation`                           | Per‑client process; lock/unlock desktop; health metrics; remote command execution (cross‑platform)   |
+
+The **agent** uses a platform abstraction layer inside Electron: the same UI code runs on all OSes, while OS‑specific modules handle screen locking (via `rundll32` on Windows, AppleScript on macOS, `xdg‑screensaver` on Linux), shutdown/restart commands (using appropriate system utilities), and auto‑start registration (registry on Windows, LaunchAgent on macOS, autostart `.desktop` on Linux). This keeps the codebase clean and maintainable.
 
 ### 3.3 Tech Stack
 
-| Layer           | Technology                                                |
-| --------------- | --------------------------------------------------------- |
-| Backend API     | Python · FastAPI · Uvicorn                                |
-| Database        | SQLite (WAL mode) · SQLAlchemy · Alembic                  |
-| Frontend        | React · Vite · TypeScript · TailwindCSS · React Query     |
-| Server Launcher | Python · Tkinter                                          |
-| Client Agent    | Electron · React · `systeminformation`                    |
-| Console Control | Tuya Smart Plug API                                       |
-| Printing        | `python-escpos` · Browser PDF fallback                    |
-| Real-time Comms | WebSockets (exponential backoff reconnection + heartbeat) |
-| Charts          | Recharts                                                  |
-| Task Queue      | Python `schedule` (nightly backup)                        |
+| Layer           | Technology                                                | Cross‑Platform                |
+| --------------- | --------------------------------------------------------- | ----------------------------- |
+| Backend API     | Python · FastAPI · Uvicorn                                | ✅                            |
+| Database        | SQLite (WAL mode) · SQLAlchemy · Alembic                  | ✅                            |
+| Frontend        | React · Vite · TypeScript · TailwindCSS · React Query     | ✅                            |
+| Server Launcher | Python · Tkinter                                          | ✅                            |
+| Client Agent    | Electron · React · `systeminformation`                    | ✅                            |
+| Console Control | Tuya Smart Plug API                                       | ✅                            |
+| Printing        | `python-escpos` · Browser PDF fallback                    | ✅ (printer driver dependent) |
+| Real‑time Comms | WebSockets (exponential backoff reconnection + heartbeat) | ✅                            |
+| Charts          | Recharts                                                  | ✅                            |
+| Task Queue      | Python `schedule` (nightly backup)                        | ✅                            |
 
 ### 3.4 Project Structure
 
@@ -205,13 +215,23 @@ arcade-cafe/
 │   ├── services/             # Business logic (billing, sessions, members, packages)
 │   ├── repositories/         # All database queries
 │   ├── models/               # SQLAlchemy ORM models
-│   ├── schemas/               # Pydantic request/response schemas
-│   ├── licensing/             # License file parsing + Ed25519 signature verification, hardware fingerprinting
+│   ├── schemas/              # Pydantic request/response schemas
+│   ├── licensing/            # License file parsing + Ed25519 signature verification, hardware fingerprinting
 │   └── core/
 │       ├── config.py         # Settings loader
 │       └── database.py       # Engine, WAL pragmas, session factory
 ├── frontend/                 # React dashboard (Vite + TailwindCSS)
-├── agent/                    # Electron client agent
+├── agent/
+│   ├── src/
+│   │   ├── main/             # Electron main process
+│   │   │   ├── index.ts      # entry point
+│   │   │   ├── platform/     # OS‑specific modules
+│   │   │   │   ├── index.ts  # unified PlatformService interface
+│   │   │   │   ├── windows.ts
+│   │   │   │   ├── macos.ts
+│   │   │   │   └── linux.ts
+│   │   │   └── ipc-handlers.ts
+│   │   └── renderer/         # React UI (common across OSes)
 ├── alembic/                  # Database migration scripts
 ├── launcher.py               # Tkinter GUI launcher (includes Activation screen)
 ├── arcade.config.json        # Runtime config (created on first run)
@@ -268,7 +288,7 @@ This subsection defines the offline, hardware-locked, perpetual licensing mechan
 
 **FR-LIC-001:** The application binary SHALL embed only the Ed25519 **public** key used to verify license signatures. The corresponding private signing key SHALL NEVER be present in the distributed application, its source repository, or any client-accessible file.
 
-**FR-LIC-002:** On first launch with no `license.key` present, the Launcher SHALL compute a Hardware ID by hashing a combination of stable, machine-specific identifiers (e.g. motherboard serial number, primary disk volume serial, Windows machine GUID). The Hardware ID SHALL be deterministic across reboots on the same machine.
+**FR-LIC-002:** On first launch with no `license.key` present, the Launcher SHALL compute a Hardware ID by hashing a combination of stable, machine-specific identifiers (e.g. motherboard serial number, primary disk volume serial, Windows machine GUID; on macOS use `system_profiler`; on Linux use `dmidecode`). The Hardware ID SHALL be deterministic across reboots on the same machine and platform‑agnostic.
 
 **FR-LIC-003:** The Launcher SHALL display the computed Hardware ID in the License Activation screen in a clearly copyable format, along with instructions for the cafe owner to send it to Neurotech Biratnagar to receive their `license.key`.
 
@@ -464,19 +484,27 @@ This subsection defines the offline, hardware-locked, perpetual licensing mechan
 
 ### 4.12 PC and Console Control
 
-#### 4.12.1 Client Agent (Windows PCs)
+#### 4.12.1 Client Agent (Cross‑Platform)
 
-**FR-AGENT-001:** The Electron agent SHALL automatically connect to the server on boot, register its hardware info (MAC address, hostname, hardware specs), and begin sending health metrics.
+**FR-AGENT-001:** The Electron agent SHALL automatically connect to the server on boot, register its hardware info (MAC address, hostname, OS version, hardware specs), and begin sending health metrics.
 
-**FR-AGENT-002:** On session start, the agent SHALL unlock the Windows desktop and display a branded splash screen for 5 seconds showing: cafe logo, session duration, food menu, and a "Call Staff" button.
+**FR-AGENT-002:** On session start, the agent SHALL unlock the desktop (using OS‑specific methods) and display a branded splash screen for 5 seconds showing: cafe logo, session duration, food menu, and a "Call Staff" button.
 
 **FR-AGENT-003:** After the splash screen, the agent SHALL minimise to a system tray icon showing remaining session time.
 
-**FR-AGENT-004:** On session end, the agent SHALL lock the Windows desktop.
+**FR-AGENT-004:** On session end, the agent SHALL lock the desktop (using OS‑specific methods).
 
 **FR-AGENT-005:** The agent SHALL send health metrics to the server every 60 seconds including: CPU usage (%), RAM usage (%), CPU temperature, and disk space.
 
 **FR-AGENT-006:** The agent SHALL receive and execute remote commands from the server as specified in FR-CMD-001 through FR-CMD-004.
+
+**FR-AGENT-007:** The agent SHALL implement a platform abstraction layer that exposes a unified interface for screen locking, unlocking, restart, shutdown, and auto‑start. OS‑specific implementations SHALL be selected at runtime based on `process.platform`:
+
+- **Windows:** `user32.dll` for lock, `shutdown` for restart/shutdown, registry for auto‑start
+- **macOS:** AppleScript (`osascript`) for lock, `sudo shutdown` for restart/shutdown, LaunchAgent plist for auto‑start
+- **Linux:** `xdg-screensaver` or DE‑specific commands for lock, `systemctl`/`shutdown` for restart/shutdown, autostart `.desktop` file for auto‑start
+
+**FR-AGENT-008:** The agent SHALL handle permission prompts gracefully (e.g., Accessibility on macOS, sudoers configuration on Linux) and display clear instructions to the cafe owner for granting necessary permissions.
 
 #### 4.12.2 Remote Commands
 
@@ -689,11 +717,17 @@ This subsection defines the offline, hardware-locked, perpetual licensing mechan
 
 ### 5.6 Portability and Installation
 
-**NFR-PORT-001:** The server setup SHALL be completable via the commands specified in the README without additional system configuration.
+**NFR-PORT-001:** The server setup SHALL be completable via the commands specified in the README without additional system configuration on Windows, macOS, and Linux.
 
-**NFR-PORT-002:** The Electron agent SHALL produce a distributable that can be copied to a client PC and added to the Windows Startup folder with no additional installation steps.
+**NFR-PORT-002:** The Electron agent SHALL produce platform-specific distributables:
 
-**NFR-PORT-003:** The system SHOULD support packaging the server as a Windows `.exe` via PyInstaller or equivalent to eliminate the Python prerequisite for end-users.
+- Windows: `.exe` installer (NSIS)
+- macOS: `.dmg` and `.app` bundle
+- Linux: AppImage, `.deb`, or `.rpm` (configurable)
+
+**NFR-PORT-003:** The server SHALL be packageable as a standalone executable via PyInstaller (or equivalent) for each OS, so that end-users do not need Python installed.
+
+**NFR-PORT-004:** The Launcher SHALL detect the operating system and adjust file paths accordingly (using `os.path.join` or `pathlib`) and use OS‑appropriate system calls for startup and shutdown.
 
 ### 5.7 Data Integrity
 
@@ -763,8 +797,8 @@ All monetary amounts SHALL be stored and processed as integers representing pais
 ### 8.1 User Interfaces
 
 - **Staff Dashboard:** Browser-based React application served by the FastAPI backend. Accessible from any machine on the LAN.
-- **Launcher GUI:** Tkinter desktop application on the server PC. Displays server status and logs.
-- **Client Agent UI:** Electron application running on each client PC — branded splash screen, system tray icon, countdown timer, remote command overlays.
+- **Launcher GUI:** Tkinter desktop application on the server PC. Displays server status and logs (cross‑platform).
+- **Client Agent UI:** Electron application running on each client PC — branded splash screen, system tray icon, countdown timer, remote command overlays (cross‑platform).
 - **Owner Mobile View:** The React dashboard, accessed via mobile browser on the cafe WiFi. Responsive layout optimised for phone screen sizes.
 
 ### 8.2 Hardware Interfaces
@@ -772,13 +806,13 @@ All monetary amounts SHALL be stored and processed as integers representing pais
 - **Thermal Printer:** ESC/POS compatible, interfaced via `python-escpos` over USB or network
 - **Smart Plugs:** Tuya-compatible plugs for PS5/Xbox, interfaced via the Tuya Cloud API (requires internet access for control calls)
 - **Client PCs:** Wake-on-LAN via UDP magic packet broadcast on the local subnet
-- **Network:** All client PCs on wired ethernet. Server on wired ethernet. Owner mobile view on WiFi.
+- **Network:** All client machines on wired ethernet (recommended). Server on wired ethernet. Owner mobile view on WiFi.
 
 ### 8.3 Software Interfaces
 
 - **Tuya API:** Used for smart plug power control. API credentials configured in Settings. Requires internet access.
 - **`python-escpos`:** Library for thermal printer communication.
-- **`systeminformation` (Node.js):** Used by the Electron agent to collect CPU, RAM, temperature, and disk metrics.
+- **`systeminformation` (Node.js):** Used by the Electron agent to collect CPU, RAM, temperature, and disk metrics (cross‑platform).
 - **Alembic:** Handles all database schema migrations. Must be run before server startup.
 
 ### 8.4 Communication Interfaces
@@ -792,9 +826,9 @@ All monetary amounts SHALL be stored and processed as integers representing pais
 
 ### Phase 1 — Core
 
-**Scope:** Offline license activation (Hardware ID generation, Ed25519 signature verification) · Launcher with setup wizard · FastAPI project structure · Alembic migrations · MAC address registration · Wake-on-LAN boot routine · Session start/stop/pause/resume API · React seat grid dashboard · Electron client agent · WebSocket real-time updates · Health check endpoint
+**Scope:** Offline license activation (Hardware ID generation, Ed25519 signature verification) · Launcher with setup wizard · FastAPI project structure · Alembic migrations · MAC address registration · Wake-on-LAN boot routine · Session start/stop/pause/resume API · React seat grid dashboard · Electron client agent (Windows first, with abstraction layer skeleton) · WebSocket real-time updates · Health check endpoint
 
-**Exit Criteria:** A machine without a valid license is blocked at the Activation screen and cannot reach the setup wizard. Once a valid `license.key` matching the machine's Hardware ID is supplied, setup proceeds. Staff can start a session on a seat, see it update live on the dashboard, and end the session. The client PC locks on session end.
+**Exit Criteria:** A machine without a valid license is blocked at the Activation screen and cannot reach the setup wizard. Once a valid `license.key` matching the machine's Hardware ID is supplied, setup proceeds. Staff can start a session on a seat, see it update live on the dashboard, and end the session. The client PC locks on session end (Windows only initially).
 
 ### Phase 2 — Billing, POS and Printing
 
@@ -820,7 +854,13 @@ All monetary amounts SHALL be stored and processed as integers representing pais
 
 **Exit Criteria:** An event is created, participants registered, bracket completed, and entry fees recorded. The analytics dashboard shows accurate revenue, utilisation, and health data from the local database. All feature flags toggle correctly.
 
-### Phase 6 — Growth (V2, Future)
+### Phase 6 — Cross‑Platform Polish
+
+**Scope:** Complete the agent's platform abstraction layer for macOS and Linux · Packaging for all three OSes (`.exe`, `.dmg`, `.deb`/AppImage) · Auto‑start scripts for each OS · Comprehensive testing on each platform · Update documentation and installation guides · Address OS‑specific permission requirements (Accessibility on macOS, sudoers on Linux)
+
+**Exit Criteria:** The agent runs and locks/unlocks screens correctly on all three OSes. Remote restart/shutdown works on all platforms. Installation and auto‑start are documented and tested. The server Launcher works on all OSes.
+
+### Phase 7 — Growth (V2, Future)
 
 **Scope:** Online public booking portal · WhatsApp/SMS notifications via Sparrow SMS or WhatsApp Business API · Optional WAN remote access (read-only stats endpoint, phone-home pattern) · Multi-location support · PostgreSQL migration path
 
@@ -838,16 +878,19 @@ All monetary amounts SHALL be stored and processed as integers representing pais
 - Database schema changes MUST be performed exclusively via Alembic migrations
 - The system is scoped for single-location deployment in V1; multi-location is a V2 concern
 - License verification MUST function entirely offline once a `license.key` has been issued; the private signing key MUST never ship inside the distributed application or its repository
+- The client agent MUST abstract OS‑specific operations; platform‑dependent code MUST be isolated in the `platform/` module, with the UI and business logic shared across OSes
 
 ### 10.2 Assumptions
 
-- Server and client PCs run Windows 10 or Windows 11
-- Client PCs support Wake-on-LAN and it is enabled in BIOS
-- Client PCs are connected to the network via wired ethernet
+- Server machine runs one of the supported OSes (Windows, macOS, Linux) with Python 3.11+ and Node.js 20+ (unless packaged)
+- Client machines run one of the supported OSes and support Electron
+- Client machines support Wake-on-LAN and it is enabled (if using wired Ethernet)
+- Client machines are connected to the network via wired ethernet for reliability; WiFi is optional but not recommended
 - Consoles have "boot on power restore" enabled in their system settings
 - The cafe has a reliable local area network
 - The cafe owner accepts responsibility for configuring Tuya smart plugs correctly
 - A single counter PC serves as the server throughout operation hours
+- For macOS and Linux, the owner will grant the necessary permissions (Accessibility, screen recording, etc.) when prompted by the agent
 
 ---
 
@@ -869,38 +912,42 @@ The system SHALL be considered ready for production deployment when all of the f
 | AC-10 | A shift opens and closes with correct revenue, session count, and cash reconciliation figures                                                                                                                              |
 | AC-11 | A member with an active package checks out with correct package drawdown and per-minute overflow billing                                                                                                                   |
 | AC-12 | The setup wizard cannot be started without a `license.key` that passes signature verification and matches the current machine's Hardware ID; an invalid or mismatched license is clearly rejected without crashing the app |
+| AC-13 | The Electron agent locks and unlocks the desktop correctly on Windows, macOS, and Linux (tested on each OS)                                                                                                                |
+| AC-14 | Remote restart and shutdown commands work on Windows, macOS, and Linux                                                                                                                                                     |
+| AC-15 | The server Launcher runs without errors on Windows, macOS, and Linux; the setup wizard and activation flow work identically across OSes                                                                                    |
 
 ---
 
 ## 12. Glossary
 
-| Term         | Definition                                                                                                                               |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Agent        | The Electron application installed on each client PC. Handles lock/unlock, health metrics, and remote commands.                          |
-| Audit Log    | Write-only record of all sensitive system operations for accountability and dispute resolution.                                          |
-| Cashier      | Staff role with access to billing, POS, and checkout only.                                                                               |
-| Dashboard    | The React web application used by staff at the counter.                                                                                  |
-| Day Pass     | A package type granting unlimited play on a single calendar day for a fixed fee.                                                         |
-| Ed25519      | An elliptic-curve digital signature algorithm used to sign and verify license files without requiring network access.                    |
-| ESC/POS      | Command language used to communicate with thermal printers.                                                                              |
-| Feature Flag | A toggleable setting that enables or disables an optional system feature.                                                                |
-| Hardware ID  | A fingerprint derived from stable machine identifiers (motherboard serial, disk serial, machine GUID), used to lock a license to one PC. |
-| Keygen Tool  | An internal, non-distributed tool used by Neurotech Biratnagar to generate signed `license.key` files for customers.                     |
-| Launcher     | The Tkinter GUI that starts and stops the Arcade server and runs the setup wizard on first use.                                          |
-| LAN          | Local Area Network — the internal network of the gaming cafe.                                                                            |
-| License Key  | A signed file (`license.key`) issued per customer, containing cafe name, Hardware ID, license type, and a verifiable signature.          |
-| Paise        | The smallest monetary unit (1/100th of a Rupee). All amounts are stored in paise for integer precision.                                  |
-| Package      | A prepaid bundle of time (hours, day pass, night pass, or monthly pass) associated with a member account.                                |
-| POS          | Point of Sale — the food and drink ordering component of the system.                                                                     |
-| Promotion    | A time-limited discount or offer applied automatically at session start.                                                                 |
-| Session      | A single continuous use period of a seat, from start to checkout.                                                                        |
-| Smart Plug   | A Tuya-compatible Wi-Fi power outlet used to control console power state.                                                                |
-| Tuya API     | The cloud API provided by Tuya to control their compatible smart home devices, including smart plugs.                                    |
-| Voucher      | A prepaid code redeemable for session time or wallet credit. Single-use, with optional expiry.                                           |
-| WAL Mode     | SQLite Write-Ahead Logging mode — allows concurrent reads during writes, improving performance under load.                               |
-| Walk-in      | A customer without a member account. Supported natively; billed at standard rate with no loyalty features.                               |
-| Wake-on-LAN  | A network standard that allows a PC to be powered on remotely by sending a "magic packet" to its MAC address.                            |
-| Zone         | A named grouping of seats with a shared pricing rate (e.g., Standard PC, VIP PC, Console Corner).                                        |
+| Term                 | Definition                                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent                | The Electron application installed on each client PC. Handles lock/unlock, health metrics, and remote commands.                           |
+| Audit Log            | Write-only record of all sensitive system operations for accountability and dispute resolution.                                           |
+| Cashier              | Staff role with access to billing, POS, and checkout only.                                                                                |
+| Dashboard            | The React web application used by staff at the counter.                                                                                   |
+| Day Pass             | A package type granting unlimited play on a single calendar day for a fixed fee.                                                          |
+| Ed25519              | An elliptic-curve digital signature algorithm used to sign and verify license files without requiring network access.                     |
+| ESC/POS              | Command language used to communicate with thermal printers.                                                                               |
+| Feature Flag         | A toggleable setting that enables or disables an optional system feature.                                                                 |
+| Hardware ID          | A fingerprint derived from stable machine identifiers (motherboard serial, disk serial, machine GUID), used to lock a license to one PC.  |
+| Keygen Tool          | An internal, non-distributed tool used by Neurotech Biratnagar to generate signed `license.key` files for customers.                      |
+| Launcher             | The Tkinter GUI that starts and stops the Arcade server and runs the setup wizard on first use.                                           |
+| LAN                  | Local Area Network — the internal network of the gaming cafe.                                                                             |
+| License Key          | A signed file (`license.key`) issued per customer, containing cafe name, Hardware ID, license type, and a verifiable signature.           |
+| Paise                | The smallest monetary unit (1/100th of a Rupee). All amounts are stored in paise for integer precision.                                   |
+| Package              | A prepaid bundle of time (hours, day pass, night pass, or monthly pass) associated with a member account.                                 |
+| Platform Abstraction | A design pattern that isolates OS‑specific code behind a common interface, allowing the same application to run on Windows, macOS, Linux. |
+| POS                  | Point of Sale — the food and drink ordering component of the system.                                                                      |
+| Promotion            | A time-limited discount or offer applied automatically at session start.                                                                  |
+| Session              | A single continuous use period of a seat, from start to checkout.                                                                         |
+| Smart Plug           | A Tuya-compatible Wi-Fi power outlet used to control console power state.                                                                 |
+| Tuya API             | The cloud API provided by Tuya to control their compatible smart home devices, including smart plugs.                                     |
+| Voucher              | A prepaid code redeemable for session time or wallet credit. Single-use, with optional expiry.                                            |
+| WAL Mode             | SQLite Write-Ahead Logging mode — allows concurrent reads during writes, improving performance under load.                                |
+| Walk-in              | A customer without a member account. Supported natively; billed at standard rate with no loyalty features.                                |
+| Wake-on-LAN          | A network standard that allows a PC to be powered on remotely by sending a "magic packet" to its MAC address.                             |
+| Zone                 | A named grouping of seats with a shared pricing rate (e.g., Standard PC, VIP PC, Console Corner).                                         |
 
 ---
 

@@ -2,13 +2,13 @@
 
 ## Arcade — Gaming Cafe Management System
 
-**Document Version:** 1.0  
+**Document Version:** 1.1  
 **Project Version:** 2.0  
 **Date:** June 2026  
-**Prepared by:** Ashmin Dhungana
-**Status:** Pre-Development · Design Complete  
+**Prepared by:** Ashmin Dhungana  
+**Status:** Pre‑Development · Design Complete  
 **Classification:** Internal / Private  
-**Reference SRS:** Arcade_SRS v1.0
+**Reference SRS:** Arcade_SRS v1.1
 
 ---
 
@@ -44,12 +44,12 @@ This Software Design Document (SDD) describes the architectural and detailed des
 
 This document covers the design of all four primary Arcade components:
 
-- **Arcade Server** — FastAPI backend, SQLite database, business logic
-- **Arcade Dashboard** — React staff interface and owner mobile view
-- **Arcade Agent** — Electron client application on each gaming PC
-- **Arcade Launcher** — Tkinter GUI for server management, including license activation
+- **Arcade Server** — FastAPI backend, SQLite database, business logic (cross‑platform)
+- **Arcade Dashboard** — React staff interface and owner mobile view (cross‑platform by nature)
+- **Arcade Agent** — Electron client application on each gaming PC (cross‑platform with platform abstraction)
+- **Arcade Launcher** — Tkinter GUI for server management, including license activation (cross‑platform)
 
-It also covers cross-cutting concerns: real-time communication, billing logic, security, license activation and verification, external integrations (Tuya, thermal printing), resilience, and deployment.
+It also covers cross-cutting concerns: real-time communication, billing logic, security, license activation and verification, external integrations (Tuya, thermal printing), resilience, cross‑platform support, and deployment on Windows, macOS, and Linux.
 
 ### 1.3 Intended Audience
 
@@ -59,7 +59,7 @@ It also covers cross-cutting concerns: real-time communication, billing logic, s
 
 ### 1.4 Relationship to SRS
 
-This document maps directly to the requirements in `Arcade_SRS v1.0`. Where a design decision satisfies a specific requirement, the relevant `FR-XXX` or `NFR-XXX` identifier is referenced.
+This document maps directly to the requirements in `Arcade_SRS v1.1`. Where a design decision satisfies a specific requirement, the relevant `FR-XXX` or `NFR-XXX` identifier is referenced.
 
 ### 1.5 Document Conventions
 
@@ -72,7 +72,7 @@ This document maps directly to the requirements in `Arcade_SRS v1.0`. Where a de
 
 ## 2. System Overview
 
-Arcade is a four-component client-server system operating entirely on a local area network.
+Arcade is a four-component client-server system operating entirely on a local area network. All components are designed to run on **Windows, macOS, and Linux** – the server (FastAPI + SQLite + Launcher) runs on any of these OSes, and the Electron agent runs on all three as well.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -84,8 +84,8 @@ Arcade is a four-component client-server system operating entirely on a local ar
 │  │  ┌────────┐  │     │  │  Routers │  │    Services    │  │  │
 │  │  │License │  │     │  └──────────┘  └────────────────┘  │  │
 │  │  │ Check  │  │     │  ┌──────────┐  ┌────────────────┐  │  │
-│  │  └────────┘  │      │  │  Schemas │  │ Repositories   │  │  │
-│  └──────────────┘      │  └──────────┘  └────────────────┘  │  │
+│  │  └────────┘  │     │  │  Schemas │  │ Repositories   │  │  │
+│  └──────────────┘     │  └──────────┘  └────────────────┘  │  │
 │                        │         ▼               ▼           │  │
 │  ┌──────────────┐      │  ┌─────────────────────────────┐   │  │
 │  │   React      │◀────▶│  │     SQLite (WAL mode)        │   │  │
@@ -94,12 +94,20 @@ Arcade is a four-component client-server system operating entirely on a local ar
 └─────────────────────────────────────────────────────────────────┘
          │  WebSocket + REST (LAN)         │  WoL (UDP)
          ▼                                 ▼
-┌─────────────────┐              ┌──────────────────┐
-│  Owner's Phone  │              │   Client PCs     │
-│  (Mobile View)  │              │ ┌──────────────┐ │
-└─────────────────┘              │ │Electron Agent│ │
-                                 │ └──────────────┘ │
-                                 └──────────────────┘
+┌─────────────────┐              ┌──────────────────────────────┐
+│  Owner's Phone  │              │   Client PCs (Windows/Mac/Linux)
+│  (Mobile View)  │              │ ┌──────────────────────────┐ │
+└─────────────────┘              │ │    Electron Agent         │ │
+                                 │ │ ┌──────────────────────┐ │ │
+                                 │ │ │ Platform Abstraction  │ │ │
+                                 │ │ │  ┌─────────┬───────┐ │ │ │
+                                 │ │ │  │ Windows │ macOS │ │ │ │
+                                 │ │ │  ├─────────┴───────┤ │ │ │
+                                 │ │ │  │     Linux       │ │ │ │
+                                 │ │ │  └─────────────────┘ │ │ │
+                                 │ │ └──────────────────────┘ │ │
+                                 │ └──────────────────────────┘ │
+                                 └──────────────────────────────┘
          │  Tuya Cloud API (internet)
          ▼
 ┌─────────────────┐
@@ -117,7 +125,7 @@ The Launcher's License Check runs once at every startup, entirely offline agains
 | Dashboard ↔ Server       | REST (HTTP/JSON)      | CRUD operations, checkout, settings                   |
 | Dashboard ↔ Server       | WebSocket             | Real-time seat status, health metrics, announcements  |
 | Agent ↔ Server           | WebSocket             | Lock/unlock commands, health metrics, remote commands |
-| Server → Client PCs      | UDP (WoL)             | Wake-on-LAN magic packets                             |
+| Server → Client PCs      | UDP (WoL)             | Wake-on-LAN magic packets (cross‑platform)            |
 | Server → Tuya Cloud      | HTTPS                 | Smart plug on/off                                     |
 | Server → Thermal Printer | USB/Network (ESC/POS) | Receipt printing                                      |
 
@@ -218,7 +226,7 @@ arcade-cafe/
 │   │   └── (Pydantic request/response schemas — one file per domain)
 │   ├── licensing/
 │   │   ├── verify.py                # Ed25519 signature verification
-│   │   ├── fingerprint.py           # Hardware ID generation
+│   │   ├── fingerprint.py           # Hardware ID generation (cross‑platform)
 │   │   └── public_key.py            # Embedded Ed25519 public key (constant)
 │   └── core/
 │       ├── config.py               # arcade.config.json loader
@@ -264,9 +272,14 @@ arcade-cafe/
 │   ├── src/
 │   │   ├── main.ts                 # Electron main process
 │   │   ├── preload.ts              # Context bridge
-│   │   ├── ipc/                    # IPC handlers (lock, unlock, screenshot)
+│   │   ├── ipc/                    # IPC handlers
 │   │   ├── ws/                     # WebSocket client to server
 │   │   ├── health/                 # systeminformation collector
+│   │   ├── platform/               # OS‑specific modules
+│   │   │   ├── index.ts            # exports unified PlatformService
+│   │   │   ├── windows.ts          # Windows implementation (lock, restart, etc.)
+│   │   │   ├── macos.ts            # macOS implementation (AppleScript, LaunchAgent)
+│   │   │   └── linux.ts            # Linux implementation (xdg-screensaver, systemd)
 │   │   └── renderer/               # React UI (splash, tray, countdown)
 │   └── package.json
 ├── alembic/
@@ -967,7 +980,7 @@ The owner mobile view is the same React app — no separate codebase. Feature fl
 
 ### 7.1 Process Architecture
 
-The Electron agent uses standard main/renderer process separation:
+The Electron agent uses standard main/renderer process separation. The **platform abstraction layer** isolates all OS-specific operations in the `platform/` module.
 
 ```
 ┌─────────────────────────────────────┐
@@ -975,7 +988,12 @@ The Electron agent uses standard main/renderer process separation:
 │  ├── ws/client.ts  (WS to server)   │
 │  ├── health/collector.ts            │
 │  ├── ipc/handlers.ts                │
-│  └── tray.ts                        │
+│  ├── tray.ts                        │
+│  └── platform/                      │ ← OS abstraction
+│      ├── index.ts                   │   (exports unified PlatformService)
+│      ├── windows.ts                 │
+│      ├── macos.ts                   │
+│      └── linux.ts                   │
 │           ↕ IPC (contextBridge)     │
 │  ┌──────────────────────────────┐   │
 │  │     Renderer Process (React) │   │
@@ -986,21 +1004,48 @@ The Electron agent uses standard main/renderer process separation:
 └─────────────────────────────────────┘
 ```
 
-### 7.2 Startup Sequence
+### 7.2 Platform Abstraction Layer Interface
+
+```typescript
+// agent/src/platform/index.ts
+export interface PlatformService {
+  lockScreen(): Promise<void>;
+  unlockScreen(): Promise<void>; // Usually not needed – user unlocks manually
+  showOverlay(content: OverlayContent): void;
+  hideOverlay(): void;
+  updateTimer(timeString: string): void;
+  restartPC(): Promise<void>;
+  shutdownPC(): Promise<void>;
+  sendMessage(text: string): Promise<void>;
+  enableAutoStart(): Promise<void>;
+  disableAutoStart(): Promise<void>;
+  getHardwareId(): Promise<string>; // For registration, though server uses its own fingerprint
+}
+```
+
+Each OS module implements this interface using OS-specific APIs:
+
+- **Windows**: `rundll32 user32.dll,LockWorkStation`; `shutdown /r /t 0`; registry for auto-start.
+- **macOS**: `osascript -e 'tell application "System Events" to keystroke "q" using {command down, control down}'` to lock (or use `pmset displaysleepnow` with password requirement); `sudo shutdown -r now`; LaunchAgent plist.
+- **Linux**: `xdg-screensaver lock` (or `gnome-screensaver-command -l`, `loginctl lock-session` fallback); `sudo systemctl reboot`; `~/.config/autostart/` `.desktop` file.
+
+The correct module is selected at runtime via `process.platform`.
+
+### 7.3 Startup Sequence
 
 ```
-1. Agent process starts (Windows Startup)
+1. Agent process starts (via OS-specific auto-start)
 2. Read server config from agent.config.json (SERVER_URL)
 3. Connect WebSocket to ws://{SERVER_URL}/ws/agent/{mac_address}
 4. On connection:
-   a. Send REGISTER message: { mac_address, hostname, hardware_specs }
+   a. Send REGISTER message: { mac_address, hostname, hardware_specs, os_version }
    b. Server responds with { seat_id, status }
 5. Begin health metric collection loop (every 60s)
 6. Show system tray icon (grey = no session)
 7. Listen for commands from server
 ```
 
-### 7.3 Session Start Sequence (Agent Side)
+### 7.4 Session Start Sequence (Agent Side)
 
 ```
 Server sends: { command: "UNLOCK", session: { id, duration_minutes?, started_at } }
@@ -1008,14 +1053,14 @@ Server sends: { command: "UNLOCK", session: { id, duration_minutes?, started_at 
 Agent:
 1. Receive UNLOCK command
 2. Cache session locally: { session_id, started_at, duration_minutes }
-3. Unlock Windows desktop (simulate key press or use Win32 API)
+3. Unlock desktop using platform.lockScreen() (though unlock is usually a no-op)
 4. Show SplashScreen (5 seconds): cafe logo, session info, menu, Call Staff button
 5. After 5s: minimize splash, show tray icon (green, shows elapsed time)
 6. Start local countdown timer
 7. At 5 minutes remaining: show CountdownOverlay with warning
 ```
 
-### 7.4 LAN Resilience
+### 7.5 LAN Resilience
 
 If the WebSocket connection to the server drops mid-session:
 
@@ -1031,10 +1076,10 @@ onDisconnect():
   5. Server reconciles and corrects its record if needed
 ```
 
-### 7.5 Health Metrics Collection
+### 7.6 Health Metrics Collection
 
 ```typescript
-// health/collector.ts  (using systeminformation library)
+// health/collector.ts  (using systeminformation library, cross‑platform)
 setInterval(async () => {
   const cpu = await si.currentLoad();
   const mem = await si.mem();
@@ -1053,18 +1098,18 @@ setInterval(async () => {
 }, 60_000);
 ```
 
-### 7.6 Remote Commands
+### 7.7 Remote Commands
 
-| Command      | Agent Action                                                             |
-| ------------ | ------------------------------------------------------------------------ |
-| `UNLOCK`     | Unlock Windows desktop, show splash                                      |
-| `LOCK`       | Lock Windows desktop (`rundll32.exe user32.dll,LockWorkStation`)         |
-| `RESTART`    | Execute `shutdown /r /t 10` with 10s countdown                           |
-| `SHUTDOWN`   | Execute `shutdown /s /t 10`                                              |
-| `MESSAGE`    | Show `<Announcement>` overlay on renderer with message text and duration |
-| `SCREENSHOT` | Capture screen via `screenshot-desktop`, send base64 PNG back to server  |
+| Command      | Agent Action (OS‑specific)                                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `UNLOCK`     | Unlock desktop (platform.unlockScreen) – usually just dismisses overlay, but may involve simulating keystrokes                     |
+| `LOCK`       | Lock desktop using `platform.lockScreen()`                                                                                         |
+| `RESTART`    | Execute `platform.restartPC()` – `shutdown /r /t 10` on Windows, `sudo shutdown -r now` on macOS, `sudo systemctl reboot` on Linux |
+| `SHUTDOWN`   | Execute `platform.shutdownPC()` – similarly                                                                                        |
+| `MESSAGE`    | Show `<Announcement>` overlay on renderer with message text and duration (common UI)                                               |
+| `SCREENSHOT` | Capture screen via `screenshot-desktop` (cross‑platform), send base64 PNG back to server                                           |
 
-### 7.7 Agent Configuration File
+### 7.8 Agent Configuration File
 
 ```json
 {
@@ -1091,6 +1136,8 @@ The Launcher (`launcher.py`) is the only entry point for starting the Arcade ser
 5. Displays live server logs in a scrollable text area
 6. Shows a status indicator (Activation Required / Starting / Running / Stopped / Error)
 7. Provides Start/Stop buttons (enabled only once licensed)
+
+**Cross‑platform note:** Tkinter is included with Python on all OSes. The Launcher uses `os.path.join` and `subprocess` appropriately. Hardware fingerprinting (see §16) uses OS‑specific commands but is wrapped in a cross‑platform utility.
 
 ### 8.2 Launcher Startup Flow
 
@@ -1449,7 +1496,7 @@ def boot_all_seats(db):
             send_magic_packet(seat.mac_address)
 ```
 
-Called on server startup and available as an individual action from the dashboard.
+Called on server startup and available as an individual action from the dashboard. WoL works identically on all OSes.
 
 ### 12.2 Tuya Smart Plug Integration
 
@@ -1658,16 +1705,27 @@ Feature flags are loaded from the database at startup and cached in memory. The 
 
 ### 15.1 Server Deployment (Counter PC)
 
-```
-Prerequisite: Python 3.11+, Node.js 20+, Git
+**Cross‑platform prerequisites:** Python 3.11+, Node.js 20+, Git (or packaged build).
 
+#### Windows
+
+```
 1. git clone https://github.com/neurotech/arcade-cafe.git
 2. pip install -r requirements.txt
 3. cd frontend && npm install && npm run build && cd ..
-4. python launcher.py     # Shows License Activation screen on first launch;
-                           # runs setup wizard once activated
+4. python launcher.py     # Shows License Activation screen on first launch
 5. Add launcher.py shortcut to Windows Startup folder
    (or register via Task Scheduler for pre-login startup)
+```
+
+#### macOS / Linux
+
+```
+1. Same steps 1-3
+2. python launcher.py
+3. Auto-start:
+   - macOS: create a LaunchAgent plist in ~/Library/LaunchAgents/
+   - Linux: create a systemd user service or add .desktop to ~/.config/autostart/
 ```
 
 The frontend is built to `frontend/dist/` and served as static files by the FastAPI app at `/`. No separate web server is needed.
@@ -1675,16 +1733,21 @@ The frontend is built to `frontend/dist/` and served as static files by the Fast
 ### 15.2 Client Agent Deployment
 
 ```
-On development machine:
+On development machine (any OS):
 1. cd agent && npm install && npm run build
-   → Produces agent/dist/ (Electron distributable)
+   → Produces platform-specific distributables in agent/dist/:
+     - Windows: .exe (NSIS installer)
+     - macOS: .dmg and .app bundle
+     - Linux: AppImage, .deb, or .rpm (configurable)
 
 Per client PC:
-1. Copy agent/dist/ to the client PC (USB, network share, or mapped drive)
-2. Run the installer (or extract the distributable)
+1. Copy the appropriate distributable to the client machine
+2. Install or extract it
 3. Edit agent.config.json: set server_url to the counter PC's IP:port
-4. Copy the agent shortcut to:
-   C:\Users\<User>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+4. Enable auto-start:
+   - Windows: copy shortcut to Startup folder
+   - macOS: drag app to Applications, add Login Item via System Preferences
+   - Linux: create .desktop in ~/.config/autostart/
 ```
 
 ### 15.3 Network Requirements
@@ -1692,7 +1755,7 @@ Per client PC:
 | Requirement     | Detail                                                                                                                                               |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Server PC       | Static local IP (e.g., 192.168.1.100) — set via router DHCP reservation                                                                              |
-| Client PCs      | Wired ethernet, Wake-on-LAN enabled in BIOS                                                                                                          |
+| Client PCs      | Wired ethernet, Wake-on-LAN enabled in BIOS (works on all OSes)                                                                                      |
 | Firewall        | Open TCP port 8000 on server PC for inbound LAN connections                                                                                          |
 | UDP broadcast   | Port 9 open for Wake-on-LAN magic packets                                                                                                            |
 | Internet access | Required for Tuya API only. License activation and ongoing verification are fully offline (see §16) — no internet needed for licensing at any point. |
@@ -1710,8 +1773,8 @@ Per client PC:
 - [ ] Tuya credentials entered (if consoles present)
 - [ ] Feature flags configured for this cafe's needs
 - [ ] Admin PIN and Cashier PIN tested
-- [ ] Launcher shortcut added to server Startup folder
-- [ ] Agent added to Startup folder on all client PCs
+- [ ] Launcher auto-start configured per OS
+- [ ] Agent auto-start configured on all client PCs
 
 ---
 
@@ -1730,8 +1793,8 @@ This section details the design referenced from §8 (Launcher) and satisfies FR-
 
 Arcade uses **Ed25519** (RFC 8032) for license signing and verification:
 
-- One Ed25519 keypair exists for the entire product line, generated once and stored only on Neurotech Biratnagar's internal keygen machine.
-- The **private key** (`tools/keygen/private_key.pem`) signs every issued license. It is never committed to the `arcade-cafe` repository, never bundled into any build artifact, and never present on a customer's machine.
+- One Ed25519 keypair exists for the entire product line, generated once and stored only on Seller internal keygen machine.
+- The **private key** (`tools/keygen/private_key.pem`) signs every issued license. It is never committed to the `arcade` repository, never bundled into any build artifact, and never present on a customer's machine.
 - The **public key** is a hardcoded constant in `backend/licensing/public_key.py`, compiled into every distributed copy of Arcade. It can verify signatures but cannot create them.
 
 ```python
@@ -1742,27 +1805,32 @@ ARCADE_PUBLIC_KEY_HEX = "c9a1...<32-byte Ed25519 public key, hex-encoded>...4f3e
 
 ### 16.3 Hardware Fingerprinting
 
+The Hardware ID must be stable and reproducible across reboots, but also cross‑platform. We use a combination of OS‑specific stable identifiers:
+
 ```python
 # backend/licensing/fingerprint.py
-import hashlib
-import subprocess
+import hashlib, platform, subprocess, uuid
 
 def get_hardware_id() -> str:
-    """
-    Combines several stable Windows machine identifiers so that no single
-    blank/duplicated field (common on cheap OEM boards) breaks fingerprinting.
-    """
-    motherboard_serial = _wmic("baseboard", "serialnumber")
-    disk_serial        = _wmic("diskdrive", "serialnumber", index=0)
-    machine_guid        = _registry_machine_guid()  # HKLM\...\Cryptography\MachineGuid
+    system = platform.system()
+    if system == "Windows":
+        motherboard_serial = _wmic("baseboard", "serialnumber")
+        disk_serial = _wmic("diskdrive", "serialnumber", index=0)
+        machine_guid = _windows_machine_guid()  # from registry
+    elif system == "Darwin":  # macOS
+        motherboard_serial = _osx_system_profiler("SPHardwareDataType", "Serial Number")
+        disk_serial = _osx_disk_serial()  # diskutil info
+        machine_guid = _osx_io_registry_guid()
+    else:  # Linux
+        motherboard_serial = _linux_dmidecode("baseboard", "Serial Number")
+        disk_serial = _linux_disk_serial()  # hdparm or lsblk
+        machine_guid = _linux_machine_id()  # /etc/machine-id
 
     raw = f"{motherboard_serial}|{disk_serial}|{machine_guid}"
     return hashlib.sha256(raw.encode()).hexdigest()[:32]  # Displayed as the Hardware ID
 ```
 
-- The Hardware ID is deterministic across reboots (FR-LIC-002) because all three inputs are stable hardware/OS identifiers, not session-specific values.
-- Combining three signals means a single flaky or blank field (e.g. a motherboard that doesn't report a serial) degrades robustness rather than breaking fingerprinting outright.
-- The Hardware ID is displayed in the Activation screen as an uppercase, hyphenated, copy-pasteable string (e.g. `A1B2-C3D4-E5F6-...`) — never as the raw hash, to reduce transcription errors.
+Each OS-specific function attempts to read the identifier, falling back to a stable fallback (e.g., MAC address) if unavailable. The combination of three signals degrades robustly.
 
 ### 16.4 License File Format
 
@@ -1782,7 +1850,7 @@ def get_hardware_id() -> str:
 ```
 
 - Signing covers the canonical (sorted-key, no-whitespace) JSON encoding of `payload` to avoid signature mismatches from formatting differences.
-- The file is _signed, not encrypted_ (FR-LIC-005) — there's nothing secret inside it worth hiding, only something that must not be tampered with. Anyone can read a `license.key`; nobody but Neurotech Biratnagar can produce one that verifies.
+- The file is _signed, not encrypted_ (FR-LIC-005) — there's nothing secret inside it worth hiding, only something that must not be tampered with. Anyone can read a `license.key`; nobody but Seller can produce one that verifies.
 
 ### 16.5 Keygen Tool (Internal Only)
 
@@ -1808,7 +1876,7 @@ def generate_license(hardware_id: str, cafe_name: str, license_type: str = "PERP
     }).encode()).decode()
 ```
 
-Run manually, per sale, by Neurotech Biratnagar staff: paste in the customer's Hardware ID and cafe name, get back a `license.key` file to send to the customer. This tool — and the `private_key.pem` it depends on — lives in a separate, private repository from `arcade-cafe`, never in the same VCS history as the shipped product (FR-LIC-001).
+Run manually, per sale, by Seller staff: paste in the customer's Hardware ID and cafe name, get back a `license.key` file to send to the customer. This tool — and the `private_key.pem` it depends on — lives in a separate, private repository from `arcade`, never in the same VCS history as the shipped product (FR-LIC-001).
 
 ### 16.6 Verification Flow
 
@@ -1850,13 +1918,13 @@ This function is called by the Launcher (§8.2) before the setup wizard or serve
 
 ### 16.7 Activation Screen (Launcher UI)
 
-| State                                    | What's shown                                                                                                                                                           | What's allowed                                            |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| No `license.key` present                 | Hardware ID (copyable), instructions to send it to Neurotech Biratnagar, a "Browse for license.key" file picker                                                        | Nothing else — setup wizard and server start are disabled |
-| `license.key` present, invalid signature | Error: "This license file isn't valid. Please confirm you received it correctly, or contact support."                                                                  | Re-try / browse for a different file                      |
-| `license.key` present, hardware mismatch | Error: "This license is registered to a different machine. Contact Neurotech Biratnagar with your Hardware ID below to get this license reissued." + Hardware ID shown | Re-try / browse for a different file                      |
-| `license.key` present, trial expired     | Error: "Your trial period has ended. Contact Neurotech Biratnagar to purchase a full license."                                                                         | Re-try / browse for a different file                      |
-| Valid license                            | Brief confirmation (cafe name, license type), then proceeds automatically to setup wizard or server start                                                              | Continues normally                                        |
+| State                                    | What's shown                                                                                                                                             | What's allowed                                            |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| No `license.key` present                 | Hardware ID (copyable), instructions to send it to Seller, a "Browse for license.key" file picker                                                        | Nothing else — setup wizard and server start are disabled |
+| `license.key` present, invalid signature | Error: "This license file isn't valid. Please confirm you received it correctly, or contact support."                                                    | Re-try / browse for a different file                      |
+| `license.key` present, hardware mismatch | Error: "This license is registered to a different machine. Contact Seller with your Hardware ID below to get this license reissued." + Hardware ID shown | Re-try / browse for a different file                      |
+| `license.key` present, trial expired     | Error: "Your trial period has ended. Contact Seller to purchase a full license."                                                                         | Re-try / browse for a different file                      |
+| Valid license                            | Brief confirmation (cafe name, license type), then proceeds automatically to setup wizard or server start                                                | Continues normally                                        |
 
 This mirrors FR-LIC-008's requirement to distinguish "invalid file" from "wrong machine" rather than showing one generic failure.
 
@@ -1865,19 +1933,19 @@ This mirrors FR-LIC-008's requirement to distinguish "invalid file" from "wrong 
 There is no self-service transfer flow in V1. If a cafe's hardware changes (e.g. motherboard replacement) and the Hardware ID no longer matches:
 
 1. Owner reaches the "hardware mismatch" Activation screen state and reads off the new Hardware ID
-2. Owner contacts Neurotech Biratnagar with proof of original purchase and the new Hardware ID
-3. Neurotech Biratnagar re-runs the keygen tool with the new Hardware ID, same cafe name and license type
+2. Owner contacts Seller with proof of original purchase and the new Hardware ID
+3. Seller re-runs the keygen tool with the new Hardware ID, same cafe name and license type
 4. Owner replaces `license.key` with the reissued file
 
 This is intentionally a manual, support-mediated process rather than an automated transfer API — there is no license server to host such an API against, and the volume of hardware-replacement events for a single-location product is expected to be low.
 
 ### 16.9 Trial / Demo Mode (FR-LIC-011)
 
-The same `license_type` field supports a `"TRIAL"` value with a `trial_expires_at` date, generated by the same keygen tool with a `--trial-days N` flag. No separate code path, license format, or verification logic is needed — `check_license()` simply adds the expiry check shown in §16.6 when `license_type == "TRIAL"`. This lets Neurotech Biratnagar hand a prospective cafe a 14- or 30-day evaluation license using the exact mechanism that powers paid licenses.
+The same `license_type` field supports a `"TRIAL"` value with a `trial_expires_at` date, generated by the same keygen tool with a `--trial-days N` flag. No separate code path, license format, or verification logic is needed — `check_license()` simply adds the expiry check shown in §16.6 when `license_type == "TRIAL"`. This lets Seller hand a prospective cafe a 14- or 30-day evaluation license using the exact mechanism that powers paid licenses.
 
 ### 16.10 What This Design Deliberately Does Not Do
 
-- **No phone-home, ever, post-activation.** There is no license server, so there is nothing to call. This is a deliberate trade-off against piracy-resistance: a sufficiently motivated user could patch the public key check out of the binary. The design accepts this risk in exchange for the zero-infrastructure, zero-recurring-cost positioning that is core to the product. Tying licensing to a model that requires Neurotech Biratnagar to run a server would directly contradict the product's main selling point.
+- **No phone-home, ever, post-activation.** There is no license server, so there is nothing to call. This is a deliberate trade-off against piracy-resistance: a sufficiently motivated user could patch the public key check out of the binary. The design accepts this risk in exchange for the zero-infrastructure, zero-recurring-cost positioning that is core to the product. Tying licensing to a model that requires Seller to run a server would directly contradict the product's main selling point.
 - **No automated hardware-transfer or seat-reassignment system.** Handled manually per §16.8, by design, given expected volume.
 - **No encryption of the license payload.** Signing, not secrecy, is the integrity mechanism (§16.4) — there is no confidential data in a license file worth protecting from the customer who already legitimately holds it.
 
@@ -1885,23 +1953,24 @@ The same `license_type` field supports a `"TRIAL"` value with a `trial_expires_a
 
 ## 17. Design Decisions and Trade-offs
 
-| Decision               | Choice                                           | Alternative Considered                                      | Rationale                                                                                                                                                                                                                                                                                   |
-| ---------------------- | ------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Database**           | SQLite + WAL                                     | PostgreSQL                                                  | No installation or service management required. WAL mode handles concurrent reads. Single-location scope means SQLite performance is more than sufficient. PostgreSQL is the documented V2 upgrade path.                                                                                    |
-| **ORM**                | SQLAlchemy                                       | Raw SQL, Tortoise ORM                                       | Industry standard, excellent Alembic integration, strong typing support, wide community.                                                                                                                                                                                                    |
-| **Migrations**         | Alembic                                          | Manual SQL scripts                                          | Versioned, reversible, auto-detects model diffs. Essential as the project evolves across phases.                                                                                                                                                                                            |
-| **Backend framework**  | FastAPI                                          | Flask, Django                                               | Async-native, automatic API docs, Pydantic integration, excellent WebSocket support, fastest Python web framework.                                                                                                                                                                          |
-| **Real-time**          | WebSockets                                       | Polling, SSE                                                | Sub-second updates are a core UX requirement. WebSocket is the only approach that satisfies this without hammering the server with polling.                                                                                                                                                 |
-| **Client agent**       | Electron                                         | Native Win32 app, Python script                             | Full Windows API access (lock/unlock), hardware metrics via `systeminformation`, cross-platform build tooling, modern UI for splash/countdown.                                                                                                                                              |
-| **Auth**               | PIN + JWT                                        | Password + session cookie                                   | PINs are appropriate for the counter context — fast entry, shared terminal. JWT stateless tokens avoid server-side session storage complexity.                                                                                                                                              |
-| **Billing precision**  | Integer (paise)                                  | Float/Decimal                                               | Float rounding errors accumulate across hundreds of daily transactions. Integer arithmetic is exact. Decimal would also work but adds library dependency.                                                                                                                                   |
-| **Console control**    | Tuya smart plugs                                 | HDMI-CEC, custom hardware                                   | No agent possible on consoles. Smart plugs are inexpensive, widely available in Nepal, and the Tuya API is well-documented.                                                                                                                                                                 |
-| **Printing**           | python-escpos + PDF                              | Receipt service, cloud printing                             | Local-first principle. python-escpos supports all common thermal printers. PDF fallback covers any regular printer with zero additional setup.                                                                                                                                              |
-| **Feature flags**      | DB-stored, runtime                               | Code-level flags, env vars                                  | DB storage allows the cafe owner to toggle features from the dashboard UI without any technical knowledge or server restart.                                                                                                                                                                |
-| **Modularity**         | Feature flags                                    | Separate product editions                                   | One codebase serves all cafe sizes. Flags suppress UI and gate APIs cleanly. Simpler to maintain and test than multiple editions.                                                                                                                                                           |
-| **Frontend state**     | React Query + WebSocket                          | Redux, SWR                                                  | React Query handles server state (caching, refetch, mutations) cleanly. WebSocket events trigger targeted cache invalidations. No global Redux boilerplate needed.                                                                                                                          |
-| **Auth token storage** | In-memory (JS variable)                          | localStorage                                                | localStorage is not supported in sandboxed environments and is a XSS risk. In-memory token is lost on refresh (re-login required), which is acceptable and correct for a shared counter terminal.                                                                                           |
-| **Licensing**          | Offline Ed25519 signature + hardware fingerprint | Online license server, time-bombed trial only, no licensing | A license server would require Neurotech Biratnagar to run permanent infrastructure, directly contradicting the product's zero-cloud-dependency pitch. Offline asymmetric signing makes licenses unforgeable without the private key while needing no network call, ever, after activation. |
+| Decision               | Choice                                                | Alternative Considered                                      | Rationale                                                                                                                                                                                                                                                                     |
+| ---------------------- | ----------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Database**           | SQLite + WAL                                          | PostgreSQL                                                  | No installation or service management required. WAL mode handles concurrent reads. Single-location scope means SQLite performance is more than sufficient. PostgreSQL is the documented V2 upgrade path.                                                                      |
+| **ORM**                | SQLAlchemy                                            | Raw SQL, Tortoise ORM                                       | Industry standard, excellent Alembic integration, strong typing support, wide community.                                                                                                                                                                                      |
+| **Migrations**         | Alembic                                               | Manual SQL scripts                                          | Versioned, reversible, auto-detects model diffs. Essential as the project evolves across phases.                                                                                                                                                                              |
+| **Backend framework**  | FastAPI                                               | Flask, Django                                               | Async-native, automatic API docs, Pydantic integration, excellent WebSocket support, fastest Python web framework.                                                                                                                                                            |
+| **Real-time**          | WebSockets                                            | Polling, SSE                                                | Sub-second updates are a core UX requirement. WebSocket is the only approach that satisfies this without hammering the server with polling.                                                                                                                                   |
+| **Client agent**       | Electron with platform abstraction                    | Native per-OS apps, Python script                           | Single codebase for UI, cross-platform via abstraction, full OS APIs via Node.js, hardware metrics via `systeminformation`, modern UI for splash/countdown.                                                                                                                   |
+| **Auth**               | PIN + JWT                                             | Password + session cookie                                   | PINs are appropriate for the counter context — fast entry, shared terminal. JWT stateless tokens avoid server-side session storage complexity.                                                                                                                                |
+| **Billing precision**  | Integer (paise)                                       | Float/Decimal                                               | Float rounding errors accumulate across hundreds of daily transactions. Integer arithmetic is exact. Decimal would also work but adds library dependency.                                                                                                                     |
+| **Console control**    | Tuya smart plugs                                      | HDMI-CEC, custom hardware                                   | No agent possible on consoles. Smart plugs are inexpensive, widely available in Nepal, and the Tuya API is well-documented.                                                                                                                                                   |
+| **Printing**           | python-escpos + PDF                                   | Receipt service, cloud printing                             | Local-first principle. python-escpos supports all common thermal printers. PDF fallback covers any regular printer with zero additional setup.                                                                                                                                |
+| **Feature flags**      | DB-stored, runtime                                    | Code-level flags, env vars                                  | DB storage allows the cafe owner to toggle features from the dashboard UI without any technical knowledge or server restart.                                                                                                                                                  |
+| **Modularity**         | Feature flags                                         | Separate product editions                                   | One codebase serves all cafe sizes. Flags suppress UI and gate APIs cleanly. Simpler to maintain and test than multiple editions.                                                                                                                                             |
+| **Frontend state**     | React Query + WebSocket                               | Redux, SWR                                                  | React Query handles server state (caching, refetch, mutations) cleanly. WebSocket events trigger targeted cache invalidations. No global Redux boilerplate needed.                                                                                                            |
+| **Auth token storage** | In-memory (JS variable)                               | localStorage                                                | localStorage is not supported in sandboxed environments and is a XSS risk. In-memory token is lost on refresh (re-login required), which is acceptable and correct for a shared counter terminal.                                                                             |
+| **Licensing**          | Offline Ed25519 signature + hardware fingerprint      | Online license server, time-bombed trial only, no licensing | A license server would require Seller to run permanent infrastructure, directly contradicting the product's zero-cloud-dependency pitch. Offline asymmetric signing makes licenses unforgeable without the private key while needing no network call, ever, after activation. |
+| **Cross‑platform**     | Platform abstraction in agent; cross‑platform backend | Separate codebases per OS                                   | Single codebase for UI, but OS-specific modules for system calls. This minimises duplication while supporting all three OSes.                                                                                                                                                 |
 
 ---
 
