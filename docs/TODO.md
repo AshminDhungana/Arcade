@@ -64,21 +64,25 @@ Arcade is a self-hosted, offline-first gaming cafe management system. It runs on
   - **Pass criteria:** Zero locking errors; WAL confirmed via `sqlite3 test.db "PRAGMA journal_mode;"` → `wal`
   - **Reference:** Industry benchmarks confirm WAL + NORMAL sync reduces P99 write latency 30–60% vs default rollback journal
 
-- [ ] **ARCH-02: Validate Electron `kiosk: true` behavior on each target OS**
-  - Windows 10/11: confirm Alt+F4, F12, Ctrl+P, Win+D are blocked in kiosk mode
-  - macOS 11+: confirm Cmd+Q, Cmd+Tab, Cmd+Space blocked
-  - Linux (X11): confirm desktop compositor shortcuts blocked
-  - Linux (Wayland): confirm fallback behavior (`setAlwaysOnTop(true, 'screen-saver')`) works
-  - **Document all known gaps** (Ctrl+Alt+Del on Windows cannot be intercepted — documented limitation)
-  - **⚠ RISK:** Wayland kiosk mode is compositor-dependent; document and test early
+- [x] **ARCH-02: Validate Electron `kiosk: true` behavior on each target OS**
+  - Windows 10/11: TEST (don't assume) whether Alt+F4, F12, Ctrl+P, Win+D are blocked — current evidence says they are NOT blocked by default; plan for globalShortcut overrides, devTools:false, beforeunload/close interception, and print-shortcut suppression
+  - macOS 11+: confirm Cmd+Space is blocked by default; confirm Cmd+Tab and Cmd+Q are NOT blocked by default (known long-standing gaps) — plan for blur-handler kiosk re-assertion and/or native NSApplicationPresentationOptions flags
+  - Linux (X11): confirm desktop compositor shortcuts blocked — test per-DE (GNOME, KDE, XFCE); expect inconsistent results across WMs
+  - Linux (Wayland): `setAlwaysOnTop(true, 'screen-saver')` is currently non-functional on Wayland (Electron not-supported / open upstream bug) — do NOT treat this as a working fallback; research compositor-specific lock/kiosk protocols instead
+  - **Document all known gaps**, including: Ctrl+Alt+Del (OS-protected, cannot be intercepted — confirmed), Cmd+Tab (macOS, confirmed long-standing gap), Win+D/taskbar exposure (Windows, confirmed open bug)
+  - **⚠ RISK (upgraded):** Wayland kiosk mode is not just "compositor-dependent" — the documented fallback API doesn't work at all on Wayland today. Treat Wayland as unsupported/high-risk until a working mitigation is identified, not as a "test early" item.
 
-- [ ] **ARCH-03: Validate PyInstaller `--onedir` with FastAPI + Alembic + aiosqlite + Tkinter**
+Reference document for ARCH-02 is at ./references/ARCH-02-kiosk-mode-validation.md
+
+- [x] **ARCH-03: Validate PyInstaller `--onedir` with FastAPI + Alembic + aiosqlite + Tkinter**
   - Build a minimal proof-of-concept bundle on Windows
   - Confirm `alembic upgrade head` runs from within the bundle without Python installed
   - Confirm `aiosqlite` dynamic library loads correctly (it has C extensions)
   - Confirm Tkinter is bundled and renders correctly (on Linux: `sudo apt install python3-tk` prerequisite)
   - **Note:** PyInstaller cannot cross-compile. Build Windows `.exe` on Windows, macOS `.app` on macOS, Linux binary on Linux. Plan build machines accordingly.
   - **Pass criteria:** The bundled launcher shows the License Activation screen on a fresh machine with no Python installed
+
+Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-validation.md
 
 - [ ] **ARCH-04: Validate TinyTuya local LAN control**
   - Test `tinytuya.BulbDevice` or `tinytuya.Device` with a real smart plug on the LAN
