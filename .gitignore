@@ -295,3 +295,17 @@ $RECYCLE.BIN/
 *.bak
 *.orig
 *.rej
+
+# ===============================
+# Arcade — Licensing / Secrets (R-05)
+# ===============================
+# Ed25519 keygen private key — NEVER committed (lives out-of-band on seller machine)
+tools/keygen/private_key.pem
+private_key.pem
+*.pem
+# License files (issued per-customer, placed at runtime, never in VCS)
+license.key
+*.license
+# Generic private key material
+*.key
+private_key*
