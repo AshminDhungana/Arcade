@@ -90,7 +90,7 @@ Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-val
   - Confirm device pairing (one-time, requires internet — document this)
   - **⚠ RISK:** TinyTuya requires the Tuya local key, which must be extracted once during pairing. Document the extraction process.
 
-- [ ] **ARCH-05: Validate Ed25519 offline license flow end-to-end**
+- [x] **ARCH-05: Validate Ed25519 offline license flow end-to-end** ✅ _(validated Windows only — macOS/Linux deferred; see `references/ARCH-05-offline-license-validation.md`)_
   - Generate a keypair; sign a test license payload; verify on a different machine
   - Confirm `py-machineid` produces a stable hardware ID on Windows and Linux (reboot-stable, not session-specific)
   - Confirm `py-machineid` requires no admin privileges on all three OSes
