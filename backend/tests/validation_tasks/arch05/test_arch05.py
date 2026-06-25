@@ -104,3 +104,95 @@ def test_invalid_signature_corrupted(keypair, tmp_path):
 
     assert result.ok is False
     assert result.error is LicenseError.INVALID_SIGNATURE
+
+
+# ---------------------------------------------------------------------------
+# Case 6: license bound to hwid-A, verified against hwid-B (foreign machine)
+# This is the "verify on a different machine -> reject" criterion. Proven by
+# injecting a foreign hardware ID rather than a second physical machine
+# (single Windows machine available; macOS/Linux deferred).
+# ---------------------------------------------------------------------------
+
+def test_hardware_mismatch_rejects_foreign_machine(keypair, tmp_license_factory):
+    priv, pub = keypair
+    # License is bound to this real machine's hardware ID...
+    real_hwid = get_hardware_id()
+    path = tmp_license_factory(priv, real_hwid, cafe_name="Bound Machine")
+
+    # ...but we verify as if we are a DIFFERENT machine by passing a foreign ID.
+    foreign_hwid = "f" * 32  # 32-hex, guaranteed != real_hwid
+    assert foreign_hwid != real_hwid
+
+    result = check_license(path, pub, hardware_id=foreign_hwid)
+
+    assert result.ok is False
+    assert result.error is LicenseError.HARDWARE_MISMATCH
+
+
+# ---------------------------------------------------------------------------
+# Case 7: TRIAL expired (trial_expires_at = yesterday)
+# ---------------------------------------------------------------------------
+
+def test_trial_expired(keypair, tmp_license_factory):
+    priv, pub = keypair
+    hwid = get_hardware_id()
+    # trial_days=-1 -> trial_expires_at = yesterday (timedelta handles negatives).
+    path = tmp_license_factory(
+        priv, hwid, cafe_name="Expired Trial", license_type="TRIAL", trial_days=-1
+    )
+
+    result = check_license(path, pub)
+
+    assert result.ok is False
+    assert result.error is LicenseError.TRIAL_EXPIRED
+
+
+# ---------------------------------------------------------------------------
+# Case 8: TRIAL still valid (trial_expires_at = tomorrow)
+# ---------------------------------------------------------------------------
+
+def test_trial_still_valid(keypair, tmp_license_factory):
+    priv, pub = keypair
+    hwid = get_hardware_id()
+    path = tmp_license_factory(
+        priv, hwid, cafe_name="Active Trial", license_type="TRIAL", trial_days=1
+    )
+
+    result = check_license(path, pub)
+
+    assert result.ok is True
+    assert result.error is None
+    assert result.payload["license_type"] == "TRIAL"
+
+
+# ---------------------------------------------------------------------------
+# Case 9: hardware ID idempotent within a process (reboot-stability proxy)
+# ---------------------------------------------------------------------------
+
+def test_hardware_id_is_stable_within_process():
+    """Within a single process, get_hardware_id() must return the same value.
+
+    True cross-reboot stability is an OS-level property the spike cannot prove
+    without a reboot; this asserts the in-process precondition and the report
+    lists 'reboot + re-run' as a manual checklist item.
+    """
+    first = get_hardware_id()
+    second = get_hardware_id()
+
+    assert first == second
+    assert len(first) == 32  # 32-hex per SDD §16.3
+
+
+# ---------------------------------------------------------------------------
+# Case 10: py-machineid returns non-empty with no admin elevation
+# ---------------------------------------------------------------------------
+
+def test_machineid_returns_value_without_admin():
+    """The suite itself runs unelevated; this additionally asserts machineid.id()
+    returns a non-empty value (proving the no-admin primary path works)."""
+    import machineid
+
+    value = machineid.id()
+
+    assert isinstance(value, str)
+    assert value.strip() != ""
