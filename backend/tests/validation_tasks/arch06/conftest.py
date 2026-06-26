@@ -31,12 +31,17 @@ def seeded_rng() -> random.Random:
 
 
 # ---- asyncio loop plumbing for pytest-asyncio 1.x ----
-@pytest.fixture(scope="session")
-def event_loop():
-    """Single event loop for the whole session (needed for live-socket reuse)."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+# In pytest-asyncio 1.x overriding the `event_loop` fixture is DEPRECATED and
+# breaks async fixtures that spawn background tasks (uvicorn): the fixture's
+# task ends up on a loop that is never driven for the test, so the server
+# accepts the TCP socket but never runs the ASGI WS upgrade -> 403 Forbidden.
+# Instead we pin the loop scope at the marker level so the async test and its
+# async fixtures (loopback_server, etc.) share one properly-driven loop.
+@pytest.fixture(scope="module")
+def event_loop_policy():
+    import asyncio as _asyncio
+
+    return _asyncio.DefaultEventLoopPolicy()
 
 
 # =========================================================================== #
@@ -80,7 +85,9 @@ async def loopback_server():
             if s.connect_ex(("127.0.0.1", port)) == 0:
                 break
         await asyncio.sleep(0.02)
-    yield app, f"ws://127.0.0.1:{port}"
+    # Path MUST match the server's WS route (/ws/agent); a bare ws://host:port
+    # defaults to "/", which Starlette rejects with HTTP 403 (no matching WS route).
+    yield app, f"ws://127.0.0.1:{port}/ws/agent"
     server.should_exit = True
     await task
 
