@@ -103,3 +103,72 @@ def test_7_server_restart_recovery():
     res = reconcile(sae, ale, tolerance=TOLERANCE)
     assert res.action is ReconcileAction.ACCEPT_SAE
     assert abs(res.chosen_elapsed_seconds - 120.0) <= TOLERANCE
+
+
+# ---- helpers for crash-recovery / idempotency ----
+from arch06.session_store import SessionStore
+
+
+def test_8_agent_crash_restart_ale_from_sqlite(tmp_path):
+    # Simulate agent crash: write state, drop process, reopen store, reconcile.
+    db = tmp_path / "agent.db"
+    store = SessionStore(str(db))
+    store.persist_session("sess_1", "seat_001", "2026-01-01T12:00:00Z")
+    # Agent tracked 75s before crashing; the last 10s write captured it.
+    store.update_elapsed("sess_1", 75.0)
+    store.mark_disconnect("sess_1", "2026-01-01T12:01:15Z")
+    store.close()
+
+    # New process reopens the same file (AC-07: crash/restart recovery).
+    reopened = SessionStore(str(db))
+    row = reopened.get_for_sync("sess_1")
+    reopened.close()
+    assert row is not None
+    ale = row.local_elapsed_seconds
+    # Server anchor at reconnect (started + 75s):
+    started = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    reconnect = started + timedelta(seconds=75)
+    sae = server_anchor_elapsed(started, 0.0, reconnect)
+    res = reconcile(sae, ale, tolerance=TOLERANCE)
+    assert abs(res.chosen_elapsed_seconds - 75.0) <= TOLERANCE
+
+
+def test_9_duplicate_sync_is_idempotent():
+    # Reconciling the same SYNC twice yields the same chosen value and never
+    # re-records a divergence adoption on the second call.
+    res1 = reconcile(100.0, 100.0, tolerance=TOLERANCE)
+    res2 = reconcile(100.0, 100.0, tolerance=TOLERANCE)
+    assert res1.chosen_elapsed_seconds == res2.chosen_elapsed_seconds
+    assert res1.action is ReconcileAction.ACCEPT_SAE
+
+
+# =========================================================================== #
+# Layer 1 — backoff ladder + jitter bounds (cases 10–11)
+# =========================================================================== #
+def test_10_backoff_ladder_no_jitter():
+    ladder = [
+        backoff_delay(n, jitter_fn=lambda _capped: 0.0)
+        for n in range(1, 9)
+    ]
+    assert ladder == [2.0, 4.0, 8.0, 16.0, 32.0, 60.0, 60.0, 60.0]
+
+
+def test_11_backoff_jitter_within_bounds(seeded_rng):
+    jitter = make_seeded_jitter(seeded_rng)
+    for n in range(1, 9):
+        raw = min(DEFAULT_BACKOFF_BASE * (2 ** (n - 1)), DEFAULT_BACKOFF_CAP)
+        delay = backoff_delay(n, jitter_fn=jitter)
+        # delay in [raw, raw + 10% of raw)
+        assert raw <= delay < raw + 0.1 * raw + 1e-9
+
+
+# =========================================================================== #
+# Layer 1 — heartbeat dead-detection predicate (case 12)
+# =========================================================================== #
+def test_12_heartbeat_dead_predicate():
+    base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    last_pong = base
+    # 39s after last pong -> alive (40s is the threshold, strictly greater)
+    assert is_heartbeat_dead(last_pong, base + timedelta(seconds=39)) is False
+    # 41s after last pong -> dead
+    assert is_heartbeat_dead(last_pong, base + timedelta(seconds=41)) is True
