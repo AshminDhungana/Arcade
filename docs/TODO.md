@@ -96,7 +96,7 @@ Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-val
   - Confirm `py-machineid` requires no admin privileges on all three OSes
   - **Pass criteria:** Hardware ID is identical across reboots; license verification passes; hardware mismatch is correctly detected
 
-- [ ] **ARCH-06: Validate WebSocket reconnection and SYNC flow**
+- [x] **ARCH-06: Validate WebSocket reconnection and SYNC flow** ✅ _(validated Windows host, loopback only; protocol/reconciliation logic OS-agnostic — re-run live Layer 2 suite on macOS/Linux before Phase 2 agent ships; see `references/ARCH-06-websocket-reconnect-validation.md`)_
   - Implement minimal agent WS client with exponential backoff
   - Simulate a LAN drop: disconnect, wait 10 seconds, reconnect
   - Confirm SYNC payload is sent correctly after reconnect and session time is reconciled
