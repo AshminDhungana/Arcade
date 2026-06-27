@@ -1,0 +1,22 @@
+appId: com.neurotech.arcade.agent
+productName: Arcade Agent
+copyright: Neurotech Biratnagar
+directories:
+  output: dist
+files:
+  - "dist/main/**/*"
+  - "package.json"
+win:
+  target:
+    - nsis
+mac:
+  target:
+    - dmg
+    - zip
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+nsis:
+  oneClick: false
