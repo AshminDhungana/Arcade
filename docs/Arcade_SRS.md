@@ -2,11 +2,11 @@
 
 ## Arcade — Gaming Cafe Management System
 
-**Document Version:** 2.0  
-**Project Version:** 2.0  
-**Date:** June 2026  
-**Prepared by:** Ashmin Dhungana  
-**Status:** Pre‑Development · Design Complete  
+**Document Version:** 2.0
+**Project Version:** 2.0
+**Date:** June 2026
+**Prepared by:** Ashmin Dhungana
+**Status:** Pre‑Development · Design Complete
 **Classification:** Internal / Private
 
 ---

@@ -2,12 +2,12 @@
 
 ## Arcade — Gaming Cafe Management System
 
-**Document Version:** 2.0  
-**Project Version:** 2.0  
-**Date:** June 2026  
-**Prepared by:** Ashmin Dhungana  
-**Status:** Pre‑Development · Design Complete  
-**Classification:** Internal / Private  
+**Document Version:** 2.0
+**Project Version:** 2.0
+**Date:** June 2026
+**Prepared by:** Ashmin Dhungana
+**Status:** Pre‑Development · Design Complete
+**Classification:** Internal / Private
 **Reference SRS:** Arcade_SRS v2.0
 
 ---
@@ -2365,5 +2365,5 @@ The same `license_type` field supports a `"TRIAL"` value with a `trial_expires_a
 
 ---
 
-_This document is the authoritative design specification for Arcade v2.0._  
+_This document is the authoritative design specification for Arcade v2.0._
 _It must be updated whenever a significant design decision changes during implementation._

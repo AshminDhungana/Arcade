@@ -202,7 +202,7 @@ Main Counter PC  ──  launcher.py (Tkinter GUI)
                                               └── PS5 / Xbox (boot on power restore)
 ```
 
-The server PC is the only machine that needs to be on wired ethernet. All communication is local — no cloud dependency.  
+The server PC is the only machine that needs to be on wired ethernet. All communication is local — no cloud dependency.
 The agent uses a **platform abstraction layer** inside Electron – the same UI code works on Windows, macOS, and Linux, with OS‑specific modules for **kiosk overlay control**, shutdown, restart, screenshot capture, and auto‑start. **OS lock/unlock is not used** — the kiosk overlay model is consistent across all platforms.
 
 On server startup, active sessions are loaded from the database and agents are notified to re-sync, ensuring no billing data is lost.

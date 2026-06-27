@@ -1,0 +1,39 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.10
+        args: [--strict, --ignore-missing-imports]
+        exclude: "tests/|venv/|validation_tasks/|arch01_"
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        # Let pre-commit pass the exact file list (pass_filenames default true).
+        # Scanning backend/venv with `-r backend/` bypasses pre-commit's filter
+        # and times out on thousands of files; `files`/`exclude` ensure only
+        # our source is scanned — venv, tests, and the frozen arch01_* spikes
+        # are excluded (mirroring ruff/mypy).
+        files: '^backend/.*\.py$'
+        exclude: '^backend/(venv/|tests/|arch01_)'
+        args: [-ll]   # surface only Medium+ (Low = 1 finding in frozen spike)
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: detect-private-key   # R-05 mitigation: blocks any PEM/private key

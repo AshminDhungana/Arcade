@@ -1,7 +1,7 @@
 # Arcade — Product Brief
 
-**Version 2.0 · June 2026**  
-**Prepared by:** Ashmin Dhungana  
+**Version 2.0 · June 2026**
+**Prepared by:** Ashmin Dhungana
 **Status:** Pre‑development · Design Complete
 
 ---
@@ -24,8 +24,8 @@ No internet required during daily operation. No subscription fees. No per‑seat
 
 ## Who It's For
 
-**Primary user:** Counter staff (cashiers and the cafe owner)  
-**Secondary user:** Cafe owner reviewing reports, configuring settings, and checking in remotely  
+**Primary user:** Counter staff (cashiers and the cafe owner)
+**Secondary user:** Cafe owner reviewing reports, configuring settings, and checking in remotely
 **Indirect user:** Customers — who interact with the branded client screen and the printed receipt
 
 Arcade is designed to work at any scale and style of gaming cafe: a simple 10‑seat neighborhood shop that just wants a timer and receipt, or a 50‑seat esports venue running tournaments, loyalty programs, and package deals. Feature flags let each owner turn on only what they need.

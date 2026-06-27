@@ -1,9 +1,9 @@
 # Arcade — Engineering Execution Plan v2.1
 
-**Project:** Arcade — Gaming Cafe Management System  
-**Version:** 2.0  
-**Prepared by:** Ashmin Dhungana  
-**Status:** Pre-Development · Design Complete · Plan Validated  
+**Project:** Arcade — Gaming Cafe Management System
+**Version:** 2.0
+**Prepared by:** Ashmin Dhungana
+**Status:** Pre-Development · Design Complete · Plan Validated
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -181,7 +181,7 @@ None — this is the starting phase.
 
 ### Parallel Work
 
-ENG-A: Python toolchain, backend scaffolding, Makefile, CI skeleton  
+ENG-A: Python toolchain, backend scaffolding, Makefile, CI skeleton
 ENG-B: Node.js/TypeScript toolchain, Vite frontend scaffold, Electron agent scaffold
 
 ### ⚡ CHECKPOINT 0-END
@@ -350,7 +350,7 @@ Build the foundational infrastructure that every other feature depends on: FastA
 
 ### Parallel Work
 
-**ENG-A:** FastAPI skeleton, core infrastructure, ORM models, Alembic, WebSocket manager, feature flags, Pydantic schemas, repository stubs  
+**ENG-A:** FastAPI skeleton, core infrastructure, ORM models, Alembic, WebSocket manager, feature flags, Pydantic schemas, repository stubs
 **ENG-B:** Tkinter Launcher, licensing subsystem (`fingerprint.py`, `verify.py`), keygen tool
 
 ### ⚡ CHECKPOINT 1-A (Mid-Phase Sync)
@@ -629,7 +629,7 @@ End-to-end session workflow: staff starts a session on a seat → kiosk overlay 
 
 ### Parallel Work
 
-**ENG-A:** `SeatService`, `SessionService`, WoL service, Auth API, seat/session routers  
+**ENG-A:** `SeatService`, `SessionService`, WoL service, Auth API, seat/session routers
 **ENG-B:** Electron agent kiosk + WebSocket client + session store; React dashboard seat grid
 
 ### ⚡ CHECKPOINT 2-A (End of Phase)
@@ -837,7 +837,7 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
 
 ### Parallel Work
 
-**ENG-A:** `BillingService`, `POSService`, `InventoryService`, `PrintService`, `AuditService`, checkout API  
+**ENG-A:** `BillingService`, `POSService`, `InventoryService`, `PrintService`, `AuditService`, checkout API
 **ENG-B:** Checkout UI, POS UI, invoice panel components
 
 ### ⚡ CHECKPOINT 3-A
@@ -986,7 +986,7 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
 
 ### Parallel Work
 
-**ENG-A:** `MemberService`, `PackageService`, `PromotionService`, `VoucherService`, staff management API  
+**ENG-A:** `MemberService`, `PackageService`, `PromotionService`, `VoucherService`, staff management API
 **ENG-B:** Member search component, `Members.tsx`, `Settings.tsx`, member integration into session start flow
 
 ### ⚡ CHECKPOINT 4-A
@@ -1076,7 +1076,7 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
 
 ### Parallel Work
 
-**ENG-A:** `ShiftService`, `ReservationService`, `HealthService`, `RemoteCommandService`, `BackupService`, Tuya integration  
+**ENG-A:** `ShiftService`, `ReservationService`, `HealthService`, `RemoteCommandService`, `BackupService`, Tuya integration
 **ENG-B:** Shift UI, Reservation UI, PC health dashboard, remote command panel, agent overlay enhancements
 
 ### ⚡ CHECKPOINT 5-A
@@ -1263,7 +1263,7 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 ### Parallel Work
 
-**ENG-A:** macOS platform implementation and `.dmg` packaging, Launcher cross-platform testing  
+**ENG-A:** macOS platform implementation and `.dmg` packaging, Launcher cross-platform testing
 **ENG-B:** Linux platform implementation and AppImage/`.deb` packaging
 
 ---
@@ -1362,7 +1362,7 @@ Comprehensive automated test coverage, end-to-end testing of all 23 SRS acceptan
 
 ### Parallel Work
 
-**ENG-A:** Backend integration and performance tests, CI pipeline  
+**ENG-A:** Backend integration and performance tests, CI pipeline
 **ENG-B:** Frontend component tests, cross-browser testing
 
 ### ⚡ CHECKPOINT 8-END (Production Readiness Gate)
