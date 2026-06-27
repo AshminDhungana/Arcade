@@ -1,0 +1,13 @@
+# Dev / lint / test toolchain (Phase 0)
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-cov==6.0.0
+httpx==0.28.1
+ruff==0.8.0
+mypy==1.13.0
+black==24.10.0
+pre-commit==4.0.1
+bandit==1.9.4
+pip-audit==2.7.3
+locust==2.32.0
+faker==33.0.0
