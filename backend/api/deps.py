@@ -1,0 +1,1 @@
+"""Arcade FastAPI dependencies."""

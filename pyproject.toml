@@ -1,3 +1,8 @@
+[project]
+name = "arcade-backend"
+version = "0.0.0"
+requires-python = ">=3.12"
+
 [tool.ruff]
 line-length = 88
 target-version = "py313"
@@ -12,6 +17,7 @@ select = ["E", "F", "I", "UP", "B", "S"]
 # Validation spikes and tests may use asserts, large literals, etc.
 "backend/tests/**" = ["S101", "S106"]
 "backend/tests/validation_tasks/**" = ["S101", "S106", "E501", "S311"]
+# Runtime value comes from arcade.config.json, not hardcoded
 
 [tool.black]
 line-length = 88
@@ -29,3 +35,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["backend/tests"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

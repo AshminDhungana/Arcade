@@ -3,11 +3,11 @@ pytest==9.1.1
 pytest-asyncio==1.4.0
 pytest-cov==6.0.0
 httpx==0.28.1
-ruff==0.8.0
-mypy==1.13.0
-black==24.10.0
+ruff==0.15.20
+mypy==2.1.0
+black==26.5.1
 pre-commit==4.0.1
 bandit==1.9.4
 pip-audit==2.7.3
-locust==2.32.0
-faker==33.0.0
+locust==2.44.4
+faker==40.23.0

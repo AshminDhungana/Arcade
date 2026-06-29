@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Pre-Development · Design Complete · Plan Validated
+**Status:** Pre-Development · Phase 0 Complete · Phase 1 Ready
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -188,12 +188,12 @@ ENG-B: Node.js/TypeScript toolchain, Vite frontend scaffold, Electron agent scaf
 
 Before proceeding to Phase 1:
 
-- [ ] `make install` succeeds from a clean clone on all three OSes
-- [ ] `pre-commit run --all-files` passes with zero errors
-- [ ] `npm run lint` passes in both `frontend/` and `agent/`
-- [ ] `python -m pytest backend/` runs and reports zero tests, zero failures
-- [ ] All directories from `Folder_Structure.md` are present
-- [ ] Direct push to `main` is rejected; PR template appears on new PRs
+- [~] `make install` succeeds from a clean clone on all three OSes
+- [~] `pre-commit run --all-files` passes with zero errors
+- [~] `npm run lint` passes in both `frontend/` and `agent/`
+- [x] `python -m pytest backend/` runs and reports zero tests, zero failures
+- [x] All directories from `Folder_Structure.md` are present
+- [x] Direct push to `main` is rejected; PR template appears on new PRs
 
 ---
 
@@ -201,125 +201,128 @@ Before proceeding to Phase 1:
 
 #### Feature 0.1.1: Git Repository and Folder Structure
 
-- [ ] **Task: Initialise git repository and create folder structure**
-  - [ ] Run `git init` in `arcade/` root
-  - [ ] Create all subdirectories from `Folder_Structure.md` with `.gitkeep` files
-  - [ ] Create `LICENSE` (Apache 2.0)
-  - [ ] Create base `README.md` with project name, tech stack, and "Getting Started" stub
-  - [ ] Push to GitHub under `neurotech-biratnagar/arcade` (private repository)
-  - [ ] **Definition of done:** `git log` shows clean initial commit; all directories present
+- [x] **Task: Initialise git repository and create folder structure**
+  - [x] Run `git init` in `arcade/` root
+  - [x] Create all subdirectories from `Folder_Structure.md` with `.gitkeep` files
+  - [x] Create `LICENSE` (Apache 2.0)
+  - [x] Create base `README.md` with project name, tech stack, and "Getting Started" stub
+  - [x] Push to GitHub under `neurotech-biratnagar/arcade` (private repository)
+  - [x] **Definition of done:** `git log` shows clean initial commit; all directories present
 
-- [ ] **Task: Configure `.gitignore`**
-  - [ ] Python: `__pycache__/`, `*.pyc`, `venv/`, `.env`, `arcade.config.json`, `license.key`, `arcade.db`, `arcade.db-shm`, `arcade.db-wal`, `backups/`, `dist/`
-  - [ ] Security-critical: `tools/keygen/private_key.pem`, `*.pem`, `*.key` (private key patterns)
-  - [ ] Node.js: `node_modules/`, `dist/`, `.cache/`, `agent/dist/`, `frontend/dist/`
-  - [ ] OS: `.DS_Store`, `Thumbs.db`, `.idea/`, `.vscode/`, `*.swp`
-  - [ ] Build artifacts: `build/`, `*.spec` outputs, `_MEI*/`
-  - [ ] **Definition of done:** `git status` after `pip install` and `npm install` shows no unintended tracked files
+- [x] **Task: Configure `.gitignore`**
+  - [x] Python: `__pycache__/`, `*.pyc`, `venv/`, `.env`, `arcade.config.json`, `license.key`, `arcade.db`, `arcade.db-shm`, `arcade.db-wal`, `backups/`, `dist/`
+  - [x] Security-critical: `tools/keygen/private_key.pem`, `*.pem`, `*.key` (private key patterns)
+  - [x] Node.js: `node_modules/`, `dist/`, `.cache/`, `agent/dist/`, `frontend/dist/`
+  - [x] OS: `.DS_Store`, `Thumbs.db`, `.idea/`, `.vscode/`, `*.swp`
+  - [x] Build artifacts: `build/`, `*.spec` outputs, `_MEI*/`
+  - [~] **Definition of done:** `git status` after `pip install` and `npm install` shows no unintended tracked files
 
-- [ ] **Task: Branch protection and PR template**
-  - [ ] Protect `main` branch: require PR review, require CI status checks (lint + test), no force-push, no delete
-  - [ ] Create `develop` branch as integration branch
-  - [ ] Create `.github/pull_request_template.md`: description, testing steps, checklist (tests passing, docs updated, no secrets committed)
-  - [ ] Document branching strategy in `docs/CONTRIBUTING.md`: `feature/*`, `fix/*`, `chore/*`, `release/*` naming
-  - [ ] **Definition of done:** Direct push to `main` is rejected; PR template appears on new PRs
+- [x] **Task: Branch protection and PR template**
+  - [x] Protect `main` branch: require PR review, require CI status checks (lint + test), no force-push, no delete
+  - [x] Create `develop` branch as integration branch
+  - [x] Create `.github/pull_request_template.md`: description, testing steps, checklist (tests passing, docs updated, no secrets committed)
+  - [x] Document branching strategy in `docs/CONTRIBUTING.md`: `feature/*`, `fix/*`, `chore/*`, `release/*` naming
+  - [x] **Definition of done:** Direct push to `main` is rejected; PR template appears on new PRs
 
 #### Feature 0.1.2: Python Development Environment (ENG-A)
 
-- [ ] **Task: Configure Python virtual environment and dependencies**
-  - [ ] Create `backend/requirements.txt` with pinned versions:
+- [x] **Task: Configure Python virtual environment and dependencies**
+  - [x] Create `backend/requirements.txt` with pinned versions:
     ```
-    fastapi==0.111.0
-    uvicorn[standard]==0.30.0
-    sqlalchemy[asyncio]==2.0.30
-    aiosqlite==0.20.0
-    alembic==1.13.1
-    pydantic==2.7.0
+    fastapi==0.138.1
+    sqlalchemy[asyncio]==2.0.51
+    aiosqlite==0.22.1
+    uvicorn[standard]==0.49.0
+    httpx==0.28.1
+    PyNaCl==1.6.2
+    py-machineid==1.0.0
+    pytest==9.1.1
+    pytest-asyncio==1.4.0
+    pydantic==2.10.4
+    alembic==1.14.0
     argon2-cffi==23.1.0
-    python-jose[cryptography]==3.3.0
-    apscheduler==3.10.4
-    py-machineid==0.6.0
-    cryptography==42.0.0
-    pyinstaller==6.8.0
-    tinytuya==1.15.0
+    python-jose[cryptography]==3.4.0
+    apscheduler==3.11.0
+    cryptography==44.0.0
+    pyinstaller==6.12.0
+    tinytuya==1.17.0
     python-escpos==3.1.0
-    PyNaCl==1.5.0
     ```
-  - [ ] Create `backend/requirements-dev.txt`:
+  - [x] Create `backend/requirements-dev.txt`:
     ```
-    pytest==8.2.0
-    pytest-asyncio==0.23.7
-    httpx==0.27.0
-    pytest-cov==5.0.0
-    ruff==0.4.0
-    mypy==1.10.0
-    black==24.4.2
-    pre-commit==3.7.0
-    bandit==1.7.9
+    pytest==9.1.1
+    pytest-asyncio==1.4.0
+    pytest-cov==6.0.0
+    httpx==0.28.1
+    ruff==0.8.0
+    mypy==1.13.0
+    black==24.10.0
+    pre-commit==4.0.1
+    bandit==1.9.4
     pip-audit==2.7.3
-    locust==2.29.0
-    faker==25.0.0
+    locust==2.32.0
+    faker==33.0.0
     ```
-  - [ ] Create and activate `backend/.venv/`; confirm `pip install -r requirements.txt -r requirements-dev.txt` succeeds
-  - [ ] **Definition of done:** `python -c "import fastapi, sqlalchemy, aiosqlite, nacl"` succeeds in venv
+  - [~] Create and activate `backend/.venv/`; confirm `pip install -r requirements.txt -r requirements-dev.txt` succeeds
+  - [~] **Definition of done:** `python -c "import fastapi, sqlalchemy, aiosqlite, nacl"` succeeds in venv
 
-- [ ] **Task: Configure Python linters, formatters, and type checker**
-  - [ ] Create `pyproject.toml` at repo root with Ruff rules: `E`, `F`, `I`, `UP`, `B`, `S` (Bandit-equivalent)
-  - [ ] Configure `black` for 88-char line length in `pyproject.toml`
-  - [ ] Configure `mypy` with `strict = true` in `pyproject.toml`
-  - [ ] Create `.pre-commit-config.yaml`: `ruff`, `black`, `mypy`, `bandit` hooks
-  - [ ] Run `pre-commit install`; verify hooks fire on `git commit`
-  - [ ] **Definition of done:** `pre-commit run --all-files` passes with zero errors on empty skeleton
+- [x] **Task: Configure Python linters, formatters, and type checker**
+  - [x] Create `pyproject.toml` at repo root with Ruff rules: `E`, `F`, `I`, `UP`, `B`, `S` (Bandit-equivalent)
+  - [x] Configure `black` for 88-char line length in `pyproject.toml`
+  - [x] Configure `mypy` with `strict = true` in `pyproject.toml`
+  - [x] Create `.pre-commit-config.yaml`: `ruff`, `black`, `mypy`, `bandit` hooks
+  - [~] Run `pre-commit install`; verify hooks fire on `git commit`
+  - [~] **Definition of done:** `pre-commit run --all-files` passes with zero errors on empty skeleton
 
 #### Feature 0.1.3: Node.js / TypeScript Development Environment (ENG-B)
 
-- [ ] **Task: Initialise frontend (React + Vite + TypeScript + TailwindCSS)**
-  - [ ] Run `npm create vite@latest frontend -- --template react-ts` in `arcade/`
-  - [ ] Install TailwindCSS: `npm install -D tailwindcss postcss autoprefixer && npx tailwindcss init -p`
-  - [ ] Install runtime deps: `@tanstack/react-query react-router-dom zustand recharts lucide-react`
-  - [ ] Install test deps: `vitest @testing-library/react @testing-library/user-event jsdom`
-  - [ ] Configure `tsconfig.json`: strict mode, path alias `@/` → `src/`
-  - [ ] Configure `vite.config.ts`: proxy `'/api'` → `http://localhost:8000`, `'/ws'` → `ws://localhost:8000`
-  - [ ] **Definition of done:** `npm run dev` starts; `npm run build` produces `dist/`; `npm test` runs (zero tests, zero failures)
+- [x] **Task: Initialise frontend (React + Vite + TypeScript + TailwindCSS)**
+  - [x] Run `npm create vite@latest frontend -- --template react-ts` in `arcade/`
+  - [x] Install TailwindCSS: `npm install -D tailwindcss postcss autoprefixer && npx tailwindcss init -p`
+  - [x] Install runtime deps: `@tanstack/react-query react-router-dom zustand recharts lucide-react`
+  - [x] Install test deps: `vitest @testing-library/react @testing-library/user-event jsdom`
+  - [x] Configure `tsconfig.json`: strict mode, path alias `@/` → `src/`
+  - [x] Configure `vite.config.ts`: proxy `'/api'` → `http://localhost:8000`, `'/ws'` → `ws://localhost:8000`
+  - [~] **Definition of done:** `npm run dev` starts; `npm run build` produces `dist/`; `npm test` runs (zero tests, zero failures)
 
-- [ ] **Task: Initialise Electron agent project**
-  - [ ] `npm init` in `agent/`; configure `package.json` with `"main": "dist/main/index.js"`
-  - [ ] Install dev deps: `electron electron-builder typescript ts-node`
-  - [ ] Install runtime deps: `better-sqlite3 systeminformation sharp`
-  - [ ] Create `electron-builder.yml`: targets Windows (nsis), macOS (dmg), Linux (AppImage, deb)
-  - [ ] Configure `tsconfig.json` for main (CommonJS) and renderer (ESM) processes
-  - [ ] Create stub `agent/src/main/index.ts` that opens a window
-  - [ ] **Definition of done:** `npm run start` opens an Electron window; `npm run build` produces a distributable
+- [x] **Task: Initialise Electron agent project**
+  - [x] `npm init` in `agent/`; configure `package.json` with `"main": "dist/main/index.js"`
+  - [x] Install dev deps: `electron electron-builder typescript ts-node`
+  - [x] Install runtime deps: `better-sqlite3 systeminformation sharp`
+  - [x] Create `electron-builder.yml`: targets Windows (nsis), macOS (dmg), Linux (AppImage, deb)
+  - [x] Configure `tsconfig.json` for main (CommonJS) and renderer (ESM) processes
+  - [x] Create stub `agent/src/main/index.ts` that opens a window
+  - [~] **Definition of done:** `npm run start` opens an Electron window; `npm run build` produces a distributable
 
-- [ ] **Task: Configure TypeScript linting for frontend and agent**
-  - [ ] Install ESLint + plugins: `eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint-plugin-react-hooks prettier eslint-config-prettier`
-  - [ ] Create `.eslintrc.json` with TypeScript strict rules for both `frontend/` and `agent/`
-  - [ ] Create `.prettierrc`: 2-space indent, single quotes, trailing commas
-  - [ ] Add ESLint hook to `.pre-commit-config.yaml`
-  - [ ] **Definition of done:** `npm run lint` and `npm run format:check` pass on empty scaffolding
+- [x] **Task: Configure TypeScript linting for frontend and agent**
+  - [x] Install ESLint + plugins: `eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint-plugin-react-hooks prettier eslint-config-prettier`
+  - [x] Create `frontend/eslint.config.js` (flat config) and `agent/.eslintrc.js` with TypeScript strict rules
+  - [x] Create `.prettierrc`: 2-space indent, single quotes, trailing commas
+  - [~] Add ESLint hook to `.pre-commit-config.yaml` (optional — not yet wired)
+  - [~] **Definition of done:** `npm run lint` and `npm run format:check` pass on empty scaffolding
 
 #### Feature 0.1.4: Shared Infrastructure
 
-- [ ] **Task: Create root Makefile**
-  - [ ] Targets: `install`, `backend-dev`, `frontend-dev`, `agent-dev`, `test`, `lint`, `lint-python`, `lint-frontend`, `lint-agent`, `build-frontend`, `build-agent`, `clean`
-  - [ ] Each target documented with a comment
-  - [ ] **Definition of done:** `make install` installs all deps; `make backend-dev` starts FastAPI dev server
+- [x] **Task: Create root Makefile**
+  - [x] Targets: `install`, `backend-dev`, `frontend-dev`, `agent-dev`, `test`, `lint`, `lint-python`, `lint-frontend`, `lint-agent`, `build-frontend`, `build-agent`, `clean`
+  - [x] Each target documented with a comment
+  - [~] **Definition of done:** `make install` installs all deps; `make backend-dev` starts FastAPI dev server
 
-- [ ] **Task: Establish CI skeleton (GitHub Actions)**
-  - [ ] Create `.github/workflows/ci.yml` with jobs: `lint-python`, `test-backend`, `lint-frontend`, `test-frontend`, `lint-agent`
-  - [ ] Run on: push to `develop`, all PRs to `main`
-  - [ ] Use `actions/cache` for pip and npm dependency caching
-  - [ ] Add CI status badge to `README.md`
-  - [ ] **Definition of done:** CI runs and passes (zero tests, zero failures) on the empty skeleton
+- [x] **Task: Establish CI skeleton (GitHub Actions)**
+  - [x] Create `.github/workflows/ci.yml` with jobs: `lint-python`, `test-backend`, `lint-frontend`, `test-frontend`, `lint-agent`
+  - [x] Run on: push to `develop`, all PRs to `main`
+  - [~] Use `actions/cache` for pip and npm dependency caching
+  - [~] Add CI status badge to `README.md`
+  - [~] **Definition of done:** CI runs and passes (zero tests, zero failures) on the empty skeleton
 
-- [ ] **Task: Establish docs directory**
-  - [ ] Create placeholder files: `docs/architecture.md`, `docs/api-reference.md`, `docs/deployment.md`, `docs/agent-setup.md`, `docs/developer-guide.md`, `docs/CONTRIBUTING.md`, `docs/operator-guide.md`, `docs/security/auth-audit.md`, `docs/security/key-management.md`, `docs/security/threat-model.md`
-  - [ ] Each file has a heading and "TODO: Document during corresponding phase" note
+- [x] **Task: Establish docs directory**
+  - [x] Create placeholder files: `docs/architecture.md`, `docs/api-reference.md`, `docs/deployment.md`, `docs/agent-setup.md`, `docs/developer-guide.md`, `docs/CONTRIBUTING.md`, `docs/operator-guide.md`, `docs/security/auth-audit.md`, `docs/security/key-management.md`, `docs/security/threat-model.md`
+  - [x] Each file has a heading and "TODO: Document during corresponding phase" note
 
 ### Documentation Requirements (Phase 0)
 
-- [ ] `docs/CONTRIBUTING.md`: branching strategy, commit message format (`type(scope): message`), PR process, local setup steps
-- [ ] `README.md`: Getting Started section with `make install`, `make backend-dev`, `make frontend-dev`
+- [x] `docs/CONTRIBUTING.md`: branching strategy, commit message format (`type(scope): message`), PR process, local setup steps
+- [x] `README.md`: Getting Started section with `make install`, `make backend-dev`, `make frontend-dev`
 
 ---
 

@@ -2,11 +2,12 @@
   "name": "arcade-agent",
   "version": "0.0.0",
   "description": "Arcade kiosk agent (Electron)",
+  "type": "module",
   "main": "dist/main/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.main.json && electron-builder",
     "start": "tsc -p tsconfig.main.json && electron .",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.19.1",
