@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Pre-Development · Phase 0 Complete · Phase 1 Ready
+**Status:** Phase 0 Complete · Phase 1 In Progress (Features 1.1.1, 1.1.2 done)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -388,12 +388,12 @@ After ENG-A completes `core/config.py` and `database.py`:
   - [x] **Security note:** Document in `docs/deployment.md` that `arcade.config.json` must have `chmod 600` permissions on Linux/macOS
   - [x] **Definition of done:** `from backend.core.config import get_config; c = get_config()` works with a valid config file
 
-#### Feature 1.1.2: Async Database Layer (`backend/core/database.py`)
+#### Feature 1.1.2: Async Database Layer (`backend/core/database.py`) ✅ _Complete_
 
-- [ ] **Task: Configure SQLAlchemy async engine with SQLite WAL pragmas**
-  - [ ] Create `backend/core/database.py`
-  - [ ] `async_engine = create_async_engine("sqlite+aiosqlite:///./arcade.db", echo=False)`
-  - [ ] Use `@event.listens_for(async_engine.sync_engine, "connect")` to set pragmas on every new connection:
+- [x] **Task: Configure SQLAlchemy async engine with SQLite WAL pragmas**
+  - [x] Create `backend/core/database.py`
+  - [x] `async_engine = create_async_engine("sqlite+aiosqlite:///./arcade.db", echo=False)`
+  - [x] Use `@event.listens_for(async_engine.sync_engine, "connect")` to set pragmas on every new connection:
     ```python
     PRAGMA journal_mode = WAL;
     PRAGMA busy_timeout = 5000;
@@ -403,35 +403,37 @@ After ENG-A completes `core/config.py` and `database.py`:
     PRAGMA cache_size = -32000;
     PRAGMA wal_autocheckpoint = 1000;
     ```
-  - [ ] `AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)`
-  - [ ] `async def get_db()` dependency yielding `AsyncSession`
-  - [ ] **⚠ RISK (R-01):** Validate with ARCH-01 before implementing services
+  - [x] `AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)`
+  - [x] `async def get_db()` dependency yielding `AsyncSession`
+  - [x] **⚠ RISK (R-01):** Validated with ARCH-01 — concurrent write test in `test_database.py` passes (50 concurrent UPDATEs, no `database is locked` errors)
+  - [x] Added DB readiness check (`_verify_database_wal()`) to `main.py` lifespan startup
+  - [x] Tests: `backend/tests/test_database.py` — WAL mode, `busy_timeout`, `foreign_keys` pragmas; `get_db()` yields `AsyncSession`; ARCH-01 regression (concurrent writes)
 
 #### Feature 1.1.3: All SQLAlchemy ORM Models (`backend/models/`)
 
-- [ ] **Task: Define all ORM models** (ENG-A)
-  - [ ] Create one file per entity. All models inherit from `Base`. All monetary fields are `Integer` (paise). All timestamps are `DateTime` with `timezone=True`.
-  - [ ] `models/seat.py`: `Seat` — id, name, zone_id, device_type, status (enum), mac_address, wol_attempts, wol_successes, current_session_id, notes, created_at
-  - [ ] `models/session.py`: `Session` — id, seat_id, member_id, staff_id, started_at, ended_at, paused_at, total_paused_seconds, status (enum: ACTIVE, PAUSED, COMPLETED), locked_rate_paise, locked_pricing_model, rate_block_minutes, package_entitlement_id, promotion_id, shift_id
-  - [ ] `models/invoice.py`: `Invoice`, `InvoiceLineItem` — invoice: id, session_id, member_id, total_paise, payment_method, created_at; line_item: id, invoice_id, description, amount_paise, line_type
-  - [ ] `models/member.py`: `Member` — id, name, phone (unique), wallet_paise, loyalty_points, tier (enum: BRONZE, SILVER, GOLD), created_at
-  - [ ] `models/staff.py`: `Staff` — id (staff_id string), name, pin_hash, role (enum: ADMIN, CASHIER), is_active, token_version, created_at
-  - [ ] `models/shift.py`: `Shift` — id, opened_by, closed_by, opened_at, closed_at, opening_cash, closing_cash, expected_cash, is_open
-  - [ ] `models/menu_item.py`: `MenuItem` — id, name, category, price_paise, is_available, stock_quantity (nullable), low_stock_threshold (nullable)
-  - [ ] `models/session_pos_item.py`: `SessionPOSItem` — id, session_id, menu_item_id, quantity, unit_price_paise
-  - [ ] `models/package.py`: `Package` — id, name, minutes (nullable), is_day_pass, valid_hours_start, valid_hours_end, price_paise, is_active
-  - [ ] `models/package_entitlement.py`: `MemberPackageEntitlement` — id, member_id, package_id, total_minutes, remaining_minutes, status (ACTIVE, EXHAUSTED, EXPIRED), purchased_at, expires_at
-  - [ ] `models/promotion.py`: `Promotion` — id, name, discount_pct, applies_from (time), applies_to (time), days_of_week (JSON), is_active
-  - [ ] `models/voucher.py`: `Voucher` — id, code (unique), value_paise, expires_at, redeemed_at, redeemed_by_member_id
-  - [ ] `models/reservation.py`: `Reservation` — id, seat_id, member_id, customer_name, reserved_from, reserved_to, notes, status (PENDING, CONFIRMED, CANCELLED, COMPLETED)
-  - [ ] `models/zone.py`: `Zone` — id, name, rate_paise_per_minute, pricing_model (enum), rate_block_minutes
-  - [ ] `models/audit_log.py`: `AuditLog` — id, staff_id (nullable), action, entity_type, entity_id, detail, created_at — **no update/delete columns**
-  - [ ] `models/license_status.py`: `LicenseStatus` — id, cafe_name, hardware_id, license_type, verified_at, trial_expires_at
-  - [ ] `models/settings.py`: `AppSettings` — key (unique), value (JSON string) — key-value store for feature flags and all mutable config
-  - [ ] `models/expense.py`: `Expense` — id, category, amount_paise, description, recorded_by, created_at (feature-flagged)
-  - [ ] `models/event.py`: `Event`, `EventParticipant`, `EventMatch` (feature-flagged)
-  - [ ] Create `models/__init__.py` exporting all models — **must be kept in sync with Alembic `env.py`**
-  - [ ] **Definition of done:** `mypy backend/models/` passes with zero errors
+- [x] **Task: Define all ORM models** (ENG-A)
+  - [x] Create one file per entity. All models inherit from `Base`. All monetary fields are `Integer` (paise). All timestamps are `DateTime` with `timezone=True`.
+  - [x] `models/seat.py`: `Seat` — id, name, zone_id, device_type, status (enum), mac_address, wol_attempts, wol_successes, current_session_id, notes, created_at
+  - [x] `models/session.py`: `Session` — id, seat_id, member_id, staff_id, started_at, ended_at, paused_at, total_paused_seconds, status (enum: ACTIVE, PAUSED, COMPLETED), locked_rate_paise, locked_pricing_model, rate_block_minutes, package_entitlement_id, promotion_id, shift_id
+  - [x] `models/invoice.py`: `Invoice`, `InvoiceLineItem` — invoice: id, session_id, member_id, total_paise, payment_method, created_at; line_item: id, invoice_id, description, amount_paise, line_type
+  - [x] `models/member.py`: `Member` — id, name, phone (unique), wallet_paise, loyalty_points, tier (enum: BRONZE, SILVER, GOLD), created_at
+  - [x] `models/staff.py`: `Staff` — id (staff_id string), name, pin_hash, role (enum: ADMIN, CASHIER), is_active, token_version, created_at
+  - [x] `models/shift.py`: `Shift` — id, opened_by, closed_by, opened_at, closed_at, opening_cash, closing_cash, expected_cash, is_open
+  - [x] `models/menu_item.py`: `MenuItem` — id, name, category, price_paise, is_available, stock_quantity (nullable), low_stock_threshold (nullable)
+  - [x] `models/session_pos_item.py`: `SessionPOSItem` — id, session_id, menu_item_id, quantity, unit_price_paise
+  - [x] `models/package.py`: `Package` — id, name, minutes (nullable), is_day_pass, valid_hours_start, valid_hours_end, price_paise, is_active
+  - [x] `models/package_entitlement.py`: `MemberPackageEntitlement` — id, member_id, package_id, total_minutes, remaining_minutes, status (ACTIVE, EXHAUSTED, EXPIRED), purchased_at, expires_at
+  - [x] `models/promotion.py`: `Promotion` — id, name, discount_pct, applies_from (time), applies_to (time), days_of_week (JSON), is_active
+  - [x] `models/voucher.py`: `Voucher` — id, code (unique), value_paise, expires_at, redeemed_at, redeemed_by_member_id
+  - [x] `models/reservation.py`: `Reservation` — id, seat_id, member_id, customer_name, reserved_from, reserved_to, notes, status (PENDING, CONFIRMED, CANCELLED, COMPLETED)
+  - [x] `models/zone.py`: `Zone` — id, name, rate_paise_per_minute, pricing_model (enum), rate_block_minutes
+  - [x] `models/audit_log.py`: `AuditLog` — id, staff_id (nullable), action, entity_type, entity_id, detail, created_at — **no update/delete columns**
+  - [x] `models/license_status.py`: `LicenseStatus` — id, cafe_name, hardware_id, license_type, verified_at, trial_expires_at
+  - [x] `models/settings.py`: `AppSettings` — key (unique), value (JSON string) — key-value store for feature flags and all mutable config
+  - [x] `models/expense.py`: `Expense` — id, category, amount_paise, description, recorded_by, created_at (feature-flagged)
+  - [x] `models/event.py`: `Event`, `EventParticipant`, `EventMatch` (feature-flagged)
+  - [x] Create `models/__init__.py` exporting all models — **must be kept in sync with Alembic `env.py`**
+  - [x] **Definition of done:** `mypy backend/models/` passes with zero errors
 
 #### Feature 1.1.4: Alembic Migrations
 
