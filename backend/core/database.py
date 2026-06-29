@@ -1,31 +1,81 @@
-"""Async SQLAlchemy database setup with SQLite WAL mode."""
+"""Async SQLAlchemy database setup with SQLite WAL mode.
 
+This module sets up the async SQLAlchemy engine (using ``aiosqlite``),
+enables Write-Ahead Logging (WAL) with performance pragmas on every new
+dbapi connection, and exports the declarative ``Base`` class and the
+standard ``get_db()`` FastAPI dependency that yields an :class:`AsyncSession`.
+
+References:
+- SDD §5.3 – Database Configuration
+- ARCH-01 – WAL + async SQLAlchemy under concurrent writes
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncGenerator
 from typing import Any
 
-from sqlalchemy.event import listen
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
+# ---------------------------------------------------------------------------
 # Async engine with aiosqlite driver
+# ---------------------------------------------------------------------------
+
 async_engine = create_async_engine(
     "sqlite+aiosqlite:///./arcade.db",
     echo=False,
 )
 
 
-@listen(async_engine.sync_engine, "connect")  # type: ignore[misc]
-def _set_pragma(conn: Any, _: Any) -> None:
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA busy_timeout = 5000")
-    conn.execute("PRAGMA synchronous = NORMAL")
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA mmap_size = 134217728")
-    conn.execute("PRAGMA cache_size = -32000")
-    conn.execute("PRAGMA wal_autocheckpoint = 1000")
+# ---------------------------------------------------------------------------
+# WAL + performance pragmas applied on every new dbapi connection
+# ---------------------------------------------------------------------------
 
+
+@event.listens_for(async_engine.sync_engine, "connect")  # type:ignore[misc]
+def _set_pragma(conn: Any, _: Any) -> None:
+    """Set required SQLite pragmas for each new connection.
+
+    ``conn`` is the raw ``sqlite3`` dbapi connection (not an
+    SQLAlchemy ``Connection``), so we use a cursor for resource hygiene.
+    """
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA journal_mode = WAL")
+    cursor.execute("PRAGMA busy_timeout = 5000")
+    cursor.execute("PRAGMA synchronous = NORMAL")
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.execute("PRAGMA mmap_size = 134217728")
+    cursor.execute("PRAGMA cache_size = -32000")
+    cursor.execute("PRAGMA wal_autocheckpoint = 1000")
+    cursor.close()
+
+
+# ---------------------------------------------------------------------------
+# Session factory and declarative base
+# ---------------------------------------------------------------------------
 
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
-class Base(DeclarativeBase):  # type: ignore[misc]
+class Base(DeclarativeBase):  # type:ignore[misc]
     """Base class for all SQLAlchemy ORM models."""
+
+
+# ---------------------------------------------------------------------------
+# FastAPI dependency
+# ---------------------------------------------------------------------------
+
+
+async def get_db() -> AsyncGenerator[AsyncSession]:
+    """Yield an async SQLAlchemy session for FastAPI dependency injection.
+
+    Usage in a FastAPI router::
+
+        @router.get("/data")
+        async def get_data(db: AsyncSession = Depends(get_db)):
+            ...
+    """
+    async with AsyncSessionLocal() as session:
+        yield session
