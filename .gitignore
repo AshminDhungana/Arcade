@@ -12,7 +12,7 @@ __pycache__/
 .claude
 CLAUDE.md
 ./backend/venv
-./docs/superpowers
+./docs/superpowers/
 
 # Distribution / packaging
 .Python

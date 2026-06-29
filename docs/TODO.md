@@ -380,13 +380,13 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.1.1: Core Configuration (`backend/core/config.py`)
 
-- [ ] **Task: Implement `arcade.config.json` loader**
-  - [ ] Create `backend/core/config.py` with a `Settings` Pydantic model containing all fields from Appendix B
-  - [ ] `load_config(path: str = "arcade.config.json") -> Settings`: reads and validates JSON
-  - [ ] `get_config()`: cached singleton (module-level, loaded once at startup)
-  - [ ] Handle `FileNotFoundError` → `RuntimeError("arcade.config.json not found. Run the setup wizard.")`
-  - [ ] **Security note:** Document in `docs/deployment.md` that `arcade.config.json` must have `chmod 600` permissions on Linux/macOS
-  - [ ] **Definition of done:** `from backend.core.config import get_config; c = get_config()` works with a valid config file
+- [x] **Task: Implement `arcade.config.json` loader**
+  - [x] Create `backend/core/config.py` with a `Settings` Pydantic model containing all fields from Appendix B
+  - [x] `load_config(path: str = "arcade.config.json") -> Settings`: reads and validates JSON
+  - [x] `get_config()`: cached singleton (module-level, loaded once at startup)
+  - [x] Handle `FileNotFoundError` → `RuntimeError("arcade.config.json not found. Run the setup wizard.")`
+  - [x] **Security note:** Document in `docs/deployment.md` that `arcade.config.json` must have `chmod 600` permissions on Linux/macOS
+  - [x] **Definition of done:** `from backend.core.config import get_config; c = get_config()` works with a valid config file
 
 #### Feature 1.1.2: Async Database Layer (`backend/core/database.py`)
 

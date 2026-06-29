@@ -15,7 +15,7 @@ select = ["E", "F", "I", "UP", "B", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 # Validation spikes and tests may use asserts, large literals, etc.
-"backend/tests/**" = ["S101", "S106"]
+"backend/tests/**" = ["S101", "S105", "S106"]
 "backend/tests/validation_tasks/**" = ["S101", "S106", "E501", "S311"]
 # Runtime value comes from arcade.config.json, not hardcoded
 

@@ -6,13 +6,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.core.config import load_config
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     """Application lifespan context manager."""
-    # Startup
+    # --- STARTUP ---
+    # Eagerly load and validate arcade.config.json on every boot.
+    # If the file is missing or invalid the server fails fast.
+    _ = load_config()
+    # TODO: init DB, feature flags, WS manager, scheduler, etc.
     yield
-    # Shutdown
+    # --- SHUTDOWN ---
 
 
 app = FastAPI(
