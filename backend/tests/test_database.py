@@ -13,6 +13,8 @@ Scenarios:
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
+from typing import Any
 
 import pytest
 from sqlalchemy import event, text
@@ -23,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 # ---------------------------------------------------------------------------
 
 
-def _apply_wal_pragmas(dbapi_conn, _) -> None:
+def _apply_wal_pragmas(dbapi_conn: Any, connection_record: Any) -> None:
     """Apply the same SQLite pragmas as backend/core/database.py.
 
     This is a test-side copy of the pragma setup so each test can spin up an
@@ -53,7 +55,7 @@ def test_engine_driver_is_aiosqlite() -> None:
 
 
 @pytest.mark.asyncio
-async def test_wal_mode_active(tmp_path) -> None:
+async def test_wal_mode_active(tmp_path: Path) -> None:
     """PRAGMA journal_mode returns 'wal' on a fresh connection."""
     db_url = f"sqlite+aiosqlite:///{tmp_path / 'test_wal.db'}"
     engine = create_async_engine(db_url, echo=False)
@@ -68,7 +70,7 @@ async def test_wal_mode_active(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_busy_timeout_set(tmp_path) -> None:
+async def test_busy_timeout_set(tmp_path: Path) -> None:
     """PRAGMA busy_timeout returns 5000."""
     db_url = f"sqlite+aiosqlite:///{tmp_path / 'test_busy.db'}"
     engine = create_async_engine(db_url, echo=False)
@@ -83,7 +85,7 @@ async def test_busy_timeout_set(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_foreign_keys_enabled(tmp_path) -> None:
+async def test_foreign_keys_enabled(tmp_path: Path) -> None:
     """PRAGMA foreign_keys returns 1."""
     db_url = f"sqlite+aiosqlite:///{tmp_path / 'test_fk.db'}"
     engine = create_async_engine(db_url, echo=False)
@@ -103,7 +105,7 @@ async def test_get_db_yields_async_session() -> None:
     from backend.core.database import get_db
 
     sessions: list[AsyncSession] = []
-    async for s in get_db():  # type: ignore[var-annotated]
+    async for s in get_db():
         sessions.append(s)
         break
 
@@ -112,7 +114,7 @@ async def test_get_db_yields_async_session() -> None:
 
 
 @pytest.mark.asyncio
-async def test_concurrent_writes_no_database_locked(tmp_path) -> None:
+async def test_concurrent_writes_no_database_locked(tmp_path: Path) -> None:
     """50 concurrent UPDATEs on the same row do not raise database is locked.
 
     This is a lightweight regression of ARCH-01 (SQLite WAL + busy_timeout=5000).
@@ -142,7 +144,7 @@ async def test_concurrent_writes_no_database_locked(tmp_path) -> None:
                     result = await conn.execute(
                         text("UPDATE counters SET value = value + 1 WHERE id = 1")
                     )
-                    return result.rowcount  # type: ignore[union-attr]
+                    return int(result.rowcount)
             except Exception:
                 if attempt == MAX_RETRIES - 1:
                     raise

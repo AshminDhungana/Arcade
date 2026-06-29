@@ -34,7 +34,7 @@ async_engine = create_async_engine(
 # ---------------------------------------------------------------------------
 
 
-@event.listens_for(async_engine.sync_engine, "connect")  # type:ignore[misc]
+@event.listens_for(async_engine.sync_engine, "connect")
 def _set_pragma(conn: Any, _: Any) -> None:
     """Set required SQLite pragmas for each new connection.
 
@@ -59,7 +59,7 @@ def _set_pragma(conn: Any, _: Any) -> None:
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
-class Base(DeclarativeBase):  # type:ignore[misc]
+class Base(DeclarativeBase):
     """Base class for all SQLAlchemy ORM models."""
 
 

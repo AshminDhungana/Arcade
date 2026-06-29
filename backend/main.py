@@ -58,7 +58,7 @@ app.add_middleware(
 )
 
 
-@app.get("/health")  # type: ignore[misc]
+@app.get("/health")
 async def health() -> dict[str, str]:
     """Health check endpoint."""
     return {"status": "ok", "version": "0.0.0"}

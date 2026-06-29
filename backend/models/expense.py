@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+import datetime as _dt
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,9 +17,9 @@ class Expense(Base):
     id: Mapped[str] = mapped_column(
         String(32), primary_key=True, default=lambda: __import__("uuid").uuid4().hex
     )
-    date: Mapped[date] = mapped_column(
+    date: Mapped[_dt.date] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(UTC).date(),
+        default=lambda: _dt.datetime.now(_dt.UTC).date(),
         nullable=False,
     )
     category: Mapped[ExpenseCategory] = mapped_column(String(20), nullable=False)
@@ -28,6 +28,8 @@ class Expense(Base):
     logged_by_staff_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("staff.id"), nullable=False
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    created_at: Mapped[_dt.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: _dt.datetime.now(_dt.UTC),
+        nullable=False,
     )
