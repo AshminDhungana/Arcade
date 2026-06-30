@@ -82,6 +82,8 @@ async def run_migrations_online() -> None:
     from sqlalchemy.ext.asyncio import create_async_engine
 
     url = config.get_main_option("sqlalchemy.url")
+    if url is None:
+        raise RuntimeError("sqlalchemy.url is not configured in alembic.ini")
     connectable = create_async_engine(url, poolclass=pool.NullPool)
 
     async with connectable.begin() as connection:
