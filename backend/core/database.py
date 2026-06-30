@@ -13,6 +13,7 @@ References:
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import event
@@ -23,8 +24,9 @@ from sqlalchemy.orm import DeclarativeBase
 # Async engine with aiosqlite driver
 # ---------------------------------------------------------------------------
 
+_DB_PATH = Path(__file__).resolve().parent.parent / "arcade.db"
 async_engine = create_async_engine(
-    "sqlite+aiosqlite:///./arcade.db",
+    f"sqlite+aiosqlite:///{_DB_PATH}",
     echo=False,
 )
 
