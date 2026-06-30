@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json as _json
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -128,7 +128,7 @@ class FakeWebSocket:
         return ""
 
     async def receive_json(self) -> dict[str, Any]:
-        return _json.loads(await self.receive_text())
+        return cast(dict[str, Any], _json.loads(await self.receive_text()))
 
     async def send_text(self, text: str) -> None:
         self.sent_messages.append(_json.loads(text))
@@ -140,6 +140,11 @@ class FakeWebSocket:
         self.is_closed = True
         self.close_code = code
         self.close_reason = reason
+
+
+def _fake_ws() -> Any:
+    """Return a FakeWebSocket typed as ``Any`` to bypass WebSocket[State] strictness."""
+    return FakeWebSocket()
 
 
 @pytest.fixture
@@ -171,7 +176,7 @@ class TestDashboardRegistry:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws = FakeWebSocket()
+        ws = _fake_ws()
         await mgr.connect_dashboard(ws)
         assert ws in mgr.dashboard_connections
 
@@ -180,7 +185,7 @@ class TestDashboardRegistry:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws = FakeWebSocket()
+        ws = _fake_ws()
         await mgr.connect_dashboard(ws)
         await mgr.disconnect_dashboard(ws)
         assert ws not in mgr.dashboard_connections
@@ -197,7 +202,7 @@ class TestAgentRegistry:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws = FakeWebSocket()
+        ws = _fake_ws()
         ok = await mgr.connect_agent("seat_001", "secret_001", ws)
         assert ok is True
         assert "seat_001" in mgr.agent_connections
@@ -208,7 +213,7 @@ class TestAgentRegistry:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws = FakeWebSocket()
+        ws = _fake_ws()
         ok = await mgr.connect_agent("seat_001", "wrong_secret", ws)
         assert ok is False
         assert ws.is_closed
@@ -219,7 +224,7 @@ class TestAgentRegistry:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws = FakeWebSocket()
+        ws = _fake_ws()
         ok = await mgr.connect_agent("seat_999", "anything", ws)
         assert ok is False
 
@@ -228,7 +233,7 @@ class TestAgentRegistry:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws = FakeWebSocket()
+        ws = _fake_ws()
         await mgr.connect_agent("seat_001", "secret_001", ws)
         await mgr.disconnect_agent("seat_001")
         assert "seat_001" not in mgr.agent_connections
@@ -245,7 +250,7 @@ class TestSendAndBroadcast:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws = FakeWebSocket()
+        ws = _fake_ws()
         await mgr.connect_agent("seat_001", "secret_001", ws)
         await mgr.send_to_agent("seat_001", {"type": "HIDE_OVERLAY", "payload": {}})
         assert any(msg.get("type") == "HIDE_OVERLAY" for msg in ws.sent_messages)
@@ -263,8 +268,8 @@ class TestSendAndBroadcast:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws1 = FakeWebSocket()
-        ws2 = FakeWebSocket()
+        ws1 = _fake_ws()
+        ws2 = _fake_ws()
         await mgr.connect_dashboard(ws1)
         await mgr.connect_dashboard(ws2)
         await mgr.broadcast_to_dashboards(
@@ -278,8 +283,8 @@ class TestSendAndBroadcast:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws1 = FakeWebSocket()
-        ws2 = FakeWebSocket()
+        ws1 = _fake_ws()
+        ws2 = _fake_ws()
         await mgr.connect_dashboard(ws1)
         await mgr.connect_dashboard(ws2)
         # Disconnect ws2
@@ -306,7 +311,7 @@ class TestHeartbeat:
         old_interval = _ws.HEARTBEAT_INTERVAL
         _ws.HEARTBEAT_INTERVAL = 0.05  # 50 ms
         try:
-            ws = FakeWebSocket()
+            ws = _fake_ws()
             await mgr.connect_agent("seat_001", "secret_001", ws)
             # Wait for two heartbeat intervals
             await asyncio.sleep(0.12)
@@ -320,7 +325,7 @@ class TestHeartbeat:
         mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
-        ws = FakeWebSocket()
+        ws = _fake_ws()
         await mgr.connect_agent("seat_001", "secret_001", ws)
         # Simulate receiving a PONG
         await mgr.handle_pong("seat_001")
@@ -338,7 +343,7 @@ class TestHeartbeat:
         old_interval = _ws.HEARTBEAT_INTERVAL
         _ws.HEARTBEAT_INTERVAL = 0.03
         try:
-            ws = FakeWebSocket()
+            ws = _fake_ws()
             await mgr.connect_agent("seat_001", "secret_001", ws)
             # Wait for two ticks (first tick sends PING, second tick detects no PONG)
             await asyncio.sleep(0.08)
@@ -375,7 +380,7 @@ class TestAgentHandlers:
     async def test_handle_health_broadcasts_to_dashboards(self, mock_config):  # type: ignore[no-untyped-def]
         del mock_config
         mgr = WebSocketManager()
-        dash = FakeWebSocket()
+        dash = _fake_ws()
         await mgr.connect_dashboard(dash)
         await mgr.handle_agent_message(
             "seat_001",
@@ -389,7 +394,7 @@ class TestAgentHandlers:
     async def test_handle_staff_override_broadcasts_alert(self, mock_config):  # type: ignore[no-untyped-def]
         del mock_config
         mgr = WebSocketManager()
-        dash = FakeWebSocket()
+        dash = _fake_ws()
         await mgr.connect_dashboard(dash)
         await mgr.handle_agent_message(
             "seat_001",
