@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 line-length = 88
 target-version = "py313"
 # Exclude validation spikes (frozen ARCH-* artifacts) and the venv.
-extend-exclude = ["backend/tests/validation_tasks", "backend/venv", "backend/arch01_app.py", "backend/arch01_stress_test.py"]
+extend-exclude = ["backend/tests/validation_tasks", "backend/venv", "backend/arch01_app.py", "backend/arch01_stress_test.py", "alembic/versions"]
 
 [tool.ruff.lint]
 # E/F pyflakes+pycodestyle, I isort, UP pyupgrade, B bugbear, S bandit
@@ -23,7 +23,7 @@ select = ["E", "F", "I", "UP", "B", "S"]
 line-length = 88
 target-version = ["py313"]
 # Exclude validation spikes (frozen ARCH-* artifacts) and the venv.
-extend-exclude = "backend/(venv|tests/validation_tasks|arch01_app\\.py|arch01_stress_test\\.py)"
+extend-exclude = "backend/(venv|tests/validation_tasks|arch01_app\\.py|arch01_stress_test\\.py)|alembic/versions"
 
 [tool.mypy]
 python_version = "3.13"
