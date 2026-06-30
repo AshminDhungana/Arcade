@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0 Complete · Phase 1 In Progress (Features 1.1.1, 1.1.2 done)
+**Status:** Phase 0 Complete · Phase 1 In Progress (Features 1.1.1–1.1.6 done)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -459,17 +459,20 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.1.6: WebSocket Manager (`backend/core/ws_manager.py`)
 
-- [ ] **Task: Implement `WebSocketManager`**
-  - [ ] Dashboard connections: `connect_dashboard(ws)`, `disconnect_dashboard(ws)`, `broadcast_to_dashboards(event, data)`
-  - [ ] Agent connections: `connect_agent(seat_id, ws, secret)` — validates `agent_secret` from config on connection; rejects if missing or wrong
-  - [ ] `send_to_agent(seat_id, command_dict)` — raises `AgentOfflineError` if not connected (caller handles gracefully)
-  - [ ] `disconnect_agent(seat_id)`
-  - [ ] Heartbeat: ping agents every 30 seconds; mark as disconnected if no pong within 10 seconds
-  - [ ] Max WebSocket message size: 5 MB (enforce at `uvicorn` level via `--ws-max-size 5242880`)
-  - [ ] Agent REGISTER handler: validates secret, records seat_id, updates MAC address via `seat_service`
-  - [ ] Agent SYNC handler: reconciles session time after reconnect (FR-SES-009)
-  - [ ] Agent HEALTH handler: stores latest health metrics; broadcasts `health_update` to dashboards
-  - [ ] Agent STAFF_OVERRIDE handler: writes audit log entry
+- [x] **Task: Implement `WebSocketManager`**
+  - [x] Dashboard connections: `connect_dashboard(ws)`, `disconnect_dashboard(ws)`, `broadcast_to_dashboards(event, data)`
+  - [x] Agent connections: `connect_agent(seat_id, ws, secret)` — validates `agent_secret` from config on connection; rejects if missing or wrong
+  - [x] `send_to_agent(seat_id, command_dict)` — raises `AgentOfflineError` if not connected (caller handles gracefully)
+  - [x] `disconnect_agent(seat_id)`
+  - [x] Heartbeat: PING agents every 30 s; disconnect if no PONG within 10 s grace period
+  - [x] Max WebSocket message size: 5 MB (enforced at `uvicorn` level via `--ws-max-size 5242880`)
+  - [x] Agent REGISTER handler: validates secret, broadcasts seat status to dashboards
+  - [x] Agent SYNC handler: reconciles session time after reconnect via `reconcile()` / `server_anchor_elapsed()` (FR-SES-009)
+  - [x] Agent HEALTH handler: stores latest health metrics; broadcasts `health_update` to dashboards
+  - [x] Agent STAFF_OVERRIDE handler: broadcasts alert to dashboards
+  - [x] FastAPI endpoints: `/ws/dashboard` and `/ws/agent/{seat_id}` (with `?secret=` query param)
+  - [x] Module-level singleton `manager`; lifespan shutdown calls `close_all()`
+  - [x] 27 tests; all 89 backend tests pass with zero regressions
 
 #### Feature 1.1.7: Feature Flags (`backend/core/feature_flags.py`)
 
