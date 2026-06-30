@@ -205,22 +205,20 @@ async def seed_members(db) -> None:  # type: ignore[no-untyped-def]
 
 
 async def seed_feature_flags(db) -> None:  # type: ignore[no-untyped-def]
-    """Seed default feature flag values."""
+    """Seed default feature flag values (Appendix D)."""
     from datetime import UTC, datetime
 
     flags = {
-        "enable_pos": "true",
-        "enable_inventory": "true",
-        "enable_membership": "true",
+        "enable_members": "true",
         "enable_packages": "true",
-        "enable_promotions": "true",
+        "enable_pos": "true",
+        "enable_inventory": "false",
+        "enable_reservations": "true",
         "enable_vouchers": "false",
-        "enable_reservations": "false",
-        "enable_events": "false",
-        "enable_expenses": "false",
+        "enable_tournaments": "false",
+        "enable_expense_tracking": "false",
+        "enable_health_monitoring": "true",
         "require_member_for_session": "false",
-        "enable_analytics": "true",
-        "enable_audit_log": "true",
     }
     for key, value in flags.items():
         db.add(AppSettings(key=key, value=value, updated_at=datetime.now(UTC)))
