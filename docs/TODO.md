@@ -437,14 +437,14 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.1.4: Alembic Migrations
 
-- [ ] **Task: Initialise Alembic and create initial migration**
-  - [ ] Run `alembic init alembic` in `backend/`
-  - [ ] Update `alembic/env.py`: import all models from `backend.models`; use `async_engine`; set `target_metadata = Base.metadata`
-  - [ ] Generate migration: `alembic revision --autogenerate -m "001_initial"`
-  - [ ] Review generated migration — confirm all tables, columns, and constraints are correct
-  - [ ] Apply: `alembic upgrade head`
-  - [ ] Seed data: create `backend/scripts/seed_dev.py` that populates: 2 zones, 8 seats, 2 staff (admin + cashier), 5 menu items, 3 members, feature flags with defaults
-  - [ ] **Definition of done:** Fresh database has all tables; `alembic current` shows `head`; seed script runs without errors
+- [x] **Task: Initialise Alembic and create initial migration**
+  - [x] Run `alembic init alembic` in `backend/`
+  - [x] Update `alembic/env.py`: import all models from `backend.models`; use `async_engine`; set `target_metadata = Base.metadata`
+  - [x] Generate migration: `alembic revision --autogenerate -m "001_initial"`
+  - [x] Review generated migration — confirm all tables, columns, and constraints are correct
+  - [x] Apply: `alembic upgrade head`
+  - [x] Seed data: create `backend/scripts/seed_dev.py` that populates: 2 zones, 8 seats, 2 staff (admin + cashier), 5 menu items, 3 members, feature flags with defaults
+  - [x] **Definition of done:** Fresh database has all tables; `alembic current` shows `head`; seed script runs without errors
 
 #### Feature 1.1.5: Core Security (`backend/core/security.py`)
 
