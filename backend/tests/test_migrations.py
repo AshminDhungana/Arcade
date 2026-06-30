@@ -9,6 +9,38 @@ from pathlib import Path
 import pytest
 from sqlalchemy import text
 
+# ---------------------------------------------------------------------------
+# Session-scoped fixture: apply migrations once before any test
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _apply_migrations() -> None:
+    """Run ``alembic upgrade head`` once before any test in this module."""
+    backend_dir = str(Path(__file__).resolve().parent.parent)
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        capture_output=True,
+        text=True,
+        cwd=backend_dir,
+        check=False,
+    )
+    assert result.returncode == 0, f"alembic upgrade head failed:\n{result.stderr}"
+
+
+# ---------------------------------------------------------------------------
+# Per-test fixture: ensure CWD is the backend directory so that
+# ``async_engine`` (which uses a relative DB path) resolves to the same
+# SQLite file that alembic created.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _chdir_to_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Switch CWD to backend/ for each test in this module."""
+    backend_dir = str(Path(__file__).resolve().parent.parent)
+    monkeypatch.chdir(backend_dir)
+
 
 class TestMigrationBasics:
     """Verify that the initial migration applied correctly."""
