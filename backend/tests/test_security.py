@@ -1,20 +1,28 @@
 """Tests for backend.core.security.
 
 Covers: PIN hashing (Argon2id), JWT encode/decode, brute-force rate limiting,
-lockout, token_version invalidation, and role dependencies.
+/MEMBERlockout, token_version invalidation, and role dependencies.
 """
 
 from __future__ import annotations
 
 import pytest
+from fastapi import HTTPException
 from jose import ExpiredSignatureError, JWTError
 
 from backend.core.security import (
     create_access_token,
     decode_access_token,
+    get_current_staff,
     hash_pin,
+    is_ip_locked,
+    record_failed_attempt,
+    require_admin,
+    require_cashier,
+    reset_failed_attempts,
     verify_pin,
 )
+from backend.models.staff import Staff
 
 
 def test_hash_pin_returns_different_hash_each_time() -> None:
@@ -69,3 +77,162 @@ def test_decode_access_token_rejects_tampered_token() -> None:
     tampered = token[:-10] + "tamper1234"  # noqa: S105
     with pytest.raises(JWTError):
         decode_access_token(tampered)
+
+
+# ---------------------------------------------------------------------------
+# Rate Limiting Tests
+# ---------------------------------------------------------------------------
+
+
+class TestRateLimiting:
+    """Brute-force: 5 failures -> 15-minute lockout by IP."""
+
+    def test_fresh_ip_not_locked(self) -> None:
+        locked, remaining = is_ip_locked("192.168.1.10")
+        assert locked is False
+        assert remaining == 0
+
+    def test_four_failed_attempts_not_locked(self) -> None:
+        for _ in range(4):
+            locked, _ = record_failed_attempt("192.168.1.11")
+            assert locked is False
+
+        locked, remaining = is_ip_locked("192.168.1.11")
+        assert locked is False
+        assert remaining == 0
+
+    def test_fifth_failed_attempt_triggers_lockout(self) -> None:
+        for i in range(4):
+            locked, _ = record_failed_attempt("192.168.1.12")
+            assert locked is False, f"attempt {i + 1}"
+
+        locked, remaining = record_failed_attempt("192.168.1.12")
+        assert locked is True
+        assert remaining > 0
+        assert remaining <= 15 * 60
+
+    def test_reset_failed_attempts_clears_lockout(self) -> None:
+        for _ in range(5):
+            locked, _ = record_failed_attempt("192.168.1.13")
+
+        assert locked is True
+        reset_failed_attempts("192.168.1.13")
+        locked2, _ = is_ip_locked("192.168.1.13")
+        assert locked2 is False
+
+    def test_different_ips_are_independent(self) -> None:
+        for _ in range(5):
+            record_failed_attempt("10.0.0.1")
+
+        locked_a, _ = is_ip_locked("10.0.0.1")
+        locked_b, _ = is_ip_locked("10.0.0.2")
+        assert locked_a is True
+        assert locked_b is False
+
+
+# ---------------------------------------------------------------------------
+# Auth Dependency Tests
+# ---------------------------------------------------------------------------
+
+
+class _FakeResult:
+    def __init__(self, staff_list: list[Staff]) -> None:
+        self._scalars = staff_list
+
+    def scalars(self) -> "_FakeResult":
+        return self
+
+    def first(self) -> Staff | None:
+        return self._scalars[0] if self._scalars else None
+
+
+class FakeDB:
+    def __init__(self, staff: Staff | None) -> None:
+        self._staff = staff
+
+    async def execute(self, stmt):  # noqa: ANN001
+        return _FakeResult([self._staff] if self._staff is not None else [])
+
+
+class TestGetCurrentStaff:
+    async def test_valid_token_returns_staff(self) -> None:
+        staff = Staff(
+            id="staff_001",
+            name="Alice",
+            role="ADMIN",
+            pin_hash="",
+            token_version=7,
+            is_active=True,
+        )
+        token = create_access_token("staff_001", "ADMIN", token_version=7)
+        result = await get_current_staff(token, FakeDB(staff))
+        assert result.id == "staff_001"
+        assert result.role == "ADMIN"
+
+    async def test_stale_token_version_raises_401(self) -> None:
+        staff = Staff(
+            id="staff_002",
+            name="Bob",
+            role="CASHIER",
+            pin_hash="",
+            token_version=2,
+            is_active=True,
+        )
+        token = create_access_token("staff_002", "CASHIER", token_version=1)
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_staff(token, FakeDB(staff))
+        assert exc_info.value.status_code == 401
+
+    async def test_inactive_staff_raises_401(self) -> None:
+        staff = Staff(
+            id="staff_003",
+            name="Charlie",
+            role="ADMIN",
+            pin_hash="",
+            token_version=1,
+            is_active=False,
+        )
+        token = create_access_token("staff_003", "ADMIN", token_version=1)
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_staff(token, FakeDB(staff))
+        assert exc_info.value.status_code == 401
+
+    async def test_malformed_token_raises_401(self) -> None:
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_staff("not-a-token", FakeDB(None))
+        assert exc_info.value.status_code == 401
+
+
+class TestRoleDependencies:
+    async def test_require_admin_allows_admin(self) -> None:
+        staff = Staff(
+            id="s1", name="Admin", role="ADMIN", pin_hash="", is_active=True
+        )
+        result = await require_admin(staff)
+        assert result is staff
+
+    async def test_require_admin_rejects_cashier(self) -> None:
+        staff = Staff(
+            id="s2", name="Cashier", role="CASHIER", pin_hash="", is_active=True
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            await require_admin(staff)
+        assert exc_info.value.status_code == 403
+
+    async def test_require_cashier_allows_both(self) -> None:
+        admin = Staff(
+            id="s3", name="Admin", role="ADMIN", pin_hash="", is_active=True
+        )
+        cashier = Staff(
+            id="s4", name="Cashier", role="CASHIER", pin_hash="", is_active=True
+        )
+        assert (await require_cashier(admin)) is admin
+        assert (await require_cashier(cashier)) is cashier
+
+    async def test_require_cashier_rejects_invalid_role(self) -> None:
+        staff = Staff(
+            id="s5", name="Invalid", role="INVALID", pin_hash="", is_active=True
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            await require_cashier(staff)
+        assert exc_info.value.status_code == 403

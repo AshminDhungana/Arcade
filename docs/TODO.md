@@ -448,14 +448,14 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.1.5: Core Security (`backend/core/security.py`)
 
-- [ ] **Task: Implement PIN hashing, JWT, rate limiting, and lockout**
-  - [ ] Argon2id PIN hashing using `argon2-cffi` `PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)` — matches OWASP recommendations
-  - [ ] JWT create/decode using `python-jose` with `algorithm="HS256"` and `jwt_secret` from config
-  - [ ] JWT payload: `{sub: staff_id, role, token_version, exp}` — **always validate `token_version`** against DB on every request
-  - [ ] In-memory brute-force protection: 5 failed login attempts → 15-minute lockout by IP (use `dict` with timestamp; or `cachetools.TTLCache`)
-  - [ ] `async def get_current_staff(token, db)` dependency — validates JWT and `token_version`
-  - [ ] `async def require_admin(staff)` and `async def require_cashier(staff)` role dependencies
-  - [ ] **Security note:** `token_version` invalidation means stale JWTs are rejected immediately after PIN change or deactivation — critical for staff termination scenarios
+- [x] **Task: Implement PIN hashing, JWT, rate limiting, and lockout**
+  - [x] Argon2id PIN hashing using `argon2-cffi` `PasswordHasher(time_cost=2, memory_cost=102400, parallelism=8)` — matches OWASP recommendations
+  - [x] JWT create/decode using `python-jose` with `algorithm="HS256"` and `jwt_secret` from config
+  - [x] JWT payload: `{sub: staff_id, role, token_version, exp}` — **always validate `token_version`** against DB on every request
+  - [x] In-memory brute-force protection: 5 failed login attempts → 15-minute lockout by IP (use `dict` with timestamp; or `cachetools.TTLCache`)
+  - [x] `async def get_current_staff(token, db)` dependency — validates JWT and `token_version`
+  - [x] `async def require_admin(staff)` and `async def require_cashier(staff)` role dependencies
+  - [x] **Security note:** `token_version` invalidation means stale JWTs are rejected immediately after PIN change or deactivation — critical for staff termination scenarios
 
 #### Feature 1.1.6: WebSocket Manager (`backend/core/ws_manager.py`)
 
