@@ -476,12 +476,12 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.1.7: Feature Flags (`backend/core/feature_flags.py`)
 
-- [ ] **Task: Implement feature flag loading and enforcement**
-  - [ ] Load all flags from `AppSettings` table at startup; cache in memory
-  - [ ] `get_flag(name: str) -> bool` — reads from cache (refreshed when settings are updated)
-  - [ ] `def require_feature(flag_name: str)` — FastAPI dependency that returns HTTP 503 if flag is off
-  - [ ] Default flag values: see Appendix D (applied by seed script on first run)
-  - [ ] Invalidate cache when `PATCH /api/settings` is called
+- [x] **Task: Implement feature flag loading and enforcement**
+  - [x] Load all flags from `AppSettings` table at startup; cache in memory
+  - [x] `get_flag(name: str) -> bool` — reads from cache (refreshed when settings are updated)
+  - [x] `def require_feature(flag_name: str)` — FastAPI dependency that returns HTTP 503 if flag is off
+  - [x] Default flag values: see Appendix D (applied by seed script on first run)
+  - [x] Invalidate cache when `PATCH /api/settings` is called
 
 #### Feature 1.1.8: All Pydantic Schemas (`backend/schemas/`)
 
