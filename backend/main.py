@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.api.routers.ws import router as ws_router
 from backend.core.config import load_config
 from backend.core.database import async_engine
 
@@ -13,15 +14,19 @@ from backend.core.database import async_engine
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     """Application lifespan context manager."""
+    from backend.core.ws_manager import manager
+
     # --- STARTUP ---
     # Eagerly load and validate arcade.config.json on every boot.
     # If the file is missing or invalid the server fails fast.
     _ = load_config()
     # Light-weight DB health check: verify WAL mode and pragmas are active
     await _verify_database_wal()
-    # TODO: init migrations, feature flags, WS manager, scheduler, etc.
+    # TODO: init migrations, feature flags, scheduler, etc.
     yield
     # --- SHUTDOWN ---
+    # Close all WebSocket connections gracefully
+    await manager.close_all()
 
 
 async def _verify_database_wal() -> None:
@@ -56,6 +61,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(ws_router)
 
 
 @app.get("/health")
