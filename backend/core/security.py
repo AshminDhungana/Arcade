@@ -1,9 +1,19 @@
-"""Security utilities: PIN hashing, JWT, rate limiting, and FastAPI auth dependencies."""
+"""Security utilities: PIN hashing, JWT, rate limiting, and auth dependencies."""
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from fastapi import HTTPException
+from jose import jwt
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.core.config import get_config
+from backend.models._enums import StaffRole
+from backend.models.staff import Staff
 
 # ---------------------------------------------------------------------------
 # Argon2id — OWASP-recommended parameters
@@ -37,12 +47,6 @@ def verify_pin(pin: str, pin_hash: str) -> bool:
 # JWT — HS256, 8-hour default expiry
 # ---------------------------------------------------------------------------
 
-from datetime import datetime, timedelta, timezone
-
-from jose import jwt
-
-from backend.core.config import get_config
-
 _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRY_SECONDS = 28800  # 8 hours
 
@@ -63,7 +67,7 @@ def create_access_token(
         "sub": staff_id,
         "role": role,
         "token_version": token_version,
-        "exp": (datetime.now(timezone.utc) + delta).timestamp(),
+        "exp": (datetime.now(UTC) + delta).timestamp(),
     }
     return str(jwt.encode(payload, config.jwt_secret, algorithm=_JWT_ALGORITHM))
 
@@ -75,9 +79,7 @@ def decode_access_token(token: str) -> dict[str, int | str]:
     :raises jose.JWTError: If the signature is invalid or token is malformed.
     """
     config = get_config()
-    return jwt.decode(
-        token, config.jwt_secret, algorithms=[_JWT_ALGORITHM]
-    )  # type: ignore[no-any-return]
+    return jwt.decode(token, config.jwt_secret, algorithms=[_JWT_ALGORITHM])  # type: ignore[no-any-return]
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +100,7 @@ _rate_limit_store: dict[str, _RateLimitEntry] = {}
 
 
 def _now() -> float:
-    return datetime.now(timezone.utc).timestamp()
+    return datetime.now(UTC).timestamp()
 
 
 def _get_entry(ip: str) -> _RateLimitEntry:
@@ -149,12 +151,6 @@ def reset_failed_attempts(ip: str) -> None:
 # FastAPI auth dependencies
 # ---------------------------------------------------------------------------
 
-from fastapi import HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from backend.models.staff import Staff
-
 _CREDENTIALS_EXCEPTION = HTTPException(
     status_code=401,
     detail="Could not validate credentials",
@@ -169,33 +165,30 @@ async def get_current_staff(token: str, db: AsyncSession) -> Staff:
     except Exception:
         raise _CREDENTIALS_EXCEPTION from None
 
-    staff_id: str | None = payload.get("sub")
-    if staff_id is None:
+    staff_id = payload.get("sub")
+    if not isinstance(staff_id, str):
         raise _CREDENTIALS_EXCEPTION
 
     result = await db.execute(select(Staff).where(Staff.id == staff_id))
     staff: Staff | None = result.scalars().first()
 
-    if staff is None:
+    if staff is None or not staff.is_active:
         raise _CREDENTIALS_EXCEPTION
 
-    if not staff.is_active:
-        raise _CREDENTIALS_EXCEPTION
-
-    jwt_version: int = payload.get("token_version", -1)
-    if jwt_version != staff.token_version:
+    jwt_version = payload.get("token_version")
+    if not isinstance(jwt_version, int) or jwt_version != staff.token_version:
         raise _CREDENTIALS_EXCEPTION
 
     return staff
 
 
 async def require_admin(staff: Staff) -> Staff:
-    if staff.role != "ADMIN":
+    if staff.role != StaffRole.ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return staff
 
 
 async def require_cashier(staff: Staff) -> Staff:
-    if staff.role not in ("ADMIN", "CASHIER"):
+    if staff.role not in (StaffRole.ADMIN, StaffRole.CASHIER):
         raise HTTPException(status_code=403, detail="Cashier or Admin access required")
     return staff
