@@ -485,13 +485,13 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.1.8: All Pydantic Schemas (`backend/schemas/`)
 
-- [ ] **Task: Define all Pydantic request/response schemas**
-  - [ ] One file per domain: `schemas/seat.py`, `schemas/session.py`, `schemas/invoice.py`, `schemas/member.py`, `schemas/staff.py`, `schemas/shift.py`, `schemas/pos.py`, `schemas/package.py`, `schemas/promotion.py`, `schemas/voucher.py`, `schemas/reservation.py`, `schemas/analytics.py`, `schemas/audit.py`, `schemas/settings.py`, `schemas/health.py`
-  - [ ] All monetary fields: `amount_paise: int` — **never `float`** (R-06 mitigation)
-  - [ ] All string fields: include `max_length` constraints to prevent oversized inputs
-  - [ ] All timestamps: `datetime` with `timezone=True`; UTC enforced
-  - [ ] Response schemas separate from request schemas (avoid leaking internal fields like `pin_hash`)
-  - [ ] **Definition of done:** `mypy backend/schemas/` passes; all schemas import cleanly
+- [x] **Task: Define all Pydantic request/response schemas**
+  - [x] One file per domain: `schemas/seat.py`, `schemas/session.py`, `schemas/invoice.py`, `schemas/member.py`, `schemas/staff.py`, `schemas/shift.py`, `schemas/pos.py`, `schemas/package.py`, `schemas/promotion.py`, `schemas/voucher.py`, `schemas/reservation.py`, `schemas/analytics.py`, `schemas/audit.py`, `schemas/settings.py`, `schemas/health.py`
+  - [x] All monetary fields: `amount_paise: int` — **never `float`** (R-06 mitigation)
+  - [x] All string fields: include `max_length` constraints to prevent oversized inputs
+  - [x] All timestamps: `datetime` with `timezone=True`; UTC enforced
+  - [x] Response schemas separate from request schemas (avoid leaking internal fields like `pin_hash`)
+  - [x] **Definition of done:** `mypy backend/schemas/` passes; all schemas import cleanly
 
 #### Feature 1.1.9: Repository Layer Stubs (`backend/repositories/`)
 
