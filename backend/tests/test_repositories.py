@@ -463,7 +463,7 @@ async def test_audit_repo(db: AsyncSession) -> None:
 
     by_id = await audit_repo.get_by_id(db, log.id)
     assert by_id is not None
-    assert str(by_id.action) == "SESSION_START"
+    assert by_id.action.value == "SESSION_START"
 
     all_logs = await audit_repo.list(db)
     assert len(all_logs) == 1

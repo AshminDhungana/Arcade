@@ -34,7 +34,16 @@ def _parse_value(value: str) -> bool:
 
 async def load_flags(db: AsyncSession) -> None:
     """Load all feature flags from the database into the in-memory cache."""
-    result = await db.execute(select(AppSettings))
+    from sqlalchemy.exc import OperationalError
+
+    try:
+        result = await db.execute(select(AppSettings))
+    except OperationalError:
+        # Table may not exist yet (e.g. first boot before migrations).
+        # Start with an empty flag cache.
+        _flag_cache.clear()
+        return
+
     _flag_cache.clear()
     for row in result.scalars().all():
         _flag_cache[row.key] = _parse_value(row.value)

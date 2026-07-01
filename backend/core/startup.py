@@ -29,12 +29,17 @@ async def run_migrations() -> None:
     (relative to the repo root).  This function is asynchronous so it
     can be awaited inside the lifespan startup coroutine.
     """
+    from backend.core.database import async_engine
+
     here = Path(__file__).resolve().parent
     alembic_ini = here.parent / "alembic.ini"
     alembic_cfg = AlembicConfig(alembic_ini)
     # Ensure the script directory is resolved absolutely so the call also works
     # in CI where the working directory is the repo root.
     alembic_cfg.set_main_option("script_location", str(here.parent / "alembic"))
+    # Use the same DB URL as the app engine to avoid path mismatches
+    # (e.g., alembic.ini relative path vs. database.py absolute path).
+    alembic_cfg.set_main_option("sqlalchemy.url", str(async_engine.url))
     # alembic.command.upgrade is synchronous and loads env.py, which internally
     # calls ``asyncio.run()`` for the async SQLAlchemy engine.  Running it in a
     # thread avoids the "asyncio.run() cannot be called from a running event
