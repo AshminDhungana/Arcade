@@ -1,1 +1,42 @@
-"""Arcade data access repositories."""
+"""Arcade data access repositories.
+
+All repository functions accept an ``AsyncSession`` as their first parameter
+and return SQLAlchemy model instances.  Business logic lives in services,
+not repositories.
+"""
+
+from backend.repositories import (
+    audit_repo,
+    event_repo,
+    expense_repo,
+    inventory_repo,
+    invoice_repo,
+    member_repo,
+    package_repo,
+    pos_repo,
+    promotion_repo,
+    reservation_repo,
+    seat_repo,
+    session_repo,
+    shift_repo,
+    staff_repo,
+    voucher_repo,
+)
+
+__all__: list[str] = [
+    "audit_repo",
+    "event_repo",
+    "expense_repo",
+    "inventory_repo",
+    "invoice_repo",
+    "member_repo",
+    "package_repo",
+    "pos_repo",
+    "promotion_repo",
+    "reservation_repo",
+    "seat_repo",
+    "session_repo",
+    "shift_repo",
+    "staff_repo",
+    "voucher_repo",
+]
