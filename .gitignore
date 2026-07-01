@@ -7,12 +7,13 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+
 # C extensions
 *.so
 .claude
 CLAUDE.md
 ./backend/venv
-./docs/superpowers/
+./docs/superpowers
 
 # Distribution / packaging
 .Python
@@ -315,6 +316,8 @@ private_key*
 arcade.config.json
 agent/agent.config.json
 
+tools/keygen/private_key.pem
+
 # Runtime databases (SQLite production + dev, with WAL/SHM sidecar files)
 *.db
 *.db-shm
@@ -322,3 +325,4 @@ agent/agent.config.json
 
 # Backup output from BackupService (nightly SQLite copies)
 backups/
+\nE:\Ongoing Projects\Arcade\tools\keygen\private_key.pem\ntools/keygen/private_key.pem\n

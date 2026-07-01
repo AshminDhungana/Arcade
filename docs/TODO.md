@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0 Complete · Phase 1 In Progress (Features 1.1.1–1.1.6 done)
+**Status:** Phase 0 Complete · Phase 1 In Progress (Features 1.1.1–1.1.9 done)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -495,32 +495,32 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.1.9: Repository Layer Stubs (`backend/repositories/`)
 
-- [ ] **Task: Create all repository files with method stubs**
-  - [ ] One repository file per entity (standard CRUD: `create`, `get_by_id`, `list`, `update`, `delete_by_id`)
-  - [ ] All methods are `async def` accepting `db: AsyncSession` as first parameter
-  - [ ] Return ORM model instances (not dicts)
-  - [ ] Special methods:
+- [x] **Task: Create all repository files with method stubs**
+  - [x] One repository file per entity (standard CRUD: `create`, `get_by_id`, `list`, `update`, `delete_by_id`)
+  - [x] All methods are `async def` accepting `db: AsyncSession` as first parameter
+  - [x] Return ORM model instances (not dicts)
+  - [x] Special methods:
     - `seat_repo.py`: `list_with_mac()`, `update_status()`
     - `session_repo.py`: `get_active_by_seat()`, `list_active()`, `list_by_shift()`
     - `invoice_repo.py`: `get_by_session()`
     - `member_repo.py`: `get_by_phone()`, `search(query)`
     - `package_repo.py`: atomic `drawdown_minutes(entitlement_id, minutes) -> bool` using `UPDATE ... WHERE remaining_minutes >= ?` (atomicity without locking — R-06 mitigation)
     - `audit_repo.py`: **only `create` and `list`** — no update or delete (immutability enforced at repo layer)
-  - [ ] Stubs may `raise NotImplementedError` — they will be implemented in feature phases
-  - [ ] **Definition of done:** All repo files import cleanly; `mypy` passes on the stubs
+  - [x] Stubs may `raise NotImplementedError` — they will be implemented in feature phases
+  - [x] **Definition of done:** All repo files import cleanly; `mypy` passes on the stubs
 
 #### Feature 1.1.10: FastAPI Application Entry Point (`backend/main.py`)
 
-- [ ] **Task: Create FastAPI app with `lifespan` context manager**
-  - [ ] Use `@asynccontextmanager` for `lifespan` — **not `@app.on_event`** (deprecated, AC-19)
-  - [ ] Startup: `alembic upgrade head`, WAL pragma validation, `recover_active_sessions()`, `boot_all_seats()`, APScheduler start, WebSocket manager init
-  - [ ] Shutdown: APScheduler shutdown, WebSocket connection cleanup, SQLAlchemy engine dispose
-  - [ ] Register all routers under `/api/` prefix
-  - [ ] Serve `frontend/dist/` as static files at `/`; `index.html` fallback for SPA routing
-  - [ ] `GET /health` endpoint: returns `{status, version, license_type, uptime, seat_count, active_sessions}`
-  - [ ] WebSocket routes: `GET /ws/dashboard`, `GET /ws/agent/{seat_id}`
-  - [ ] Exception handlers: `HTTPException`, `RequestValidationError`, generic `Exception` (log + return 500)
-  - [ ] CORS: allow `http://localhost:*` in development; in production, `arcade.config.json` host
+- [x] **Task: Create FastAPI app with `lifespan` context manager**
+  - [x] Use `@asynccontextmanager` for `lifespan` — **not `@app.on_event`** (deprecated, AC-19)
+  - [x] Startup: `alembic upgrade head`, WAL pragma validation, `recover_active_sessions()`, `boot_all_seats()`, APScheduler start, WebSocket manager init
+  - [x] Shutdown: APScheduler shutdown, WebSocket connection cleanup, SQLAlchemy engine dispose
+  - [x] Register all routers under `/api/` prefix
+  - [x] Serve `frontend/dist/` as static files at `/`; `index.html` fallback for SPA routing
+  - [x] `GET /health` endpoint: returns `{status, version, license_type, uptime, seat_count, active_sessions}`
+  - [x] WebSocket routes: `GET /ws/dashboard`, `GET /ws/agent/{seat_id}`
+  - [x] Exception handlers: `HTTPException`, `RequestValidationError`, generic `Exception` (log + return 500)
+  - [x] CORS: allow `http://localhost:*` in development; in production, `arcade.config.json` host
 
 ---
 
@@ -536,16 +536,16 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.2.2: Public Key Embedding (`backend/licensing/public_key.py`)
 
-- [ ] **Task: Generate Ed25519 keypair and embed public key**
-  - [ ] Generate keypair: `python -c "from nacl.signing import SigningKey; k = SigningKey.generate(); print(k.encode().hex(), k.verify_key.encode().hex())"`
-  - [ ] Store **private key only** in `tools/keygen/private_key.pem` (plaintext hex, gitignored, never committed)
-  - [ ] Embed **only the public key hex** in `backend/licensing/public_key.py`:
+- [x] **Task: Generate Ed25519 keypair and embed public key**
+  - [x] Generate keypair: `python -c "from nacl.signing import SigningKey; k = SigningKey.generate(); print(k.encode().hex(), k.verify_key.encode().hex())"`
+  - [x] Store **private key only** in `tools/keygen/private_key.pem` (plaintext hex, gitignored, never committed)
+  - [x] Embed **only the public key hex** in `backend/licensing/public_key.py`:
     ```python
     # NEVER add the private key to this file or the repository.
     ARCADE_PUBLIC_KEY_HEX = "c9a1...4f3e"  # 64-char hex
     ```
-  - [ ] Add CI check: fail build if any `*.pem` file or `private_key*` is detected in git history
-  - [ ] **⚠ RISK (R-05):** Verify `tools/keygen/private_key.pem` is in `.gitignore` before first commit of this feature
+  - [x] Add CI check: fail build if any `*.pem` file or `private_key*` is detected in git history
+  - [x] **⚠ RISK (R-05):** Verify `tools/keygen/private_key.pem` is in `.gitignore` before first commit of this feature
 
 #### Feature 1.2.3: License Verification (`backend/licensing/verify.py`)
 
