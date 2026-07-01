@@ -574,31 +574,31 @@ After ENG-A completes `core/config.py` and `database.py`:
 
 #### Feature 1.2.5: Tkinter Launcher (`launcher.py`)
 
-- [ ] **Task: Implement the Tkinter Launcher GUI**
-  - [ ] **License check at every launch (FR-SYS-008):** call `check_license()` before showing any UI; route based on result
-  - [ ] **Activation Screen** (when license missing, invalid, or mismatched):
+- [x] **Task: Implement the Tkinter Launcher GUI**
+  - [x] **License check at every launch (FR-SYS-008):** call `check_license()` before showing any UI; route based on result
+  - [x] **Activation Screen** (when license missing, invalid, or mismatched):
     - Display Hardware ID in a copyable read-only `Entry` widget
-    - Instructions label: "Send this Hardware ID to Neurotech Biratnagar to receive your license.key"
+    - Instructions label: "Send this Hardware ID to Seller to receive your license.key"
     - "Browse for license.key" button: opens file dialog, copies file to app root, re-runs `check_license()`
     - Display specific error message per `LicenseError` variant (per SDD §16.7 table)
     - Retry button to re-check without browsing
-  - [ ] **Setup Wizard** (first launch with valid license, no `arcade.config.json`):
+  - [x] **Setup Wizard** (first launch with valid license, no `arcade.config.json`):
     - Step 1: Cafe name, server host, server port
     - Step 2: Admin Staff ID + PIN; Cashier Staff ID + PIN; Staff Override Code (optional — leave blank to disable)
     - Step 3: Number of seats → generates one `agent_secret` per seat using `secrets.token_hex(32)`
     - On finish: write `arcade.config.json` with Argon2id-hashed PINs; hash override code if provided; `jwt_secret = secrets.token_hex(32)`; all `agent_secrets`
     - Also write `license_status` record to DB
-  - [ ] **Main Screen** (license valid and config exists):
+  - [x] **Main Screen** (license valid and config exists):
     - Start/Stop Server button: spawns/terminates `uvicorn backend.main:app` as subprocess
     - Live log display: `ScrolledText` tailing `stdout`/`stderr`
     - Server status indicator (green/red dot using canvas)
     - Open Dashboard button: opens `http://localhost:{port}` in default browser
-  - [ ] **Close confirmation (FR-SYS-010):** if server running, `messagebox.askyesno("Confirm Exit", "The Arcade server is still running. Closing will stop it. Continue?")`. Terminate server on confirm.
-  - [ ] **Definition of done:** AC-12, AC-15, AC-23 all satisfied; Launcher runs on Windows, macOS, Linux without modification
+  - [x] **Close confirmation (FR-SYS-010):** if server running, `messagebox.askyesno("Confirm Exit", "The Arcade server is still running. Closing will stop it. Continue?")`. Terminate server on confirm.
+  - [x] **Definition of done:** AC-12, AC-15, AC-23 all satisfied; Launcher runs on Windows, macOS, Linux without modification
 
 ### Testing Requirements (Phase 1)
 
-- [ ] `pytest backend/tests/test_licensing.py` — all 5 `check_license()` outcomes (FR-LIC-007, FR-LIC-008)
+- [x] `pytest backend/tests/test_licensing.py` — all 5 `check_license()` outcomes (FR-LIC-007, FR-LIC-008)
 - [ ] `pytest backend/tests/test_security.py` — PIN hashing, JWT create/decode, rate limiting, lockout, `token_version` validation, stale token rejection
 - [ ] `pytest backend/tests/test_database.py` — WAL mode, `busy_timeout`, `foreign_keys` pragmas are set; concurrent write test (ARCH-01 coverage)
 - [ ] `pytest backend/tests/test_ws_manager.py` — agent secret validation, broadcast, heartbeat, REGISTER, SYNC handlers
