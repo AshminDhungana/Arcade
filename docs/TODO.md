@@ -561,7 +561,7 @@ After ENG-A completes `core/config.py` and `database.py`:
     6. Return `LicenseResult(ok=True, payload=payload)`
   - [x] **Definition of done:** Unit tests covering all 5 outcomes (valid, missing, bad signature, hardware mismatch, trial expired) all pass (FR-LIC-007, FR-LIC-008)
 
-#### Feature 1.2.4: Internal Keygen Tool (`tools/keygen/generate_license.py`)
+#### Feature 1.2.4: Internal Keygen Tool (`tools/keygen/generate_license.py`) ✅
 
 - [x] **Task: Build the offline license key generation CLI**
   - [x] CLI args: `--hardware-id`, `--cafe-name`, `--license-type` (PERPETUAL | TRIAL), `--trial-days` (optional, default 30)
@@ -571,13 +571,6 @@ After ENG-A completes `core/config.py` and `database.py`:
   - [x] Output: `license.key` containing Base64-encoded `{"payload": ..., "signature": ...}`
   - [x] Print confirmation with cafe name, license type, and hardware ID
   - [x] **Definition of done:** Running the tool produces a `license.key` that passes `check_license()` when hardware ID matches
-  - [ ] CLI args: `--hardware-id`, `--cafe-name`, `--license-type` (PERPETUAL | TRIAL), `--trial-days` (optional, default 30)
-  - [ ] Read private key from `tools/keygen/private_key.pem`
-  - [ ] Build JSON payload: `{cafe_name, hardware_id, license_type, issue_date, trial_expires_at (if TRIAL)}`
-  - [ ] Sign canonical JSON (sorted keys, no whitespace) with `SigningKey.sign()`
-  - [ ] Output: `license.key` containing Base64-encoded `{"payload": ..., "signature": ...}`
-  - [ ] Print confirmation with cafe name, license type, and hardware ID
-  - [ ] **Definition of done:** Running the tool produces a `license.key` that passes `check_license()` when hardware ID matches
 
 #### Feature 1.2.5: Tkinter Launcher (`launcher.py`)
 
