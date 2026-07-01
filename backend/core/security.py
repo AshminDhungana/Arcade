@@ -79,7 +79,7 @@ def decode_access_token(token: str) -> dict[str, int | str]:
     :raises jose.JWTError: If the signature is invalid or token is malformed.
     """
     config = get_config()
-    return jwt.decode(token, config.jwt_secret, algorithms=[_JWT_ALGORITHM])  # type: ignore[no-any-return]
+    return jwt.decode(token, config.jwt_secret, algorithms=[_JWT_ALGORITHM])
 
 
 # ---------------------------------------------------------------------------

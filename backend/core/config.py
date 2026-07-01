@@ -109,8 +109,20 @@ def load_config(path: str = "arcade.config.json") -> Settings:
     :raises ValidationError: If the JSON does not match the schema.
     """
     config_file = Path(path)
+
+    # Resolve relative paths from the project root (the directory
+    # that contains ``backend/``). This ensures the config is found
+    # regardless of the current working directory (e.g. when running
+    # pytest from inside ``backend/`` or starting uvicorn there).
+    if not config_file.is_absolute():
+        project_root = Path(__file__).resolve().parent.parent.parent
+        config_file = project_root / path
+
     if not config_file.exists():
-        msg = "arcade.config.json not found. " "Run the setup wizard (launcher.py)."
+        msg = (
+            f"arcade.config.json not found at {config_file}. "
+            "Run the setup wizard (launcher.py)."
+        )
         raise RuntimeError(msg)
 
     try:
