@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import EventBracketType, EventStatus
+from backend.models._types import StrEnumColumn
 
 
 class Event(Base):
@@ -25,8 +26,10 @@ class Event(Base):
     entry_fee_paise: Mapped[int] = mapped_column(default=0)
     prize_pool_paise: Mapped[int] = mapped_column(default=0)
     bracket_type: Mapped[EventBracketType] = mapped_column(
-        String(25), nullable=False, default=EventBracketType.SINGLE_ELIMINATION
+        StrEnumColumn(EventBracketType, 25),
+        nullable=False,
+        default=EventBracketType.SINGLE_ELIMINATION,
     )
     status: Mapped[EventStatus] = mapped_column(
-        String(10), nullable=False, default=EventStatus.UPCOMING
+        StrEnumColumn(EventStatus, 10), nullable=False, default=EventStatus.UPCOMING
     )

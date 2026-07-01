@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import PackageType
+from backend.models._types import StrEnumColumn
 
 
 class Package(Base):
@@ -16,7 +17,9 @@ class Package(Base):
         String(32), primary_key=True, default=lambda: __import__("uuid").uuid4().hex
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    type: Mapped[PackageType] = mapped_column(String(20), nullable=False)
+    type: Mapped[PackageType] = mapped_column(
+        StrEnumColumn(PackageType, 20), nullable=False
+    )
     total_minutes: Mapped[int]
     price_paise: Mapped[int]
     valid_days: Mapped[int | None]

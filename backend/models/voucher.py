@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import VoucherStatus
+from backend.models._types import StrEnumColumn
 
 
 class Voucher(Base):
@@ -23,7 +24,7 @@ class Voucher(Base):
     value_paise: Mapped[int | None]
     value_minutes: Mapped[int | None]
     status: Mapped[VoucherStatus] = mapped_column(
-        String(10), nullable=False, default=VoucherStatus.UNUSED
+        StrEnumColumn(VoucherStatus, 10), nullable=False, default=VoucherStatus.UNUSED
     )
     redeemed_by_member_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("members.id")

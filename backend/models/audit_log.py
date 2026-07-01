@@ -12,6 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import AuditAction
+from backend.models._types import StrEnumColumn
 
 
 class AuditLog(Base):
@@ -27,7 +28,9 @@ class AuditLog(Base):
         index=True,
     )
     staff_id: Mapped[str | None] = mapped_column(String(32), ForeignKey("staff.id"))
-    action: Mapped[AuditAction] = mapped_column(String(25), nullable=False, index=True)
+    action: Mapped[AuditAction] = mapped_column(
+        StrEnumColumn(AuditAction, 25), nullable=False, index=True
+    )
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[str] = mapped_column(String(32), nullable=False)
     detail: Mapped[str | None] = mapped_column(Text)

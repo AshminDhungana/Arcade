@@ -12,6 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import PaymentMethod, PricingModel, SessionStatus
+from backend.models._types import StrEnumColumn
 
 
 class GamingSession(Base):
@@ -26,7 +27,7 @@ class GamingSession(Base):
     member_id: Mapped[str | None] = mapped_column(String(32), ForeignKey("members.id"))
     shift_id: Mapped[str | None] = mapped_column(String(32), ForeignKey("shifts.id"))
     status: Mapped[SessionStatus] = mapped_column(
-        String(10), nullable=False, default=SessionStatus.ACTIVE
+        StrEnumColumn(SessionStatus, 10), nullable=False, default=SessionStatus.ACTIVE
     )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
@@ -36,12 +37,14 @@ class GamingSession(Base):
     total_paused_seconds: Mapped[int] = mapped_column(default=0)
     locked_rate_paise: Mapped[int]
     locked_pricing_model: Mapped[PricingModel] = mapped_column(
-        String(15), nullable=False
+        StrEnumColumn(PricingModel, 15), nullable=False
     )
     package_entitlement_id: Mapped[str | None] = mapped_column(String(32))
     promotion_id: Mapped[str | None] = mapped_column(String(32))
     discount_paise: Mapped[int] = mapped_column(default=0)
-    payment_method: Mapped[PaymentMethod | None] = mapped_column(String(10))
+    payment_method: Mapped[PaymentMethod | None] = mapped_column(
+        StrEnumColumn(PaymentMethod, 10)
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )

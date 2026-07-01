@@ -32,6 +32,9 @@ async def run_migrations() -> None:
     here = Path(__file__).resolve().parent
     alembic_ini = here.parent / "alembic.ini"
     alembic_cfg = AlembicConfig(alembic_ini)
+    # Ensure the script directory is resolved absolutely so the call also works
+    # in CI where the working directory is the repo root.
+    alembic_cfg.set_main_option("script_location", str(here.parent / "alembic"))
     # alembic.command.upgrade is synchronous and loads env.py, which internally
     # calls ``asyncio.run()`` for the async SQLAlchemy engine.  Running it in a
     # thread avoids the "asyncio.run() cannot be called from a running event

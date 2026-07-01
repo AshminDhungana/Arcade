@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import LicenseType
+from backend.models._types import StrEnumColumn
 
 
 class LicenseStatus(Base):
@@ -27,7 +28,9 @@ class LicenseStatus(Base):
     )
     cafe_name: Mapped[str] = mapped_column(String(255), nullable=False)
     hardware_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    license_type: Mapped[LicenseType] = mapped_column(String(10), nullable=False)
+    license_type: Mapped[LicenseType] = mapped_column(
+        StrEnumColumn(LicenseType, 10), nullable=False
+    )
     issue_date: Mapped[date] = mapped_column(Date, nullable=False)
     trial_expires_at: Mapped[date | None] = mapped_column(Date)
     last_verified_at: Mapped[datetime] = mapped_column(

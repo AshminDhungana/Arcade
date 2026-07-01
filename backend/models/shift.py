@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import ShiftStatus
+from backend.models._types import StrEnumColumn
 
 
 class Shift(Base):
@@ -26,5 +27,5 @@ class Shift(Base):
     float_paise: Mapped[int] = mapped_column(default=0)
     counted_paise: Mapped[int | None]
     status: Mapped[ShiftStatus] = mapped_column(
-        String(10), nullable=False, default=ShiftStatus.OPEN
+        StrEnumColumn(ShiftStatus, 10), nullable=False, default=ShiftStatus.OPEN
     )

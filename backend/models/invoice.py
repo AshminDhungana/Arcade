@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import PaymentMethod
+from backend.models._types import StrEnumColumn
 
 
 class Invoice(Base):
@@ -27,7 +28,9 @@ class Invoice(Base):
     discount_paise: Mapped[int] = mapped_column(default=0)
     pos_total_paise: Mapped[int] = mapped_column(default=0)
     total_paise: Mapped[int] = mapped_column(default=0)
-    payment_method: Mapped[PaymentMethod] = mapped_column(String(10), nullable=False)
+    payment_method: Mapped[PaymentMethod] = mapped_column(
+        StrEnumColumn(PaymentMethod, 10), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )

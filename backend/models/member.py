@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import MemberTier
+from backend.models._types import StrEnumColumn
 
 
 class Member(Base):
@@ -24,7 +25,7 @@ class Member(Base):
     wallet_balance_paise: Mapped[int] = mapped_column(default=0)
     loyalty_points: Mapped[int] = mapped_column(default=0)
     tier: Mapped[MemberTier] = mapped_column(
-        String(10), nullable=False, default=MemberTier.BRONZE
+        StrEnumColumn(MemberTier, 10), nullable=False, default=MemberTier.BRONZE
     )
     birth_month: Mapped[int | None]
     total_visits: Mapped[int] = mapped_column(default=0)

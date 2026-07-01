@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import PricingModel
+from backend.models._types import StrEnumColumn
 
 
 class Zone(Base):
@@ -19,6 +20,6 @@ class Zone(Base):
     rate_per_minute_paise: Mapped[int]
     rate_per_hour_paise: Mapped[int]
     pricing_model: Mapped[PricingModel] = mapped_column(
-        String(25), nullable=False, default=PricingModel.PER_MINUTE
+        StrEnumColumn(PricingModel, 25), nullable=False, default=PricingModel.PER_MINUTE
     )
     block_minutes: Mapped[int | None]

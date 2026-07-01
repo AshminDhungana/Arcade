@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import StaffRole
+from backend.models._types import StrEnumColumn
 
 
 class Staff(Base):
@@ -18,7 +19,9 @@ class Staff(Base):
         String(32), primary_key=True, default=lambda: __import__("uuid").uuid4().hex
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[StaffRole] = mapped_column(String(10), nullable=False)
+    role: Mapped[StaffRole] = mapped_column(
+        StrEnumColumn(StaffRole, 10), nullable=False
+    )
     pin_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     token_version: Mapped[int] = mapped_column(default=0)
     failed_attempts: Mapped[int] = mapped_column(default=0)

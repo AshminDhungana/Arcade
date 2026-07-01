@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import SeatStatus
+from backend.models._types import StrEnumColumn
 
 
 class Seat(Base):
@@ -23,7 +24,7 @@ class Seat(Base):
     )
     mac_address: Mapped[str | None] = mapped_column(String(17))
     status: Mapped[SeatStatus] = mapped_column(
-        String(15), nullable=False, default=SeatStatus.AVAILABLE
+        StrEnumColumn(SeatStatus, 15), nullable=False, default=SeatStatus.AVAILABLE
     )
     plug_id: Mapped[str | None] = mapped_column(String(255))
     is_console: Mapped[bool] = mapped_column(default=False)

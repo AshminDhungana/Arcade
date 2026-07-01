@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import DiscountType, PromotionType
+from backend.models._types import StrEnumColumn
 
 
 class Promotion(Base):
@@ -18,9 +19,13 @@ class Promotion(Base):
         String(32), primary_key=True, default=lambda: __import__("uuid").uuid4().hex
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    type: Mapped[PromotionType] = mapped_column(String(20), nullable=False)
-    discount_type: Mapped[DiscountType] = mapped_column(String(15), nullable=False)
-    discount_value: Mapped[int]
+    type: Mapped[PromotionType] = mapped_column(
+        StrEnumColumn(PromotionType, 20), nullable=False
+    )
+    discount_type: Mapped[DiscountType] = mapped_column(
+        StrEnumColumn(DiscountType, 15), nullable=False
+    )
+    discount_value: Mapped[int] = mapped_column(default=0)
     active_days: Mapped[str | None] = mapped_column(String(255))
     active_from_hour: Mapped[int | None]
     active_to_hour: Mapped[int | None]

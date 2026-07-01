@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import EntitlementStatus
+from backend.models._types import StrEnumColumn
 
 
 class MemberPackageEntitlement(Base):
@@ -29,7 +30,9 @@ class MemberPackageEntitlement(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     status: Mapped[EntitlementStatus] = mapped_column(
-        String(10), nullable=False, default=EntitlementStatus.ACTIVE
+        StrEnumColumn(EntitlementStatus, 10),
+        nullable=False,
+        default=EntitlementStatus.ACTIVE,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
