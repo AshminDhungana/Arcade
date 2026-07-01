@@ -547,23 +547,30 @@ After ENG-A completes `core/config.py` and `database.py`:
   - [x] Add CI check: fail build if any `*.pem` file or `private_key*` is detected in git history
   - [x] **⚠ RISK (R-05):** Verify `tools/keygen/private_key.pem` is in `.gitignore` before first commit of this feature
 
-#### Feature 1.2.3: License Verification (`backend/licensing/verify.py`)
+#### Feature 1.2.3: License Verification (`backend/licensing/verify.py`) ✅
 
-- [ ] **Task: Implement `check_license()`**
-  - [ ] `LicenseError` enum: `MISSING`, `INVALID_SIGNATURE`, `HARDWARE_MISMATCH`, `TRIAL_EXPIRED`
-  - [ ] `LicenseResult` dataclass: `ok: bool`, `error: LicenseError | None`, `payload: dict | None`
-  - [ ] `check_license(license_path: str = "license.key") -> LicenseResult`:
+- [x] **Task: Implement `check_license()`**
+  - [x] `LicenseError` enum: `MISSING`, `INVALID_SIGNATURE`, `HARDWARE_MISMATCH`, `TRIAL_EXPIRED`
+  - [x] `LicenseResult` dataclass: `ok: bool`, `error: LicenseError | None`, `payload: dict | None`
+  - [x] `check_license(license_path: str = "license.key") -> LicenseResult`:
     1. Check file exists → `MISSING` if not
     2. Base64-decode and JSON-parse the file content
     3. Verify Ed25519 signature using `nacl.signing.VerifyKey` and `ARCADE_PUBLIC_KEY_HEX` → `INVALID_SIGNATURE` on failure
     4. Compare `payload["hardware_id"]` to `get_hardware_id()` → `HARDWARE_MISMATCH` if different
     5. If `license_type == "TRIAL"` and `date.today() > trial_expires_at` → `TRIAL_EXPIRED`
     6. Return `LicenseResult(ok=True, payload=payload)`
-  - [ ] **Definition of done:** Unit tests covering all 5 outcomes (valid, missing, bad signature, hardware mismatch, trial expired) all pass (FR-LIC-007, FR-LIC-008)
+  - [x] **Definition of done:** Unit tests covering all 5 outcomes (valid, missing, bad signature, hardware mismatch, trial expired) all pass (FR-LIC-007, FR-LIC-008)
 
 #### Feature 1.2.4: Internal Keygen Tool (`tools/keygen/generate_license.py`)
 
-- [ ] **Task: Build the offline license key generation CLI**
+- [x] **Task: Build the offline license key generation CLI**
+  - [x] CLI args: `--hardware-id`, `--cafe-name`, `--license-type` (PERPETUAL | TRIAL), `--trial-days` (optional, default 30)
+  - [x] Read private key from `tools/keygen/private_key.pem`
+  - [x] Build JSON payload: `{cafe_name, hardware_id, license_type, issue_date, trial_expires_at (if TRIAL)}`
+  - [x] Sign canonical JSON (sorted keys, no whitespace) with `SigningKey.sign()`
+  - [x] Output: `license.key` containing Base64-encoded `{"payload": ..., "signature": ...}`
+  - [x] Print confirmation with cafe name, license type, and hardware ID
+  - [x] **Definition of done:** Running the tool produces a `license.key` that passes `check_license()` when hardware ID matches
   - [ ] CLI args: `--hardware-id`, `--cafe-name`, `--license-type` (PERPETUAL | TRIAL), `--trial-days` (optional, default 30)
   - [ ] Read private key from `tools/keygen/private_key.pem`
   - [ ] Build JSON payload: `{cafe_name, hardware_id, license_type, issue_date, trial_expires_at (if TRIAL)}`
