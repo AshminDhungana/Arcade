@@ -143,7 +143,11 @@ app = FastAPI(
 def _get_cors_origins() -> list[str]:
     from backend.core.config import get_config
 
-    config = get_config()
+    try:
+        config = get_config()
+    except RuntimeError:
+        # Config missing (e.g. CI or pre-setup) — safe dev default
+        return ["http://localhost:*"]
     # In production the host may be a specific LAN IP; fall back to wildcard
     # only in dev (safer default).
     host = config.host

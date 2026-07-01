@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
@@ -79,7 +80,10 @@ def decode_access_token(token: str) -> dict[str, int | str]:
     :raises jose.JWTError: If the signature is invalid or token is malformed.
     """
     config = get_config()
-    return jwt.decode(token, config.jwt_secret, algorithms=[_JWT_ALGORITHM])
+    return cast(
+        dict[str, int | str],
+        jwt.decode(token, config.jwt_secret, algorithms=[_JWT_ALGORITHM]),
+    )
 
 
 # ---------------------------------------------------------------------------
