@@ -599,10 +599,10 @@ After ENG-A completes `core/config.py` and `database.py`:
 ### Testing Requirements (Phase 1)
 
 - [x] `pytest backend/tests/test_licensing.py` — all 5 `check_license()` outcomes (FR-LIC-007, FR-LIC-008)
-- [ ] `pytest backend/tests/test_security.py` — PIN hashing, JWT create/decode, rate limiting, lockout, `token_version` validation, stale token rejection
-- [ ] `pytest backend/tests/test_database.py` — WAL mode, `busy_timeout`, `foreign_keys` pragmas are set; concurrent write test (ARCH-01 coverage)
-- [ ] `pytest backend/tests/test_ws_manager.py` — agent secret validation, broadcast, heartbeat, REGISTER, SYNC handlers
-- [ ] `pytest backend/tests/test_feature_flags.py` — all 10 flags load correctly; disable/enable round-trips; cache invalidation
+- [x] `pytest backend/tests/test_security.py` — PIN hashing, JWT create/decode, rate limiting, lockout, `token_version` validation, stale token rejection
+- [x] `pytest backend/tests/test_database.py` — WAL mode, `busy_timeout`, `foreign_keys` pragmas are set; concurrent write test (ARCH-01 coverage)
+- [x] `pytest backend/tests/test_ws_manager.py` — agent secret validation, broadcast, heartbeat, REGISTER, SYNC handlers
+- [x] `pytest backend/tests/test_feature_flags.py` — all 10 flags load correctly; disable/enable round-trips; cache invalidation
 
 ### Documentation Requirements (Phase 1)
 
@@ -661,7 +661,7 @@ Both engineers test together on real hardware:
   - [ ] `set_maintenance(seat_id, note, db, staff)` — sets `MAINTENANCE`, writes note, logs audit `SEAT_MAINTENANCE_ON` (FR-SEAT-006)
   - [ ] `clear_maintenance(seat_id, db, staff)` — sets `AVAILABLE`, logs audit `SEAT_MAINTENANCE_OFF`
   - [ ] `update_mac_address(seat_id, mac, db)` — called from WebSocket REGISTER handler
-  - [ ] After any status change: `ws_manager.broadcast_to_dashboards("seat_updated", seat_data)` (FR-SEAT-005)
+- [ ] After any status change: `ws_manager.broadcast_to_dashboards("seat_updated", seat_data)` (FR-SEAT-005)
   - [ ] **Definition of done:** Status change triggers WebSocket broadcast to all connected dashboards
 
 - [ ] **Task: Implement Seat API Router (`backend/api/routers/seats.py`)**
