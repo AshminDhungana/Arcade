@@ -1,0 +1,381 @@
+"""Session Service — business logic for session lifecycle.
+
+All public functions are ``async def`` and accept ``db: AsyncSession`` as their
+first parameter.  Status transitions, WebSocket broadcasts, and audit logging
+are handled in this module.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
+
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.core.feature_flags import get_flag
+from backend.core.ws_manager import AgentOfflineError
+from backend.core.ws_manager import manager as ws_manager
+from backend.models import GamingSession, SeatStatus, SessionStatus
+from backend.models._enums import AuditAction
+from backend.repositories import audit_repo, seat_repo, session_repo
+from backend.schemas.session import SessionResponse
+from backend.services.billing_stub import resolve_rate
+
+if TYPE_CHECKING:
+    from backend.models.staff import Staff
+
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+#  Custom exceptions
+# ---------------------------------------------------------------------------
+
+
+class SessionNotFoundError(HTTPException):
+    """Raised when a session lookup fails."""
+
+    def __init__(self, session_id: str) -> None:
+        super().__init__(status_code=404, detail=f"Session {session_id} not found")
+
+
+class SeatUnavailableError(HTTPException):
+    """Raised when a seat is not AVAILABLE or RESERVED."""
+
+    def __init__(self) -> None:
+        super().__init__(status_code=409, detail="SEAT_UNAVAILABLE")
+
+
+class SessionConflictError(HTTPException):
+    """Raised when an seat already has an active session."""
+
+    def __init__(self) -> None:
+        super().__init__(status_code=409, detail="ACTIVE_SESSION_EXISTS")
+
+
+class InvalidSessionStateError(HTTPException):
+    """Raised when a session is not in the expected status."""
+
+    def __init__(self, action: str, expected: str) -> None:
+        super().__init__(
+            status_code=409, detail=f"Expected status {expected} to {action}"
+        )
+
+
+# ---------------------------------------------------------------------------
+#  Helpers
+# ---------------------------------------------------------------------------
+
+
+def _ensure_tz(dt: datetime | None) -> datetime | None:
+    """Ensure a timezone-aware datetime.
+
+    SQLite sometimes strips timezone info; re-attach UTC when missing.
+    """
+    if dt is not None and (dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None):
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
+def _session_to_response(session: GamingSession) -> SessionResponse:
+    """Convert a ``GamingSession`` ORM object to a Pydantic ``SessionResponse``."""
+    session.created_at = _ensure_tz(session.created_at)  # type: ignore[assignment]
+    session.updated_at = _ensure_tz(session.updated_at)  # type: ignore[assignment]
+    session.started_at = _ensure_tz(session.started_at)  # type: ignore[assignment]
+    session.ended_at = _ensure_tz(session.ended_at)
+    session.paused_at = _ensure_tz(session.paused_at)
+    return SessionResponse.model_validate(session)
+
+
+# ---------------------------------------------------------------------------
+#  Public API
+# ---------------------------------------------------------------------------
+
+
+async def start_session(
+    db: AsyncSession,
+    /,  # noqa: W504
+    seat_id: str,
+    member_id: str | None = None,
+    staff: Staff | None = None,
+) -> SessionResponse:
+    """Start a new session on an available seat.
+
+    Steps:
+        1. Validate seat exists.
+        2. Check ``require_member_for_session`` feature flag.
+        3. Ensure no other active session exists for this seat.
+        4. Validate seat status is ``AVAILABLE`` / ``RESERVED``.
+        5. Stub-resolve the billing rate (Phase 3 will be real).
+        6. Create ``GamingSession`` record with ``status=ACTIVE``.
+        7. Update seat status → ``IN_USE``.
+        8. Broadcast ``seat_updated`` to dashboards.
+        9. Send ``HIDE_OVERLAY`` to the agent (non-blocking).
+        10. Write audit log entry ``SESSION_START``.
+        11. Return ``SessionResponse``.
+    """
+    # 1. Validate seat exists
+    seat = await seat_repo.get_by_id(db, seat_id)
+    if seat is None:
+        raise HTTPException(status_code=404, detail="Seat not found")
+
+    # 2. Feature flag check
+    if get_flag("require_member_for_session") and not member_id:
+        raise HTTPException(status_code=400, detail="Member required for session")
+
+    # 3. No duplicate active session for this seat
+    existing = await session_repo.get_active_by_seat(db, seat_id)
+    if existing:
+        raise SessionConflictError()
+
+    # 4. Validate seat status
+    if seat.status not in (SeatStatus.AVAILABLE, SeatStatus.RESERVED):
+        raise SeatUnavailableError()
+
+    # 4. Billing rate (stub)
+    locked_rate = await resolve_rate(seat_id=seat_id, member_id=member_id)
+
+    # 5. Create session
+    now = datetime.now(UTC)
+    session = await session_repo.create(
+        db,
+        seat_id=seat_id,
+        member_id=member_id,
+        started_at=now,
+        locked_rate_paise=locked_rate.rate_paise,
+        locked_pricing_model=locked_rate.pricing_model,
+    )
+
+    # 6. Update seat → IN_USE
+    seat.status = SeatStatus.IN_USE
+    await seat_repo.update(db, seat)
+
+    # 7. Broadcast
+    payload = {
+        "id": seat.id,
+        "name": seat.name,
+        "status": seat.status.value,
+        "current_session_id": session.id,
+    }
+    try:
+        await ws_manager.broadcast_to_dashboards("seat_updated", payload)
+    except Exception:
+        logger.warning(
+            "Failed to broadcast seat_updated for %s", seat_id, exc_info=True
+        )
+
+    # 8. Agent command (non-blocking)
+    try:
+        await ws_manager.send_to_agent(seat_id, {"type": "HIDE_OVERLAY"})
+    except AgentOfflineError:
+        logger.warning("Agent offline for seat %s — HIDE_OVERLAY not sent", seat_id)
+
+    # 9. Audit
+    await audit_repo.create(
+        db,
+        action=AuditAction.SESSION_START.value,
+        entity_type="session",
+        entity_id=session.id,
+        staff_id=staff.id if staff else None,
+        detail="",
+    )
+
+    return _session_to_response(session)
+
+
+async def pause_session(
+    db: AsyncSession,
+    /,  # noqa: W504
+    session_id: str,
+    staff: Staff | None = None,
+) -> SessionResponse:
+    """Pause an active session.
+
+    Validates the session is ``ACTIVE``, records ``paused_at``, updates the
+    seat to ``PAUSED``, and sends ``SHOW_OVERLAY`` to the agent.
+    """
+    # Load session
+    session = await session_repo.get_by_id(db, session_id)
+    if session is None:
+        raise SessionNotFoundError(session_id)
+    if session.status != SessionStatus.ACTIVE:
+        raise InvalidSessionStateError("pause", "ACTIVE")
+
+    # Update session
+    session.status = SessionStatus.PAUSED
+    session.paused_at = datetime.now(UTC)
+    session = await session_repo.update(db, session)
+
+    # Update seat
+    seat = await seat_repo.get_by_id(db, session.seat_id)
+    if seat:
+        seat.status = SeatStatus.PAUSED
+        await seat_repo.update(db, seat)
+        # Broadcast
+        try:
+            await ws_manager.broadcast_to_dashboards(
+                "seat_updated",
+                {
+                    "id": seat.id,
+                    "name": seat.name,
+                    "status": seat.status.value,
+                    "current_session_id": session.id,
+                },
+            )
+        except Exception:
+            logger.warning(
+                "Failed to broadcast seat_updated for %s", seat.id, exc_info=True
+            )
+
+    # Agent command
+    try:
+        await ws_manager.send_to_agent(session.seat_id, {"type": "SHOW_OVERLAY"})
+    except AgentOfflineError:
+        logger.warning(
+            "Agent offline for seat %s — SHOW_OVERLAY not sent", session.seat_id
+        )
+
+    # Audit
+    await audit_repo.create(
+        db,
+        action=AuditAction.SESSION_PAUSE.value,
+        entity_type="session",
+        entity_id=session.id,
+        staff_id=staff.id if staff else None,
+        detail="paused",
+    )
+
+    return _session_to_response(session)
+
+
+async def resume_session(
+    db: AsyncSession,
+    /,  # noqa: W504
+    session_id: str,
+    staff: Staff | None = None,
+) -> SessionResponse:
+    """Resume a paused session.
+
+    Validates the session is ``PAUSED``, accumulates pause duration into
+    ``total_paused_seconds``, updates seat to ``IN_USE``, and sends
+    ``HIDE_OVERLAY`` to the agent.
+    """
+    # Load session
+    session = await session_repo.get_by_id(db, session_id)
+    if session is None:
+        raise SessionNotFoundError(session_id)
+    if session.status != SessionStatus.PAUSED:
+        raise InvalidSessionStateError("resume", "PAUSED")
+
+    # Accumulate pause duration
+    paused_at = _ensure_tz(session.paused_at)
+    if paused_at:
+        pause_duration = (datetime.now(UTC) - paused_at).total_seconds()
+        session.total_paused_seconds = (session.total_paused_seconds or 0) + int(
+            pause_duration
+        )
+        session.paused_at = None
+
+    session.status = SessionStatus.ACTIVE
+    session = await session_repo.update(db, session)
+
+    # Update seat
+    seat = await seat_repo.get_by_id(db, session.seat_id)
+    if seat:
+        seat.status = SeatStatus.IN_USE
+        await seat_repo.update(db, seat)
+        try:
+            await ws_manager.broadcast_to_dashboards(
+                "seat_updated",
+                {
+                    "id": seat.id,
+                    "name": seat.name,
+                    "status": seat.status.value,
+                    "current_session_id": session.id,
+                },
+            )
+        except Exception:
+            logger.warning(
+                "Failed to broadcast seat_updated for %s", seat.id, exc_info=True
+            )
+
+    # Agent command
+    try:
+        await ws_manager.send_to_agent(session.seat_id, {"type": "HIDE_OVERLAY"})
+    except AgentOfflineError:
+        logger.warning(
+            "Agent offline for seat %s — HIDE_OVERLAY not sent", session.seat_id
+        )
+
+    # Audit
+    await audit_repo.create(
+        db,
+        action=AuditAction.SESSION_RESUME.value,
+        entity_type="session",
+        entity_id=session.id,
+        staff_id=staff.id if staff else None,
+        detail="resumed",
+    )
+
+    return _session_to_response(session)
+
+
+async def get_session(db: AsyncSession, /, session_id: str) -> SessionResponse:
+    """Get a single session by ID.  Raises 404 if not found."""
+    session = await session_repo.get_by_id(db, session_id)
+    if session is None:
+        raise SessionNotFoundError(session_id)
+    return _session_to_response(session)
+
+
+async def list_active_sessions(db: AsyncSession) -> list[SessionResponse]:
+    """Return all sessions with ``ACTIVE`` or ``PAUSED`` status."""
+    sessions = await session_repo.list_active(db)
+    return [_session_to_response(s) for s in sessions]
+
+
+async def recover_active_sessions(db: AsyncSession) -> None:
+    """Recover any sessions that were active during an unclean shutdown.
+
+    Called at server startup.  Loads all ``ACTIVE`` / ``PAUSED`` sessions from
+    the database, ensures their seat statuses are consistent, and broadcasts
+    the current state to all dashboards.
+    """
+    active_sessions = await session_repo.list_active(db)
+    for session in active_sessions:
+        seat = await seat_repo.get_by_id(db, session.seat_id)
+        if seat is None:
+            logger.warning(
+                "Active session %s references missing seat %s",
+                session.id,
+                session.seat_id,
+            )
+            continue
+
+        # Ensure seat status reflects the session state
+        expected_status = (
+            SeatStatus.PAUSED
+            if session.status == SessionStatus.PAUSED
+            else SeatStatus.IN_USE
+        )
+        if seat.status != expected_status:
+            seat.status = expected_status
+            await seat_repo.update(db, seat)
+
+        try:
+            await ws_manager.broadcast_to_dashboards(
+                "seat_updated",
+                {
+                    "id": seat.id,
+                    "name": seat.name,
+                    "status": seat.status.value,
+                    "current_session_id": session.id,
+                },
+            )
+        except Exception:
+            logger.warning(
+                "Failed to broadcast seat_updated for %s", seat.id, exc_info=True
+            )

@@ -11,6 +11,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from backend.api.routers.seats import router as seat_router
+from backend.api.routers.sessions import router as session_router
 from backend.api.routers.ws import router as ws_router
 
 __all__ = ["routers"]
@@ -37,4 +38,5 @@ __all__ = ["routers"]
 routers: list[APIRouter] = [
     ws_router,
     seat_router,
+    session_router,
 ]

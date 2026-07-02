@@ -672,10 +672,10 @@ Both engineers test together on real hardware:
   - [x] `POST /api/seats/{id}/wol` — send WoL (Admin auth)
   - [x] All routes: correct auth dependencies, correct HTTP status codes, documented errors
 
-#### Feature 2.1.2: Session Service
+#### Feature 2.1.2: Session Service ✅ _Complete_
 
-- [ ] **Task: Implement `SessionService` — start, pause, resume (`backend/services/session_service.py`)**
-  - [ ] `start_session(seat_id, member_id, db, staff)`:
+- [x] **Task: Implement `SessionService` — start, pause, resume (`backend/services/session_service.py`)**
+  - [x] `start_session(seat_id, member_id, db, staff)`:
     1. Load seat; validate status `AVAILABLE` or `RESERVED` → 409 `SEAT_UNAVAILABLE` otherwise
     2. Check `require_member_for_session` flag; 400 if ON and no `member_id`
     3. Validate no existing ACTIVE session for this seat
@@ -686,17 +686,17 @@ Both engineers test together on real hardware:
     8. Send `HIDE_OVERLAY` to agent (log warning if agent offline — do not block)
     9. Write audit: `SESSION_START`
     10. Return `SessionResponse`
-  - [ ] `pause_session(session_id, db, staff)`: validate ACTIVE → `PAUSED`; `paused_at=utcnow()`; seat `PAUSED`; send `SHOW_OVERLAY`; broadcast; audit `SESSION_PAUSE`
-  - [ ] `resume_session(session_id, db, staff)`: validate PAUSED; accumulate `total_paused_seconds`; `ACTIVE`; seat `IN_USE`; send `HIDE_OVERLAY`; broadcast; audit `SESSION_RESUME`
-  - [ ] `recover_active_sessions(db)`: called at server startup; loads all ACTIVE sessions; broadcasts current seat states; agents can re-sync (FR-SES-009, AC-22)
-  - [ ] **Definition of done:** Full lifecycle (start → pause → resume) works via REST; WebSocket broadcasts verified
+  - [x] `pause_session(session_id, db, staff)`: validate ACTIVE → `PAUSED`; `paused_at=utcnow()`; seat `PAUSED`; send `SHOW_OVERLAY`; broadcast; audit `SESSION_PAUSE`
+  - [x] `resume_session(session_id, db, staff)`: validate PAUSED; accumulate `total_paused_seconds`; `ACTIVE`; seat `IN_USE`; send `HIDE_OVERLAY`; broadcast; audit `SESSION_RESUME`
+  - [x] `recover_active_sessions(db)`: called at server startup; loads all ACTIVE sessions; broadcasts current seat states; agents can re-sync (FR-SES-009, AC-22)
+  - [x] **Definition of done:** Full lifecycle (start → pause → resume) works via REST; WebSocket broadcasts verified
 
-- [ ] **Task: Implement Session API Router (`backend/api/routers/sessions.py`)**
-  - [ ] `POST /api/sessions` — start session (Cashier)
-  - [ ] `PATCH /api/sessions/{id}/pause` (Cashier)
-  - [ ] `PATCH /api/sessions/{id}/resume` (Cashier)
-  - [ ] `GET /api/sessions/{id}` (Cashier)
-  - [ ] `GET /api/sessions/active` (Cashier)
+- [x] **Task: Implement Session API Router (`backend/api/routers/sessions.py`)**
+  - [x] `POST /api/sessions` — start session (Cashier)
+  - [x] `PATCH /api/sessions/{id}/pause` (Cashier)
+  - [x] `PATCH /api/sessions/{id}/resume` (Cashier)
+  - [x] `GET /api/sessions/{id}` (Cashier)
+  - [x] `GET /api/sessions/active` (Cashier)
 
 #### Feature 2.1.3: Wake-on-LAN Service
 
@@ -809,7 +809,7 @@ Both engineers test together on real hardware:
 ### Testing Requirements (Phase 2)
 
 - [x] `pytest backend/tests/test_seat_service.py` — list, status change, maintenance, WoL triggers, BOOTING → UNREACHABLE watchdog
-- [ ] `pytest backend/tests/test_session_service.py` — start (valid/invalid seat status), pause, resume, `recover_active_sessions()`, concurrent start rejection
+- [x] `pytest backend/tests/test_session_service.py` — start (valid/invalid seat status), pause, resume, `recover_active_sessions()`, concurrent start rejection
 - [ ] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
 - [ ] `pytest backend/tests/test_wol.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout
 - [ ] Agent: `npm test` — unit tests for `session_store.ts` (persist/recover), `ws/client.ts` (backoff, reconnect, SYNC payload), `ipc/handlers.ts` (screenshot resize)

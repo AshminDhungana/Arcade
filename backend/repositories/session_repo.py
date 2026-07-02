@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import GamingSession, SessionStatus
+from backend.models._enums import PricingModel
 
 
 async def create(
@@ -15,16 +17,16 @@ async def create(
     *,
     seat_id: str,
     member_id: str | None = None,
-    shift_id: str | None = None,
+    started_at: datetime | None = None,
     locked_rate_paise: int = 0,
-    locked_pricing_model: str | None = None,
+    locked_pricing_model: PricingModel | None = None,
     package_entitlement_id: str | None = None,
     promotion_id: str | None = None,
 ) -> GamingSession:
     session = GamingSession(
         seat_id=seat_id,
         member_id=member_id,
-        shift_id=shift_id,
+        started_at=started_at or datetime.now(UTC),
         locked_rate_paise=locked_rate_paise,
         locked_pricing_model=locked_pricing_model,
         package_entitlement_id=package_entitlement_id,

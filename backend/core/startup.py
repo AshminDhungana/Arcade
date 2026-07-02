@@ -56,13 +56,17 @@ async def run_migrations() -> None:
 
 
 async def recover_active_sessions() -> None:
-    """Stub, so the startup sequence is stable.
+    """Recover any sessions that were active during an unclean shutdown.
 
-    Phase 2 will query the database for sessions with ``status == ACTIVE``,
-    broadcast their state to dashboards, and reset seat statuses where needed.
-    For now this is a no-op to keep the startup sequence stable.
+    Queries the database for sessions with ``status == ACTIVE`` or ``PAUSED``,
+    ensures their seat statuses are consistent, and broadcasts the current
+    state to all dashboards.
     """
-    logger.debug("recover_active_sessions() — stub (Phase 2)")
+    from backend.core.database import AsyncSessionLocal
+    from backend.services import session_service
+
+    async with AsyncSessionLocal() as db:
+        await session_service.recover_active_sessions(db)
 
 
 async def boot_all_seats() -> None:
