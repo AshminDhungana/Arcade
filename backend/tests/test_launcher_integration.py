@@ -8,7 +8,25 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import patch
 
+import pytest
 
+# ---------------------------------------------------------------------------
+# Tcl/Tk availability check
+# ---------------------------------------------------------------------------
+
+_TK_AVAILABLE = False
+
+try:
+    import tkinter as _tk
+
+    _tk_root = _tk.Tk()
+    _tk_root.destroy()
+    _TK_AVAILABLE = True
+except Exception:
+    _TK_AVAILABLE = False
+
+
+@pytest.mark.skipif(not _TK_AVAILABLE, reason="Tcl/Tk not available")
 class TestLauncherEndToEnd:
     def test_missing_license_shows_activation_screen(self, monkeypatch: Any) -> None:
         import tkinter as tk
