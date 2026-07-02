@@ -186,13 +186,13 @@ async def get_current_staff(token: str, db: AsyncSession) -> Staff:
     return staff
 
 
-async def require_admin(staff: Staff) -> Staff:
+def require_admin(staff: Staff) -> Staff:
     if staff.role != StaffRole.ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return staff
 
 
-async def require_cashier(staff: Staff) -> Staff:
+def require_cashier(staff: Staff) -> Staff:
     if staff.role not in (StaffRole.ADMIN, StaffRole.CASHIER):
         raise HTTPException(status_code=403, detail="Cashier or Admin access required")
     return staff

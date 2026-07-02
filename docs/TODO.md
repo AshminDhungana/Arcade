@@ -655,22 +655,22 @@ Both engineers test together on real hardware:
 
 #### Feature 2.1.1: Seat Service
 
-- [ ] **Task: Implement `SeatService` (`backend/services/seat_service.py`)**
-  - [ ] `list_seats(db)` — returns all seats with current status
-  - [ ] `get_seat(seat_id, db)` — raises 404 if not found
-  - [ ] `set_maintenance(seat_id, note, db, staff)` — sets `MAINTENANCE`, writes note, logs audit `SEAT_MAINTENANCE_ON` (FR-SEAT-006)
-  - [ ] `clear_maintenance(seat_id, db, staff)` — sets `AVAILABLE`, logs audit `SEAT_MAINTENANCE_OFF`
-  - [ ] `update_mac_address(seat_id, mac, db)` — called from WebSocket REGISTER handler
-- [ ] After any status change: `ws_manager.broadcast_to_dashboards("seat_updated", seat_data)` (FR-SEAT-005)
-  - [ ] **Definition of done:** Status change triggers WebSocket broadcast to all connected dashboards
+- [x] **Task: Implement `SeatService` (`backend/services/seat_service.py`)**
+  - [x] `list_seats(db)` — returns all seats with current status
+  - [x] `get_seat(seat_id, db)` — raises 404 if not found
+  - [x] `set_maintenance(seat_id, note, db, staff)` — sets `MAINTENANCE`, writes note, logs audit `SEAT_MAINTENANCE_ON` (FR-SEAT-006)
+  - [x] `clear_maintenance(seat_id, db, staff)` — sets `AVAILABLE`, logs audit `SEAT_MAINTENANCE_OFF`
+  - [x] `update_mac_address(seat_id, mac, db)` — called from WebSocket REGISTER handler
+- [x] After any status change: `ws_manager.broadcast_to_dashboards("seat_updated", seat_data)` (FR-SEAT-005)
+  - [x] **Definition of done:** Status change triggers WebSocket broadcast to all connected dashboards
 
-- [ ] **Task: Implement Seat API Router (`backend/api/routers/seats.py`)**
-  - [ ] `GET /api/seats` — list all seats (Cashier auth)
-  - [ ] `GET /api/seats/{id}` — get seat details (Cashier auth)
-  - [ ] `PATCH /api/seats/{id}/maintenance` — set maintenance (Admin auth)
-  - [ ] `DELETE /api/seats/{id}/maintenance` — clear maintenance (Admin auth)
-  - [ ] `POST /api/seats/{id}/wol` — send WoL (Admin auth)
-  - [ ] All routes: correct auth dependencies, correct HTTP status codes, documented errors
+- [x] **Task: Implement Seat API Router (`backend/api/routers/seats.py`)**
+  - [x] `GET /api/seats` — list all seats (Cashier auth)
+  - [x] `GET /api/seats/{id}` — get seat details (Cashier auth)
+  - [x] `PATCH /api/seats/{id}/maintenance` — set maintenance (Admin auth)
+  - [x] `DELETE /api/seats/{id}/maintenance` — clear maintenance (Admin auth)
+  - [x] `POST /api/seats/{id}/wol` — send WoL (Admin auth)
+  - [x] All routes: correct auth dependencies, correct HTTP status codes, documented errors
 
 #### Feature 2.1.2: Session Service
 
@@ -808,7 +808,7 @@ Both engineers test together on real hardware:
 
 ### Testing Requirements (Phase 2)
 
-- [ ] `pytest backend/tests/test_seat_service.py` — list, status change, maintenance, WoL triggers, BOOTING → UNREACHABLE watchdog
+- [x] `pytest backend/tests/test_seat_service.py` — list, status change, maintenance, WoL triggers, BOOTING → UNREACHABLE watchdog
 - [ ] `pytest backend/tests/test_session_service.py` — start (valid/invalid seat status), pause, resume, `recover_active_sessions()`, concurrent start rejection
 - [ ] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
 - [ ] `pytest backend/tests/test_wol.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout

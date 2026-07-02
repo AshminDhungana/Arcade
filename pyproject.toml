@@ -29,7 +29,7 @@ extend-exclude = "backend/(venv|tests/validation_tasks|arch01_app\\.py|arch01_st
 [tool.mypy]
 python_version = "3.13"
 strict = true
-exclude = "(venv|tests/validation_tasks|arch01_)"
+exclude = "(venv|tests/|arch01_)"
 plugins = ["pydantic.mypy"]
 # Phase 0 has no typed source yet; allow untyped third-party stubs.
 ignore_missing_imports = true

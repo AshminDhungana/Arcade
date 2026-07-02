@@ -206,14 +206,14 @@ class TestGetCurrentStaff:
 
 
 class TestRoleDependencies:
-    async def test_require_admin_allows_admin(self) -> None:
+    def test_require_admin_allows_admin(self) -> None:
         staff = Staff(
             id="s1", name="Admin", role=StaffRole.ADMIN, pin_hash="", is_active=True
         )
-        result = await require_admin(staff)
+        result = require_admin(staff)
         assert result is staff
 
-    async def test_require_admin_rejects_cashier(self) -> None:
+    def test_require_admin_rejects_cashier(self) -> None:
         staff = Staff(
             id="s2",
             name="Cashier",
@@ -222,10 +222,10 @@ class TestRoleDependencies:
             is_active=True,
         )
         with pytest.raises(HTTPException) as exc_info:
-            await require_admin(staff)
+            require_admin(staff)
         assert exc_info.value.status_code == 403
 
-    async def test_require_cashier_allows_both(self) -> None:
+    def test_require_cashier_allows_both(self) -> None:
         admin = Staff(
             id="s3", name="Admin", role=StaffRole.ADMIN, pin_hash="", is_active=True
         )
@@ -236,14 +236,14 @@ class TestRoleDependencies:
             pin_hash="",
             is_active=True,
         )
-        assert (await require_cashier(admin)) is admin
-        assert (await require_cashier(cashier)) is cashier
+        assert require_cashier(admin) is admin
+        assert require_cashier(cashier) is cashier
 
-    async def test_require_cashier_rejects_invalid_role(self) -> None:
+    def test_require_cashier_rejects_invalid_role(self) -> None:
         # Build a duck-type mock since the enum prevents an invalid role.
         class _FakeStaff:
             role = "INVALID"
 
         with pytest.raises(HTTPException) as exc_info:
-            await require_cashier(_FakeStaff())  # type: ignore[arg-type]
+            require_cashier(_FakeStaff())  # type: ignore[arg-type]
         assert exc_info.value.status_code == 403
