@@ -70,10 +70,9 @@ async def recover_active_sessions() -> None:
 
 
 async def boot_all_seats() -> None:
-    """Stub, so the startup sequence is stable.
+    """Send WoL magic packets to all seats with a registered MAC address."""
+    from backend.core.database import AsyncSessionLocal
+    from backend.services.wol_service import boot_all_seats as _wol_boot_all
 
-    Phase 2 will iterate over the ``Seat`` table, construct and broadcast
-    WoL magic packets, and start a 60-second watchdog per seat.
-    For now this is a no-op to keep the startup sequence stable.
-    """
-    logger.debug("boot_all_seats() — stub (Phase 2)")
+    async with AsyncSessionLocal() as db:
+        await _wol_boot_all(db)

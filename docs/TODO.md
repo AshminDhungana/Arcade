@@ -698,16 +698,16 @@ Both engineers test together on real hardware:
   - [x] `GET /api/sessions/{id}` (Cashier)
   - [x] `GET /api/sessions/active` (Cashier)
 
-#### Feature 2.1.3: Wake-on-LAN Service
+#### Feature 2.1.3: Wake-on-LAN Service ✅
 
-- [ ] **Task: Implement `WolService` (`backend/services/wol_service.py`)**
-  - [ ] `send_magic_packet(mac_address, broadcast="255.255.255.255", port=9)`: constructs UDP magic packet (6×0xFF + 16×MAC bytes)
-  - [ ] `boot_all_seats(db)`: called at startup; sends WoL to all seats with MAC; sets status to `BOOTING`; starts 60-second watchdog per seat (FR-WOL-001, FR-WOL-005)
-  - [ ] Watchdog: after 60s, if seat still `BOOTING` → set `UNREACHABLE`, broadcast (FR-WOL-005, FR-WOL-006)
-  - [ ] `send_wol_to_seat(seat_id, db)`: single-seat WoL from dashboard (FR-WOL-003)
-  - [ ] Track `wol_attempts` and `wol_successes` per seat (FR-WOL-004)
-  - [ ] `override_seat_online(seat_id, db)`: manual override for manually-started machines (FR-WOL-007)
-  - [ ] **⚠ RISK (R-04):** WoL requires MAC address registered; seats without MAC skip WoL gracefully
+- [x] **Task: Implement `WolService` (`backend/services/wol_service.py`)**
+  - [x] `send_magic_packet(mac_address, broadcast="255.255.255.255", port=9)`: constructs UDP magic packet (6×0xFF + 16×MAC bytes)
+  - [x] `boot_all_seats(db)`: called at startup; sends WoL to all seats with MAC; sets status to `BOOTING`; starts 60-second watchdog per seat (FR-WOL-001, FR-WOL-005)
+  - [x] Watchdog: after 60s, if seat still `BOOTING` → set `UNREACHABLE`, broadcast (FR-WOL-005, FR-WOL-006)
+  - [x] `send_wol_to_seat(seat_id, db)`: single-seat WoL from dashboard (FR-WOL-003)
+  - [x] Track `wol_attempts` and `wol_successes` per seat (FR-WOL-004)
+  - [x] `override_seat_online(seat_id, db)`: manual override for manually-started machines (FR-WOL-007)
+  - [x] **⚠ RISK (R-04):** WoL requires MAC address registered; seats without MAC skip WoL gracefully
 
 #### Feature 2.1.4: Staff Authentication API
 
@@ -811,7 +811,7 @@ Both engineers test together on real hardware:
 - [x] `pytest backend/tests/test_seat_service.py` — list, status change, maintenance, WoL triggers, BOOTING → UNREACHABLE watchdog
 - [x] `pytest backend/tests/test_session_service.py` — start (valid/invalid seat status), pause, resume, `recover_active_sessions()`, concurrent start rejection
 - [ ] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
-- [ ] `pytest backend/tests/test_wol.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout
+- [x] `pytest backend/tests/test_wol_service.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout, boot-all-seats, override, success callback
 - [ ] Agent: `npm test` — unit tests for `session_store.ts` (persist/recover), `ws/client.ts` (backoff, reconnect, SYNC payload), `ipc/handlers.ts` (screenshot resize)
 - [ ] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation), `SeatCard` (status colours, elapsed timer), `Login` (error/lockout states)
 - [ ] **End-to-end (manual):** Start server + agent on Windows + dashboard; start session; disconnect network cable 30s; reconnect; verify SYNC sends; verify session billing not lost (AC-07)

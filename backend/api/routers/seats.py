@@ -22,7 +22,7 @@ from backend.api.deps import require_admin, require_cashier
 from backend.core.database import get_db
 from backend.models.staff import Staff
 from backend.schemas.seat import SeatResponse
-from backend.services import seat_service
+from backend.services import seat_service, wol_service
 
 router = APIRouter(prefix="/seats", tags=["seats"])
 
@@ -86,13 +86,21 @@ async def clear_maintenance(
     return await seat_service.clear_maintenance(db, seat_id, staff)
 
 
-@router.post("/{seat_id}/wol", status_code=status.HTTP_202_ACCEPTED)
-async def send_wol(
+@router.post("/{seat_id}/wol", response_model=SeatResponse)
+async def trigger_wol(
     seat_id: str,
-    db: AsyncSession = Depends(get_db),  # noqa: B008 – FastAPI DI idiom
-    _staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
-) -> dict[str, str]:
-    """Send a Wake-on-LAN magic packet to a seat (admin only; no-op placeholder)."""
-    # TODO: delegate to wol_service when available (Feature 2.1.3)
-    seat = await seat_service.get_seat(db, seat_id)
-    return {"detail": f"Wake-on-LAN sent to seat {seat.name}", "seat_id": seat_id}
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> SeatResponse:
+    """Send a Wake-on-LAN magic packet to a seat (admin only)."""
+    return await wol_service.send_wol_to_seat(db, seat_id, staff)
+
+
+@router.post("/{seat_id}/wol/override", response_model=SeatResponse)
+async def wol_override(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> SeatResponse:
+    """Manually mark a seat as online, bypassing the WoL watchdog (admin only)."""
+    return await wol_service.override_seat_online(db, seat_id, staff)

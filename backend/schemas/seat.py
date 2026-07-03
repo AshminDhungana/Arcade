@@ -36,3 +36,6 @@ class SeatResponse(SeatBase, BaseResponseSchema):
     id: str
     created_at: AwareDatetime
     updated_at: AwareDatetime
+    wol_attempts: int = 0
+    wol_successes: int = 0
+    wol_failures: int = 0

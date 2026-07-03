@@ -29,6 +29,9 @@ class Seat(Base):
     plug_id: Mapped[str | None] = mapped_column(String(255))
     is_console: Mapped[bool] = mapped_column(default=False)
     notes: Mapped[str | None] = mapped_column(String(1000))
+    wol_attempts: Mapped[int] = mapped_column(default=0, nullable=False)
+    wol_successes: Mapped[int] = mapped_column(default=0, nullable=False)
+    wol_failures: Mapped[int] = mapped_column(default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )

@@ -190,6 +190,10 @@ class AuditAction(Enum):
     INVENTORY_RESTOCK = "INVENTORY_RESTOCK"
     RESERVATION_CREATED = "RESERVATION_CREATED"
     RESERVATION_CANCELLED = "RESERVATION_CANCELLED"
+    WOL_SENT = "WOL_SENT"
+    WOL_SUCCESS = "WOL_SUCCESS"
+    WOL_TIMEOUT = "WOL_TIMEOUT"
+    WOL_OVERRIDE = "WOL_OVERRIDE"
 
 
 # ── License ──────────────────────────────────────────────────────────────

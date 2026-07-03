@@ -133,3 +133,25 @@ def test_list_seats_requires_auth() -> None:
         resp = c.get("/api/seats")
     # Expect 401 because no Authorization header
     assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# POST /api/seats/{seat_id}/wol (admin only)
+# ---------------------------------------------------------------------------
+
+
+def test_trigger_wol_admin_only(cashier_client: TestClient) -> None:
+    """Cashier role should be denied when calling trigger WoL."""
+    resp = cashier_client.post("/api/seats/123/wol")
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# POST /api/seats/{seat_id}/wol/override (admin only)
+# ---------------------------------------------------------------------------
+
+
+def test_wol_override_admin_only(cashier_client: TestClient) -> None:
+    """Cashier role should be denied when calling WoL override."""
+    resp = cashier_client.post("/api/seats/123/wol/override")
+    assert resp.status_code == 403

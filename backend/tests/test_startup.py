@@ -31,5 +31,15 @@ async def test_recover_active_sessions_does_not_raise() -> None:
 
 
 @pytest.mark.asyncio
-async def test_boot_all_seats_is_stub() -> None:
-    await boot_all_seats()
+async def test_boot_all_seats_does_not_raise() -> None:
+    """boot_all_seats creates a DB session and delegates to the WoL service."""
+    with (
+        patch("backend.core.database.AsyncSessionLocal") as mock_session_factory,
+        patch(
+            "backend.services.wol_service.boot_all_seats", new_callable=AsyncMock
+        ) as mock_boot_all,
+    ):
+        mock_session_factory.return_value.__aenter__ = AsyncMock(return_value=None)
+        mock_session_factory.return_value.__aexit__ = AsyncMock(return_value=False)
+        await boot_all_seats()
+        mock_boot_all.assert_awaited_once()
