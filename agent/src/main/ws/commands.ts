@@ -7,6 +7,7 @@
 
 import type { IPlatformService } from '../platform/types.js';
 import type { ServerCommandPayloads } from './types.js';
+import type { SessionStore } from '../storage/types.js';
 
 /** Map of server command names to handler functions. */
 export type CommandHandlers = {
@@ -28,15 +29,20 @@ export interface HandlerDeps {
 export function createCommandHandlers(
   platform: IPlatformService,
   _deps: HandlerDeps,
+  store?: SessionStore,
 ): CommandHandlers {
   return {
-    HIDE_OVERLAY(_payload) {
-      // Session started -- hide the kiosk overlay so the user can access the desktop
+    HIDE_OVERLAY(payload) {
+      // Persist session locally so elapsed time survives disconnect/crash
+      store?.persistSession(payload.session_id, _deps.seatId, payload.started_at);
+      // Hide the kiosk overlay so the user can access the desktop
       platform.hideKioskOverlay();
     },
 
-    SHOW_OVERLAY(_payload) {
-      // Session ended -- show the kiosk overlay to block desktop access
+    SHOW_OVERLAY(payload) {
+      // Clear local cache when session ends
+      store?.clearSession(payload.session_id);
+      // Show the kiosk overlay to block desktop access
       platform.showKioskOverlay({
         cafeName: 'Arcade', announcements: [], callStaffEnabled: true, sessionActive: false,
       });

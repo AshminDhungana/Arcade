@@ -1,6 +1,10 @@
 import { app, BrowserWindow } from 'electron';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import * as fs from 'node:fs';
 import { getPlatformService } from './platform/index.js';
 import { AgentWebSocketClient } from './ws/client.js';
+import { BetterSqliteSessionStore } from './storage/session_store.js';
 import type { IPlatformService } from './platform/types.js';
 
 function createWindow(): void {
@@ -26,11 +30,19 @@ async function bootstrap(): Promise<void> {
     agent_secret: 'replace-me-in-feature-2.2.5',
   };
 
-  wsClient = new AgentWebSocketClient(config, platformService);
+  // Create data directory and initialise the session store
+  const dbDir = path.join(os.homedir(), '.arcade-agent');
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  const dbPath = path.join(dbDir, 'sessions.db');
+  const sessionStore = new BetterSqliteSessionStore(dbPath);
+  sessionStore.init();
+
+  wsClient = new AgentWebSocketClient(config, platformService, sessionStore);
   wsClient.connect();
   console.log('[Agent] WebSocket client connecting...');
 
-  // TODO: Feature 2.2.3 -- Session store (SQLite persistence)
   // TODO: Feature 2.2.4 -- Kiosk overlay UI (renderer process)
   // TODO: Feature 2.2.5 -- Config loading from agent.config.json
 }

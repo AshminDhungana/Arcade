@@ -134,3 +134,5 @@ export interface AgentMessagePayloads {
     captured_at: string;
   };
 }
+// Re-export storage types for WebSocket client usage
+export type { LocalSessionCache, SessionStore } from '../storage/types.js';

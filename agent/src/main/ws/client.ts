@@ -5,6 +5,7 @@
  */
 
 import type { IPlatformService } from '../platform/types.js';
+import type { SessionStore } from '../storage/types.js';
 import {
   type AgentConfig,
   type WSMessage,
@@ -37,13 +38,16 @@ export class AgentWebSocketClient {
   /** Whether a staff override is currently active. */
   public overrideActive = false;
 
+  private persistTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private readonly config: AgentConfig,
     private readonly platform: IPlatformService,
+    private readonly store?: SessionStore,
   ) {
     this.commandHandlers = createCommandHandlers(platform, {
       seatId: config.seat_id,
-    });
+    }, store);
   }
 
   // -------------------------------------------------------------------------
@@ -128,9 +132,18 @@ export class AgentWebSocketClient {
       started_at,
       local_elapsed: 0,
     };
+    this.store?.persistSession(session_id, this.config.seat_id, started_at);
+    this.startElapsedTimer();
   }
 
   recordSessionEnd(): void {
+    if (this.sessionState.session_id) {
+      this.store?.clearSession(this.sessionState.session_id);
+    }
+    if (this.persistTimer) {
+      clearInterval(this.persistTimer);
+      this.persistTimer = null;
+    }
     this.sessionState = {
       session_id: null,
       started_at: null,
@@ -228,6 +241,8 @@ export class AgentWebSocketClient {
       // Track disconnect time for SYNC on reconnect
       this.sessionState.local_elapsed =
         Date.now() - (this.sessionState.started_at ? new Date(this.sessionState.started_at).getTime() : Date.now());
+      // Record disconnect in local SQLite for crash recovery
+      this.store?.markDisconnect(this.sessionState.session_id, new Date().toISOString());
     }
     this.state = 'disconnected';
     this.clearAllTimers();
@@ -414,5 +429,24 @@ export class AgentWebSocketClient {
       clearInterval(this.healthTimer);
       this.healthTimer = null;
     }
+    if (this.persistTimer) {
+      clearInterval(this.persistTimer);
+      this.persistTimer = null;
+    }
+  }
+
+  private startElapsedTimer(): void {
+    if (this.persistTimer) {
+      clearInterval(this.persistTimer);
+      this.persistTimer = null;
+    }
+    this.persistTimer = setInterval(() => {
+      if (this.sessionState.session_id && this.sessionState.started_at) {
+        const elapsed = Math.floor(
+          (Date.now() - new Date(this.sessionState.started_at).getTime()) / 1000,
+        );
+        this.store?.updateElapsed(this.sessionState.session_id, elapsed);
+      }
+    }, 10_000);
   }
 }

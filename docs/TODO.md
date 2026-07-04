@@ -747,17 +747,22 @@ Both engineers test together on real hardware:
   - [x] Message handlers: `HIDE_OVERLAY` → platform.hideKioskOverlay(); `SHOW_OVERLAY` → platform.showKioskOverlay(); `TAKE_SCREENSHOT` → capture + send response; `SHOW_MESSAGE` → display overlay dialog; `RESTART` → platform.restartPC(); `SHUTDOWN` → platform.shutdownPC(); `LOW_TIME_WARNING` → show timer warning; `RESET_OVERRIDE` → clear override flag
   - [x] `STAFF_OVERRIDE` trigger: show numeric PIN dialog; on correct Argon2 verification → `hideKioskOverlay()` locally; send `STAFF_OVERRIDE` event to server; suppress subsequent `SHOW_OVERLAY` commands while override is active
 
-#### Feature 2.2.3: Agent Local SQLite Session Store
+#### Feature 2.2.3: Agent Local SQLite Session Store ✅ _Complete_
 
-- [ ] **Task: Implement `agent/src/main/session_store.ts`**
-  - [ ] Use `better-sqlite3` (synchronous, appropriate for Electron main process)
-  - [ ] Schema: `sessions(session_id, seat_id, started_at, local_elapsed_seconds, disconnect_at, is_synced)`
-  - [ ] `persistSession(sessionId, seatId, startedAt)`: saves session state on `HIDE_OVERLAY` (session start)
-  - [ ] `updateElapsed(sessionId, elapsedSeconds)`: called every 10 seconds during active session
-  - [ ] `markDisconnect(sessionId, disconnectAt)`: called on WS disconnect
-  - [ ] `getUnsyncedSession()`: returns session data for SYNC payload on reconnect
-  - [ ] `markSynced(sessionId)`: called after successful SYNC acknowledgment from server
-  - [ ] **Definition of done:** Agent crash and restart recovers session state from SQLite; SYNC is sent correctly (AC-07)
+- [x] **Task: Implement `agent/src/main/storage/session_store.ts`**
+  - [x] Use `better-sqlite3` (synchronous, appropriate for Electron main process)
+  - [x] Schema: `sessions(session_id, seat_id, started_at, local_elapsed_seconds, disconnect_at, is_synced, status, updated_at)`
+  - [x] `persistSession(sessionId, seatId, startedAt)`: saves session state on `HIDE_OVERLAY` (session start); `ON CONFLICT(session_id) DO UPDATE` for idempotency
+  - [x] `updateElapsed(sessionId, elapsedSeconds)`: called every 10 seconds during active session via `startElapsedTimer()` in `ws/client.ts`
+  - [x] `markDisconnect(sessionId, disconnectAt)`: called on WS disconnect to persist disconnect timestamp for crash recovery
+  - [x] `getUnsyncedSession()`: returns session data for SYNC payload on reconnect (queries `is_synced = 0`)
+  - [x] `markSynced(sessionId)`: called after successful SYNC acknowledgment from server
+  - [x] `clearSession(sessionId)`: deletes session row on `SHOW_OVERLAY` (session end)
+  - [x] `close()`: clean database connection close
+  - [x] Wired into `agent/src/main/index.ts`: creates `~/.arcade-agent/sessions.db` and passes store to `AgentWebSocketClient`
+  - [x] Wired into `agent/src/main/ws/commands.ts`: `HIDE_OVERLAY` persists session, `SHOW_OVERLAY` clears session
+  - [x] **Tests**: `agent/tests/storage/session_store.test.ts` — 6 tests (persist/retrieve, updateElapsed, markDisconnect, markSynced, clearSession, re-persist idempotency) all passing
+  - [x] **Definition of done:** Agent crash and restart recovers session state from SQLite; SYNC is sent correctly (AC-7)
 
 #### Feature 2.2.4: Agent Kiosk Overlay UI
 
@@ -815,7 +820,7 @@ Both engineers test together on real hardware:
 - [x] `pytest backend/tests/test_session_service.py` — start (valid/invalid seat status), pause, resume, `recover_active_sessions()`, concurrent start rejection
 - [x] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
 - [x] `pytest backend/tests/test_wol_service.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout, boot-all-seats, override, success callback
-- [ ] Agent: `npm test` — unit tests for `session_store.ts` (persist/recover), `ws/client.ts` (backoff, reconnect, SYNC payload), `ipc/handlers.ts` (screenshot resize)
+- [~] Agent: `npm test` — `session_store.ts` ✅ (persist/recover — 6 tests passing); `ws/client.ts` (backoff, reconnect, SYNC payload) and `ipc/handlers.ts` (screenshot resize) — remaining
 - [ ] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation), `SeatCard` (status colours, elapsed timer), `Login` (error/lockout states)
 - [ ] **End-to-end (manual):** Start server + agent on Windows + dashboard; start session; disconnect network cable 30s; reconnect; verify SYNC sends; verify session billing not lost (AC-07)
 
