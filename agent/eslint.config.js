@@ -13,7 +13,8 @@ export default [
   { ignores: ['dist/**', 'node_modules/**'] },
   js.configs.recommended,
   {
-    files: ['src/**/*.ts'],
+    // Electron main process + shared code
+    files: ['src/main/**/*.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -23,6 +24,26 @@ export default [
       // Node + Electron main-process globals (require, module, process, ...).
       // WebSocket and CloseEvent are available natively in Node.js 22+.
       globals: { ...globals.node, ...globals.commonjs, WebSocket: 'readonly', CloseEvent: 'readonly' },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': 'off', // handled by @typescript-eslint rule
+    },
+  },
+  {
+    // Electron renderer process (browser environment, DOM APIs)
+    files: ['src/renderer/**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: 'module',
+      },
+      globals: { ...globals.browser },
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
