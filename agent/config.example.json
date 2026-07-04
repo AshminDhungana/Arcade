@@ -1,0 +1,6 @@
+{
+  "server_url": "ws://192.168.1.100:8000",
+  "seat_id": "seat_001",
+  "agent_secret": "replace-with-secret-from-arcade.config.json",
+  "override_code_hash": null
+}

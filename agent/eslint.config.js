@@ -21,7 +21,8 @@ export default [
         sourceType: 'module',
       },
       // Node + Electron main-process globals (require, module, process, ...).
-      globals: { ...globals.node, ...globals.commonjs },
+      // WebSocket and CloseEvent are available natively in Node.js 22+.
+      globals: { ...globals.node, ...globals.commonjs, WebSocket: 'readonly', CloseEvent: 'readonly' },
     },
     plugins: {
       '@typescript-eslint': tsPlugin,

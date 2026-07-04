@@ -126,7 +126,7 @@ export class WindowsPlatformService implements IPlatformService {
         .jpeg({ quality: 80 })
         .toBuffer();
       return compressed;
-    } catch (_err) {
+    } catch {
       return pngBuffer;
     }
   }
