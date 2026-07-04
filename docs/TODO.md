@@ -739,13 +739,13 @@ Both engineers test together on real hardware:
 
 #### Feature 2.2.2: Agent WebSocket Client
 
-- [ ] **Task: Implement `agent/src/main/ws/client.ts`**
-  - [ ] On connect: send `REGISTER {seat_id, mac_address, agent_secret, hostname, os}` — server validates secret and accepts or closes connection
-  - [ ] Exponential backoff reconnection: 1s → 2s → 4s → 8s → 16s → 30s cap; jitter ±10%
-  - [ ] Heartbeat: send `PING` every 30s; if no `PONG` within 10s, reconnect
-  - [ ] On reconnect (if session was active): send `SYNC {session_id, local_elapsed_seconds, disconnect_at, reconnect_at}` (FR-SES-009, R-07 mitigation)
-  - [ ] Message handlers: `HIDE_OVERLAY` → platform.hideKioskOverlay(); `SHOW_OVERLAY` → platform.showKioskOverlay(); `TAKE_SCREENSHOT` → capture + send response; `SHOW_MESSAGE` → display overlay dialog; `RESTART` → platform.restartPC(); `SHUTDOWN` → platform.shutdownPC(); `LOW_TIME_WARNING` → show timer warning; `RESET_OVERRIDE` → clear override flag
-  - [ ] `STAFF_OVERRIDE` trigger: show numeric PIN dialog; on correct Argon2 verification → `hideKioskOverlay()` locally; send `STAFF_OVERRIDE` event to server; suppress subsequent `SHOW_OVERLAY` commands while override is active
+- [x] **Task: Implement `agent/src/main/ws/client.ts`**
+  - [x] On connect: send `REGISTER {seat_id, mac_address, agent_secret, hostname, os}` — server validates secret and accepts or closes connection
+  - [x] Exponential backoff reconnection: 1s → 2s → 4s → 8s → 16s → 30s cap; jitter ±10%
+  - [x] Heartbeat: send `PING` every 30s; if no `PONG` within 10s, reconnect
+  - [x] On reconnect (if session was active): send `SYNC {session_id, local_elapsed_seconds, disconnect_at, reconnect_at}` (FR-SES-009, R-07 mitigation)
+  - [x] Message handlers: `HIDE_OVERLAY` → platform.hideKioskOverlay(); `SHOW_OVERLAY` → platform.showKioskOverlay(); `TAKE_SCREENSHOT` → capture + send response; `SHOW_MESSAGE` → display overlay dialog; `RESTART` → platform.restartPC(); `SHUTDOWN` → platform.shutdownPC(); `LOW_TIME_WARNING` → show timer warning; `RESET_OVERRIDE` → clear override flag
+  - [x] `STAFF_OVERRIDE` trigger: show numeric PIN dialog; on correct Argon2 verification → `hideKioskOverlay()` locally; send `STAFF_OVERRIDE` event to server; suppress subsequent `SHOW_OVERLAY` commands while override is active
 
 #### Feature 2.2.3: Agent Local SQLite Session Store
 
