@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.routers.auth import router as auth_router
 from backend.api.routers.seats import router as seat_router
 from backend.api.routers.sessions import router as session_router
 from backend.api.routers.ws import router as ws_router
@@ -18,9 +19,6 @@ __all__ = ["routers"]
 
 # Ordered roughly by business priority.
 # Placeholder comments keep the list stable so diffs are readable.
-# Phase 2: # routers.append(auth_router)
-# Phase 2: # routers.append(seat_router)
-# Phase 2: # routers.append(session_router)
 # Phase 3: # routers.append(pos_router)
 # Phase 3: # routers.append(inventory_router)
 # Phase 3: # routers.append(billing_router)
@@ -36,6 +34,7 @@ __all__ = ["routers"]
 # Phase 6: # routers.append(settings_router)
 
 routers: list[APIRouter] = [
+    auth_router,
     ws_router,
     seat_router,
     session_router,

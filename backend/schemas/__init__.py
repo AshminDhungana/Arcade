@@ -75,7 +75,13 @@ from backend.schemas.settings import (
     AppSettingsUpdate,
 )
 from backend.schemas.shift import ShiftCreate, ShiftResponse, ShiftUpdate
-from backend.schemas.staff import StaffCreate, StaffResponse, StaffUpdate
+from backend.schemas.staff import (
+    StaffCreate,
+    StaffPinCheck,
+    StaffResponse,
+    StaffUpdate,
+    TokenResponse,
+)
 from backend.schemas.voucher import VoucherCreate, VoucherResponse, VoucherUpdate
 from backend.schemas.zone import ZoneCreate, ZoneResponse, ZoneUpdate
 
@@ -102,6 +108,8 @@ __all__ = [
     "StaffCreate",
     "StaffUpdate",
     "StaffResponse",
+    "StaffPinCheck",
+    "TokenResponse",
     # Invoice / Shift
     "InvoiceCreate",
     "InvoiceUpdate",

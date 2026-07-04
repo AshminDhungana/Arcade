@@ -711,11 +711,11 @@ Both engineers test together on real hardware:
 
 #### Feature 2.1.4: Staff Authentication API
 
-- [ ] **Task: Implement `POST /api/auth/login` and auth dependencies**
-  - [ ] `POST /api/auth/login`: accepts `{staff_id, pin}`; validates PIN with Argon2id; checks `is_active`; returns JWT with 8-hour expiry; logs audit `STAFF_LOGIN`
-  - [ ] Rate limiting: 5 failed attempts per IP → 15-minute lockout; return 429 with `retry_after` header
-  - [ ] `POST /api/auth/refresh`: refreshes JWT (extends expiry) if current token is valid
-  - [ ] `POST /api/auth/logout`: client-side token discard (stateless — `token_version` increment is handled by PIN change/deactivation)
+- [x] **Task: Implement `POST /api/auth/login` and auth dependencies**
+  - [x] `POST /api/auth/login`: accepts `{staff_id, pin}`; validates PIN with Argon2id; checks `is_active`; returns JWT with 8-hour expiry; logs audit `STAFF_LOGIN`
+  - [x] Rate limiting: 5 failed attempts per IP → 15-minute lockout; return 429 with `retry_after` header
+  - [x] `POST /api/auth/refresh`: refreshes JWT (extends expiry) if current token is valid
+  - [x] `POST /api/auth/logout`: client-side token discard (stateless — `token_version` increment is handled by PIN change/deactivation)
 
 ---
 
@@ -810,7 +810,7 @@ Both engineers test together on real hardware:
 
 - [x] `pytest backend/tests/test_seat_service.py` — list, status change, maintenance, WoL triggers, BOOTING → UNREACHABLE watchdog
 - [x] `pytest backend/tests/test_session_service.py` — start (valid/invalid seat status), pause, resume, `recover_active_sessions()`, concurrent start rejection
-- [ ] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
+- [x] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
 - [x] `pytest backend/tests/test_wol_service.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout, boot-all-seats, override, success callback
 - [ ] Agent: `npm test` — unit tests for `session_store.ts` (persist/recover), `ws/client.ts` (backoff, reconnect, SYNC payload), `ipc/handlers.ts` (screenshot resize)
 - [ ] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation), `SeatCard` (status colours, elapsed timer), `Login` (error/lockout states)

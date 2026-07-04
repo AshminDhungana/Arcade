@@ -39,3 +39,12 @@ class StaffResponse(StaffBase, BaseResponseSchema):
 
     id: str
     updated_at: AwareDatetime
+
+
+class TokenResponse(BaseSchema):
+    """Response body for successful authentication."""
+
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # seconds
+    staff: StaffResponse
