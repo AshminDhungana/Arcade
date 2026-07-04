@@ -721,18 +721,21 @@ Both engineers test together on real hardware:
 
 ### Epic 2.2: Electron Agent (ENG-B)
 
-#### Feature 2.2.1: Agent Platform Abstraction Layer
+#### Feature 2.2.1: Agent Platform Abstraction Layer ✅ _Complete_
 
-- [ ] **Task: Create `PlatformService` interface and Windows implementation**
-  - [ ] Define `IPlatformService` interface in `agent/src/main/platform/types.ts`: `showKioskOverlay()`, `hideKioskOverlay()`, `restartPC()`, `shutdownPC()`, `captureScreenshot()`, `enableAutoStart()`, `disableAutoStart()`, `getSystemInfo()`
-  - [ ] Implement `agent/src/main/platform/windows.ts`:
-    - `showKioskOverlay()` / `hideKioskOverlay()`: `win.setKiosk(true/false)` + `win.setAlwaysOnTop(true/false, 'screen-saver')`
-    - `restartPC()`: `exec('shutdown /r /t 0')`
-    - `shutdownPC()`: `exec('shutdown /s /t 0')`
-    - `captureScreenshot()`: `desktopCapturer.getSources({types: ['screen']})` → JPEG at 80% quality, max 1280×720 (use `sharp` for resizing)
-    - `enableAutoStart()` / `disableAutoStart()`: registry `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-    - Block keyboard shortcuts: intercept `Alt+F4`, `Ctrl+P`, `F12`, `Ctrl+Shift+I`, `Alt+Shift+I` in `webContents.on('before-input-event')`
-  - [ ] Factory: `getPlatformService(): IPlatformService` — detects OS via `process.platform`
+- [x] **Task: Create `PlatformService` interface and Windows implementation**
+  - [x] Define `IPlatformService` interface in `agent/src/main/platform/types.ts`: `showKioskOverlay()`, `hideKioskOverlay()`, `updateTimer()`, `sendAnnouncement()`, `restartPC()`, `shutdownPC()`, `captureScreenshot()`, `enableAutoStart()`, `disableAutoStart()`, `getSystemInfo()`
+  - [x] Implement `agent/src/main/platform/windows.ts`:
+    - `showKioskOverlay()` / `hideKioskOverlay()`: `BrowserWindow` with `kiosk: true`, `alwaysOnTop: true`, `frame: false`, `closable: false`, `devTools: false`
+    - `restartPC()`: `execAsync('shutdown /r /t 0')`
+    - `shutdownPC()`: `execAsync('shutdown /s /t 0')`
+    - `captureScreenshot()`: `desktopCapturer.getSources({types: ['screen']})` → `sharp` resize to 1280×720 max → JPEG at 80% quality; fallback to raw PNG on sharp failure
+    - `enableAutoStart()` / `disableAutoStart()`: registry `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` via `reg.exe`
+    - Block keyboard shortcuts: `Alt+F4`, `Ctrl+P`, `F12`, `Ctrl+Shift+I`, `Alt+Shift+I` intercepted in `webContents.on('before-input-event')`
+    - Edge-case hardening: `isDestroyed` guard before `hide()`/`destroy()`; screenshot no-sources error; sharp processing fallback
+  - [x] Factory: `getPlatformService(): IPlatformService` — detects OS via `process.platform`; throws on unsupported platform
+  - [x] **Wired into `agent/src/main/index.ts`**: `bootstrap()` calls `getPlatformService()` on app ready
+  - [x] **Tests**: `tests/platform/types.test.ts` (2 passing); `tests/platform/factory.test.ts` (2 passing — OS detection, unsupported platform); `tests/platform/windows.test.ts` (7 passing — method existence, restart/shutdown, screenshot, autostart register/unregister, system info)
 
 #### Feature 2.2.2: Agent WebSocket Client
 

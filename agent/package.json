@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.main.json && electron-builder",
     "start": "tsc -p tsconfig.main.json && electron .",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "vitest"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.19.1",
@@ -17,7 +18,8 @@
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "~6.0.2"
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.9"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",
