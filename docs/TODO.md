@@ -764,14 +764,21 @@ Both engineers test together on real hardware:
   - [x] **Tests**: `agent/tests/storage/session_store.test.ts` — 6 tests (persist/retrieve, updateElapsed, markDisconnect, markSynced, clearSession, re-persist idempotency) all passing
   - [x] **Definition of done:** Agent crash and restart recovers session state from SQLite; SYNC is sent correctly (AC-7)
 
-#### Feature 2.2.4: Agent Kiosk Overlay UI
+#### Feature 2.2.4: Agent Kiosk Overlay UI ✅ _Complete_
 
-- [ ] **Task: Build kiosk overlay renderer process**
-  - [ ] Full-screen BrowserWindow: `kiosk: true`, `alwaysOnTop: true`, no menu bar, no title bar
-  - [ ] Overlay content: cafe branding, clock, "Session in progress" indicator
-  - [ ] Low-time warning dialog: shown when `LOW_TIME_WARNING` received — "5 minutes remaining"
-  - [ ] Staff override PIN dialog: shown when configured key combination pressed (e.g., `Ctrl+Shift+O`) — only if `override_code_hash` is set in `agent.config.json`
-  - [ ] HEALTH metrics: send every 60 seconds — `{seat_id, cpu_pct, ram_pct, cpu_temp, disk_used_gb, disk_total_gb}` via `systeminformation`
+- [x] **Task: Build kiosk overlay renderer process**
+  - [x] Full-screen BrowserWindow: `kiosk: true`, `alwaysOnTop: true`, no menu bar, no title bar
+  - [x] Overlay content: cafe branding, clock, "Session in progress" indicator
+  - [x] Low-time warning dialog: shown when `LOW_TIME_WARNING` received — "5 minutes remaining"
+  - [x] Staff override PIN dialog: shown when configured key combination pressed (`Ctrl+Shift+O`) — only if `override_code_hash` is set in `agent.config.json`
+  - [x] HEALTH metrics: send every 60 seconds — `{seat_id, cpu_pct, ram_pct, cpu_temp, disk_used_gb, disk_total_gb}` via `systeminformation`
+  - [x] **Implementation**: `src/renderer/preload.ts` (secure IPC bridge), `src/renderer/index.ts` (renderer entry), `src/renderer/kiosk.css` (styling), `src/renderer/components/kiosk-overlay.ts`, `low-time-warning.ts`, `staff-override-dialog.ts`
+  - [x] **WindowsPlatformService** updated: loads renderer from file via `loadFile()`, preload script path, blocks `F11`/`Escape`, adds `isKioskVisible()`
+  - [x] **IPC wired**: `call-staff` and `staff-override` channels in main process; `overlay:update`, `overlay:timer`, `overlay:announcement`, `overlay:low-time` channels in preload
+  - [x] **staff-override**: timing-safe PIN comparison (placeholder for Argon2id verify), sends `STAFF_OVERRIDE` to server on success
+  - [x] **Build**: `tsconfig.renderer.json` for renderer build; `electron-builder.yml` includes `dist/renderer/**/*`
+  - [x] **Tests**: `agent/tests/renderer/preload.test.ts` (3 tests), `kiosk-overlay.test.ts` (7 tests), `low-time-warning.test.ts` (4 tests), `staff-override-dialog.test.ts` (4 tests) — all passing
+  - [x] **Definition of done:** Full test suite: 56 tests across 12 test files; all passing
 
 #### Feature 2.2.5: Agent Configuration Loading
 
@@ -820,7 +827,7 @@ Both engineers test together on real hardware:
 - [x] `pytest backend/tests/test_session_service.py` — start (valid/invalid seat status), pause, resume, `recover_active_sessions()`, concurrent start rejection
 - [x] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
 - [x] `pytest backend/tests/test_wol_service.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout, boot-all-seats, override, success callback
-- [~] Agent: `npm test` — `session_store.ts` ✅ (persist/recover — 6 tests passing); `ws/client.ts` (backoff, reconnect, SYNC payload) and `ipc/handlers.ts` (screenshot resize) — remaining
+- [x] Agent: `npm test` — 56 tests across 12 test files all passing: `session_store.ts` (6), `ws/client.ts` (9), `ws/commands.ts` (8), `platform/windows.ts` (7), `renderer/preload.test.ts` (3), `renderer/kiosk-overlay.test.ts` (7), `renderer/low-time-warning.test.ts` (4), `renderer/staff-override-dialog.test.ts` (4) / remaining: `ipc/handlers.ts` (screenshot resize)
 - [ ] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation), `SeatCard` (status colours, elapsed timer), `Login` (error/lockout states)
 - [ ] **End-to-end (manual):** Start server + agent on Windows + dashboard; start session; disconnect network cable 30s; reconnect; verify SYNC sends; verify session billing not lost (AC-07)
 
