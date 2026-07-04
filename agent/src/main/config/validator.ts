@@ -4,7 +4,7 @@
  * Validates raw `agent.config.json` values and applies defaults.
  */
 
-import type { RawAgentConfig, LoadedAgentConfig } from './types.js';
+import type { LoadedAgentConfig } from './types.js';
 
 export type ValidationResult =
   | { ok: true; config: LoadedAgentConfig }

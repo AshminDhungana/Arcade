@@ -5,6 +5,7 @@ import * as fs from 'node:fs';
 import { getPlatformService } from './platform/index.js';
 import { AgentWebSocketClient } from './ws/client.js';
 import { BetterSqliteSessionStore } from './storage/session_store.js';
+import { loadAgentConfig } from './config/loader.js';
 import type { IPlatformService } from './platform/types.js';
 
 function createWindow(): void {
@@ -23,12 +24,29 @@ async function bootstrap(): Promise<void> {
   platformService = await getPlatformService();
   console.log(`[Agent] Platform service: ${platformService.constructor.name}`);
 
-  // TODO: Replace with actual config loading from agent.config.json (Feature 2.2.5)
-  const config = {
-    server_url: 'ws://localhost:8000',
-    seat_id: 'seat_001',
-    agent_secret: 'replace-me-in-feature-2.2.5',
-  };
+  // Load agent.config.json from the same directory as the executable.
+  // In production it's next to the .exe; in dev we fall back to cwd.
+  const fromExe = path.join(path.dirname(process.execPath), 'agent.config.json');
+  const fromCwd = path.join(process.cwd(), 'agent.config.json');
+  const configPath = fs.existsSync(fromExe) ? fromExe : fromCwd;
+
+  let config;
+  try {
+    config = loadAgentConfig(configPath);
+  } catch (err) {
+    const message = (err as Error).message;
+    console.error('[Agent] Failed to load configuration:', message);
+    if (process.type === 'browser') {
+      const { dialog } = await import('electron');
+      dialog.showErrorBox(
+        'Configuration Error',
+        `Failed to load agent.config.json:\n${message}\n\n` +
+        'Please ensure agent.config.json is in the same directory as the agent executable\n' +
+        'and contains valid server_url, seat_id, and agent_secret values.',
+      );
+    }
+    process.exit(1);
+  }
 
   // Create data directory and initialise the session store
   const dbDir = path.join(os.homedir(), '.arcade-agent');
@@ -58,8 +76,6 @@ async function bootstrap(): Promise<void> {
   ipcMain.on('staff-override', (_event, pin: string) => {
     void wsClient?.triggerStaffOverride(pin);
   });
-
-  // TODO: Feature 2.2.5 -- Config loading from agent.config.json
 }
 
 app.whenReady().then(() => {

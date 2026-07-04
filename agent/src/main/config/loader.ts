@@ -32,7 +32,7 @@ export function loadAgentConfig(configPath: string): LoadedAgentConfig {
   try {
     raw = fs.readFileSync(configPath, 'utf-8');
   } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
+    const code = (err as { code?: string }).code;
     if (code === 'ENOENT') {
       throw new ConfigError(
         `agent.config.json not found at ${configPath}. Run the setup wizard.`,
