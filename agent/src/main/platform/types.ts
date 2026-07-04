@@ -96,6 +96,9 @@ export interface IPlatformService {
    */
   sendAnnouncement(text: string, durationMs: number): void;
 
+  /** Return whether the kiosk overlay is currently visible. */
+  isKioskVisible(): boolean;
+
   /** Restart the PC immediately. */
   restartPC(): Promise<void>;
 

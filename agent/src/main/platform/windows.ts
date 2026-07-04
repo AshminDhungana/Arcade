@@ -1,3 +1,5 @@
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { BrowserWindow, desktopCapturer } from 'electron';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -11,12 +13,16 @@ const execAsync = promisify(exec);
 const AUTO_START_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
 const APP_NAME = 'ArcadeAgent';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const BLOCKED_SHORTCUTS = [
   'Alt+F4',
   'Alt+Shift+I',
   'Control+Shift+I',
   'Control+P',
   'F12',
+  'F11',
+  'Escape',
 ];
 
 export class WindowsPlatformService implements IPlatformService {
@@ -28,6 +34,8 @@ export class WindowsPlatformService implements IPlatformService {
       this.kioskWindow.webContents.send('overlay:update', content);
       return;
     }
+
+    const preloadPath = path.join(__dirname, '../../renderer/preload.js');
 
     this.kioskWindow = new BrowserWindow({
       fullscreen: true,
@@ -41,7 +49,13 @@ export class WindowsPlatformService implements IPlatformService {
         contextIsolation: true,
         sandbox: true,
         nodeIntegration: false,
+        preload: preloadPath,
       },
+    });
+
+    // Block right-click context menu
+    this.kioskWindow.webContents.on('context-menu', (event) => {
+      event.preventDefault();
     });
 
     this.kioskWindow.webContents.on('before-input-event', (event, input) => {
@@ -64,10 +78,12 @@ export class WindowsPlatformService implements IPlatformService {
       this.kioskWindow = null;
     });
 
-    const initialHtml = this.renderKioskHtml(content);
-    this.kioskWindow.loadURL(
-      `data:text/html,${encodeURIComponent(initialHtml)}`,
-    );
+    const htmlPath = path.join(__dirname, '../../renderer/index.html');
+    this.kioskWindow.loadFile(htmlPath);
+
+    this.kioskWindow.webContents.once('did-finish-load', () => {
+      this.kioskWindow?.webContents.send('overlay:update', content);
+    });
   }
 
   hideKioskOverlay(): void {
@@ -76,6 +92,14 @@ export class WindowsPlatformService implements IPlatformService {
       this.kioskWindow.destroy();
     }
     this.kioskWindow = null;
+  }
+
+  isKioskVisible(): boolean {
+    return Boolean(
+      this.kioskWindow &&
+        !this.kioskWindow.isDestroyed() &&
+        this.kioskWindow.isVisible(),
+    );
   }
 
   updateTimer(timeString: string): void {

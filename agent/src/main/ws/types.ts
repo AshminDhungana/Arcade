@@ -96,7 +96,7 @@ export interface ServerCommandPayloads {
 // ---------------------------------------------------------------------------
 
 /** All message types the agent can send to the server. */
-export type AgentMessageType = 'REGISTER' | 'SYNC' | 'HEALTH' | 'STAFF_OVERRIDE' | 'PING' | 'SCREENSHOT_RESULT';
+export type AgentMessageType = 'REGISTER' | 'SYNC' | 'HEALTH' | 'STAFF_OVERRIDE' | 'STAFF_ALERT' | 'PING' | 'SCREENSHOT_RESULT';
 
 /** Payload shapes for each agent message. */
 export interface AgentMessagePayloads {
@@ -128,6 +128,10 @@ export interface AgentMessagePayloads {
     verified: boolean;
   };
   PING: Record<string, never>;
+  STAFF_ALERT: {
+    seat_id: string;
+    timestamp: string;
+  };
   SCREENSHOT_RESULT: {
     seat_id: string;
     image_base64: string;

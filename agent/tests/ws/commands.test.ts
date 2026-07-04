@@ -12,6 +12,7 @@ describe('Command Handlers', () => {
       hideKioskOverlay: vi.fn(),
       updateTimer: vi.fn(),
       sendAnnouncement: vi.fn(),
+      isKioskVisible: vi.fn().mockReturnValue(false),
       restartPC: vi.fn().mockResolvedValue(undefined),
       shutdownPC: vi.fn().mockResolvedValue(undefined),
       captureScreenshot: vi.fn().mockResolvedValue(Buffer.from('fake-jpg')),

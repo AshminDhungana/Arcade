@@ -68,9 +68,18 @@ export function createCommandHandlers(
     },
 
     LOW_TIME_WARNING(_payload) {
+      const { minutes_remaining } = _payload;
+      // Show an announcement banner (legacy text toast)
       platform.sendAnnouncement(
-        `Warning: ${_payload.minutes_remaining} minutes remaining`, 10_000,
+        `Warning: ${minutes_remaining} minutes remaining`, 10_000,
       );
+      // Also trigger the special low-time modal in the renderer
+      if ('kioskWindow' in platform) {
+        const kWin = (platform as unknown as { kioskWindow?: { webContents: { send: (channel: string, data: unknown) => void } } }).kioskWindow;
+        if (kWin?.webContents) {
+          kWin.webContents.send('overlay:low-time', { minutes: minutes_remaining });
+        }
+      }
     },
 
     RESET_OVERRIDE(_payload) {

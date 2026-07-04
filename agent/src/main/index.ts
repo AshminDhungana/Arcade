@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import * as fs from 'node:fs';
@@ -43,7 +43,22 @@ async function bootstrap(): Promise<void> {
   wsClient.connect();
   console.log('[Agent] WebSocket client connecting...');
 
-  // TODO: Feature 2.2.4 -- Kiosk overlay UI (renderer process)
+  // -----------------------------------------------------------------
+  // IPC handlers: renderer → main
+  // -----------------------------------------------------------------
+
+  ipcMain.on('call-staff', () => {
+    // Forward to server; no-op if offline (logged by ws client)
+    wsClient?.send('STAFF_ALERT', {
+      seat_id: config.seat_id,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  ipcMain.on('staff-override', (_event, pin: string) => {
+    void wsClient?.triggerStaffOverride(pin);
+  });
+
   // TODO: Feature 2.2.5 -- Config loading from agent.config.json
 }
 

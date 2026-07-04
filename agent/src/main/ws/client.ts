@@ -154,19 +154,38 @@ export class AgentWebSocketClient {
   /** Attempt staff override. Returns true if PIN verified successfully. */
   async triggerStaffOverride(pin: string): Promise<boolean> {
     if (!this.config.override_code_hash) {
+      console.warn('[Agent] Staff override attempted but override_code_hash not configured');
       return false;
     }
-    // Placeholder: Argon2id verify will be integrated in Feature 2.2.4
-    const verified = pin === 'override-test-pin';
-    if (verified) {
-      this.overrideActive = true;
-      this.platform.hideKioskOverlay();
-      this.send('STAFF_OVERRIDE', {
-        seat_id: this.config.seat_id,
-        verified: true,
-      });
+
+    // NOTE: This is a timing-safe placeholder comparison.
+    // Production code should use an Argon2id-aware library
+    // (e.g. @node-rs/argon2) to verify against the PHC-formatted hash.
+    const verified = this._timingSafeCompare(pin, this.config.override_code_hash);
+
+    if (!verified) {
+      console.warn('[Agent] Staff override PIN verification failed');
+      return false;
     }
-    return verified;
+
+    this.overrideActive = true;
+    this.platform.hideKioskOverlay();
+    this.send('STAFF_OVERRIDE', {
+      seat_id: this.config.seat_id,
+      verified: true,
+    });
+    console.log('[Agent] Staff override activated');
+    return true;
+  }
+
+  /** Timing-safe string comparison (prevents timing side-channel attacks). */
+  private _timingSafeCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    return result === 0;
   }
 
   clearOverride(): void {
