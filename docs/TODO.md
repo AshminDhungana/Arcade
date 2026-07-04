@@ -780,14 +780,16 @@ Both engineers test together on real hardware:
   - [x] **Tests**: `agent/tests/renderer/preload.test.ts` (3 tests), `kiosk-overlay.test.ts` (7 tests), `low-time-warning.test.ts` (4 tests), `staff-override-dialog.test.ts` (4 tests) — all passing
   - [x] **Definition of done:** Full test suite: 56 tests across 12 test files; all passing
 
-#### Feature 2.2.5: Agent Configuration Loading
+#### Feature 2.2.5: Agent Configuration Loading ✅ _Complete_
 
-- [ ] **Task: Load and validate `agent.config.json`**
-  - [ ] Read `agent.config.json` from the same directory as the agent executable
-  - [ ] Fields: `server_url`, `seat_id`, `agent_secret`, `override_code_hash` (nullable)
-  - [ ] Validate all required fields present; exit with clear error if missing
-  - [ ] `agent.config.json` must be `chmod 600` on Linux/macOS — document in `docs/agent-setup.md`
-  - [ ] `agent.config.json` is in `.gitignore`
+- [x] **Task: Load and validate `agent.config.json`**
+  - [x] Read `agent.config.json` from the same directory as the agent executable; fall back to cwd in dev
+  - [x] Fields: `server_url`, `seat_id`, `agent_secret`, `override_code_hash` (nullable)
+  - [x] Validate all required fields present; exit with clear error via `ConfigError` dialog if missing
+  - [x] `agent.config.json` must be `chmod 600` on Linux/macOS — documented in `docs/agent-setup.md`
+  - [x] `agent.config.json` is in `.gitignore`
+  - [x] **Tests**: `agent/tests/config/validator.test.ts` (10 tests), `agent/tests/config/loader.test.ts` (5 tests) — all passing
+  - [x] **Definition of done:** 71 tests across 14 test files; all passing
 
 ---
 
