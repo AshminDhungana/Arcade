@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 
@@ -9,20 +10,16 @@ const createWrapper = () => {
   });
   // eslint-disable-next-line react/display-name
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <BrowserRouter>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    </BrowserRouter>
   );
 };
 
 describe('App', () => {
-  it('shows connection status indicator', () => {
+  it('renders login page at /login', () => {
+    window.history.pushState({}, '', '/login');
     render(<App />, { wrapper: createWrapper() });
-    expect(screen.getByLabelText(/connection status/i)).toBeInTheDocument();
-  });
-
-  it('shows the dashboard title', () => {
-    render(<App />, { wrapper: createWrapper() });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Arcade Dashboard',
-    );
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 });

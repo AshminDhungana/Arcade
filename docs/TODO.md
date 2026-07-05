@@ -813,15 +813,15 @@ Both engineers test together on real hardware:
   - [x] `SeatStatusBadge`, `ElapsedTimer` subcomponents
   - [x] **Definition of done:** Dashboard shows all seats; status updates arrive < 1 second after server change (AC-01, NFR-PERF-001)
 
-#### Feature 2.3.3: Login Page
+#### Feature 2.3.3: Login Page ✅ _Complete_
 
-- [ ] **Task: Implement `Login.tsx` page**
-  - [ ] Staff ID field + PIN field (masked)
-  - [ ] `POST /api/auth/login` on submit; store JWT in memory (`zustand` auth store) — **not localStorage** (in-memory only, reset on page refresh requires re-login)
-  - [ ] Wrong PIN: show error message, increment failure counter
-  - [ ] 5th failure: show lockout message with remaining time
-  - [ ] Success: redirect to Dashboard
-  - [ ] **Definition of done:** Login flow works; locked-out account shows correct message; valid JWT stored in app state
+- [x] **Task: Implement `Login.tsx` page**
+  - [x] Staff ID field + PIN field (masked)
+  - [x] `POST /api/auth/login` on submit; store JWT in memory (`zustand` auth store) — **not localStorage** (in-memory only, reset on page refresh requires re-login)
+  - [x] Wrong PIN: show error message, increment failure counter
+  - [x] 5th failure: show lockout message with remaining time
+  - [x] Success: redirect to Dashboard
+  - [x] **Definition of done:** Login flow works; locked-out account shows correct message; valid JWT stored in app state
 
 ### Testing Requirements (Phase 2)
 
