@@ -795,14 +795,14 @@ Both engineers test together on real hardware:
 
 ### Epic 2.3: React Dashboard — Seat Grid (ENG-B)
 
-#### Feature 2.3.1: Dashboard WebSocket Hook
+#### Feature 2.3.1: Dashboard WebSocket Hook ✅
 
-- [ ] **Task: Implement `useWebSocket` hook (`frontend/src/hooks/useWebSocket.ts`)**
-  - [ ] Connect to `ws://server/ws/dashboard`
-  - [ ] Exponential backoff reconnection (mirrors agent behavior)
-  - [ ] On `seat_updated` event: invalidate React Query cache for seats
-  - [ ] On `health_update` event: update health metrics store (Zustand)
-  - [ ] On disconnect: show "Connection lost" indicator; attempt reconnect
+- [x] **Task: Implement `useWebSocket` hook (`frontend/src/hooks/useWebSocket.ts`)**
+  - [x] Connect to `ws://server/ws/dashboard`
+  - [x] Exponential backoff reconnection (mirrors agent behavior)
+  - [x] On `seat_updated` event: invalidate React Query cache for seats
+  - [x] On `health_update` event: update health metrics store (Zustand)
+  - [x] On disconnect: show "Connection lost" indicator; attempt reconnect
 
 #### Feature 2.3.2: Seat Grid Components
 
@@ -830,7 +830,7 @@ Both engineers test together on real hardware:
 - [x] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
 - [x] `pytest backend/tests/test_wol_service.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout, boot-all-seats, override, success callback
 - [x] Agent: `npm test` — 56 tests across 12 test files all passing: `session_store.ts` (6), `ws/client.ts` (9), `ws/commands.ts` (8), `platform/windows.ts` (7), `renderer/preload.test.ts` (3), `renderer/kiosk-overlay.test.ts` (7), `renderer/low-time-warning.test.ts` (4), `renderer/staff-override-dialog.test.ts` (4) / remaining: `ipc/handlers.ts` (screenshot resize)
-- [ ] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation), `SeatCard` (status colours, elapsed timer), `Login` (error/lockout states)
+- [~] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation) ✅ — `SeatCard` (status colours, elapsed timer), `Login` (error/lockout states)
 - [ ] **End-to-end (manual):** Start server + agent on Windows + dashboard; start session; disconnect network cable 30s; reconnect; verify SYNC sends; verify session billing not lost (AC-07)
 
 ### Documentation Requirements (Phase 2)
@@ -1468,7 +1468,7 @@ Comprehensive automated test coverage, end-to-end testing of all 23 SRS acceptan
   - [ ] `POSPanel.test.tsx` — greyed-out when `is_available=false`; click calls API
   - [ ] `MemberSearch.test.tsx` — debounced search; member card renders
   - [ ] `Login.test.tsx` — wrong PIN shows error; 5th failure shows lockout; success stores token
-  - [ ] `useWebSocket.test.ts` — reconnect behaviour; `seat_updated` invalidates cache
+  - [x] `useWebSocket.test.tsx` — reconnect behaviour; `seat_updated` invalidates cache — **9 tests in 4 test files passing**
 
 - [ ] **Task: Cross-browser compatibility testing** (manual)
   - [ ] Chrome (latest), Firefox (latest), Safari (macOS/iOS) — all pages render
