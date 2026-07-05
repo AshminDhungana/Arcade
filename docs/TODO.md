@@ -806,12 +806,12 @@ Both engineers test together on real hardware:
 
 #### Feature 2.3.2: Seat Grid Components
 
-- [ ] **Task: Implement `SeatGrid` and `SeatCard` components**
-  - [ ] `SeatGrid`: queries `GET /api/seats`; displays all seats in a responsive grid; subscribes to WebSocket updates
-  - [ ] `SeatCard`: displays seat name, status (colour-coded: AVAILABLE=green, IN_USE=orange, PAUSED=yellow, RESERVED=blue, MAINTENANCE=grey, BOOTING=blue-pulse, UNREACHABLE=red), elapsed time (live ticking for IN_USE)
-  - [ ] Click on seat → modal with actions: Start Session, Pause/Resume, Checkout, Set Maintenance, WoL, View Health
-  - [ ] `SeatStatusBadge`, `ElapsedTimer` subcomponents
-  - [ ] **Definition of done:** Dashboard shows all seats; status updates arrive < 1 second after server change (AC-01, NFR-PERF-001)
+- [x] **Task: Implement `SeatGrid` and `SeatCard` components**
+  - [x] `SeatGrid`: queries `GET /api/seats`; displays all seats in a responsive grid; subscribes to WebSocket updates
+  - [x] `SeatCard`: displays seat name, status (colour-coded: AVAILABLE=green, IN_USE=orange, PAUSED=yellow, RESERVED=blue, MAINTENANCE=grey, BOOTING=blue-pulse, UNREACHABLE=red), elapsed time (live ticking for IN_USE)
+  - [x] Click on seat → modal with actions: Start Session, Pause/Resume, Checkout, Set Maintenance, WoL, View Health
+  - [x] `SeatStatusBadge`, `ElapsedTimer` subcomponents
+  - [x] **Definition of done:** Dashboard shows all seats; status updates arrive < 1 second after server change (AC-01, NFR-PERF-001)
 
 #### Feature 2.3.3: Login Page
 
@@ -830,7 +830,7 @@ Both engineers test together on real hardware:
 - [x] `pytest backend/tests/test_auth.py` — login success, wrong PIN, lockout after 5 failures, `token_version` invalidation
 - [x] `pytest backend/tests/test_wol_service.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout, boot-all-seats, override, success callback
 - [x] Agent: `npm test` — 56 tests across 12 test files all passing: `session_store.ts` (6), `ws/client.ts` (9), `ws/commands.ts` (8), `platform/windows.ts` (7), `renderer/preload.test.ts` (3), `renderer/kiosk-overlay.test.ts` (7), `renderer/low-time-warning.test.ts` (4), `renderer/staff-override-dialog.test.ts` (4) / remaining: `ipc/handlers.ts` (screenshot resize)
-- [~] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation) ✅ — `SeatCard` (status colours, elapsed timer), `Login` (error/lockout states)
+- [x] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation) ✅ — `SeatCard` (status colours, elapsed timer) ✅ — `Login` (error/lockout states)
 - [ ] **End-to-end (manual):** Start server + agent on Windows + dashboard; start session; disconnect network cable 30s; reconnect; verify SYNC sends; verify session billing not lost (AC-07)
 
 ### Documentation Requirements (Phase 2)
