@@ -1,4 +1,5 @@
 import type { Seat } from '@/types/seat';
+import type { ReactNode } from 'react';
 import { Pause, Play, Power, Settings, ShoppingCart, Heart } from 'lucide-react';
 
 interface SeatActionModalProps {
@@ -59,7 +60,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
 }
 
 interface ActionButtonProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   variant: 'primary' | 'secondary' | 'emerald';
   onClick?: () => void;

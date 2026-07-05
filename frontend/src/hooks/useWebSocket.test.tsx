@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { useWebSocket } from './useWebSocket';
 
 // ---------------------------------------------------------------------------
@@ -64,8 +65,7 @@ vi.stubGlobal('WebSocket', MockWebSocket);
 // ---------------------------------------------------------------------------
 
 const createWrapper = (client: QueryClient) =>
-  // eslint-disable-next-line react/display-name
-  function Wrapper({ children }: { children: React.ReactNode }) {
+  function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   };
 

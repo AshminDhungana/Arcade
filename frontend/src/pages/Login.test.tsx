@@ -17,7 +17,6 @@ vi.mock('@/api/auth', () => ({
     }
   },
 }));
-// eslint-disable-next-line import/first
 import { login, AuthError as MockedAuthError } from '@/api/auth';
 
 // Mock the auth store

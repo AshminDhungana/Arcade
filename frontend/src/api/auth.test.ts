@@ -17,7 +17,7 @@ describe('login()', () => {
       expires_in: 28800,
       staff: { id: 'STAFF-001', name: 'Alice', role: 'ADMIN', is_active: true },
     };
-    global.fetch = vi.fn(() =>
+    window.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         status: 201,
@@ -30,7 +30,7 @@ describe('login()', () => {
     expect(result.staff.name).toBe('Alice');
 
     // Verify the correct endpoint and body were used
-    expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
+    expect(window.fetch).toHaveBeenCalledWith('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ staff_id: 'STAFF-001', pin: '1111' }),
@@ -38,7 +38,7 @@ describe('login()', () => {
   });
 
   it('throws AuthError on 401 (wrong PIN)', async () => {
-    global.fetch = vi.fn(() =>
+    window.fetch = vi.fn(() =>
       Promise.resolve({
         ok: false,
         status: 401,
@@ -51,7 +51,7 @@ describe('login()', () => {
   });
 
   it('throws AuthError with retryAfter on 429 (lockout)', async () => {
-    global.fetch = vi.fn(() =>
+    window.fetch = vi.fn(() =>
       Promise.resolve({
         ok: false,
         status: 429,
@@ -71,7 +71,7 @@ describe('login()', () => {
   });
 
   it('throws AuthError with null retryAfter when no Retry-After header on 429', async () => {
-    global.fetch = vi.fn(() =>
+    window.fetch = vi.fn(() =>
       Promise.resolve({
         ok: false,
         status: 429,

@@ -1,14 +1,26 @@
-// ESLint flat config (ESLint 9 dropped the legacy .eslintrc.json format the
-// plan was written against). This mirrors the plan's Task 7 intent:
-//   parser @typescript-eslint/parser, eslint:recommended,
-//   @typescript-eslint/recommended, react-hooks rules, prettier compat,
-//   no-unused-vars (warn, argsIgnorePattern ^_).
 import js from '@eslint/js';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import reactHooks from 'eslint-plugin-react-hooks';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
+
+/**
+ * Test globals: describe, it, expect, vi, etc. (Vitest + @testing-library/jest-dom)
+ * plus the Node 'global' object used by some test files.
+ */
+const testGlobals = {
+  ...globals.browser,
+  ...globals.node,
+  describe: 'readonly',
+  it: 'readonly',
+  expect: 'readonly',
+  vi: 'readonly',
+  beforeEach: 'readonly',
+  afterEach: 'readonly',
+  beforeAll: 'readonly',
+  afterAll: 'readonly',
+};
 
 export default [
   { ignores: ['dist/**', 'node_modules/**'] },
@@ -35,6 +47,16 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-unused-vars': 'off', // handled by @typescript-eslint rule
+      // TypeScript handles these checks itself; ESLint's JS rules are redundant
+      'no-undef': 'off',
+      'no-redeclare': 'off',
+    },
+  },
+  // Test files need Node.js globals (global, etc.) in addition to browser ones
+  {
+    files: ['src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
+    languageOptions: {
+      globals: testGlobals,
     },
   },
   prettier,

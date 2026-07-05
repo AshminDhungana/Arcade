@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { login, AuthError } from '@/api/auth';
@@ -51,7 +51,7 @@ export default function Login() {
     [clearCountdown],
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!staffId.trim() || !pin.trim()) return;
 

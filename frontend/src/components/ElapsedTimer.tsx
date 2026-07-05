@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface ElapsedTimerProps {
   /** ISO string of when the session started. */
@@ -19,9 +19,9 @@ function formatElapsed(totalSeconds: number): string {
 export function ElapsedTimer({ startedAt, isRunning = true }: ElapsedTimerProps) {
   const start = new Date(startedAt).getTime();
 
-  function calculateElapsed(): number {
+  const calculateElapsed = useCallback(() => {
     return Math.max(0, Math.floor((Date.now() - start) / 1000));
-  }
+  }, [start]);
 
   const [elapsed, setElapsed] = useState<number>(calculateElapsed);
 
@@ -38,7 +38,7 @@ export function ElapsedTimer({ startedAt, isRunning = true }: ElapsedTimerProps)
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [isRunning, startedAt, start]);
+  }, [isRunning, startedAt, start, calculateElapsed]);
 
   return (
     <span aria-label="Elapsed time" className="font-mono text-lg" title="Elapsed session time">

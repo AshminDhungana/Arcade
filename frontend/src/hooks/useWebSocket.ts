@@ -205,7 +205,6 @@ function handleMessage(
 
     case 'announcement': {
       const payload = message.payload as AnnouncementPayload;
-      // eslint-disable-next-line no-console
       console.info('Announcement:', payload.message);
       // Future: integrate speaker or toast notification
       break;
@@ -213,7 +212,6 @@ function handleMessage(
 
     case 'alert': {
       const payload = message.payload as AlertPayload;
-      // eslint-disable-next-line no-console
       console.warn('Alert:', payload.type, payload.message, payload.seat_id);
       // Future: display alert banner in UI
       break;
