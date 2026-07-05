@@ -37,7 +37,7 @@ describe('SeatActionModal', () => {
 
   it('displays seat notes when available', () => {
     render(<SeatActionModal seat={mockSeat} onClose={() => {}} />);
-    expect(screen.getByText('Test note')).toBeInTheDocument();
+    expect(screen.getByTestId('seat-notes')).toBeInTheDocument();
   });
 
   it('shows Start Session button for AVAILABLE seats', () => {

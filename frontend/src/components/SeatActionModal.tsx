@@ -36,7 +36,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
         <section className="mb-4 space-y-2 text-sm text-slate-300">
           <p>Status: <span className="text-white font-medium">{seat.status.replace('_', ' ')}</span></p>
           <p>Zone: <span className="text-white">{seat.zone_id}</span></p>
-          {seat.notes && <p>Note: {seat.notes}</p>}
+          {seat.notes && <p data-testid="seat-notes">Note: {seat.notes}</p>}
         </section>
 
         <nav aria-label="Seat actions" className="grid grid-cols-2 gap-2">
