@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0–2 Complete · Phase 3 In Progress (Feature 3.1.2 done)
+**Status:** Phase 0–2 Complete · Phase 3 In Progress (Feature 3.1.3 done)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -900,7 +900,7 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
     2. ~~Calculate elapsed: `(now - started_at) - total_paused_seconds`~~ ✅
     3. Load all POS items for session — _deferred to Feature 3.1.4_
     4. ~~Calculate time charge via `calculate_time_charge()`~~ ✅
-    5. Apply package drawdown (Feature 3.1.3) — _deferred_
+    5. ~~Apply package drawdown (Feature 3.1.3)~~ ✅
     6. Apply promotion discount (locked `promotion_id` from session) — _deferred to Feature 4.1_
     7. Apply member loyalty discount (if member attached, based on `tier`) — _deferred to Feature 4.1_
     8. Sum POS item totals — _deferred to Feature 3.1.4_
@@ -918,17 +918,18 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
   - [x] `POST /api/sessions/{id}/checkout` route (Cashier auth)
   - [x] **Definition of done:** AC-03 satisfied; checkout response < 2s even if printer is slow
 
-#### Feature 3.1.3: Package Drawdown
+#### Feature 3.1.3: Package Drawdown ✅ _Complete_
 
-- [ ] **Task: Integrate package entitlement into session start and checkout**
-  - [ ] In `session_service.start_session()`: if member attached, call `package_service.get_active_entitlement(member_id)` and store `package_entitlement_id` in session (FR-BILL-004)
-  - [ ] In `billing_service.checkout()`: if `package_entitlement_id` set:
+- [x] **Task: Integrate package entitlement into session start and checkout**
+  - [x] In `session_service.start_session()`: if member attached, call `package_repo.get_active_entitlement(member_id)` and store `package_entitlement_id` in session (FR-BILL-004)
+  - [x] In `billing_service.checkout()`: if `package_entitlement_id` set:
     - Calculate minutes used: `math.ceil(elapsed_seconds / 60)`
     - Call `package_repo.drawdown_minutes(entitlement_id, minutes_used)` — uses `UPDATE ... WHERE remaining_minutes >= ?` for atomicity (FR-BILL-010, R-06 mitigation)
     - If drawdown fails (insufficient minutes): calculate overflow (remaining package minutes + per-minute for rest)
-    - Set `package_credit_used_paise` line item in invoice
-  - [ ] Send `LOW_TIME_WARNING` when package ≤ 5 minutes remaining (FR-SES-007)
-  - [ ] **Definition of done:** AC-11 — member with 2-hour package checks out after 2.5 hours; first 2 hours from package, last 30 minutes billed per-minute
+    - Set `package_credit_used_paise` on invoice; create `PACKAGE_CREDIT` and `TIME_CHARGE` line items
+  - [x] Exhaustion handling: when `remaining_minutes == 0`, set `EntitlementStatus.EXHAUSTED`
+  - [ ] Send `LOW_TIME_WARNING` when package ≤ 5 minutes remaining (FR-SES-007) — _deferred to agent/WS implementation_
+  - [x] **Definition of done:** AC-11 — member with 2-hour package checks out after 2.5 hours; first 2 hours from package, last 30 minutes billed per-minute
 
 #### Feature 3.1.4: POS and Inventory Services
 
@@ -978,7 +979,9 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
 
 ### Testing Requirements (Phase 3)
 
-- [ ] `pytest backend/tests/test_billing.py` — per-minute, flat-hourly, time-block, peak/off-peak; package drawdown; overflow billing; promotion; loyalty discount; all amounts integer arithmetic; total never negative
+- [x] `pytest backend/tests/test_billing_service.py` — per-minute, flat-hourly, time-block pricing; `resolve_rate`; integer arithmetic (NFR-DATA-002)
+- [x] `pytest backend/tests/test_package_drawdown.py` — full drawdown, overflow billing, partial exhaust, exhaustion status; all amounts integer arithmetic; total never negative
+- [ ] `pytest backend/tests/test_promotion.py` — promotion discount, loyalty discount — _deferred to Feature 4.1_
 - [ ] `pytest backend/tests/test_pos.py` — add item, stock decrement, low-stock alert, zero-stock lockout, remove item, restock
 - [ ] `pytest backend/tests/test_checkout.py` — full end-to-end checkout, invoice line items, audit log entry, wallet deduction, loyalty points addition, PDF endpoint returns HTML
 - [ ] `pytest backend/tests/test_print.py` — mock printer; correct ESC/POS format; async non-blocking (checkout returns within 100ms with printer mock that sleeps 2s)
