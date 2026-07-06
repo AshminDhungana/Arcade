@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.ws_manager import AgentOfflineError
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, Invoice, SeatStatus, SessionStatus
-from backend.models._enums import PaymentMethod, PricingModel
+from backend.models._enums import InvoiceLineItemType, PaymentMethod, PricingModel
 from backend.models.staff import Staff
 
 if TYPE_CHECKING:
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 import backend.repositories.audit_repo as audit_repo
 import backend.repositories.invoice_repo as invoice_repo
+import backend.repositories.package_repo as package_repo
 import backend.repositories.seat_repo as seat_repo
 import backend.repositories.session_repo as session_repo
 import backend.repositories.zone_repo as zone_repo
@@ -45,6 +46,19 @@ class LockedRate:
     rate_paise: int
     pricing_model: PricingModel
     block_minutes: int | None = None
+
+
+def _per_minute_rate(locked_rate: LockedRate) -> int:
+    """Return the per-minute paise rate for credit display purposes."""
+    model = locked_rate.pricing_model
+    if model == PricingModel.PER_MINUTE:
+        return locked_rate.rate_paise
+    if model == PricingModel.FLAT_HOURLY:
+        return locked_rate.rate_paise // 60
+    if model == PricingModel.TIME_BLOCK:
+        block = locked_rate.block_minutes or 1
+        return locked_rate.rate_paise // block
+    return 0
 
 
 # ------------------------------------------------------------------
@@ -207,24 +221,100 @@ async def checkout_session(
     # 2. Compute elapsed time
     elapsed = _compute_elapsed_seconds(session_obj)
 
-    # 3. Build LockedRate and calculate time charge
+    # 3. Build LockedRate and time charge (+ package drawdown)
     locked = LockedRate(
         rate_paise=session_obj.locked_rate_paise,
         pricing_model=session_obj.locked_pricing_model,
     )
-    time_charge = calculate_time_charge(elapsed, locked)
+
+    # 3b. Package drawdown (Feature 3.1.3)
+    package_credit_paise = 0
+    package_minutes_used = 0
+    entitlement_id = session_obj.package_entitlement_id
+
+    if entitlement_id:
+        elapsed_minutes = math.ceil(elapsed / 60)
+        success = await package_repo.drawdown_minutes(
+            db, entitlement_id, elapsed_minutes
+        )
+        if success:
+            package_minutes_used = elapsed_minutes
+        else:
+            entitlement = await package_repo.get_entitlement_by_id(db, entitlement_id)
+            remaining = entitlement.remaining_minutes if entitlement else 0
+            if remaining > 0:
+                await package_repo.drawdown_minutes(db, entitlement_id, remaining)
+                package_minutes_used = remaining
+
+        # Update exhausted status
+        if package_minutes_used > 0:
+            entitlement = await package_repo.get_entitlement_by_id(db, entitlement_id)
+            # Raw SQL bypassed ORM; force re-read from DB
+            if entitlement is not None:
+                await db.refresh(entitlement)
+            if entitlement and entitlement.remaining_minutes == 0:
+                from backend.models._enums import EntitlementStatus
+
+                entitlement.status = EntitlementStatus.EXHAUSTED
+                db.add(entitlement)
+
+        per_minute = _per_minute_rate(locked)
+        package_credit_paise = package_minutes_used * per_minute
+
+    # 3c. Calculate time charge (overflow only)
+    if package_minutes_used > 0:
+        overflow_seconds = max(0, elapsed - package_minutes_used * 60)
+        time_charge = (
+            calculate_time_charge(overflow_seconds, locked)
+            if overflow_seconds > 0
+            else 0
+        )
+    else:
+        time_charge = calculate_time_charge(elapsed, locked)
 
     # 4. Compute total (POS items are stub for now -- Feature 3.1.4)
     pos_total_paise = 0
-    total_paise = max(0, time_charge + pos_total_paise)
+    discount_paise = session_obj.discount_paise or 0
+    total_paise = max(0, time_charge + pos_total_paise - discount_paise)
 
-    # 5. Create Invoice
+    # 5. Create Invoice with package credit
     invoice = await invoice_repo.create(
         db,
         session_id=session_obj.id,
+        member_id=session_obj.member_id,
+        shift_id=session_obj.shift_id,
+        time_charge_paise=time_charge,
+        package_credit_used_paise=package_credit_paise,
+        discount_paise=discount_paise,
+        pos_total_paise=pos_total_paise,
         total_paise=total_paise,
         payment_method=payment_method,
     )
+
+    # 5b. Create invoice line items
+    if package_credit_paise > 0:
+        per_minute = _per_minute_rate(locked)
+        await invoice_repo.create_line_item(
+            db,
+            invoice_id=invoice.id,
+            type=InvoiceLineItemType.PACKAGE_CREDIT,
+            description="Package time credit",
+            quantity=package_minutes_used,
+            unit_price_paise=per_minute,
+            total_paise=package_credit_paise,
+        )
+    if time_charge > 0:
+        per_minute = _per_minute_rate(locked)
+        overflow_minutes = max(1, math.ceil((elapsed - package_minutes_used * 60) / 60))
+        await invoice_repo.create_line_item(
+            db,
+            invoice_id=invoice.id,
+            type=InvoiceLineItemType.TIME_CHARGE,
+            description="Time charge",
+            quantity=overflow_minutes,
+            unit_price_paise=per_minute,
+            total_paise=time_charge,
+        )
 
     # 6. Update session -> COMPLETED
     session_obj.status = SessionStatus.COMPLETED
