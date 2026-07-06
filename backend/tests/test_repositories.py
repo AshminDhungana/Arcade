@@ -21,6 +21,7 @@ from backend.models import (
     GamingSession,
     Member,
     MemberPackageEntitlement,
+    PaymentMethod,
     PricingModel,
     Reservation,
     SeatStatus,
@@ -234,7 +235,7 @@ async def test_invoice_repo(db: AsyncSession) -> None:
     await db.flush()
 
     inv = await invoice_repo.create(
-        db, session_id=sess.id, total_paise=500, payment_method="CASH"
+        db, session_id=sess.id, total_paise=500, payment_method=PaymentMethod.CASH
     )
     assert inv.id is not None
 

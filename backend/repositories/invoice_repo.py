@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Invoice
+from backend.models._enums import PaymentMethod
 
 
 async def create(
@@ -21,7 +22,7 @@ async def create(
     discount_paise: int = 0,
     pos_total_paise: int = 0,
     total_paise: int = 0,
-    payment_method: str | None = None,
+    payment_method: PaymentMethod | None = None,
 ) -> Invoice:
     invoice = Invoice(
         session_id=session_id,

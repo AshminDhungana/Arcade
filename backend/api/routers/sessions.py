@@ -20,9 +20,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import require_cashier
 from backend.core.database import get_db
+from backend.models._enums import PaymentMethod
 from backend.models.staff import Staff
+from backend.schemas.invoice import InvoiceResponse
 from backend.schemas.session import SessionResponse
-from backend.services import session_service
+from backend.services import billing_service, session_service
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -37,6 +39,12 @@ class _SessionStartBody(BaseModel):
 
     seat_id: str
     member_id: str | None = None
+
+
+class _CheckoutBody(BaseModel):
+    """Request body for POST /sessions/{id}/checkout."""
+
+    payment_method: PaymentMethod
 
 
 # ---------------------------------------------------------------------------
@@ -91,3 +99,28 @@ async def get_session(
 ) -> SessionResponse:
     """Get a single session by ID (cashier+)."""
     return await session_service.get_session(db, session_id)
+
+
+@router.post(
+    "/{session_id}/checkout",
+    response_model=InvoiceResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def post_checkout(
+    session_id: str,
+    body: _CheckoutBody,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+) -> InvoiceResponse:
+    """Checkout and generate invoice (cashier+).
+
+    Marks the session as COMPLETED, sets seat to AVAILABLE, and returns
+    the generated Invoice.
+    """
+    invoice = await billing_service.checkout_session(
+        db=db,
+        session_id=session_id,
+        payment_method=body.payment_method,
+        staff=staff,
+    )
+    return InvoiceResponse.model_validate(invoice)
