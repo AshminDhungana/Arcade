@@ -128,6 +128,57 @@ async def test_start_session_member_required(
     assert exc_info.value.status_code == 400
 
 
+async def test_start_session_links_package_entitlement(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """start_session links active package entitlement when member has one."""
+    from backend.models import EntitlementStatus, MemberPackageEntitlement
+    from backend.repositories import member_repo, package_repo
+
+    _, seat = zone_and_seat
+    member = await member_repo.create(db, name="Alice", phone="555-0001")
+    pkg = await package_repo.create(
+        db,
+        name="Hour Pack",
+        type="HOUR_BUNDLE",
+        total_minutes=60,
+        price_paise=5000,
+    )
+    entitlement = MemberPackageEntitlement(
+        member_id=member.id,
+        package_id=pkg.id,
+        remaining_minutes=60,
+        status=EntitlementStatus.ACTIVE,
+    )
+    db.add(entitlement)
+    await db.flush()
+    await db.refresh(entitlement)
+
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        result = await start_session(
+            db, seat_id=seat.id, member_id=member.id, staff=staff_member
+        )
+
+    assert result.package_entitlement_id == entitlement.id
+
+
+async def test_start_session_without_member_no_entitlement(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """start_session leaves package_entitlement_id None when no member."""
+    _, seat = zone_and_seat
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        result = await start_session(
+            db, seat_id=seat.id, member_id=None, staff=staff_member
+        )
+
+    assert result.package_entitlement_id is None
+
+
 async def test_start_session_existing_active(
     db: AsyncSession, zone_and_seat, staff_member
 ):
