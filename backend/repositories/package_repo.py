@@ -8,6 +8,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import MemberPackageEntitlement, Package
+from backend.models._enums import EntitlementStatus
 
 
 async def create(
@@ -91,3 +92,31 @@ async def get_entitlement_by_id(
         )
     )
     return result.scalar_one_or_none()
+
+
+async def get_active_entitlement(
+    db: AsyncSession, member_id: str
+) -> MemberPackageEntitlement | None:
+    """Return the oldest ACTIVE entitlement for a member that is not expired.
+
+    Orders by ``purchased_at`` ASC for FIFO consumption.  Prefers entitlements
+    with no expiry (``expires_at IS NULL``), then those with a future expiry.
+    """
+    from datetime import UTC, datetime  # noqa: PLC0415
+
+    # Fetch all ACTIVE entitlements for this member, ordered oldest first
+    result = await db.execute(
+        select(MemberPackageEntitlement)
+        .where(
+            MemberPackageEntitlement.member_id == member_id,
+            MemberPackageEntitlement.status == EntitlementStatus.ACTIVE,
+        )
+        .order_by(MemberPackageEntitlement.purchased_at.asc())
+    )
+    entitlements = result.scalars().all()
+
+    now = datetime.now(UTC)
+    for ent in entitlements:
+        if ent.expires_at is None or ent.expires_at > now:
+            return ent
+    return None

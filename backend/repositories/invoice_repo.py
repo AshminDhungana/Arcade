@@ -8,7 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Invoice
-from backend.models._enums import PaymentMethod
+from backend.models._enums import InvoiceLineItemType, PaymentMethod
+from backend.models.invoice_line_item import InvoiceLineItem
 
 
 async def create(
@@ -70,3 +71,30 @@ async def delete_by_id(db: AsyncSession, invoice_id: str) -> bool:
 async def get_by_session(db: AsyncSession, session_id: str) -> Sequence[Invoice]:
     result = await db.execute(select(Invoice).where(Invoice.session_id == session_id))
     return result.scalars().all()
+
+
+# -- invoice line items --
+
+
+async def create_line_item(
+    db: AsyncSession,
+    *,
+    invoice_id: str,
+    type: InvoiceLineItemType,  # noqa: A002
+    description: str,
+    quantity: int,
+    unit_price_paise: int,
+    total_paise: int,
+) -> InvoiceLineItem:
+    item = InvoiceLineItem(
+        invoice_id=invoice_id,
+        type=type,
+        description=description,
+        quantity=quantity,
+        unit_price_paise=unit_price_paise,
+        total_paise=total_paise,
+    )
+    db.add(item)
+    await db.flush()
+    await db.refresh(item)
+    return item
