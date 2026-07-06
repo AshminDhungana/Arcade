@@ -21,7 +21,7 @@ from backend.models import GamingSession, SeatStatus, SessionStatus
 from backend.models._enums import AuditAction
 from backend.repositories import audit_repo, seat_repo, session_repo
 from backend.schemas.session import SessionResponse
-from backend.services.billing_stub import resolve_rate
+from backend.services.billing_service import resolve_rate
 
 if TYPE_CHECKING:
     from backend.models.staff import Staff
@@ -135,8 +135,8 @@ async def start_session(
     if seat.status not in (SeatStatus.AVAILABLE, SeatStatus.RESERVED):
         raise SeatUnavailableError()
 
-    # 4. Billing rate (stub)
-    locked_rate = await resolve_rate(seat_id=seat_id, member_id=member_id)
+    # 4. Billing rate
+    locked_rate = await resolve_rate(db, seat_id=seat_id, member_id=member_id)
 
     # 5. Create session
     now = datetime.now(UTC)

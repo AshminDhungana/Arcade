@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0 Complete · Phase 1 In Progress (Features 1.1.1–1.1.9 done)
+**Status:** Phase 0–2 Complete · Phase 3 In Progress (Feature 3.1.1 done)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -831,13 +831,14 @@ Both engineers test together on real hardware:
 - [x] `pytest backend/tests/test_wol_service.py` — magic packet construction (6×0xFF + 16×MAC verified), watchdog timeout, boot-all-seats, override, success callback
 - [x] Agent: `npm test` — 56 tests across 12 test files all passing: `session_store.ts` (6), `ws/client.ts` (9), `ws/commands.ts` (8), `platform/windows.ts` (7), `renderer/preload.test.ts` (3), `renderer/kiosk-overlay.test.ts` (7), `renderer/low-time-warning.test.ts` (4), `renderer/staff-override-dialog.test.ts` (4) / remaining: `ipc/handlers.ts` (screenshot resize)
 - [x] Frontend: `npm test` — unit tests for `useWebSocket` (reconnect, cache invalidation) ✅ — `SeatCard` (status colours, elapsed timer) ✅ — `Login` (error/lockout states)
-- [ ] **End-to-end (manual):** Start server + agent on Windows + dashboard; start session; disconnect network cable 30s; reconnect; verify SYNC sends; verify session billing not lost (AC-07)
+- [x] **End-to-end (manual):** Start server + agent on Windows + dashboard; start session; disconnect network cable 30s; reconnect; verify SYNC sends; verify session billing not lost (AC-07)
 
 ### Documentation Requirements (Phase 2)
 
-- [ ] `docs/agent-setup.md`: complete Windows installation, `agent.config.json` setup, auto-start configuration
-- [ ] `docs/api-reference.md`: all seat, session, and auth endpoints with request/response examples
-- [ ] `docs/developer-guide.md`: WebSocket event format reference, `agent.config.json` schema
+
+- [x] `docs/agent-setup.md`: complete Windows installation, `agent.config.json` setup, auto-start configuration
+- [x] `docs/api-reference.md`: all seat, session, and auth endpoints with request/response examples
+- [x] `docs/developer-guide.md`: WebSocket event format reference, `agent.config.json` schema
 
 ---
 
@@ -875,21 +876,21 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
 
 ### Epic 3.1: Billing Engine (ENG-A)
 
-#### Feature 3.1.1: Rate Resolution and Time Charge Calculation
+#### Feature 3.1.1: Rate Resolution and Time Charge Calculation ✅ _Complete_
 
-- [ ] **Task: Implement `BillingService` core (`backend/services/billing_service.py`)**
-  - [ ] `resolve_rate(seat, member, now, db) -> LockedRate`:
+- [x] **Task: Implement `BillingService` core (`backend/services/billing_service.py`)**
+  - [x] `resolve_rate(seat, member, now, db) -> LockedRate`:
     - Get zone pricing from seat's zone
     - Check peak/off-peak schedule from `AppSettings`
     - Check device-type override if present
     - Return `{rate_paise, pricing_model, rate_block_minutes}` — locked at session start (FR-BILL-003)
-  - [ ] `calculate_time_charge(session, elapsed_seconds, locked_rate) -> int` (returns paise):
+  - [x] `calculate_time_charge(session, elapsed_seconds, locked_rate) -> int` (returns paise):
     - `PER_MINUTE`: `math.ceil(elapsed_seconds / 60) * rate_per_minute_paise`
     - `FLAT_HOURLY`: `math.ceil(elapsed_seconds / 3600) * rate_per_hour_paise`
     - `TIME_BLOCK`: `math.ceil(elapsed_seconds / (block_minutes * 60)) * rate_per_block_paise`
     - **All arithmetic is integer — never float** (NFR-DATA-002, FR-BILL-001, R-06 mitigation)
     - Partial blocks always charged in full via `math.ceil()`
-  - [ ] **Definition of done:** All three pricing models produce correct paise amounts for tested scenarios
+  - [x] **Definition of done:** All three pricing models produce correct paise amounts for tested scenarios
 
 #### Feature 3.1.2: Checkout Flow
 
