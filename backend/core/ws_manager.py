@@ -22,6 +22,7 @@ from typing import Any
 from fastapi import WebSocket
 
 from backend.core.config import get_config
+from backend.core.database import AsyncSessionLocal
 
 # ---------------------------------------------------------------------------
 # Constants  (SDD §9.1)
@@ -277,12 +278,51 @@ class WebSocketManager:
     ) -> dict[str, Any]:
         """Handle agent SYNC message after reconnect.
 
-        Phase 2: will fetch session from DB and run full reconciliation.
-        Phase 1: acknowledges the sync and broadcasts to dashboards.
+        Fetches the session from the database, computes server anchor elapsed,
+        reconciles with agent-local elapsed, and returns the chosen value.
         """
         session_id = payload.get("session_id")
-        local_elapsed = payload.get("local_elapsed_seconds", 0.0)
+        local_elapsed = float(payload.get("local_elapsed_seconds", 0.0))
 
+        if not session_id:
+            return {
+                "type": "SYNC_ACK",
+                "session_id": None,
+                "chosen_elapsed_seconds": 0,
+                "error": "Missing session_id in SYNC payload",
+            }
+
+        # --- DB + Reconciliation ---
+        from backend.models import SessionStatus
+        from backend.repositories import session_repo
+
+        chosen_seconds = local_elapsed
+        sae_seconds = 0.0
+        drift = local_elapsed
+        action = "NO_SESSION"
+
+        try:
+            async with AsyncSessionLocal() as db:
+                session = await session_repo.get_by_id(db, session_id)
+                if session is not None and session.status == SessionStatus.ACTIVE:
+                    started_at = session.started_at
+                    total_paused = float(session.total_paused_seconds or 0)
+                    now = datetime.now(UTC)
+                    sae_seconds = server_anchor_elapsed(started_at, total_paused, now)
+                    result = reconcile(sae_seconds, local_elapsed)
+                    chosen_seconds = result.chosen_elapsed_seconds
+                    drift = result.drift
+                    action = result.action
+        except Exception:
+            logger.warning(
+                "Failed to reconcile SYNC for session %s, "
+                "falling back to agent elapsed",
+                session_id,
+                exc_info=True,
+            )
+            chosen_seconds = local_elapsed
+
+        # --- Broadcast to dashboards ---
         await self.broadcast_to_dashboards(
             Msg.SEAT_UPDATED,
             {
@@ -290,12 +330,20 @@ class WebSocketManager:
                 "status": "SYNCED",
                 "session_id": session_id,
                 "local_elapsed_seconds": local_elapsed,
+                "server_anchor_elapsed": sae_seconds,
+                "chosen_elapsed_seconds": chosen_seconds,
+                "drift": drift,
+                "action": action,
             },
         )
+
         return {
             "type": "SYNC_ACK",
             "session_id": session_id,
-            "chosen_elapsed_seconds": local_elapsed,
+            "chosen_elapsed_seconds": chosen_seconds,
+            "server_anchor_elapsed": sae_seconds,
+            "drift": drift,
+            "action": action,
         }
 
     async def _handle_health(

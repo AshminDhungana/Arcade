@@ -238,6 +238,16 @@ export class AgentWebSocketClient {
         this.clearOverride();
       }
 
+      // Handle SYNC_ACK from server after successful reconciliation
+      if (message.type === 'SYNC_ACK') {
+        const payload = message.payload as { session_id: string | undefined };
+        if (payload.session_id) {
+          this.store?.markSynced(payload.session_id);
+          console.log(`[WS] SYNC_ACK received for session: ${payload.session_id}`, payload);
+        }
+        return;
+      }
+
       // Delegate to command handler
       const handler = this.commandHandlers[message.type];
       if (handler) {

@@ -65,7 +65,9 @@ async def agent_websocket(
     try:
         while True:
             message = await websocket.receive_json()
-            await manager.handle_agent_message(seat_id, message)
+            result = await manager.handle_agent_message(seat_id, message)
+            if result:
+                await websocket.send_json(result)
     except WebSocketDisconnect:
         pass
     finally:
