@@ -10,12 +10,12 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: backend/venv/Scripts/mypy.exe
+        entry: python
         language: system
         types: [python]
         # Always run on the full backend/ directory so type resolution
         # matches a manual `mypy --strict backend/` invocation.
-        args: [--strict, --ignore-missing-imports, backend/]
+        args: [-m, mypy, --strict, --ignore-missing-imports, backend/]
         pass_filenames: false
 
   - repo: https://github.com/PyCQA/bandit
