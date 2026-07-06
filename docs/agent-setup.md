@@ -31,6 +31,32 @@ The Arcade Agent runs on each client (gaming) PC as an Electron-based kiosk over
 
 ---
 
+## Windows Installation
+
+1. **Download the agent installer.**
+   - The Arcade Agent is distributed as an NSIS installer (`ArcadeAgent-<version>-setup.exe`) or a portable `.zip`.
+   - Place the installer on the target gaming PC or copy it across the LAN.
+
+2. **Run the installer.**
+   - Double-click the `.exe` and follow the wizard.
+   - Default install path: `C:\Program Files\ArcadeAgent\`.
+   - For a portable install, extract the `.zip` to any directory.
+
+3. **Place `agent.config.json` next to the agent executable.**
+   ```
+   C:\Program Files\ArcadeAgent\
+   ├── ArcadeAgent.exe
+   ├── agent.config.json   <-- place here
+   └── ...
+   ```
+   The agent reads `agent.config.json` at startup from the same directory as `ArcadeAgent.exe`.
+
+4. **Configure Windows Firewall (if prompted).**
+   - The first time the agent runs, Windows may block the WebSocket connection.
+   - Allow `ArcadeAgent.exe` through the private network profile.
+
+---
+
 ## `agent.config.json`
 
 `agent.config.json` is a JSON file read at agent startup. It tells the agent which server to connect to, which seat it represents, and how to authenticate.
@@ -132,13 +158,39 @@ agent/
 
 ## Auto-Start Configuration
 
-The agent supports automatic start on system boot via the platform abstraction layer:
+### Windows
 
-- **Windows:** Registry entry `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-- **macOS:** LaunchAgent plist at `~/Library/LaunchAgents/com.arcade.agent.plist`
-- **Linux:** systemd service or `.desktop` file in `~/.config/autostart/`
+The agent can be configured to start automatically when the user logs in.
 
-Enable via the dashboard (Settings → Agent → Auto-Start) or programmatically via `platform.enableAutoStart()`.
+1. **Via the Dashboard (recommended):**
+   - Open the Arcade Dashboard.
+   - Navigate to **Settings -> Agent -> Auto-Start**.
+   - Toggle "Enable Auto-Start" for the target seat.
+   - The server sends a `SET_AUTO_START` command; the agent calls `WindowsPlatformService.enableAutoStart()`.
+
+2. **Manual (registry):**
+   The agent's `WindowsPlatformService` writes to:
+   ```
+   HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+   ```
+   Value name: `ArcadeAgent`
+   Value data: `"C:\Program Files\ArcadeAgent\ArcadeAgent.exe"`
+
+3. **Disable:**
+   - Via Dashboard: toggle off in **Settings -> Agent -> Auto-Start**.
+   - Manually: delete the `ArcadeAgent` value from the registry above.
+
+4. **UAC:** Writes to `HKCU` (current user) do not require admin privileges.
+
+### macOS
+
+- LaunchAgent plist at `~/Library/LaunchAgents/com.arcade.agent.plist`
+- Enable via Dashboard or `platform.enableAutoStart()`.
+
+### Linux
+
+- systemd service or `.desktop` file in `~/.config/autostart/`
+- Enable via Dashboard or `platform.enableAutoStart()`.
 
 ---
 
@@ -146,11 +198,11 @@ Enable via the dashboard (Settings → Agent → Auto-Start) or programmatically
 
 ### "agent.config.json not found"
 
-- Ensure the file is named exactly `agent.config.json` (case-sensitive on Linux/macOS).
+- Ensure the file is named exactly `agent.config.json` (case-sensitive on Linux/macOS, case-insensitive on Windows).
 - Ensure it is in the same directory as the agent executable.
 - In development, ensure it is in the current working directory.
 
-### "server_url must start withtis ws:// or wss://"
+### "server_url must start with ws:// or wss://"
 
 - The `server_url` must use the WebSocket protocol, not HTTP.
 - Correct: `ws://192.168.1.100:8000` or `wss://10.0.0.1:8443`
@@ -175,5 +227,24 @@ Enable via the dashboard (Settings → Agent → Auto-Start) or programmatically
 
 ### Config not being read from the expected location
 
-- The agent logs the resolved config path on startup. Check the logs.
+- The agent logs the resolved config path on startup. Check the Electron log.
 - In development, the current working directory (`cwd`) is used as a fallback.
+
+### Kiosk overlay not appearing after Windows boot
+
+- Ensure auto-start is enabled (check registry or Dashboard).
+- Check that the agent process is running (Task Manager -> Processes -> `ArcadeAgent` or `electron`).
+- Check that `agent.config.json` is next to the executable.
+- Review the agent log for connection errors (`1008` = invalid secret, `1006` = server unreachable).
+
+### Agent connects but disconnects after 30 seconds
+
+- The agent is likely not responding to `PING` messages.
+- Check the agent logs for `PONG` timeout messages.
+- The server closes the connection after 10 seconds of no `PONG` response.
+
+### Screenshot request returns no image
+
+- On Windows: no additional permission is needed.
+- On macOS: grant Screen Recording permission in System Preferences.
+- On Linux (Wayland): screenshots may not work. Consider X11 for client PCs.

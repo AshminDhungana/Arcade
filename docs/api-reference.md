@@ -1,5 +1,518 @@
 # Arcade API Reference
 
-> TODO: Document during corresponding feature development phase.
+> **Base URL:** `http://<server-ip>:8000/api`
 >
-> Key topics: REST API endpoints, request/response schemas, WebSocket event formats, authentication.
+> **Auth:** All endpoints require a valid JWT in the `Authorization: Bearer <token>` header.
+>   Rate-limited: 5 failed login attempts per IP -> 15-minute lockout.
+
+---
+
+## Seat Endpoints
+
+### `GET /api/seats`
+
+List all seats with their current status. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```
+GET /api/seats
+Authorization: Bearer <jwt>
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "seat_001",
+    "name": "PC 1",
+    "zone_id": "zone_001",
+    "mac_address": "aa:bb:cc:dd:ee:01",
+    "status": "AVAILABLE",
+    "plug_id": null,
+    "is_console": false,
+    "notes": null,
+    "created_at": "2026-07-06T08:00:00+00:00",
+    "updated_at": "2026-07-06T10:00:00+00:00",
+    "wol_attempts": 3,
+    "wol_successes": 2,
+    "wol_failures": 1
+  }
+]
+```
+
+---
+
+### `GET /api/seats/{id}`
+
+Get details for a single seat. Returns 404 if the seat does not exist.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```
+GET /api/seats/seat_001
+Authorization: Bearer <jwt>
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": "seat_001",
+  "name": "PC 1",
+  "zone_id": "zone_001",
+  "mac_address": "aa:bb:cc:dd:ee:01",
+  "status": "AVAILABLE",
+  "plug_id": null,
+  "is_console": false,
+  "notes": null,
+  "created_at": "2026-07-06T08:00:00+00:00",
+  "updated_at": "2026-07-06T10:00:00+00:00",
+  "wol_attempts": 3,
+  "wol_successes": 2,
+  "wol_failures": 1
+}
+```
+
+**Response (404 Not Found):**
+```json
+{
+  "detail": "Seat not found"
+}
+```
+
+---
+
+### `PATCH /api/seats/{id}/maintenance`
+
+Set a seat to `MAINTENANCE` status. Admin role required.
+
+**Auth:** Bearer token (Admin only)
+
+**Request:**
+```
+PATCH /api/seats/seat_001/maintenance
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "note": "GPU fan replacement in progress"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": "seat_001",
+  "name": "PC 1",
+  "zone_id": "zone_001",
+  "mac_address": "aa:bb:cc:dd:ee:01",
+  "status": "MAINTENANCE",
+  "plug_id": null,
+  "is_console": false,
+  "notes": "GPU fan replacement in progress",
+  "created_at": "2026-07-06T08:00:00+00:00",
+  "updated_at": "2026-07-06T12:00:00+00:00",
+  "wol_attempts": 3,
+  "wol_successes": 2,
+  "wol_failures": 1
+}
+```
+
+---
+
+### `DELETE /api/seats/{id}/maintenance`
+
+Clear `MAINTENANCE` status and set seat to `AVAILABLE`. Admin role required.
+
+**Auth:** Bearer token (Admin only)
+
+**Request:**
+```
+DELETE /api/seats/seat_001/maintenance
+Authorization: Bearer <jwt>
+```
+
+**Response (200 OK):** Seat with `status` changed to `AVAILABLE`.
+
+---
+
+### `POST /api/seats/{id}/wol`
+
+Send a Wake-on-LAN magic packet. Admin role required.
+
+**Auth:** Bearer token (Admin only)
+
+**Request:**
+```
+POST /api/seats/seat_001/wol
+Authorization: Bearer <jwt>
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": "seat_001",
+  "name": "PC 1",
+  "zone_id": "zone_001",
+  "mac_address": "aa:bb:cc:dd:ee:01",
+  "status": "AVAILABLE",
+  "plug_id": null,
+  "is_console": false,
+  "notes": null,
+  "created_at": "2026-07-06T08:00:00+00:00",
+  "updated_at": "2026-07-06T10:00:00+00:00",
+  "wol_attempts": 4,
+  "wol_successes": 2,
+  "wol_failures": 1
+}
+```
+
+---
+
+### `POST /api/seats/{id}/wol/override`
+
+Manually mark a seat as online. Admin role required.
+
+**Auth:** Bearer token (Admin only)
+
+**Request:**
+```
+POST /api/seats/seat_001/wol/override
+Authorization: Bearer <jwt>
+```
+
+**Response (200 OK):** Seat with `status` changed to `AVAILABLE`.
+
+---
+
+### Seat Status Reference
+
+| Value        | Meaning                                       |
+|--------------|-----------------------------------------------|
+| `AVAILABLE`  | Empty and ready for a session                 |
+| `IN_USE`     | Active session running                        |
+| `PAUSED`     | Session paused, timer not running             |
+| `RESERVED`   | Reserved for a future booking                 |
+| `MAINTENANCE`| Out of service                                |
+| `OFFLINE`    | Agent disconnected                            |
+| `BOOTING`    | Wake-on-LAN sent, waiting for agent         |
+| `UNREACHABLE`| Agent did not register within 60 seconds    |
+
+---
+
+## Session Endpoints
+
+### `POST /api/sessions`
+
+Start a new session on an available seat.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```
+POST /api/sessions
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "seat_id": "seat_001",
+  "member_id": "member_001"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "seat_id": "seat_001",
+  "member_id": "member_001",
+  "shift_id": null,
+  "locked_rate_paise": 50,
+  "locked_pricing_model": "PER_MINUTE",
+  "package_entitlement_id": null,
+  "promotion_id": null,
+  "discount_paise": 0,
+  "payment_method": null,
+  "id": "session_123",
+  "status": "ACTIVE",
+  "started_at": "2026-07-06T10:00:00+00:00",
+  "ended_at": null,
+  "paused_at": null,
+  "total_paused_seconds": 0,
+  "created_at": "2026-07-06T10:00:00+00:00",
+  "updated_at": "2026-07-06T10:00:00+00:00"
+}
+```
+
+---
+
+### `PATCH /api/sessions/{id}/pause`
+
+Pause an active session. The timer stops and the kiosk overlay is re-shown.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```
+PATCH /api/sessions/session_123/pause
+Authorization: Bearer <jwt>
+```
+
+---
+
+### `PATCH /api/sessions/{id}/resume`
+
+Resume a paused session. The timer restarts and the kiosk overlay is hidden.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```
+PATCH /api/sessions/session_123/resume
+Authorization: Bearer <jwt>
+```
+
+---
+
+### `GET /api/sessions/active`
+
+List all active or paused sessions.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```
+GET /api/sessions/active
+Authorization: Bearer <jwt>
+```
+
+---
+
+### `GET /api/sessions/{id}`
+
+Get a single session by ID.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```
+GET /api/sessions/session_123
+Authorization: Bearer <jwt>
+```
+
+---
+
+### Session Status Reference
+
+| Value       | Meaning                        | Billing Active |
+|-------------|--------------------------------|----------------|
+| `ACTIVE`    | Timer running                  | Yes            |
+| `PAUSED`    | Timer frozen                   | No             |
+| `COMPLETED` | Session ended normally         | -              |
+| `ABANDONED` | Ended without checkout         | -              |
+
+---
+
+## Authentication Endpoints
+
+### `POST /api/auth/login`
+
+Authenticate a staff member and receive a JWT access token.
+
+**Auth:** None (public, rate-limited)
+
+**Rate Limiting:** 5 failed attempts per IP within 15 minutes -> HTTP 429 with Retry-After header.
+
+**Request:**
+```
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "staff_id": "admin001",
+  "pin": "0000"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "expires_in": 28800,
+  "staff": {
+    "id": "admin001",
+    "name": "Admin User",
+    "role": "ADMIN",
+    "is_active": true,
+    "updated_at": "2026-07-06T08:00:00+00:00"
+  }
+}
+```
+
+**Response (401 Unauthorized):**
+```json
+{
+  "detail": "Invalid PIN"
+}
+```
+
+**Response (429 Too Many Requests):**
+```json
+{
+  "detail": "Too many failed attempts. Retry after <timestamp>."
+}
+```
+
+---
+
+### `POST /api/auth/refresh`
+
+Extend the expiry of a valid JWT. The token_version is checked against the database.
+
+**Auth:** Bearer token
+
+**Request:**
+```
+POST /api/auth/refresh
+Authorization: Bearer <jwt>
+```
+
+**Response (200 OK):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "expires_in": 28800,
+  "staff": {
+    "id": "admin001",
+    "name": "Admin User",
+    "role": "ADMIN",
+    "is_active": true,
+    "updated_at": "2026-07-06T08:00:00+00:00"
+  }
+}
+```
+
+**Response (401 Unauthorized - stale token):**
+```json
+{
+  "detail": "Token version mismatch"
+}
+```
+
+---
+
+### `POST /api/auth/logout`
+
+Client-side token discard (stateless).
+
+**Auth:** Bearer token
+
+**Request:**
+```
+POST /api/auth/logout
+Authorization: Bearer <jwt>
+```
+
+**Response (200 OK):**
+```json
+{
+  "detail": "Logged out successfully"
+}
+```
+
+---
+
+### Staff Role and Common Errors
+
+| Role      | Permissions                                         |
+|-----------|-----------------------------------------------------|
+| `ADMIN`   | Full access - seat management, staff, settings     |
+| `CASHIER` | Manage sessions, POS checkout, view analytics      |
+
+**Common HTTP Errors:**
+
+| Status | Reason                                    |
+|--------|-------------------------------------------|
+| 401    | Missing or invalid JWT                    |
+| 403    | Valid JWT but role lacks permission       |
+| 422    | Request body validation failure           |
+| 429    | Rate limited (login only)                |
+| 500    | Unexpected server error                   |
+
+---
+
+## WebSocket Endpoints
+
+Arcade uses two distinct WebSocket channels: one for dashboard clients (React app) and one for agent clients (Electron kiosk overlay).
+
+All messages use the standard JSON envelope:
+
+```json
+{
+  "type": "EVENT_TYPE",
+  "payload": { ... },
+  "timestamp": "2026-07-06T10:00:00+00:00"
+}
+```
+
+### `GET /ws/dashboard`
+
+Dashboard clients connect here to receive real-time events. Primarily a listener channel.
+
+**Connection:**
+```
+wss://<server-ip>:8000/ws/dashboard
+```
+
+| Event Type     | Payload                          | Description                |
+|----------------|-----------------------------------|----------------------------|
+| `seat_updated` | `seat_id`, `status`, seat data   | Seat status changed        |
+| `health_update`| `seat_id`, `cpu_percent`, ...    | Agent health metrics       |
+| `announcement` | `text`, `type`                   | System-wide announcement   |
+| `alert`        | `type`, `seat_id`, `message`     | Staff override, low time   |
+
+---
+
+### `GET /ws/agent/{seat_id}?secret=<agent_secret>`
+
+Each gaming PC connects here. The `secret` is validated against `agent_secrets` in the server config.
+
+**Connection:**
+```
+wss://<server-ip>:8000/ws/agent/seat_001?secret=<agent_secret>
+```
+
+**Agent -> Server messages:**
+
+| Type   | Payload                                      | When Sent              |
+|--------|----------------------------------------------|------------------------|
+| `REGISTER` | `seat_id`, `mac_address`, `hostname`, ... | On connection          |
+| `SYNC`     | `session_id`, `local_elapsed_seconds`       | After reconnection     |
+| `HEALTH`   | `cpu_percent`, `ram_percent`, ...          | Every 60 seconds       |
+| `STAFF_OVERRIDE` | `seat_id`, `verified`               | Override PIN accepted  |
+| `PONG`     | `{}`                                         | Heartbeat response     |
+
+**Server -> Agent commands:**
+
+| Command         | Payload Fields               | Trigger                          |
+|-----------------|------------------------------|----------------------------------|
+| `HIDE_OVERLAY`  | `session_id`, `started_at`   | Session starts                   |
+| `SHOW_OVERLAY`  | `session_id`                   | Session ends or pauses          |
+| `SHOW_MESSAGE`  | `text`, `duration_seconds`   | Announcement sent                |
+| `RESTART`       | `delay_seconds?`             | Admin triggers restart           |
+| `SHUTDOWN`      | `delay_seconds?`             | Admin triggers shutdown          |
+| `TAKE_SCREENSHOT` | `{}`                        | Screenshot request               |
+| `LOW_TIME_WARNING` | `minutes_remaining`         | Package time <= 5 min            |
+| `RESET_OVERRIDE` | `{}`                         | Clear staff override             |
+
+---
+
+### Heartbeat and Reconnection
+
+- Server sends `PING` every 30 seconds.
+- Agent must reply with `PONG` within 10 seconds.
+- Missing `PONG` -> server closes connection (code 1001).
+- Agent reconnects automatically with exponential backoff (1s -> 2s -> 4s ... capped at 30s + jitter).

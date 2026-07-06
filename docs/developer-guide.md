@@ -167,3 +167,110 @@ During development, you do not need a valid `license.key`:
 - `make backend-dev` directly starts the FastAPI server
 - The Tkinter Launcher is required only for production deployments
 - To test the licensing flow: use `python tools/keygen/generate_keys.py` (see `docs/security/key-management.md`)
+
+---
+
+## WebSocket Event Reference
+
+### Message Envelope
+
+All messages use this envelope shape:
+
+```json
+{
+  "type": "EVENT_TYPE",
+  "payload": { ... },
+  "timestamp": "2026-07-06T10:00:00+00:00"
+}
+```
+
+### Agent -> Server Messages
+
+| Type | Payload | Frequency |
+|------|---------|-----------|
+| `REGISTER` | `seat_id`, `mac_address`, `hostname`, ... | Once per connection |
+| `SYNC` | `session_id`, `local_elapsed_seconds`, `disconnect_at`, `reconnect_at` | After reconnection only |
+| `HEALTH` | `cpu_percent`, `ram_percent`, `cpu_temp_celsius`, ... | Every 60 seconds (configurable) |
+| `STAFF_OVERRIDE` | `seat_id`, `verified` | On successful staff PIN entry |
+| `PONG` | `{}` | Response to every server `PING` |
+
+### Server -> Agent Commands
+
+| Command | Payload Fields | Trigger |
+|---------|---------------|---------|
+| `HIDE_OVERLAY` | `session_id`, `started_at` | Session starts |
+| `SHOW_OVERLAY` | `session_id` | Session ends or pauses |
+| `SHOW_MESSAGE` | `text`, `duration_seconds` | Dashboard sends announcement |
+| `RESTART` | `delay_seconds?` | Dashboard triggers restart |
+| `SHUTDOWN` | `delay_seconds?` | Dashboard triggers shutdown |
+| `TAKE_SCREENSHOT` | `{}` | Dashboard requests screenshot |
+| `LOW_TIME_WARNING` | `minutes_remaining` | Package time <= 5 min |
+| `RESET_OVERRIDE` | `{}` | Clear staff override |
+
+### Server -> Dashboard Events
+
+| Event | Payload | Trigger |
+|-------|---------|---------|
+| `seat_updated` | Full `SeatResponse` + `mac_address` | Any seat status change |
+| `health_update` | `seat_id`, `cpu_percent`, `ram_percent` | Agent `HEALTH` received |
+| `announcement` | `text`, `type` | System-wide announcement |
+| `alert` | `type`, `seat_id`, `message` | Staff override, low time |
+
+### Heartbeat and Reconnection
+
+- **Interval:** 30 seconds (`HEARTBEAT_INTERVAL`)
+- **Timeout:** 10 seconds (`HEARTBEAT_TIMEOUT`)
+- **Max message size:** 5 MB (`MAX_MESSAGE_SIZE`)
+- **Reconnect strategy:** Exponential backoff (1s -> 2s -> 4s ... capped at 30s with jitter)
+
+### SYNC and Reconciliation
+
+When the agent reconnects after a LAN dropout, it sends a `SYNC` message. The server computes **Server Anchor Elapsed (SAE)** and reconciles with the agent's local elapsed time. If the difference is <= 5 seconds, the server value is accepted. Otherwise, the agent's value is used.
+
+---
+
+## `agent.config.json` Schema Reference
+
+### Example
+
+```json
+{
+  "server_url": "ws://192.168.1.100:8000",
+  "seat_id": "seat_001",
+  "agent_secret": "c9a1b2c3d4e5f6...",
+  "override_code_hash": null,
+  "reconnect_max_seconds": 60,
+  "health_interval_seconds": 60
+}
+```
+
+### Field Reference
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `server_url` | `string` | Yes | - | WebSocket URL. Must start with `ws://` or `wss://`. |
+| `seat_id` | `string` | Yes | - | Seat identifier matching the server config. |
+| `agent_secret` | `string` | Yes | - | Shared hex secret (64 chars) for WebSocket auth. |
+| `override_code_hash` | `string \| null` | No | `null` | Argon2id hash of staff override PIN. |
+| `reconnect_max_seconds` | `number` | No | `60` | Max reconnect delay in seconds. |
+| `health_interval_seconds` | `number` | No | `60` | Interval between health reports in seconds. |
+
+### Validation Rules
+
+Defined in `agent/src/main/config/validator.ts`:
+
+| Rule | Error |
+|------|-------|
+| `server_url` must be a string | `server_url is required and must be a string` |
+| `server_url` must start with `ws://` or `wss://` | `server_url must start with ws:// or wss://` |
+| `seat_id` must be a non-empty string | `seat_id is required and must be a string` |
+| `agent_secret` must be a non-empty string | `agent_secret is required and must be a string` |
+| `override_code_hash` must be string or null | `override_code_hash must be a string or null` |
+| `reconnect_max_seconds` must be > 0 | `reconnect_max_seconds must be a positive number` |
+| `health_interval_seconds` must be > 0 | `health_interval_seconds must be a positive number` |
+
+### File Permissions
+
+- **Linux/macOS:** `chmod 600 agent.config.json`
+- **Windows:** Runs in user directory by default.
+- **Never commit to version control.** Already `.gitignore`d.
