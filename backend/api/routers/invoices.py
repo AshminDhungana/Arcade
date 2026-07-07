@@ -166,4 +166,4 @@ async def get_invoice_pdf(
         totals=totals,
     )
 
-    return html
+    return str(html)
