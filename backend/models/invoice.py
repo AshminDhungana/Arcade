@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.core.database import Base
 from backend.models._enums import PaymentMethod
 from backend.models._types import StrEnumColumn
+
+if TYPE_CHECKING:
+    from backend.models.invoice_line_item import InvoiceLineItem
 
 
 class Invoice(Base):
@@ -33,4 +37,10 @@ class Invoice(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+
+    # Relationship to line items (populated at checkout time)
+    line_items: Mapped[list[InvoiceLineItem]] = relationship(
+        "InvoiceLineItem",
+        lazy="selectin",
     )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -16,6 +17,13 @@ from backend.repositories import seat_repo, session_repo, zone_repo
 from backend.services.billing_service import (
     checkout_session,
 )
+
+
+@pytest.fixture(autouse=True)
+def _mock_print_receipt():
+    """Mock print_receipt so the async background task is a no-op."""
+    with patch("backend.services.print_service.print_receipt", new_callable=AsyncMock):
+        yield
 
 
 @pytest.fixture

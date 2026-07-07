@@ -23,6 +23,7 @@ from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, Invoice, SeatStatus, SessionStatus
 from backend.models._enums import InvoiceLineItemType, PaymentMethod, PricingModel
 from backend.models.staff import Staff
+from backend.schemas.invoice import InvoiceResponse
 
 if TYPE_CHECKING:
     pass
@@ -179,14 +180,33 @@ def _compute_elapsed_seconds(session: GamingSession) -> int:
     return max(0, int(elapsed))
 
 
-async def _print_receipt(invoice: Invoice) -> None:
+async def _print_receipt(
+    invoice: InvoiceResponse,
+    seat_name: str,
+    duration_seconds: int,
+) -> None:
     """Trigger receipt printing asynchronously (non-blocking).
 
-    Currently logs the intent. Production will call a print-service
-    micro-task via asyncio.create_task.
+    Reads printer config, builds InvoiceResponse, and dispatches to
+    the print service.  Failures are logged as warnings but never
+    raised.
     """
-    # TODO: integrate with actual print_service (Feature 3.1.5)
-    pass
+    from backend.core.config import get_config
+    from backend.services.print_service import print_receipt
+
+    try:
+        config = get_config()
+    except RuntimeError:
+        # Config not available (e.g. CI) — skip printing gracefully
+        return
+
+    await print_receipt(
+        invoice=invoice,
+        cafe_name=config.cafe_name,
+        config=config,
+        duration_seconds=duration_seconds,
+        seat_name=seat_name,
+    )
 
 
 async def checkout_session(
@@ -352,7 +372,26 @@ async def checkout_session(
         )
 
     # 10. Trigger receipt print (non-blocking)
-    asyncio.create_task(_print_receipt(invoice))
+    from backend.schemas.invoice import InvoiceResponse
+
+    seat_name = seat.name if seat else session_obj.seat_id
+    # SQLite strips timezone info on datetime reads; restore it explicitly
+    # so Pydantic's AwareDatetime is satisfied.
+    invoice_response = InvoiceResponse(
+        id=invoice.id,
+        session_id=invoice.session_id,
+        member_id=invoice.member_id,
+        shift_id=invoice.shift_id,
+        time_charge_paise=invoice.time_charge_paise,
+        package_credit_used_paise=invoice.package_credit_used_paise,
+        discount_paise=invoice.discount_paise,
+        pos_total_paise=invoice.pos_total_paise,
+        total_paise=invoice.total_paise,
+        payment_method=invoice.payment_method,
+        created_at=_ensure_utc(invoice.created_at),
+        line_items=[],
+    )
+    asyncio.create_task(_print_receipt(invoice_response, seat_name, elapsed))
 
     # 11. Audit log
     await audit_repo.create(

@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0–2 Complete · Phase 3 In Progress (Feature 3.1.4 done)
+**Status:** Phase 0–2 Complete · Phase 3 In Progress (Feature 3.1.5 done)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -940,15 +940,15 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
   - [x] `InventoryService`: `get_low_stock_items(db)` — items with `stock_quantity <= low_stock_threshold`
   - [x] Routers: `backend/api/routers/pos.py`, `backend/api/routers/inventory.py`
 
-#### Feature 3.1.5: Print Service
+#### Feature 3.1.5: Print Service ✅ _Complete_
 
-- [ ] **Task: Implement `PrintService` (`backend/services/print_service.py`)**
-  - [ ] `async def print_receipt(invoice, config)`: async (non-blocking); log WARNING on failure; never block checkout response
-  - [ ] ESC/POS receipt via `python-escpos`: header (cafe name, bold 2×), separator, seat, date, duration, POS items, separator, time charge, discount (with reason), TOTAL (bold), payment method, footer, cut command
-  - [ ] All amounts formatted as "Rs. X.XX" — **only place paise→rupees conversion happens** (NFR-DATA-002)
-  - [ ] `GET /api/invoices/{id}/pdf`: returns print-friendly HTML invoice; triggers `window.print()` in browser (PDF fallback)
-  - [ ] `GET /api/invoices/{id}`: invoice detail endpoint
-  - [ ] **⚠ RISK (R-12):** Abstract printer model config (`printer_type`: `usb` | `network`); test with target printer hardware early
+- [x] **Task: Implement `PrintService` (`backend/services/print_service.py`)**
+  - [x] `async def print_receipt(invoice, config)`: async (non-blocking); log WARNING on failure; never block checkout response
+  - [x] ESC/POS receipt via `python-escpos`: header (cafe name, bold 2×), separator, seat, date, duration, POS items, separator, time charge, discount (with reason), TOTAL (bold), payment method, footer, cut command
+  - [x] All amounts formatted as "Rs. X.XX" — **only place paise→rupees conversion happens** (NFR-DATA-002)
+  - [x] `GET /api/invoices/{id}/pdf`: returns print-friendly HTML invoice; triggers `window.print()` in browser (PDF fallback)
+  - [x] `GET /api/invoices/{id}`: invoice detail endpoint
+  - [x] **⚠ RISK (R-12):** Abstract printer model config (`printer_type`: `usb` | `network`); test with target printer hardware early
 
 #### Feature 3.1.6: Audit Log Service
 
