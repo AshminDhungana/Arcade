@@ -42,6 +42,15 @@ async def list(db: AsyncSession) -> Sequence[SessionPOSItem]:
     return result.scalars().all()
 
 
+async def list_by_session(
+    db: AsyncSession, session_id: str
+) -> Sequence[SessionPOSItem]:
+    result = await db.execute(
+        select(SessionPOSItem).where(SessionPOSItem.session_id == session_id)
+    )
+    return result.scalars().all()
+
+
 async def update(db: AsyncSession, pos_item: SessionPOSItem) -> SessionPOSItem:
     db.add(pos_item)
     await db.flush()

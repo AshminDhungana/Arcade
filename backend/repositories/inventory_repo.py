@@ -39,6 +39,16 @@ async def get_by_id(db: AsyncSession, menu_item_id: str) -> MenuItem | None:
     return result.scalar_one_or_none()
 
 
+async def get_low_stock_items(db: AsyncSession) -> Sequence[MenuItem]:
+    result = await db.execute(
+        select(MenuItem).where(
+            (MenuItem.stock_quantity.isnot(None))
+            & (MenuItem.stock_quantity <= MenuItem.low_stock_threshold)
+        )
+    )
+    return result.scalars().all()
+
+
 async def list(db: AsyncSession) -> Sequence[MenuItem]:
     result = await db.execute(select(MenuItem))
     return result.scalars().all()

@@ -41,6 +41,7 @@ from backend.repositories import (
     pos_repo,
     promotion_repo,
     reservation_repo,
+    restock_repo,
     seat_repo,
     session_repo,
     shift_repo,
@@ -472,3 +473,29 @@ async def test_audit_repo(db: AsyncSession) -> None:
     # audit log is immutable: no update / delete methods exposed
     assert not hasattr(audit_repo, "update")
     assert not hasattr(audit_repo, "delete_by_id")
+
+
+async def test_restock_repo(db: AsyncSession) -> None:
+    staff = await staff_repo.create(
+        db, name="Alice", role="ADMIN", pin_hash="argon2id$"
+    )
+    item = await inventory_repo.create(
+        db, name="Energy Drink", category="Drink", price_paise=15000
+    )
+
+    log = await restock_repo.create(
+        db, menu_item_id=item.id, quantity_added=100, logged_by_staff_id=staff.id
+    )
+    assert log.id is not None
+    assert log.menu_item_id == item.id
+    assert log.quantity_added == 100
+
+    by_id = await restock_repo.get_by_id(db, log.id)
+    assert by_id is not None
+    assert by_id.quantity_added == 100
+
+    by_item = await restock_repo.list_by_menu_item(db, item.id)
+    assert len(by_item) == 1
+
+    all_logs = await restock_repo.list_all(db)
+    assert len(all_logs) == 1

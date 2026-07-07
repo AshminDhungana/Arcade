@@ -39,6 +39,7 @@ from backend.models.package import Package
 from backend.models.package_entitlement import MemberPackageEntitlement
 from backend.models.promotion import Promotion
 from backend.models.reservation import Reservation
+from backend.models.restock_log import RestockLog
 from backend.models.seat import Seat
 from backend.models.session import GamingSession
 from backend.models.session_pos_item import SessionPOSItem
@@ -84,6 +85,7 @@ __all__: list[str] = [
     "Package",
     "Promotion",
     "Reservation",
+    "RestockLog",
     "Seat",
     "SessionPOSItem",
     "AppSettings",

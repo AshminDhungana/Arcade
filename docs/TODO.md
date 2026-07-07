@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0–2 Complete · Phase 3 In Progress (Feature 3.1.3 done)
+**Status:** Phase 0–2 Complete · Phase 3 In Progress (Feature 3.1.4 done)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -931,14 +931,14 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
   - [ ] Send `LOW_TIME_WARNING` when package ≤ 5 minutes remaining (FR-SES-007) — _deferred to agent/WS implementation_
   - [x] **Definition of done:** AC-11 — member with 2-hour package checks out after 2.5 hours; first 2 hours from package, last 30 minutes billed per-minute
 
-#### Feature 3.1.4: POS and Inventory Services
+#### Feature 3.1.4: POS and Inventory Services ✅ _Complete_
 
-- [ ] **Task: Implement `POSService` and `InventoryService`**
-  - [ ] `POSService`: `add_item(session_id, menu_item_id, quantity, db)` — validate ACTIVE session; lock `unit_price_paise` at current price; decrement stock if `enable_inventory`; set low-stock alert if at threshold; set `is_available=False` if stock hits 0
-  - [ ] `POSService`: `remove_item(pos_item_id, session_id, db)` (Admin only); `list_session_items(session_id, db)`
-  - [ ] `InventoryService` (feature-flagged): `restock(menu_item_id, quantity, note, db, staff)` — increment stock; re-enable `is_available`; audit log `INVENTORY_RESTOCK`
-  - [ ] `InventoryService`: `get_low_stock_items(db)` — items with `stock_quantity <= low_stock_threshold`
-  - [ ] Routers: `backend/api/routers/pos.py`, `backend/api/routers/inventory.py`
+- [x] **Task: Implement `POSService` and `InventoryService`**
+  - [x] `POSService`: `add_item(session_id, menu_item_id, quantity, db)` — validate ACTIVE session; lock `unit_price_paise` at current price; decrement stock if `enable_inventory`; set low-stock alert if at threshold; set `is_available=False` if stock hits 0
+  - [x] `POSService`: `remove_item(pos_item_id, session_id, db)` (Admin only); `list_session_items(session_id, db)`
+  - [x] `InventoryService` (feature-flagged): `restock(menu_item_id, quantity, note, db, staff)` — increment stock; re-enable `is_available`; audit log `INVENTORY_RESTOCK`
+  - [x] `InventoryService`: `get_low_stock_items(db)` — items with `stock_quantity <= low_stock_threshold`
+  - [x] Routers: `backend/api/routers/pos.py`, `backend/api/routers/inventory.py`
 
 #### Feature 3.1.5: Print Service
 
@@ -982,7 +982,7 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
 - [x] `pytest backend/tests/test_billing_service.py` — per-minute, flat-hourly, time-block pricing; `resolve_rate`; integer arithmetic (NFR-DATA-002)
 - [x] `pytest backend/tests/test_package_drawdown.py` — full drawdown, overflow billing, partial exhaust, exhaustion status; all amounts integer arithmetic; total never negative
 - [ ] `pytest backend/tests/test_promotion.py` — promotion discount, loyalty discount — _deferred to Feature 4.1_
-- [ ] `pytest backend/tests/test_pos.py` — add item, stock decrement, low-stock alert, zero-stock lockout, remove item, restock
+- [x] `pytest backend/tests/test_pos_service.py`, `test_inventory_service.py`, `test_pos_router.py`, `test_inventory_router.py` — add item, stock decrement, low-stock alert, zero-stock lockout, remove item, restock, POS count 19 tests passing
 - [ ] `pytest backend/tests/test_checkout.py` — full end-to-end checkout, invoice line items, audit log entry, wallet deduction, loyalty points addition, PDF endpoint returns HTML
 - [ ] `pytest backend/tests/test_print.py` — mock printer; correct ESC/POS format; async non-blocking (checkout returns within 100ms with printer mock that sleeps 2s)
 - [ ] `pytest backend/tests/test_audit.py` — append-only log; correct timestamps, staff identity, action names; no update/delete exposed
