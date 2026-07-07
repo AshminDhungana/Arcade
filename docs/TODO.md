@@ -3,7 +3,7 @@
 **Project:** Arcade — Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0–2 Complete · Phase 3 In Progress (Feature 3.1.5 done)
+**Status:** Phase 0–2 Complete · Phase 3 In Progress (Features 3.1.5–3.1.6 done)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -950,12 +950,12 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
   - [x] `GET /api/invoices/{id}`: invoice detail endpoint
   - [x] **⚠ RISK (R-12):** Abstract printer model config (`printer_type`: `usb` | `network`); test with target printer hardware early
 
-#### Feature 3.1.6: Audit Log Service
+#### Feature 3.1.6: Audit Log Service ✅ _Complete_
 
-- [ ] **Task: Implement `AuditService` (`backend/services/audit_service.py`)**
-  - [ ] `async def log(action, entity_type, entity_id, detail, staff_id, db)` — creates `AuditLog` record; immutable (repo only exposes `create` and `list`)
-  - [ ] Call from: login, session start/stop, checkout, wallet top-up, voucher actions, settings changes, screenshot requests, staff management, inventory restock, override trigger (FR-AUDIT-003)
-  - [ ] `GET /api/audit` (Admin, paginated, filterable by date range, action type, staff)
+- [x] **Task: Implement `AuditService` (`backend/services/audit_service.py`)**
+  - [x] `async def log(action, entity_type, entity_id, detail, staff_id, db)` — creates `AuditLog` record; immutable (repo only exposes `create` and `list`)
+  - [x] Call from: login, session start/stop, checkout, wallet top-up, voucher actions, settings changes, screenshot requests, staff management, inventory restock, override trigger (FR-AUDIT-003)
+  - [x] `GET /api/audit` (Admin, paginated, filterable by date range, action type, staff)
 
 ---
 
@@ -985,7 +985,7 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
 - [x] `pytest backend/tests/test_pos_service.py`, `test_inventory_service.py`, `test_pos_router.py`, `test_inventory_router.py` — add item, stock decrement, low-stock alert, zero-stock lockout, remove item, restock, POS count 19 tests passing
 - [ ] `pytest backend/tests/test_checkout.py` — full end-to-end checkout, invoice line items, audit log entry, wallet deduction, loyalty points addition, PDF endpoint returns HTML
 - [ ] `pytest backend/tests/test_print.py` — mock printer; correct ESC/POS format; async non-blocking (checkout returns within 100ms with printer mock that sleeps 2s)
-- [ ] `pytest backend/tests/test_audit.py` — append-only log; correct timestamps, staff identity, action names; no update/delete exposed
+- [x] `pytest backend/tests/test_audit.py` — append-only log; correct timestamps, staff identity, action names; no update/delete exposed (5 tests passing)
 
 ### Documentation Requirements (Phase 3)
 
