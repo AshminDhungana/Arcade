@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import MenuItem
-from backend.repositories import audit_repo, inventory_repo, restock_repo
+from backend.models._enums import AuditAction
+from backend.repositories import inventory_repo, restock_repo
+from backend.services import audit_service
 
 
 async def restock(
@@ -63,9 +65,9 @@ async def restock(
     if note:
         detail += f" — Note: {note}"
 
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action="INVENTORY_RESTOCK",
+        action=AuditAction.INVENTORY_RESTOCK,
         entity_type="MenuItem",
         entity_id=menu_item_id,
         staff_id=logged_by_staff_id,

@@ -19,8 +19,9 @@ from backend.core.ws_manager import AgentOfflineError
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, SeatStatus, SessionStatus
 from backend.models._enums import AuditAction
-from backend.repositories import audit_repo, package_repo, seat_repo, session_repo
+from backend.repositories import package_repo, seat_repo, session_repo
 from backend.schemas.session import SessionResponse
+from backend.services import audit_service
 from backend.services.billing_service import resolve_rate
 
 if TYPE_CHECKING:
@@ -182,9 +183,9 @@ async def start_session(
         logger.warning("Agent offline for seat %s — HIDE_OVERLAY not sent", seat_id)
 
     # 9. Audit
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action=AuditAction.SESSION_START.value,
+        action=AuditAction.SESSION_START,
         entity_type="session",
         entity_id=session.id,
         staff_id=staff.id if staff else None,
@@ -247,9 +248,9 @@ async def pause_session(
         )
 
     # Audit
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action=AuditAction.SESSION_PAUSE.value,
+        action=AuditAction.SESSION_PAUSE,
         entity_type="session",
         entity_id=session.id,
         staff_id=staff.id if staff else None,
@@ -319,9 +320,9 @@ async def resume_session(
         )
 
     # Audit
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action=AuditAction.SESSION_RESUME.value,
+        action=AuditAction.SESSION_RESUME,
         entity_type="session",
         entity_id=session.id,
         staff_id=staff.id if staff else None,

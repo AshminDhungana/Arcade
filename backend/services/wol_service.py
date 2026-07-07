@@ -15,8 +15,9 @@ from backend.core.database import AsyncSessionLocal
 from backend.core.ws_manager import manager as ws_manager
 from backend.models._enums import AuditAction, SeatStatus
 from backend.models.seat import Seat
-from backend.repositories import audit_repo, seat_repo
+from backend.repositories import seat_repo
 from backend.schemas.seat import SeatResponse
+from backend.services import audit_service
 
 logger = logging.getLogger(__name__)
 
@@ -141,9 +142,9 @@ async def _wakeup_seat(
     await _broadcast_seat_update(seat)
 
     # 5. Audit log
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action=AuditAction.WOL_SENT.name,
+        action=AuditAction.WOL_SENT,
         entity_type="seat",
         entity_id=seat.id,
         staff_id=triggered_by,
@@ -170,9 +171,9 @@ async def _watchdog(
             seat.wol_failures += 1
             await seat_repo.update(session, seat)
             await _broadcast_seat_update(seat)
-            await audit_repo.create(
+            await audit_service.log(
                 session,
-                action=AuditAction.WOL_TIMEOUT.name,
+                action=AuditAction.WOL_TIMEOUT,
                 entity_type="seat",
                 entity_id=seat.id,
                 detail=f"Wake-on-LAN timed out for seat {seat.name}",
@@ -260,9 +261,9 @@ async def override_seat_online(
     await _broadcast_seat_update(seat)
 
     triggered_by = getattr(staff, "id", None) if staff else None
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action=AuditAction.WOL_OVERRIDE.name,
+        action=AuditAction.WOL_OVERRIDE,
         entity_type="seat",
         entity_id=seat.id,
         staff_id=triggered_by,
@@ -290,9 +291,9 @@ async def wol_success_callback(seat_id: str, *, db: AsyncSession | None = None) 
         seat.wol_successes += 1
         await seat_repo.update(session, seat)
         await _broadcast_seat_update(seat)
-        await audit_repo.create(
+        await audit_service.log(
             session,
-            action=AuditAction.WOL_SUCCESS.name,
+            action=AuditAction.WOL_SUCCESS,
             entity_type="seat",
             entity_id=seat.id,
             detail=f"Seat {seat.name} came online after WoL",

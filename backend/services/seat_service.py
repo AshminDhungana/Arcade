@@ -17,8 +17,9 @@ from backend.core.ws_manager import manager as ws_manager
 from backend.models._enums import AuditAction, SeatStatus
 from backend.models.seat import Seat
 from backend.models.staff import Staff
-from backend.repositories import audit_repo, seat_repo
+from backend.repositories import seat_repo
 from backend.schemas.seat import SeatResponse
+from backend.services import audit_service
 
 
 class SeatNotFoundError(HTTPException):
@@ -102,9 +103,9 @@ async def set_maintenance(
     seat.notes = note or seat.notes
     updated = await seat_repo.update(db, seat)
 
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action=AuditAction.SEAT_MAINTENANCE_ON.value,
+        action=AuditAction.SEAT_MAINTENANCE_ON,
         entity_type="seat",
         entity_id=updated.id,
         staff_id=staff.id if staff else None,
@@ -142,9 +143,9 @@ async def clear_maintenance(
     seat.notes = None
     updated = await seat_repo.update(db, seat)
 
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action=AuditAction.SEAT_MAINTENANCE_OFF.value,
+        action=AuditAction.SEAT_MAINTENANCE_OFF,
         entity_type="seat",
         entity_id=updated.id,
         staff_id=staff.id if staff else None,

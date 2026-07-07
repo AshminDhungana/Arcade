@@ -21,19 +21,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.ws_manager import AgentOfflineError
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, Invoice, SeatStatus, SessionStatus
-from backend.models._enums import InvoiceLineItemType, PaymentMethod, PricingModel
+from backend.models._enums import (
+    AuditAction,
+    InvoiceLineItemType,
+    PaymentMethod,
+    PricingModel,
+)
 from backend.models.staff import Staff
 from backend.schemas.invoice import InvoiceResponse
 
 if TYPE_CHECKING:
     pass
 
-import backend.repositories.audit_repo as audit_repo
 import backend.repositories.invoice_repo as invoice_repo
 import backend.repositories.package_repo as package_repo
 import backend.repositories.seat_repo as seat_repo
 import backend.repositories.session_repo as session_repo
 import backend.repositories.zone_repo as zone_repo
+from backend.services import audit_service
 
 logger = logging.getLogger(__name__)
 
@@ -394,9 +399,9 @@ async def checkout_session(
     asyncio.create_task(_print_receipt(invoice_response, seat_name, elapsed))
 
     # 11. Audit log
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action="CHECKOUT",
+        action=AuditAction.CHECKOUT,
         entity_type="session",
         entity_id=session_obj.id,
         staff_id=staff.id if staff else None,

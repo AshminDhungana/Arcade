@@ -7,6 +7,7 @@ append-only by design (SDD §4.4, §11.6).
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import UTC
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,6 +42,36 @@ async def get_by_id(db: AsyncSession, audit_log_id: str) -> AuditLog | None:
     return result.scalar_one_or_none()
 
 
-async def list(db: AsyncSession) -> Sequence[AuditLog]:
-    result = await db.execute(select(AuditLog))
+async def list(
+    db: AsyncSession,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    action: str | None = None,
+    staff_id: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> Sequence[AuditLog]:
+    from datetime import datetime
+
+    from sqlalchemy import and_
+
+    stmt = select(AuditLog)
+    conditions = []
+    if start_date:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=UTC)
+        conditions.append(AuditLog.timestamp >= start_dt)
+    if end_date:
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(
+            hour=23, minute=59, second=59, tzinfo=UTC
+        )
+        conditions.append(AuditLog.timestamp <= end_dt)
+    if action:
+        conditions.append(AuditLog.action == action)
+    if staff_id:
+        conditions.append(AuditLog.staff_id == staff_id)
+    if conditions:
+        stmt = stmt.where(and_(*conditions))
+    stmt = stmt.order_by(AuditLog.timestamp.desc()).offset(offset).limit(limit)
+    result = await db.execute(stmt)
     return result.scalars().all()

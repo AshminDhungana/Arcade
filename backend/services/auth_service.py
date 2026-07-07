@@ -19,7 +19,7 @@ from backend.core.security import (
     reset_failed_attempts,
     verify_pin,
 )
-from backend.repositories import audit_repo, staff_repo
+from backend.repositories import staff_repo
 from backend.schemas.staff import StaffResponse, TokenResponse
 
 
@@ -114,9 +114,12 @@ async def login(
     )
 
     # 6. Audit log
-    await audit_repo.create(
+    from backend.models._enums import AuditAction
+    from backend.services import audit_service
+
+    await audit_service.log(
         db,
-        action="STAFF_LOGIN",
+        action=AuditAction.STAFF_LOGIN,
         entity_type="staff",
         entity_id=staff.id,
         staff_id=staff.id,

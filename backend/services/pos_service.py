@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.feature_flags import get_flag
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import SessionPOSItem
-from backend.models._enums import SessionStatus
-from backend.repositories import audit_repo, inventory_repo, pos_repo, session_repo
+from backend.models._enums import AuditAction, SessionStatus
+from backend.repositories import inventory_repo, pos_repo, session_repo
+from backend.services import audit_service
 
 
 class POSServiceError(HTTPException):
@@ -87,9 +88,9 @@ async def add_item(
     )
 
     # 6. Audit log
-    await audit_repo.create(
+    await audit_service.log(
         db,
-        action="POS_ITEM_ADDED",
+        action=AuditAction.POS_ITEM_ADDED,
         entity_type="SessionPOSItem",
         entity_id=item.id,
         staff_id=staff_id,
@@ -127,9 +128,9 @@ async def remove_item(
 
     deleted = await pos_repo.delete_by_id(db, pos_item_id)
     if deleted:
-        await audit_repo.create(
+        await audit_service.log(
             db,
-            action="POS_ITEM_REMOVED",
+            action=AuditAction.POS_ITEM_REMOVED,
             entity_type="SessionPOSItem",
             entity_id=pos_item_id,
             staff_id=staff_id,
