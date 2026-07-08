@@ -17,6 +17,7 @@ from backend.api.routers.invoices import router as invoices_router
 from backend.api.routers.pos import router as pos_router
 from backend.api.routers.seats import router as seat_router
 from backend.api.routers.sessions import router as session_router
+from backend.api.routers.settings import router as settings_router
 from backend.api.routers.ws import router as ws_router
 
 __all__ = ["routers"]
@@ -46,4 +47,5 @@ routers: list[APIRouter] = [
     inventory_router,
     invoices_router,
     audit_router,
+    settings_router,
 ]

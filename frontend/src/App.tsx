@@ -2,8 +2,12 @@ import { Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import DashboardPage from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import { useFeatureFlags } from './api/featureFlags';
 
 export default function App() {
+  // Bootstrap feature flags from GET /api/settings on mount
+  useFeatureFlags();
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

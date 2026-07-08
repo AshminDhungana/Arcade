@@ -3,6 +3,7 @@ import { Seat } from '@/types/seat';
 import { useSeats } from '@/api/seats';
 import { SeatCard } from './SeatCard';
 import { SeatActionModal } from './SeatActionModal';
+import { SessionDrawer } from './SessionDrawer';
 
 /** Displays all available seats in a responsive grid.
  *  Subscribes to WebSocket updates via the `seat_updated` event,
@@ -10,6 +11,15 @@ import { SeatActionModal } from './SeatActionModal';
 export function SeatGrid() {
   const { data: seats, isLoading, isError, error } = useSeats();
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+  const [drawerSeat, setDrawerSeat] = useState<Seat | null>(null);
+
+  const handleSeatClick = (seat: Seat) => {
+    if (seat.status === 'IN_USE' && seat.current_session_id) {
+      setDrawerSeat(seat);
+    } else {
+      setSelectedSeat(seat);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -39,7 +49,7 @@ export function SeatGrid() {
         aria-label="Seat grid"
       >
         {sortedSeats.map((seat) => (
-          <SeatCard key={seat.id} seat={seat} onClick={(s) => setSelectedSeat(s)} />
+          <SeatCard key={seat.id} seat={seat} onClick={handleSeatClick} />
         ))}
       </div>
 
@@ -47,6 +57,14 @@ export function SeatGrid() {
         <SeatActionModal
           seat={selectedSeat}
           onClose={() => setSelectedSeat(null)}
+        />
+      )}
+
+      {drawerSeat && drawerSeat.current_session_id && (
+        <SessionDrawer
+          seat={drawerSeat}
+          sessionId={drawerSeat.current_session_id}
+          onClose={() => setDrawerSeat(null)}
         />
       )}
     </>

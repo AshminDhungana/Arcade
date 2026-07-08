@@ -25,6 +25,8 @@ export interface Seat {
   wol_attempts: number;
   wol_successes: number;
   wol_failures: number;
+  /** Active session ID, populated via WebSocket `seat_updated` events. */
+  current_session_id?: string;
   created_at: string;
   updated_at: string;
 }

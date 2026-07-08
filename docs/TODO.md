@@ -961,13 +961,13 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
 
 ### Epic 3.2: Frontend — Checkout, POS, Invoice (ENG-B)
 
-#### Feature 3.2.1: POS Panel
+#### Feature 3.2.1: POS Panel ✅ _Complete_
 
-- [ ] **Task: Implement `POSPanel.tsx` and `POS.tsx`**
-  - [ ] Menu item grid: name, price, category, stock badge (green ≥ threshold, yellow ≤ threshold, red = 0), greyed-out when `is_available=false`
-  - [ ] Click item → `POST /api/pos/items` → refresh session tab
-  - [ ] Session tab: running list of items with subtotal
-  - [ ] Feature-flagged: only rendered when `enable_pos=true` (NFR-USE-005)
+- [x] **Task: Implement `POSPanel.tsx` and `POS.tsx`**
+  - [x] Menu item grid: name, price, category, stock badge (green ≥ threshold, yellow ≤ threshold, red = 0), greyed-out when `is_available=false`
+  - [x] Click item → `POST /api/pos/items` → refresh session tab
+  - [x] Session tab: running list of items with subtotal
+  - [x] Feature-flagged: only rendered when `enable_pos=true` (NFR-USE-005)
 
 #### Feature 3.2.2: Checkout and Invoice Panel
 
