@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import type { Seat } from '@/types/seat';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import { POSPanel } from './pos/POSPanel';
+import { CheckoutPanel } from './invoice/CheckoutPanel';
 import { X, ShoppingCart, CreditCard, Terminal } from 'lucide-react';
 
 type DrawerTab = 'pos' | 'checkout' | 'commands';
@@ -116,11 +117,7 @@ export function SessionDrawer({ seat, sessionId, onClose }: SessionDrawerProps) 
             <POSPanel sessionId={sessionId} />
           )}
           {activeTab === 'checkout' && (
-            <PlaceholderTab
-              icon={<CreditCard className="h-8 w-8" />}
-              title="Checkout"
-              description="Checkout and invoice features coming soon (Feature 3.2.2)"
-            />
+            <CheckoutPanel sessionId={sessionId} onClose={handleClose} />
           )}
           {activeTab === 'commands' && (
             <PlaceholderTab

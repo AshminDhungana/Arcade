@@ -1,5 +1,5 @@
 // frontend/src/api/invoices.ts
-import type { Invoice } from '@/types/invoice';
+import type { Invoice, PaymentMethod } from '@/types/invoice';
 import { useAuthStore } from '@/store/authStore';
 
 const API_BASE = '/api';
@@ -39,7 +39,7 @@ export async function fetchInvoicePdf(invoiceId: string, token: string | null): 
 /** Checkout a session — returns the generated invoice. */
 export async function checkoutSession(
   sessionId: string,
-  paymentMethod: 'CASH' | 'WALLET' | 'CARD',
+  paymentMethod: PaymentMethod,
   token: string | null,
 ): Promise<Invoice> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/checkout`, {
@@ -78,9 +78,9 @@ export function useCheckout() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId, paymentMethod }: { sessionId: string; paymentMethod: 'CASH' | 'WALLET' | 'CARD' }) =>
+    mutationFn: ({ sessionId, paymentMethod }: { sessionId: string; paymentMethod: PaymentMethod }) =>
       checkoutSession(sessionId, paymentMethod, token),
-    onSuccess: (invoice, variables) => {
+    onSuccess: (invoice, _variables) => {
       // Invalidate session lists and seat data
       queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
       queryClient.invalidateQueries({ queryKey: ['seats'] });
@@ -88,4 +88,20 @@ export function useCheckout() {
       queryClient.setQueryData(['invoice', invoice.id], invoice);
     },
   });
+}
+
+/** Open PDF receipt in new tab for printing. */
+export async function printInvoicePdf(invoiceId: string, token: string | null): Promise<void> {
+  const res = await fetch(`${API_BASE}/invoices/${invoiceId}/pdf`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch PDF: ${res.status} ${res.statusText}`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (!win) {
+    throw new Error('Popup blocked - please allow popups for receipt printing');
+  }
 }

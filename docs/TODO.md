@@ -969,13 +969,13 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
   - [x] Session tab: running list of items with subtotal
   - [x] Feature-flagged: only rendered when `enable_pos=true` (NFR-USE-005)
 
-#### Feature 3.2.2: Checkout and Invoice Panel
+#### Feature 3.2.2: Checkout and Invoice Panel ✅ _Complete_
 
-- [ ] **Task: Implement `InvoicePanel.tsx` and `Checkout.tsx`**
-  - [ ] Invoice breakdown: duration, time charge, package credit (if used), discount (with reason and percentage), POS items, total, payment method selector (CASH, WALLET, CARD)
-  - [ ] All amounts in Rs. using `formatPaise(paise) => "Rs. X.XX"` utility (conversion at display layer only)
-  - [ ] "Confirm Payment" → `POST /api/sessions/{id}/checkout`
-  - [ ] "Print Receipt" → thermal (backend handles) or PDF (opens print dialog in browser)
+- [x] **Task: Implement `InvoicePanel.tsx` and `Checkout.tsx`**
+  - [x] Invoice breakdown: duration, time charge, package credit (if used), discount (with reason and percentage), POS items, total, payment method selector (CASH, WALLET, CARD)
+  - [x] All amounts in Rs. using `formatPaise(paise) => "Rs. X.XX"` utility (conversion at display layer only)
+  - [x] "Confirm Payment" → `POST /api/sessions/{id}/checkout`
+  - [x] "Print Receipt" → thermal (backend handles) or PDF (opens print dialog in browser)
 
 ### Testing Requirements (Phase 3)
 
@@ -983,14 +983,14 @@ Complete checkout workflow: billing engine (all pricing models, package drawdown
 - [x] `pytest backend/tests/test_package_drawdown.py` — full drawdown, overflow billing, partial exhaust, exhaustion status; all amounts integer arithmetic; total never negative
 - [ ] `pytest backend/tests/test_promotion.py` — promotion discount, loyalty discount — _deferred to Feature 4.1_
 - [x] `pytest backend/tests/test_pos_service.py`, `test_inventory_service.py`, `test_pos_router.py`, `test_inventory_router.py` — add item, stock decrement, low-stock alert, zero-stock lockout, remove item, restock, POS count 19 tests passing
-- [ ] `pytest backend/tests/test_checkout.py` — full end-to-end checkout, invoice line items, audit log entry, wallet deduction, loyalty points addition, PDF endpoint returns HTML
-- [ ] `pytest backend/tests/test_print.py` — mock printer; correct ESC/POS format; async non-blocking (checkout returns within 100ms with printer mock that sleeps 2s)
+- [x] `pytest backend/tests/test_billing_service_checkout.py`, `test_sessions_router_checkout.py`, `test_invoices_router.py` — full end-to-end checkout, invoice line items, audit log entry, wallet deduction, loyalty points addition, PDF endpoint returns HTML
+- [x] `pytest backend/tests/test_print.py` — mock printer; correct ESC/POS format; async non-blocking (checkout returns within 100ms with printer mock that sleeps 2s)
 - [x] `pytest backend/tests/test_audit.py` — append-only log; correct timestamps, staff identity, action names; no update/delete exposed (5 tests passing)
 
 ### Documentation Requirements (Phase 3)
 
-- [ ] `docs/api-reference.md`: billing, POS, inventory, checkout, print, and invoice endpoints
-- [ ] `docs/developer-guide.md`: billing engine logic, paise convention rationale, audit log immutability
+- [x] `docs/api-reference.md`: billing, POS, inventory, checkout, print, and invoice endpoints
+- [x] `docs/developer-guide.md`: billing engine logic, paise convention rationale, audit log immutability
 
 ---
 

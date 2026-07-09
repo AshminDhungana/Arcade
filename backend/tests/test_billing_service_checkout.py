@@ -119,6 +119,71 @@ async def test_checkout_respects_pause(db: AsyncSession) -> None:
     assert invoice.total_paise == 5 * 100  # 5 min * 100 paise/min
 
 
+async def test_checkout_with_pos_items_and_discount(db: AsyncSession) -> None:
+    """Checkout sums POS items and applies discount, creating line items for them."""
+    from backend.models._enums import InvoiceLineItemType
+    from backend.repositories import inventory_repo, pos_repo
+
+    # Create session
+    sess, seat, _ = await _create_active_session(db, duration_minutes=10)
+
+    # Set general discount on session
+    sess.discount_paise = 200
+    await session_repo.update(db, sess)
+
+    # Create menu item
+    menu_item = await inventory_repo.create(
+        db,
+        name="Cold Coke",
+        price_paise=150,
+        stock_quantity=10,
+    )
+
+    # Add POS item to session
+    await pos_repo.create(
+        db,
+        session_id=sess.id,
+        menu_item_id=menu_item.id,
+        quantity=2,
+        unit_price_paise=150,
+    )
+
+    invoice = await checkout_session(db, sess.id, PaymentMethod.CASH)
+
+    assert invoice is not None
+    assert invoice.discount_paise == 200
+    assert invoice.pos_total_paise == 300  # 2 * 150
+    # duration 10 mins * rate 100 paise/min = 1000 time charge
+    # total = 1000 (time charge) + 300 (POS) - 200 (discount) = 1100
+    assert invoice.total_paise == 1100
+
+    # Verify line items
+    assert len(invoice.line_items) == 3  # Time charge, POS item, Discount
+    pos_li = [
+        li for li in invoice.line_items if li.type == InvoiceLineItemType.POS_ITEM
+    ]
+    discount_li = [
+        li for li in invoice.line_items if li.type == InvoiceLineItemType.DISCOUNT
+    ]
+    time_li = [
+        li for li in invoice.line_items if li.type == InvoiceLineItemType.TIME_CHARGE
+    ]
+
+    assert len(pos_li) == 1
+    assert pos_li[0].description == "Cold Coke"
+    assert pos_li[0].quantity == 2
+    assert pos_li[0].unit_price_paise == 150
+    assert pos_li[0].total_paise == 300
+
+    assert len(discount_li) == 1
+    assert discount_li[0].description == "Session discount"
+    assert discount_li[0].quantity == 1
+    assert discount_li[0].unit_price_paise == 200
+    assert discount_li[0].total_paise == 200
+
+    assert len(time_li) == 1
+
+
 async def test_checkout_missing_session_raises_404(db: AsyncSession) -> None:
     with pytest.raises(HTTPException) as exc_info:
         await checkout_session(db, "nonexistent-id", PaymentMethod.CASH)

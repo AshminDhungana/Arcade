@@ -444,6 +444,196 @@ Authorization: Bearer <jwt>
 
 ---
 
+## Invoice Endpoints
+
+### `GET /api/invoices/{id}`
+
+Get details for a single invoice. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Response (200 OK):**
+```json
+{
+  "id": "inv_123",
+  "session_id": "session_123",
+  "member_id": "member_001",
+  "shift_id": "shift_001",
+  "time_charge_paise": 30000,
+  "package_credit_used_paise": 15000,
+  "discount_paise": 3000,
+  "pos_total_paise": 25000,
+  "total_paise": 37000,
+  "payment_method": "CASH",
+  "created_at": "2026-07-06T12:00:00+00:00",
+  "line_items": [
+    {
+      "id": "li_1",
+      "invoice_id": "inv_123",
+      "type": "TIME_CHARGE",
+      "description": "Time charge (PER_MINUTE)",
+      "quantity": 1,
+      "unit_price_paise": 30000,
+      "total_paise": 30000
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/invoices/{id}/pdf`
+
+Get print-friendly HTML receipt. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Response (200 OK):**
+HTML content that automatically triggers `window.print()` on load.
+
+---
+
+## Checkout Endpoint
+
+### `POST /api/sessions/{session_id}/checkout`
+
+Checkout and complete a gaming session, generating the finalized invoice. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```json
+{
+  "payment_method": "CASH"
+}
+```
+
+**Response (201 Created):**
+Invoice response object (same as `GET /api/invoices/{id}`).
+
+---
+
+## POS Endpoints
+
+These endpoints are feature-flagged and only available when `enable_pos` is set to `true`.
+
+### `GET /api/pos/menu`
+
+List all menu items for POS counter display. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "item_123",
+    "name": "Cold Coke",
+    "category": "Drinks",
+    "price_paise": 150,
+    "stock_quantity": 10,
+    "low_stock_threshold": 3,
+    "is_available": true
+  }
+]
+```
+
+---
+
+### `POST /api/pos/items`
+
+Add a POS item order to an active session. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```json
+{
+  "session_id": "session_123",
+  "menu_item_id": "item_123",
+  "quantity": 2
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": "pos_item_123",
+  "session_id": "session_123",
+  "menu_item_id": "item_123",
+  "quantity": 2,
+  "unit_price_paise": 150,
+  "added_at": "2026-07-06T11:00:00+00:00"
+}
+```
+
+---
+
+### `DELETE /api/pos/items/{pos_item_id}`
+
+Remove a POS item from a session. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request Parameters:**
+- `session_id`: Query parameter (string, required)
+
+**Response (200 OK):**
+```json
+{
+  "deleted": true,
+  "pos_item_id": "pos_item_123"
+}
+```
+
+---
+
+### `GET /api/pos/items/{session_id}`
+
+List all POS items currently ordered for a given session. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Response (200 OK):**
+Array of SessionPOSItem response objects.
+
+---
+
+## Inventory Endpoints
+
+These endpoints are feature-flagged and only available when `enable_inventory` is set to `true`.
+
+### `POST /api/inventory/restock`
+
+Restock a menu item, resetting its stock quantity and marking it available if it was out of stock. Admin role required.
+
+**Auth:** Bearer token (Admin only)
+
+**Request:**
+```json
+{
+  "menu_item_id": "item_123",
+  "quantity": 50,
+  "note": "Restocking drinks shipment"
+}
+```
+
+**Response (200 OK):**
+MenuItem response object (same as `GET /api/pos/menu` items).
+
+---
+
+### `GET /api/inventory/low-stock`
+
+List all menu items that are at or below their low-stock threshold. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Response (200 OK):**
+Array of MenuItem response objects.
+
+---
+
 ## WebSocket Endpoints
 
 Arcade uses two distinct WebSocket channels: one for dashboard clients (React app) and one for agent clients (Electron kiosk overlay).

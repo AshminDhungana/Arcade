@@ -1,6 +1,6 @@
 /** Mirrors backend `backend/schemas/invoice.py` — do not diverge. */
 
-export type PaymentMethod = 'CASH' | 'WALLET' | 'CARD';
+export type PaymentMethod = 'CASH' | 'WALLET' | 'CARD' | 'PACKAGE';
 
 export type InvoiceLineItemType =
   | 'TIME_CHARGE'

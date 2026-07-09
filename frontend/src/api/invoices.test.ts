@@ -1,6 +1,7 @@
 // frontend/src/api/invoices.test.ts
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { fetchInvoice, fetchInvoicePdf, checkoutSession } from './invoices';
+import type { Invoice } from '@/types/invoice';
 
 const mockToken = 'test-jwt-token';
 
@@ -11,11 +12,11 @@ beforeEach(() => {
 
 describe('fetchInvoice', () => {
   it('calls GET /api/invoices/{id} with auth header', async () => {
-    const mockInvoice = { id: 'inv_1', total_paise: 5000 } as any;
-    (global.fetch as any).mockResolvedValueOnce({
+    const mockInvoice = { id: 'inv_1', total_paise: 5000 } as unknown as Invoice;
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockInvoice),
-    });
+    } as Response);
 
     const result = await fetchInvoice('inv_1', mockToken);
 
@@ -26,11 +27,11 @@ describe('fetchInvoice', () => {
   });
 
   it('throws on non-ok response', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: false,
       status: 404,
       statusText: 'Not Found',
-    });
+    } as Response);
 
     await expect(fetchInvoice('inv_1', mockToken)).rejects.toThrow('Failed to fetch invoice: 404 Not Found');
   });
@@ -39,10 +40,10 @@ describe('fetchInvoice', () => {
 describe('fetchInvoicePdf', () => {
   it('calls GET /api/invoices/{id}/pdf and returns HTML string', async () => {
     const html = '<html>receipt</html>';
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(html),
-    });
+    } as Response);
 
     const result = await fetchInvoicePdf('inv_1', mockToken);
 
@@ -55,11 +56,11 @@ describe('fetchInvoicePdf', () => {
 
 describe('checkoutSession', () => {
   it('calls POST /api/sessions/{id}/checkout with payment_method', async () => {
-    const mockInvoice = { id: 'inv_1', total_paise: 5000 } as any;
-    (global.fetch as any).mockResolvedValueOnce({
+    const mockInvoice = { id: 'inv_1', total_paise: 5000 } as unknown as Invoice;
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockInvoice),
-    });
+    } as Response);
 
     const result = await checkoutSession('sess_1', 'CARD', mockToken);
 

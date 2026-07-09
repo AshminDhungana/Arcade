@@ -33,8 +33,10 @@ from backend.schemas.invoice import InvoiceResponse
 if TYPE_CHECKING:
     pass
 
+import backend.repositories.inventory_repo as inventory_repo
 import backend.repositories.invoice_repo as invoice_repo
 import backend.repositories.package_repo as package_repo
+import backend.repositories.pos_repo as pos_repo
 import backend.repositories.seat_repo as seat_repo
 import backend.repositories.session_repo as session_repo
 import backend.repositories.zone_repo as zone_repo
@@ -297,8 +299,9 @@ async def checkout_session(
     else:
         time_charge = calculate_time_charge(elapsed, locked)
 
-    # 4. Compute total (POS items are stub for now -- Feature 3.1.4)
-    pos_total_paise = 0
+    # 4. Compute total (POS items summing)
+    pos_items = await pos_repo.list_by_session(db, session_obj.id)
+    pos_total_paise = sum(item.unit_price_paise * item.quantity for item in pos_items)
     discount_paise = session_obj.discount_paise or 0
     total_paise = max(0, time_charge + pos_total_paise - discount_paise)
 
@@ -339,6 +342,28 @@ async def checkout_session(
             quantity=overflow_minutes,
             unit_price_paise=per_minute,
             total_paise=time_charge,
+        )
+    for pos_item in pos_items:
+        menu_item = await inventory_repo.get_by_id(db, pos_item.menu_item_id)
+        desc = menu_item.name if menu_item else f"POS Item {pos_item.menu_item_id}"
+        await invoice_repo.create_line_item(
+            db,
+            invoice_id=invoice.id,
+            type=InvoiceLineItemType.POS_ITEM,
+            description=desc,
+            quantity=pos_item.quantity,
+            unit_price_paise=pos_item.unit_price_paise,
+            total_paise=pos_item.unit_price_paise * pos_item.quantity,
+        )
+    if discount_paise > 0:
+        await invoice_repo.create_line_item(
+            db,
+            invoice_id=invoice.id,
+            type=InvoiceLineItemType.DISCOUNT,
+            description="Session discount",
+            quantity=1,
+            unit_price_paise=discount_paise,
+            total_paise=discount_paise,
         )
 
     # 6. Update session -> COMPLETED
@@ -409,4 +434,5 @@ async def checkout_session(
     )
 
     # 12. Return Invoice
+    await db.refresh(invoice)
     return invoice

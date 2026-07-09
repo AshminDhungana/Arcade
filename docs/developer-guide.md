@@ -274,3 +274,38 @@ Defined in `agent/src/main/config/validator.ts`:
 - **Linux/macOS:** `chmod 600 agent.config.json`
 - **Windows:** Runs in user directory by default.
 - **Never commit to version control.** Already `.gitignore`d.
+
+---
+
+## Billing Engine, Paise Rationale, and Audit Immutability
+
+### Billing Engine Logic
+The billing engine resolves pricing rates on session start (using `resolve_rate`) and locks the rate on the session record to ensure rate consistency during active sessions.
+
+All calculation is handled via `calculate_time_charge` using integer-only arithmetic in paise to avoid floating-point inaccuracies.
+
+Three pricing models are supported:
+1. `PER_MINUTE`: Billed per minute (rounded up).
+2. `FLAT_HOURLY`: Billed per hour (rounded up).
+3. `TIME_BLOCK`: Billed in preset blocks of minutes (rounded up).
+
+At checkout:
+- Session duration is adjusted for paused time.
+- Time packages drawdown is evaluated first (for member sessions).
+- Overflow duration (if any) is billed using the locked pricing model.
+- POS item totals are summed up and added to the invoice total.
+- Active discounts are deducted.
+- Total invoice amount has a floor at 0 (never negative).
+
+### Paise Convention Rationale
+All financial values (rates, pricing, item prices, discounts, invoice totals) are stored as integer **paise** (1/100 of a Rupee) in the database and code layers. This prevents common IEEE 754 floating-point rounding errors (e.g. `0.1 + 0.2 = 0.30000000000000004`) from corrupting accounting records.
+
+Conversion to human-readable Rupees (`Rs. X.XX`) is strictly handled at the display/representation layer (both in the backend print service formatting and the frontend `formatPaise` hook).
+
+### Audit Log Immutability
+Audit logs are append-only. The database schema enforces that `AuditLog` records can only be created. The `AuditService` exposes no update or delete operations, ensuring an untamperable audit trail for system actions like:
+- Staff logins/logouts
+- Session starts/stops/pauses/resumes
+- Checkout and invoice generation
+- Inventory restocks
+- Settings overrides and changes
