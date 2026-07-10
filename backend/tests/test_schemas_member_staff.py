@@ -68,3 +68,12 @@ class TestStaffResponse:
         assert r.name == "Boss"
         assert r.role == StaffRole.ADMIN
         assert not hasattr(r, "pin_hash")
+
+
+class TestStaffAuditActions:
+    def test_staff_audit_actions_defined(self) -> None:
+        from backend.models._enums import AuditAction
+
+        assert AuditAction.STAFF_CREATED.value == "STAFF_CREATED"
+        assert AuditAction.STAFF_PIN_CHANGED.value == "STAFF_PIN_CHANGED"
+        assert AuditAction.STAFF_DEACTIVATED.value == "STAFF_DEACTIVATED"

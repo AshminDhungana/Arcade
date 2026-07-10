@@ -198,6 +198,9 @@ class AuditAction(Enum):
     WOL_OVERRIDE = "WOL_OVERRIDE"
     PACKAGE_SOLD = "PACKAGE_SOLD"
     PROMOTION_APPLIED = "PROMOTION_APPLIED"
+    STAFF_CREATED = "STAFF_CREATED"
+    STAFF_PIN_CHANGED = "STAFF_PIN_CHANGED"
+    STAFF_DEACTIVATED = "STAFF_DEACTIVATED"
 
 
 # ── License ──────────────────────────────────────────────────────────────
