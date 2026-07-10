@@ -19,6 +19,7 @@ from backend.core.security import (
 from backend.core.security import (
     require_cashier as _require_cashier,
 )
+from backend.models._enums import StaffRole
 from backend.models.staff import Staff
 
 
@@ -72,3 +73,23 @@ async def require_cashier(
         HTTPException(403): If the staff member is not a Cashier or Admin.
     """
     return _require_cashier(staff)
+
+
+async def require_self_or_admin(
+    staff_id: str,
+    staff: Staff = Depends(get_current_staff),  # noqa: B008 – FastAPI DI idiom
+) -> Staff:
+    """FastAPI dependency that enforces Admin OR the account owner.
+
+    Used for PIN changes: an Admin may change any PIN; a non-admin staff
+    member may only change their own.
+
+    Raises:
+        HTTPException(403): If the caller is neither an Admin nor the
+            staff member identified by *staff_id*.
+    """
+    if staff.role != StaffRole.ADMIN and staff.id != staff_id:
+        raise HTTPException(
+            status_code=403, detail="Admin or account owner access required"
+        )
+    return staff

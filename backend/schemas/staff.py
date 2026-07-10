@@ -34,6 +34,12 @@ class StaffUpdate(BaseCreateSchema):
     pin: str | None = Field(None, min_length=4, max_length=20)  # For PIN updates
 
 
+class StaffPinUpdate(BaseSchema):
+    """Request body for a PIN change (hashed in the service)."""
+
+    pin: str = Field(..., min_length=4, max_length=20)
+
+
 class StaffResponse(StaffBase, BaseResponseSchema):
     """NO pin_hash or token_version here."""
 

@@ -5,7 +5,12 @@ from pydantic import ValidationError
 
 from backend.models._enums import StaffRole
 from backend.schemas.member import MemberCreate, MemberUpdate
-from backend.schemas.staff import StaffCreate, StaffResponse, StaffUpdate
+from backend.schemas.staff import (
+    StaffCreate,
+    StaffPinUpdate,
+    StaffResponse,
+    StaffUpdate,
+)
 
 
 class TestMemberCreate:
@@ -68,3 +73,22 @@ class TestStaffResponse:
         assert r.name == "Boss"
         assert r.role == StaffRole.ADMIN
         assert not hasattr(r, "pin_hash")
+
+
+class TestStaffAuditActions:
+    def test_staff_audit_actions_defined(self) -> None:
+        from backend.models._enums import AuditAction
+
+        assert AuditAction.STAFF_CREATED.value == "STAFF_CREATED"
+        assert AuditAction.STAFF_PIN_CHANGED.value == "STAFF_PIN_CHANGED"
+        assert AuditAction.STAFF_DEACTIVATED.value == "STAFF_DEACTIVATED"
+
+
+class TestStaffPinUpdate:
+    def test_valid(self) -> None:
+        s = StaffPinUpdate(pin="1234")
+        assert s.pin == "1234"
+
+    def test_pin_too_short(self) -> None:
+        with pytest.raises(ValidationError):
+            StaffPinUpdate(pin="12")
