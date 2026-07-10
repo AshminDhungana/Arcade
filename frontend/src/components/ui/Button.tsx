@@ -1,6 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 type Variant = 'primary' | 'secondary' | 'emerald' | 'danger';
 
@@ -29,11 +28,7 @@ export function Button({
     <button
       {...rest}
       disabled={disabled || loading}
-      className={cn(
-        'inline-flex min-h-[40px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:cursor-not-allowed disabled:opacity-50',
-        VARIANTS[variant],
-        className
-      )}
+      className={`inline-flex min-h-[40px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${className}`}
     >
       {loading && <Loader2 className="h-4 w-4 animate-spin" />}
       {children}
