@@ -57,7 +57,9 @@ async def admin_staff(db: AsyncSession) -> Staff:
 
 @pytest_asyncio.fixture
 async def admin_token(admin_staff: Staff) -> str:
-    return create_access_token({"sub": admin_staff.id, "role": "ADMIN"})
+    return create_access_token(
+        admin_staff.id, admin_staff.role.value, admin_staff.token_version
+    )
 
 
 @pytest_asyncio.fixture
@@ -156,8 +158,6 @@ class TestPromotionsRouter:
 
     async def test_cashier_cannot_create_promotion(self, db: AsyncSession):
         """Cashier role gets 403 on POST /api/promotions."""
-        from backend.services.auth_service import create_access_token
-
         cashier = await staff_repo.create(
             db,
             name="Cashier",
@@ -165,7 +165,9 @@ class TestPromotionsRouter:
             role=StaffRole.CASHIER.value,
             is_active=True,
         )
-        token = create_access_token({"sub": cashier.id, "role": "CASHIER"})
+        token = create_access_token(
+            cashier.id, cashier.role.value, cashier.token_version
+        )
 
         transport = ASGITransport(app=app)
         async with AsyncClient(
