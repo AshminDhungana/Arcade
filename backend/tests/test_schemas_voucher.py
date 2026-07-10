@@ -1,5 +1,8 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
+from pydantic import ValidationError
+
 from backend.models._enums import VoucherStatus
 from backend.schemas.voucher import (
     VoucherBatchCreate,
@@ -8,8 +11,6 @@ from backend.schemas.voucher import (
     VoucherRedeemRequest,
     VoucherResponse,
 )
-
-import pytest
 
 
 class TestVoucherCreate:
@@ -62,15 +63,15 @@ class TestVoucherBatchCreate:
         assert body.value_paise is None
 
     def test_invalid_count_zero(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             VoucherBatchCreate(count=0, value_paise=1000)
 
     def test_invalid_count_negative(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             VoucherBatchCreate(count=-1, value_paise=1000)
 
     def test_invalid_no_value(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             VoucherBatchCreate(count=10)  # Neither value_paise nor value_minutes
 
 
@@ -109,9 +110,9 @@ class TestVoucherRedeemRequest:
         assert len(body.code) == 12
 
     def test_code_too_long(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             VoucherRedeemRequest(code="A" * 13, member_id="m1")
 
     def test_member_id_required(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             VoucherRedeemRequest(code="ABCDEFGHIJKL")  # missing member_id

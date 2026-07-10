@@ -17,15 +17,15 @@ from backend.core.feature_flags import load_flags
 from backend.models import Member, Voucher
 from backend.models._enums import (
     AuditAction,
-    MemberTier,
     VoucherStatus,
 )
 from backend.models.settings import AppSettings
 from backend.models.staff import Staff
-from backend.repositories import member_repo, voucher_repo, staff_repo
+from backend.repositories import member_repo, staff_repo, voucher_repo
 from backend.services import audit_service
-from backend.services.voucher_service import VoucherService, VoucherGenerationError, VoucherRedemptionError
-
+from backend.services.voucher_service import (
+    VoucherService,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -190,12 +190,15 @@ class TestRedeem:
             batch_id="batch1",
         )
 
-        member = await VoucherService.redeem(db, code="VOUCHER1234", member_id=sample_member.id)
+        member = await VoucherService.redeem(
+            db, code="VOUCHER1234", member_id=sample_member.id
+        )
 
         assert member.wallet_balance_paise == 25000
 
         # Verify voucher status
         from sqlalchemy import select
+
         result = await db.execute(select(Voucher).where(Voucher.code == "VOUCHER1234"))
         voucher = result.scalar_one()
         assert voucher.status == VoucherStatus.REDEEMED
@@ -213,7 +216,7 @@ class TestRedeem:
     async def test_redeem_value_minutes_not_credited_to_wallet(
         self, db: AsyncSession, sample_member: Member, sample_staff: Staff
     ):
-        """Redeem value_minutes voucher does NOT credit wallet (handled by package drawdown)."""
+        """Time voucher must not credit wallet; package drawdown handles it."""
         await voucher_repo.create(
             db,
             code="TIMEVOUCHER1",
@@ -221,12 +224,15 @@ class TestRedeem:
             batch_id="batch1",
         )
 
-        member = await VoucherService.redeem(db, code="TIMEVOUCHER1", member_id=sample_member.id)
+        member = await VoucherService.redeem(
+            db, code="TIMEVOUCHER1", member_id=sample_member.id
+        )
 
         # Wallet unchanged for time vouchers
         assert member.wallet_balance_paise == 0
         # But voucher still marked redeemed
         from sqlalchemy import select
+
         result = await db.execute(select(Voucher).where(Voucher.code == "TIMEVOUCHER1"))
         voucher = result.scalar_one()
         assert voucher.status == VoucherStatus.REDEEMED
@@ -244,7 +250,9 @@ class TestRedeem:
         )
 
         with pytest.raises(Exception) as exc:
-            await VoucherService.redeem(db, code="EXPIREDVOUCH", member_id=sample_member.id)
+            await VoucherService.redeem(
+                db, code="EXPIREDVOUCH", member_id=sample_member.id
+            )
         assert exc.value.status_code == 400
         assert "expired" in exc.value.detail.lower()
 
@@ -265,7 +273,9 @@ class TestRedeem:
         await voucher_repo.update(db, voucher)
 
         with pytest.raises(Exception) as exc:
-            await VoucherService.redeem(db, code="USEDVOUCHER1", member_id=sample_member.id)
+            await VoucherService.redeem(
+                db, code="USEDVOUCHER1", member_id=sample_member.id
+            )
         assert exc.value.status_code == 400
         assert "redeemed" in exc.value.detail.lower()
 
@@ -274,19 +284,21 @@ class TestRedeem:
     ):
         """Redeem non-existent voucher raises 404."""
         with pytest.raises(Exception) as exc:
-            await VoucherService.redeem(db, code="NONEXISTENT1", member_id=sample_member.id)
+            await VoucherService.redeem(
+                db, code="NONEXISTENT1", member_id=sample_member.id
+            )
         assert exc.value.status_code == 404
 
-    async def test_redeem_member_not_found(
-        self, db: AsyncSession, sample_staff: Staff
-    ):
+    async def test_redeem_member_not_found(self, db: AsyncSession, sample_staff: Staff):
         """Redeem for non-existent member raises 404."""
         await voucher_repo.create(
             db, code="VOUCHER123456", value_paise=10000, batch_id="batch1"
         )
 
         with pytest.raises(Exception) as exc:
-            await VoucherService.redeem(db, code="VOUCHER123456", member_id="nonexistent")
+            await VoucherService.redeem(
+                db, code="VOUCHER123456", member_id="nonexistent"
+            )
         assert exc.value.status_code == 404
 
     async def test_redeem_feature_flag_disabled(
@@ -302,5 +314,7 @@ class TestRedeem:
         )
 
         with pytest.raises(Exception) as exc:
-            await VoucherService.redeem(db, code="VOUCHER123456", member_id=sample_member.id)
+            await VoucherService.redeem(
+                db, code="VOUCHER123456", member_id=sample_member.id
+            )
         assert exc.value.status_code == 503

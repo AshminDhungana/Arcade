@@ -377,8 +377,6 @@ async def test_voucher_repo(db: AsyncSession) -> None:
 async def test_voucher_repo_get_by_code(db: AsyncSession):
     """get_by_code returns voucher when code exists."""
     from backend.repositories import voucher_repo
-    from backend.models import Voucher
-    from backend.models._enums import VoucherStatus
 
     voucher = await voucher_repo.create(
         db, code="ABCD1234EFGH", value_paise=5000, batch_id="batch1"
@@ -400,8 +398,8 @@ async def test_voucher_repo_get_by_code_not_found(db: AsyncSession):
 
 async def test_voucher_repo_create_batch(db: AsyncSession):
     """create_batch generates specified count of unique vouchers."""
-    from backend.repositories import voucher_repo
     from backend.models._enums import VoucherStatus
+    from backend.repositories import voucher_repo
 
     vouchers = await voucher_repo.create_batch(
         db, count=10, value_paise=1000, expires_in_days=30, batch_id="test-batch-1"
@@ -449,7 +447,9 @@ async def test_voucher_repo_create_batch_zero_count_raises(db: AsyncSession):
     from backend.repositories import voucher_repo
 
     with pytest.raises(ValueError):
-        await voucher_repo.create_batch(db, count=0, value_paise=1000, expires_in_days=30, batch_id="bad")
+        await voucher_repo.create_batch(
+            db, count=0, value_paise=1000, expires_in_days=30, batch_id="bad"
+        )
 
 
 async def test_inventory_repo(db: AsyncSession) -> None:

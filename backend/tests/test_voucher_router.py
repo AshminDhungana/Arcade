@@ -17,13 +17,11 @@ from backend.api.deps import get_current_staff, get_db
 from backend.core.database import Base
 from backend.core.feature_flags import _flag_cache, load_flags
 from backend.main import app
-from backend.models import Member, Voucher
-from backend.models._enums import AuditAction, MemberTier, StaffRole, VoucherStatus
+from backend.models import Member
+from backend.models._enums import StaffRole, VoucherStatus
 from backend.models.settings import AppSettings
 from backend.models.staff import Staff
 from backend.repositories import member_repo, staff_repo, voucher_repo
-from backend.services import audit_service
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -58,10 +56,12 @@ async def db() -> AsyncGenerator[AsyncSession]:
         async with Session() as session:
             # Enable vouchers feature flag + members
             await session.execute(
-                insert(AppSettings).values([
-                    {"key": "enable_vouchers", "value": "true"},
-                    {"key": "enable_members", "value": "true"},
-                ])
+                insert(AppSettings).values(
+                    [
+                        {"key": "enable_vouchers", "value": "true"},
+                        {"key": "enable_members", "value": "true"},
+                    ]
+                )
             )
             await session.commit()
             await load_flags(session)
@@ -169,9 +169,7 @@ class TestVoucherBatch:
             assert v["value_paise"] == 5000
             assert v["status"] == "UNUSED"
 
-    async def test_create_batch_cashier_forbidden(
-        self, cashier_client: AsyncClient
-    ):
+    async def test_create_batch_cashier_forbidden(self, cashier_client: AsyncClient):
         """Cashier cannot create voucher batch (admin only)."""
         response = await cashier_client.post(
             "/api/vouchers/batch",
@@ -179,9 +177,7 @@ class TestVoucherBatch:
         )
         assert response.status_code == 403
 
-    async def test_create_batch_invalid_count(
-        self, client: AsyncClient
-    ):
+    async def test_create_batch_invalid_count(self, client: AsyncClient):
         """Count=0 returns 422 validation error."""
         response = await client.post(
             "/api/vouchers/batch",
@@ -189,9 +185,7 @@ class TestVoucherBatch:
         )
         assert response.status_code == 422
 
-    async def test_create_batch_invalid_both_values(
-        self, client: AsyncClient
-    ):
+    async def test_create_batch_invalid_both_values(self, client: AsyncClient):
         """Both value_paise and value_minutes returns 422."""
         response = await client.post(
             "/api/vouchers/batch",
@@ -199,9 +193,7 @@ class TestVoucherBatch:
         )
         assert response.status_code == 422
 
-    async def test_create_batch_feature_flag_disabled(
-        self, client: AsyncClient
-    ):
+    async def test_create_batch_feature_flag_disabled(self, client: AsyncClient):
         """Feature flag off returns 503."""
         _flag_cache["enable_vouchers"] = False
 
@@ -227,7 +219,7 @@ class TestVoucherRedeem:
 
         response = await cashier_client.post(
             "/api/vouchers/redeem",
-            json={"code": "VOUCHER12345", "member_id": member.id}
+            json={"code": "VOUCHER12345", "member_id": member.id},
         )
         assert response.status_code == 200
         data = response.json()
@@ -247,7 +239,7 @@ class TestVoucherRedeem:
 
         response = await cashier_client.post(
             "/api/vouchers/redeem",
-            json={"code": "EXPIREDVOUCH", "member_id": member.id}
+            json={"code": "EXPIREDVOUCH", "member_id": member.id},
         )
         assert response.status_code == 400
 
@@ -268,7 +260,7 @@ class TestVoucherRedeem:
 
         response = await cashier_client.post(
             "/api/vouchers/redeem",
-            json={"code": "USEDVOUCHER1", "member_id": member.id}
+            json={"code": "USEDVOUCHER1", "member_id": member.id},
         )
         assert response.status_code == 400
 
@@ -278,7 +270,7 @@ class TestVoucherRedeem:
         """Redeem non-existent voucher returns 404."""
         response = await cashier_client.post(
             "/api/vouchers/redeem",
-            json={"code": "NONEXISTENT1", "member_id": member.id}
+            json={"code": "NONEXISTENT1", "member_id": member.id},
         )
         assert response.status_code == 404
 
@@ -292,7 +284,7 @@ class TestVoucherRedeem:
 
         response = await cashier_client.post(
             "/api/vouchers/redeem",
-            json={"code": "VOUCHER12345", "member_id": "nonexistent"}
+            json={"code": "VOUCHER12345", "member_id": "nonexistent"},
         )
         assert response.status_code == 404
 
@@ -308,6 +300,6 @@ class TestVoucherRedeem:
 
         response = await cashier_client.post(
             "/api/vouchers/redeem",
-            json={"code": "VOUCHER12345", "member_id": member.id}
+            json={"code": "VOUCHER12345", "member_id": member.id},
         )
         assert response.status_code == 503

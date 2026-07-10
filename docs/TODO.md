@@ -1049,10 +1049,14 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
   - [x] `store_promotion_id_on_session(session_id, promotion_id, db)` â€” locked at session start
   - [x] Promotion API: `GET /api/promotions`, `POST /api/promotions` (Admin), `PATCH /api/promotions/{id}` (Admin)
 
-- [ ] **Task: Implement `VoucherService` (`backend/services/voucher_service.py`)** (feature-flagged `enable_vouchers`)
-  - [ ] `generate_batch(count, value_paise, expires_in_days, db, staff)` â€” creates `count` vouchers with unique random codes; returns batch
-  - [ ] `redeem(code, member_id, db)` â€” validates not expired, not redeemed; credits member wallet; marks redeemed
-  - [ ] Voucher API: `POST /api/vouchers/batch` (Admin), `POST /api/vouchers/redeem`
+- [x] **Task: Implement `VoucherService` (`backend/services/voucher_service.py`)** (feature-flagged `enable_vouchers`) ✅ _Complete (verified 2026-07-10)_
+  - [x] `generate_batch(count, value_paise, expires_in_days, db, staff)` — creates `count` vouchers with unique random 12-char codes (uppercase-alphanumeric, collision-checked); returns `VoucherBatchResponse` batch
+    - **Extension beyond spec:** also accepts `value_minutes` (time vouchers), mutually exclusive with `value_paise` — enforced by `VoucherBatchCreate` model validator
+  - [x] `redeem(code, member_id, db)` — validates not expired (re-checks `expires_at`, flips status to `EXPIRED` if past), not already redeemed; credits member wallet **only when `value_paise` is set** (time vouchers not wallet-credited — handled via package drawdown at checkout); marks `REDEEMED` with `redeemed_by_member_id` + `redeemed_at`; audits `VOUCHER_REDEEMED`; broadcasts `member_updated`
+  - [x] Voucher API: `POST /api/vouchers/batch` (Admin, feature-flagged), `POST /api/vouchers/redeem` (Cashier+, feature-flagged) — router-level `require_feature(“enable_vouchers”)` dependency **plus** in-service `get_flag` check
+  - [x] Tests: `test_voucher_service.py`, `test_voucher_router.py`, `test_schemas_voucher.py`, `test_repositories.py` — **58 tests passing**
+  - [~] **⚠ Persistence gap (systemic — NOT voucher-specific):** `VoucherService` (and every other service/router) only `flush()`; no `await db.commit()` is ever called in production code. `get_db()` (`core/database.py:73`) yields a session with no commit/rollback on exit, so vouchers + wallet credits are **rolled back after the response is sent**. Tests pass only because they bind a single unclosed session via `dependency_overrides[get_db]` and read within it. Grep confirms **zero `db.commit()` in production code** (only in `seed_dev.py` + tests); same gap confirmed in `promotions.py` / `promotion_service.py`. **Blocker for end-to-end correctness:** add `await db.commit()` in write routers (or a commit-on-success middleware in `main.py`) before any write path is trustworthy.
+  - [ ] **Minor cleanup (optional):** `generate_batch` builds a `VoucherBatchResponse` solely to extract `.vouchers`, then rebuilds an identical one (`voucher_service.py:136–146`) — redundant double-build; simplify to `[VoucherResponse.model_validate(v) for v in vouchers]`.
 
 - [ ] **Task: Staff Management API**
   - [ ] `POST /api/staff` (Admin): create staff member; hash PIN with Argon2id; initial `token_version=0`
@@ -1073,7 +1077,7 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
 - [x] `pytest backend/tests/test_member_service.py` â€” create, search, wallet topup (correct paise), loyalty points calculation, tier upgrades, voucher redemption
 - [ ] `pytest backend/tests/test_package_service.py` â€” sell package, entitlement creation, active entitlement retrieval, drawdown edge cases
 - [ ] `pytest backend/tests/test_promotion_service.py` â€” time window matching, day-of-week matching, no promotion when inactive
-- [ ] `pytest backend/tests/test_voucher_service.py` â€” generation, redemption, expired voucher rejection, already-redeemed rejection
+- [x] `pytest backend/tests/test_voucher_service.py` — generation (value_paise + value_minutes), unique-code guarantees, redemption, expired rejection, already-redeemed rejection, nonexistent voucher/member 404, feature-flag-disabled 503 (**58 voucher tests passing** across `test_voucher_service.py`, `test_voucher_router.py`, `test_schemas_voucher.py`, `test_repositories.py`)
 - [ ] `pytest backend/tests/test_staff_auth.py` â€” `token_version` increment on PIN change; stale JWT rejected; deactivated account JWT rejected
 
 ### Documentation Requirements (Phase 4)
