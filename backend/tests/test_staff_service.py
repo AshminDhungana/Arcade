@@ -123,3 +123,32 @@ class TestUpdatePin:
                 db, staff_id="missing", new_pin="x", staff=actor
             )
         assert exc.value.status_code == 404
+
+
+class TestDeactivate:
+    async def test_deactivate_sets_inactive_and_bumps_version(
+        self, db: AsyncSession, actor: Staff
+    ) -> None:
+        staff = await staff_repo.create(
+            db, name="Deact", pin_hash=hash_pin("1234"), role=StaffRole.CASHIER.value
+        )
+        updated = await StaffService.deactivate(db, staff_id=staff.id, staff=actor)
+        assert updated.is_active is False
+        assert updated.token_version == 1
+
+    async def test_deactivate_audit_logged(
+        self, db: AsyncSession, actor: Staff
+    ) -> None:
+        staff = await staff_repo.create(
+            db, name="Deact2", pin_hash=hash_pin("1234"), role=StaffRole.CASHIER.value
+        )
+        await StaffService.deactivate(db, staff_id=staff.id, staff=actor)
+        logs = await audit_service.list_logs(
+            db, action=AuditAction.STAFF_DEACTIVATED, entity_id=staff.id
+        )
+        assert len(logs) == 1
+
+    async def test_deactivate_not_found(self, db: AsyncSession, actor: Staff) -> None:
+        with pytest.raises(NotFoundError) as exc:
+            await StaffService.deactivate(db, staff_id="missing", staff=actor)
+        assert exc.value.status_code == 404
