@@ -16,7 +16,7 @@ from backend.models._enums import AuditAction, StaffRole
 from backend.models.staff import Staff
 from backend.repositories import staff_repo
 from backend.services import audit_service
-from backend.services.staff_service import StaffService
+from backend.services.staff_service import NotFoundError, StaffService
 
 
 @pytest.fixture
@@ -87,3 +87,39 @@ class TestListStaff:
         result = await StaffService.list_staff(db)
         assert len(result) >= 3  # actor + 2
         assert all(isinstance(s, Staff) for s in result)
+
+
+class TestUpdatePin:
+    async def test_update_pin_increments_token_version_and_rehashes(
+        self, db: AsyncSession, actor: Staff
+    ) -> None:
+        staff = await staff_repo.create(
+            db, name="Pin", pin_hash=hash_pin("oldpin"), role=StaffRole.CASHIER.value
+        )
+        updated = await StaffService.update_pin(
+            db, staff_id=staff.id, new_pin="newpin", staff=actor
+        )
+        assert updated.token_version == 1
+        assert verify_pin("newpin", updated.pin_hash) is True
+        assert verify_pin("oldpin", updated.pin_hash) is False
+
+    async def test_update_pin_audit_logged(
+        self, db: AsyncSession, actor: Staff
+    ) -> None:
+        staff = await staff_repo.create(
+            db, name="Pin2", pin_hash=hash_pin("oldpin"), role=StaffRole.CASHIER.value
+        )
+        await StaffService.update_pin(
+            db, staff_id=staff.id, new_pin="newpin", staff=actor
+        )
+        logs = await audit_service.list_logs(
+            db, action=AuditAction.STAFF_PIN_CHANGED, entity_id=staff.id
+        )
+        assert len(logs) == 1
+
+    async def test_update_pin_not_found(self, db: AsyncSession, actor: Staff) -> None:
+        with pytest.raises(NotFoundError) as exc:
+            await StaffService.update_pin(
+                db, staff_id="missing", new_pin="x", staff=actor
+            )
+        assert exc.value.status_code == 404

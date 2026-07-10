@@ -62,3 +62,32 @@ class StaffService:
     async def list_staff(db: AsyncSession) -> Sequence[Staff]:
         """Return all staff members."""
         return await staff_repo.list(db)
+
+    @staticmethod
+    async def update_pin(
+        db: AsyncSession,
+        *,
+        staff_id: str,
+        new_pin: str,
+        staff: Staff | None = None,
+    ) -> Staff:
+        """Update a staff member's PIN and invalidate existing tokens.
+
+        Bumps ``token_version`` so any JWT issued before this change is
+        rejected by the auth dependency on the next request.
+        """
+        target = await staff_repo.get_by_id(db, staff_id)
+        if target is None:
+            raise NotFoundError("Staff not found")
+        target.pin_hash = hash_pin(new_pin)
+        target.token_version += 1
+        target = await staff_repo.update(db, target)
+        await audit_service.log(
+            db,
+            action=AuditAction.STAFF_PIN_CHANGED,
+            entity_type="staff",
+            entity_id=target.id,
+            staff_id=staff.id if staff else None,
+            detail="PIN changed; token_version incremented",
+        )
+        return target
