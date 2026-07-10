@@ -1,1 +1,16 @@
 @import 'tailwindcss';
+
+@theme {
+  --color-surface-950: #020617;
+  --color-surface-900: #0F172A;
+  --color-surface-800: #1E293B;
+  --color-surface-700: #334155;
+  --color-brand-500: #3B82F6;
+  --color-brand-600: #2563EB;
+  --color-success-500: #22C55E;
+  --color-danger-500: #EF4444;
+  --color-text-50: #F8FAFC;
+  --color-text-muted: #94A3B8;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+}
