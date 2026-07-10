@@ -1058,11 +1058,11 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
   - [~] **⚠ Persistence gap (systemic — NOT voucher-specific):** `VoucherService` (and every other service/router) only `flush()`; no `await db.commit()` is ever called in production code. `get_db()` (`core/database.py:73`) yields a session with no commit/rollback on exit, so vouchers + wallet credits are **rolled back after the response is sent**. Tests pass only because they bind a single unclosed session via `dependency_overrides[get_db]` and read within it. Grep confirms **zero `db.commit()` in production code** (only in `seed_dev.py` + tests); same gap confirmed in `promotions.py` / `promotion_service.py`. **Blocker for end-to-end correctness:** add `await db.commit()` in write routers (or a commit-on-success middleware in `main.py`) before any write path is trustworthy.
   - [ ] **Minor cleanup (optional):** `generate_batch` builds a `VoucherBatchResponse` solely to extract `.vouchers`, then rebuilds an identical one (`voucher_service.py:136–146`) — redundant double-build; simplify to `[VoucherResponse.model_validate(v) for v in vouchers]`.
 
-- [ ] **Task: Staff Management API**
-  - [ ] `POST /api/staff` (Admin): create staff member; hash PIN with Argon2id; initial `token_version=0`
-  - [ ] `PATCH /api/staff/{id}/pin` (Admin or self): update PIN; **increment `token_version`** to invalidate all existing JWTs
-  - [ ] `PATCH /api/staff/{id}/deactivate` (Admin): set `is_active=False`; **increment `token_version`**
-  - [ ] `GET /api/staff` (Admin): list all staff
+- [x] **Task: Staff Management API** ✅ _Complete (merged to main 2026-07-10)_
+  - [x] `POST /api/staff` (Admin): create staff member; hash PIN with Argon2id; initial `token_version=0`
+  - [x] `PATCH /api/staff/{id}/pin` (Admin or self): update PIN; **increment `token_version`** to invalidate all existing JWTs
+  - [x] `PATCH /api/staff/{id}/deactivate` (Admin): set `is_active=False`; **increment `token_version`**
+  - [x] `GET /api/staff` (Admin): list all staff
 
 ### Epic 4.2: Frontend â€” Members and Settings (ENG-B)
 
@@ -1078,7 +1078,7 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
 - [ ] `pytest backend/tests/test_package_service.py` â€” sell package, entitlement creation, active entitlement retrieval, drawdown edge cases
 - [ ] `pytest backend/tests/test_promotion_service.py` â€” time window matching, day-of-week matching, no promotion when inactive
 - [x] `pytest backend/tests/test_voucher_service.py` — generation (value_paise + value_minutes), unique-code guarantees, redemption, expired rejection, already-redeemed rejection, nonexistent voucher/member 404, feature-flag-disabled 503 (**58 voucher tests passing** across `test_voucher_service.py`, `test_voucher_router.py`, `test_schemas_voucher.py`, `test_repositories.py`)
-- [ ] `pytest backend/tests/test_staff_auth.py` â€” `token_version` increment on PIN change; stale JWT rejected; deactivated account JWT rejected
+- [x] `pytest backend/tests/test_staff_auth.py` â€” `token_version` increment on PIN change; stale JWT rejected; deactivated account JWT rejected
 
 ### Documentation Requirements (Phase 4)
 
