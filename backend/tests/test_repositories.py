@@ -371,6 +371,87 @@ async def test_voucher_repo(db: AsyncSession) -> None:
     assert len(all_vouchers) == 1
 
 
+# ── Voucher repository extended methods (get_by_code, create_batch) ──────────
+
+
+async def test_voucher_repo_get_by_code(db: AsyncSession):
+    """get_by_code returns voucher when code exists."""
+    from backend.repositories import voucher_repo
+    from backend.models import Voucher
+    from backend.models._enums import VoucherStatus
+
+    voucher = await voucher_repo.create(
+        db, code="ABCD1234EFGH", value_paise=5000, batch_id="batch1"
+    )
+
+    found = await voucher_repo.get_by_code(db, "ABCD1234EFGH")
+    assert found is not None
+    assert found.id == voucher.id
+    assert found.code == "ABCD1234EFGH"
+
+
+async def test_voucher_repo_get_by_code_not_found(db: AsyncSession):
+    """get_by_code returns None for non-existent code."""
+    from backend.repositories import voucher_repo
+
+    found = await voucher_repo.get_by_code(db, "NONEXISTENT")
+    assert found is None
+
+
+async def test_voucher_repo_create_batch(db: AsyncSession):
+    """create_batch generates specified count of unique vouchers."""
+    from backend.repositories import voucher_repo
+    from backend.models._enums import VoucherStatus
+
+    vouchers = await voucher_repo.create_batch(
+        db, count=10, value_paise=1000, expires_in_days=30, batch_id="test-batch-1"
+    )
+
+    assert len(vouchers) == 10
+    codes = [v.code for v in vouchers]
+    assert len(set(codes)) == 10  # All unique
+    for v in vouchers:
+        assert v.value_paise == 1000
+        assert v.batch_id == "test-batch-1"
+        # VoucherStatus is an Enum, compare by value
+        assert v.status == VoucherStatus.UNUSED
+        assert v.expires_at is not None
+
+
+async def test_voucher_repo_create_batch_value_minutes(db: AsyncSession):
+    """create_batch with value_minutes works correctly."""
+    from backend.repositories import voucher_repo
+
+    vouchers = await voucher_repo.create_batch(
+        db, count=5, value_minutes=60, expires_in_days=7, batch_id="test-batch-2"
+    )
+
+    assert len(vouchers) == 5
+    for v in vouchers:
+        assert v.value_minutes == 60
+        assert v.value_paise is None
+
+
+async def test_voucher_repo_create_batch_no_expiry(db: AsyncSession):
+    """create_batch without expires_in_days has no expiry."""
+    from backend.repositories import voucher_repo
+
+    vouchers = await voucher_repo.create_batch(
+        db, count=3, value_paise=1000, expires_in_days=None, batch_id="test-batch-3"
+    )
+
+    for v in vouchers:
+        assert v.expires_at is None
+
+
+async def test_voucher_repo_create_batch_zero_count_raises(db: AsyncSession):
+    """create_batch with count=0 raises ValueError."""
+    from backend.repositories import voucher_repo
+
+    with pytest.raises(ValueError):
+        await voucher_repo.create_batch(db, count=0, value_paise=1000, expires_in_days=30, batch_id="bad")
+
+
 async def test_inventory_repo(db: AsyncSession) -> None:
     item = await inventory_repo.create(
         db, name="Red Bull", category="Drink", price_paise=15000

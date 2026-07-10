@@ -197,9 +197,17 @@ async def _validation_exception_handler(
     exc: RequestValidationError,
 ) -> JSONResponse:
     """Return 422 with a structured error body."""
+    # Sanitize errors - remove non-serializable ctx values
+    errors = exc.errors()
+    for error in errors:
+        if "ctx" in error and "error" in error["ctx"]:
+            # Keep only the error message string, not the exception object
+            exc_obj = error["ctx"]["error"]
+            error["ctx"]["error"] = str(exc_obj)
+
     return JSONResponse(
         status_code=422,
-        content={"detail": exc.errors()},
+        content={"detail": errors},
     )
 
 
