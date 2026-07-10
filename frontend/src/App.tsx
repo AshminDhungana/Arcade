@@ -4,6 +4,7 @@ import DashboardPage from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useFeatureFlags } from './api/featureFlags';
 import { ToastViewport } from '@/components/ui/Toast';
+import { NavShell } from './components/NavShell';
 
 export default function App() {
   // Bootstrap feature flags from GET /api/settings on mount
@@ -17,7 +18,9 @@ export default function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <NavShell>
+                <DashboardPage />
+              </NavShell>
             </ProtectedRoute>
           }
         />
