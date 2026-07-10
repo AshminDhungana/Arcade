@@ -49,6 +49,7 @@ async def list(
     end_date: str | None = None,
     action: str | None = None,
     staff_id: str | None = None,
+    entity_id: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> Sequence[AuditLog]:
@@ -70,6 +71,8 @@ async def list(
         conditions.append(AuditLog.action == action)
     if staff_id:
         conditions.append(AuditLog.staff_id == staff_id)
+    if entity_id:
+        conditions.append(AuditLog.entity_id == entity_id)
     if conditions:
         stmt = stmt.where(and_(*conditions))
     stmt = stmt.order_by(AuditLog.timestamp.desc()).offset(offset).limit(limit)

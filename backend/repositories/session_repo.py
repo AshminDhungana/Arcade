@@ -92,3 +92,12 @@ async def list_by_shift(db: AsyncSession, shift_id: str) -> Sequence[GamingSessi
         select(GamingSession).where(GamingSession.shift_id == shift_id)
     )
     return result.scalars().all()
+
+
+async def list_by_member(db: AsyncSession, member_id: str) -> Sequence[GamingSession]:
+    result = await db.execute(
+        select(GamingSession)
+        .where(GamingSession.member_id == member_id)
+        .order_by(GamingSession.started_at.desc())
+    )
+    return result.scalars().all()

@@ -12,8 +12,8 @@ __pycache__/
 *.so
 .claude
 CLAUDE.md
-./backend/venv
-./docs/superpowers
+backend/venv
+docs/superpowers
 
 # Distribution / packaging
 .Python

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import AwareDatetime, Field
 
-from backend.models._enums import MemberTier
+from backend.models._enums import MemberTier, PaymentMethod
 from backend.schemas.base import BaseCreateSchema, BaseResponseSchema
 
 
@@ -33,3 +33,10 @@ class MemberResponse(MemberBase, BaseResponseSchema):
     total_seconds_played: int
     created_at: AwareDatetime
     updated_at: AwareDatetime
+
+
+class TopupRequest(BaseCreateSchema):
+    """Request body for wallet topup."""
+
+    amount_paise: int = Field(..., gt=0)
+    payment_method: PaymentMethod

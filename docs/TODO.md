@@ -1028,14 +1028,14 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
 
 ### Epic 4.1: Member System (ENG-A)
 
-- [ ] **Task: Implement `MemberService` (`backend/services/member_service.py`)**
-  - [ ] `create_member(name, phone, db)` — phone uniqueness check; initial tier BRONZE
-  - [ ] `get_member(member_id, db)` — 404 if not found
-  - [ ] `search_members(query, db)` — search by name or phone (ILIKE pattern)
-  - [ ] `topup_wallet(member_id, amount_paise, payment_method, db, staff)` — audit `WALLET_TOPUP`
-  - [ ] `redeem_voucher_to_wallet(member_id, code, db)` — validate voucher; add value; mark redeemed; audit `VOUCHER_REDEEMED`
-  - [ ] `add_loyalty_points(member_id, session_duration_seconds, db)` — calc points per configured rule; update total; check tier thresholds; upgrade if met; broadcast `member_updated`
-  - [ ] Member API router: `GET /api/members?q=`, `POST /api/members`, `GET /api/members/{id}`, `POST /api/members/{id}/topup`, `GET /api/members/{id}/sessions` (history)
+- [x] **Task: Implement `MemberService` (`backend/services/member_service.py`)**
+  - [x] `create_member(name, phone, db)` — phone uniqueness check; initial tier BRONZE
+  - [x] `get_member(member_id, db)` — 404 if not found
+  - [x] `search_members(query, db)` — search by name or phone (ILIKE pattern)
+  - [x] `topup_wallet(member_id, amount_paise, payment_method, db, staff)` — audit `WALLET_TOPUP`
+  - [x] `redeem_voucher_to_wallet(member_id, code, db)` — validate voucher; add value; mark redeemed; audit `VOUCHER_REDEEMED`
+  - [x] `add_loyalty_points(member_id, session_duration_seconds, db)` — calc points per configured rule; update total; check tier thresholds; upgrade if met; broadcast `member_updated`
+  - [x] Member API router: `GET /api/members?q=`, `POST /api/members`, `GET /api/members/{id}`, `POST /api/members/{id}/topup`, `GET /api/members/{id}/sessions` (history)
 
 - [ ] **Task: Implement `PackageService` (`backend/services/package_service.py`)**
   - [ ] `sell_package(member_id, package_id, payment_method, db, staff)` — create `MemberPackageEntitlement`; deduct from wallet or record cash payment; audit `PACKAGE_SOLD`
@@ -1070,7 +1070,7 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
 
 ### Testing Requirements (Phase 4)
 
-- [ ] `pytest backend/tests/test_member_service.py` — create, search, wallet topup (correct paise), loyalty points calculation, tier upgrades, voucher redemption
+- [x] `pytest backend/tests/test_member_service.py` — create, search, wallet topup (correct paise), loyalty points calculation, tier upgrades, voucher redemption
 - [ ] `pytest backend/tests/test_package_service.py` — sell package, entitlement creation, active entitlement retrieval, drawdown edge cases
 - [ ] `pytest backend/tests/test_promotion_service.py` — time window matching, day-of-week matching, no promotion when inactive
 - [ ] `pytest backend/tests/test_voucher_service.py` — generation, redemption, expired voucher rejection, already-redeemed rejection

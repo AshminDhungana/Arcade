@@ -63,6 +63,7 @@ async def list_logs(
     end_date: str | None = None,
     action: AuditAction | None = None,
     staff_id: str | None = None,
+    entity_id: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> Sequence[AuditLog]:
@@ -78,6 +79,8 @@ async def list_logs(
         Filter to a specific action type.
     staff_id: str | None
         Filter to a specific staff member.
+    entity_id: str | None
+        Filter to a specific entity ID.
     limit: int
         Max records per page (default 50, max 500).
     offset: int
@@ -94,6 +97,7 @@ async def list_logs(
         end_date=end_date,
         action=action.value if action else None,
         staff_id=staff_id,
+        entity_id=entity_id,
         limit=limit,
         offset=offset,
     )
