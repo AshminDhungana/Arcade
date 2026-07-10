@@ -1,4 +1,4 @@
-import { PaymentMethod } from './invoice';
+import type { PaymentMethod } from './invoice';
 
 export type PricingModel = 'PER_MINUTE' | 'FLAT_HOURLY' | 'TIME_BLOCK';
 

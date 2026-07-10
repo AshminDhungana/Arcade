@@ -193,7 +193,7 @@ describe('CheckoutPanel', () => {
   });
 
   it('renders completed invoice and fires print and close actions on success', async () => {
-    mockMutate.mockImplementationOnce((variables, options) => {
+    mockMutate.mockImplementationOnce((_variables, options) => {
       if (options && options.onSuccess) {
         options.onSuccess(mockInvoice);
       }

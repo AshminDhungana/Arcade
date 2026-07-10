@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Seat, SeatStatus } from '@/types/seat';
+import type { Seat } from '@/types/seat';
+import { SeatStatus } from '@/types/seat';
 
 describe('Seat types', () => {
   it('Seat interface compiles with required fields', () => {

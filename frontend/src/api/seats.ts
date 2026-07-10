@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Seat } from '@/types/seat';
+import type { Seat } from '@/types/seat';
 
 const API_BASE = '/api';
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Seat } from '@/types/seat';
+import type { Seat } from '@/types/seat';
 import { useSeats } from '@/api/seats';
 import { SeatCard } from './SeatCard';
 import { SeatActionModal } from './SeatActionModal';
