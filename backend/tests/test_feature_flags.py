@@ -16,7 +16,9 @@ Scenarios:
 
 from __future__ import annotations
 
+import tempfile
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
@@ -45,6 +47,14 @@ def _clear_flag_cache() -> Generator[None]:
     _flag_cache.clear()
 
 
+# Helper to create a temporary file-based database engine
+def _create_test_engine():
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        db_path = tmp.name
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
+    return engine, Path(db_path)
+
+
 # ---------------------------------------------------------------------------
 # get_flag
 # ---------------------------------------------------------------------------
@@ -62,6 +72,11 @@ class TestGetFlag:
         _flag_cache["enable_test"] = False
         assert get_flag("enable_test") is False
 
+    def test_enable_packages_flag_exists(self) -> None:
+        # Manually set in cache to simulate loaded state
+        _flag_cache["enable_packages"] = True
+        assert get_flag("enable_packages") is True
+
 
 # ---------------------------------------------------------------------------
 # load_flags
@@ -71,45 +86,51 @@ class TestGetFlag:
 class TestLoadFlags:
     @pytest.mark.asyncio
     async def test_populates_cache_from_db(self) -> None:
-        engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        engine, db_path = _create_test_engine()
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
 
-        async with AsyncSession(engine) as session:
-            session.add_all(
-                [
-                    AppSettings(key="enable_members", value="true"),
-                    AppSettings(key="enable_inventory", value="false"),
-                    AppSettings(key="enable_pos", value="true"),
-                ]
-            )
-            await session.commit()
+            async with AsyncSession(engine) as session:
+                session.add_all(
+                    [
+                        AppSettings(key="enable_members", value="true"),
+                        AppSettings(key="enable_inventory", value="false"),
+                        AppSettings(key="enable_pos", value="true"),
+                    ]
+                )
+                await session.commit()
 
-            await load_flags(session)
+                await load_flags(session)
 
-            assert get_flag("enable_members") is True
-            assert get_flag("enable_inventory") is False
-            assert get_flag("enable_pos") is True
-            assert get_flag("enable_unknown") is False
+                assert get_flag("enable_members") is True
+                assert get_flag("enable_inventory") is False
+                assert get_flag("enable_pos") is True
+                assert get_flag("enable_unknown") is False
 
-        await engine.dispose()
+        finally:
+            await engine.dispose()
+            db_path.unlink(missing_ok=True)
 
     @pytest.mark.asyncio
     async def test_overwrites_stale_cache(self) -> None:
         _flag_cache["enable_pos"] = False
 
-        engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        engine, db_path = _create_test_engine()
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
 
-        async with AsyncSession(engine) as session:
-            session.add(AppSettings(key="enable_pos", value="true"))
-            await session.commit()
+            async with AsyncSession(engine) as session:
+                session.add(AppSettings(key="enable_pos", value="true"))
+                await session.commit()
 
-            await load_flags(session)
-            assert get_flag("enable_pos") is True
+                await load_flags(session)
+                assert get_flag("enable_pos") is True
 
-        await engine.dispose()
+        finally:
+            await engine.dispose()
+            db_path.unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------
@@ -120,25 +141,28 @@ class TestLoadFlags:
 class TestRefreshFlags:
     @pytest.mark.asyncio
     async def test_updates_after_db_change(self) -> None:
-        engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        engine, db_path = _create_test_engine()
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
 
-        async with AsyncSession(engine) as session:
-            session.add(AppSettings(key="enable_vouchers", value="false"))
-            await session.commit()
-            await load_flags(session)
-            assert get_flag("enable_vouchers") is False
+            async with AsyncSession(engine) as session:
+                session.add(AppSettings(key="enable_vouchers", value="false"))
+                await session.commit()
+                await load_flags(session)
+                assert get_flag("enable_vouchers") is False
 
-            row = await session.get(AppSettings, "enable_vouchers")
-            assert row is not None
-            row.value = "true"
-            await session.commit()
+                row = await session.get(AppSettings, "enable_vouchers")
+                assert row is not None
+                row.value = "true"
+                await session.commit()
 
-            await refresh_flags(session)
-            assert get_flag("enable_vouchers") is True
+                await refresh_flags(session)
+                assert get_flag("enable_vouchers") is True
 
-        await engine.dispose()
+        finally:
+            await engine.dispose()
+            db_path.unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------

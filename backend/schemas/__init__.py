@@ -39,6 +39,7 @@ from backend.schemas.package import (
     PackageCreate,
     PackageResponse,
     PackageUpdate,
+    SellPackageRequest,
 )
 
 # POS
@@ -132,6 +133,7 @@ __all__ = [
     "MemberPackageEntitlementCreate",
     "MemberPackageEntitlementUpdate",
     "MemberPackageEntitlementResponse",
+    "SellPackageRequest",
     # Promotion / Voucher
     "PromotionCreate",
     "PromotionUpdate",

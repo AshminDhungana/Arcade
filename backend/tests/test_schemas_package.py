@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend.models._enums import PackageType
+from backend.models._enums import PackageType, PaymentMethod
 from backend.schemas.package import MemberPackageEntitlementCreate, PackageCreate
 
 
@@ -32,5 +32,7 @@ class TestMemberPackageEntitlementCreate:
             member_id="m1",
             package_id="p1",
             remaining_minutes=120,
+            payment_method="CASH",
         )
         assert e.remaining_minutes == 120
+        assert e.payment_method == PaymentMethod.CASH

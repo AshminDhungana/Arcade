@@ -117,6 +117,10 @@ async def get_active_entitlement(
 
     now = datetime.now(UTC)
     for ent in entitlements:
-        if ent.expires_at is None or ent.expires_at > now:
+        expires_at = ent.expires_at
+        if expires_at is not None and expires_at.tzinfo is None:
+            # Make offset-naive datetime offset-aware for comparison
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at is None or expires_at > now:
             return ent
     return None

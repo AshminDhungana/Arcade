@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
 from backend.models._enums import EntitlementStatus
-from backend.models._types import StrEnumColumn
+from backend.models._types import StrEnumColumn, UTCDatetime
 
 
 class MemberPackageEntitlement(Base):
@@ -25,9 +25,9 @@ class MemberPackageEntitlement(Base):
         String(32), ForeignKey("packages.id"), nullable=False
     )
     remaining_minutes: Mapped[int]
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(UTCDatetime)
     purchased_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+        UTCDatetime, default=lambda: datetime.now(UTC), nullable=False
     )
     status: Mapped[EntitlementStatus] = mapped_column(
         StrEnumColumn(EntitlementStatus, 10),
@@ -35,7 +35,7 @@ class MemberPackageEntitlement(Base):
         default=EntitlementStatus.ACTIVE,
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        UTCDatetime,
         default=lambda: datetime.now(UTC),
         nullable=False,
     )

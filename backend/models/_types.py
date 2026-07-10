@@ -5,9 +5,14 @@ string in the database and returns the corresponding enum member on read.
 This avoids the ``type '…' is not supported`` error that aiosqlite raises
 when it receives an unhandled ``Enum`` instance.
 
+:mod:`UTCDatetime` — stores ``datetime`` objects as UTC ISO strings and
+guarantees timezone-aware (UTC) datetimes on read. SQLite does not have a
+native timezone-aware datetime type, so this decorator handles the round-trip
+transparently.
+
 Usage in a declarative model::
 
-    from backend.models._types import StrEnumColumn
+    from backend.models._types import StrEnumColumn, UTCDatetime
 
     class Zone(Base):
         status: Mapped[PricingModel] = mapped_column(
@@ -15,13 +20,14 @@ Usage in a declarative model::
             nullable=False,
             default=PricingModel.PER_MINUTE,
         )
-
-The generated DDL column type is still ``sqlalchemy.String``,
-so no migration is required when switching from :class:`sqlalchemy.String`.
+        created_at: Mapped[datetime] = mapped_column(
+            UTCDatetime, nullable=False, default=lambda: datetime.now(UTC)
+        )
 """
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -66,3 +72,41 @@ class StrEnumColumn(TypeDecorator):  # type: ignore[type-arg]  # impl set below
         if value is None:
             return None
         return self.enum_type(value)
+
+
+class UTCDatetime(TypeDecorator[datetime]):
+    """TypeDecorator that stores UTC datetimes as ISO strings and ensures
+    timezone-aware (UTC) datetimes on read.
+
+    SQLite has no native timezone-aware datetime type. This decorator
+    serializes to ISO 8601 with 'Z' suffix (UTC) and deserializes to a
+    timezone-aware ``datetime`` with ``tzinfo=UTC``.
+    """
+
+    impl = String
+    cache_ok = True
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(length=32, **kwargs)  # ISO UTC format fits in 32 chars
+
+    def process_bind_param(self, value: datetime | None, dialect: Any) -> str | None:
+        """Serialize a timezone-aware datetime to UTC ISO string."""
+        if value is None:
+            return None
+        # Ensure value is timezone-aware (UTC)
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=UTC)
+        elif value.tzinfo != UTC:
+            value = value.astimezone(UTC)
+        # Return ISO format with 'Z' suffix for UTC
+        return value.isoformat().replace("+00:00", "Z")
+
+    def process_result_value(self, value: str | None, dialect: Any) -> datetime | None:
+        """Deserialize ISO string to timezone-aware UTC datetime."""
+        if value is None:
+            return None
+        # Parse ISO string and ensure UTC timezone
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt

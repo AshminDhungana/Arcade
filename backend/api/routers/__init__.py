@@ -15,6 +15,7 @@ from backend.api.routers.auth import router as auth_router
 from backend.api.routers.inventory import router as inventory_router
 from backend.api.routers.invoices import router as invoices_router
 from backend.api.routers.members import router as member_router
+from backend.api.routers.packages import router as package_router
 from backend.api.routers.pos import router as pos_router
 from backend.api.routers.seats import router as seat_router
 from backend.api.routers.sessions import router as session_router
@@ -29,7 +30,7 @@ __all__ = ["routers"]
 # Phase 3: # routers.append(inventory_router)
 # Phase 3: # routers.append(billing_router)
 # Phase 4: routers.append(member_router)  # DONE
-# Phase 4: # routers.append(package_router)
+# Phase 4: routers.append(package_router)  # DONE
 # Phase 4: # routers.append(promotion_router)
 # Phase 4: # routers.append(voucher_router)
 # Phase 5: # routers.append(shift_router)
@@ -50,4 +51,5 @@ routers: list[APIRouter] = [
     audit_router,
     settings_router,
     member_router,
+    package_router,
 ]

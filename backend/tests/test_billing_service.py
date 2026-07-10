@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import tempfile
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
@@ -21,14 +23,24 @@ from backend.services.billing_service import (
 
 @pytest.fixture
 async def db() -> AsyncGenerator[AsyncSession]:
-    """Yield a fresh async session on an in-memory SQLite DB."""
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    Session = async_sessionmaker(engine, expire_on_commit=False)
-    async with Session() as session:
-        yield session
-    await engine.dispose()
+    """Yield a fresh async session on a temporary file-based SQLite DB.
+
+    Using a file-based DB instead of in-memory avoids aiosqlite threading issues
+    during test cleanup (Windows fatal exception on engine.dispose()).
+    """
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        db_path = tmp.name
+
+    try:
+        engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        Session = async_sessionmaker(engine, expire_on_commit=False)
+        async with Session() as session:
+            yield session
+        await engine.dispose()
+    finally:
+        Path(db_path).unlink(missing_ok=True)
 
 
 # ------------------------------------------------------------------

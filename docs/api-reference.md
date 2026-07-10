@@ -706,3 +706,87 @@ wss://<server-ip>:8000/ws/agent/seat_001?secret=<agent_secret>
 - Agent must reply with `PONG` within 10 seconds.
 - Missing `PONG` -> server closes connection (code 1001).
 - Agent reconnects automatically with exponential backoff (1s -> 2s -> 4s ... capped at 30s + jitter).
+
+---
+
+## Package Endpoints
+
+These endpoints are feature-flagged and only available when `enable_packages` is set to `true`.
+
+### `GET /api/packages`
+
+List all active packages available for sale. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Request:**
+```
+GET /api/packages
+Authorization: Bearer <jwt>
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "pkg_abc123",
+    "name": "2 Hour Bundle",
+    "type": "HOUR_BUNDLE",
+    "total_minutes": 120,
+    "price_paise": 20000,
+    "valid_days": 30,
+    "zone_restriction_id": null,
+    "is_active": true,
+    "created_at": "2026-01-15T10:30:00Z"
+  }
+]
+```
+
+**Response (503 Service Unavailable):**
+Feature `enable_packages` is disabled.
+```json
+{
+  "detail": "Feature 'enable_packages' is currently disabled."
+}
+```
+
+---
+
+### `POST /api/members/{member_id}/packages`
+
+Sell a package to a member. Cashier role required.
+
+**Auth:** Bearer token (Cashier or Admin)
+
+**Path Parameters:**
+- `member_id` (string): Member UUID
+
+**Request Body:**
+```json
+{
+  "package_id": "pkg_abc123",
+  "payment_method": "WALLET"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": "ent_xyz789",
+  "member_id": "mem_123",
+  "package_id": "pkg_abc123",
+  "remaining_minutes": 120,
+  "expires_at": "2026-02-14T10:30:00Z",
+  "status": "ACTIVE",
+  "purchased_at": "2026-01-15T10:30:00Z",
+  "updated_at": "2026-01-15T10:30:00Z"
+}
+```
+
+**Errors:**
+- `400`: Insufficient wallet balance, inactive package, invalid payment method
+- `404`: Member not found, package not found
+- `401`: Unauthorized
+- `503`: Feature `enable_packages` disabled
+
+---

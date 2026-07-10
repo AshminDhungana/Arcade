@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import AwareDatetime, Field
 
-from backend.models._enums import EntitlementStatus, PackageType
+from backend.models._enums import EntitlementStatus, PackageType, PaymentMethod
 from backend.schemas.base import BaseCreateSchema, BaseResponseSchema
 
 
@@ -44,7 +44,14 @@ class MemberPackageEntitlementBase(BaseCreateSchema):
 
 
 class MemberPackageEntitlementCreate(MemberPackageEntitlementBase):
-    pass
+    payment_method: PaymentMethod
+
+
+class SellPackageRequest(BaseCreateSchema):
+    """Request schema for selling a package to a member."""
+
+    package_id: str
+    payment_method: PaymentMethod
 
 
 class MemberPackageEntitlementUpdate(BaseCreateSchema):
