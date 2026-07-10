@@ -12,14 +12,29 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from backend.api.deps import get_current_staff, get_db
 from backend.core.database import Base
-from backend.core.feature_flags import load_flags
+from backend.core.feature_flags import _flag_cache, load_flags
 from backend.main import app
 from backend.models import Staff
 from backend.models._enums import StaffRole
 from backend.models.settings import AppSettings
 from backend.repositories import staff_repo
-from backend.services.auth_service import create_access_token
+
+
+def _make_mock_staff(role: str = "ADMIN") -> Staff:
+    """Return a plain object that mimics a Staff model."""
+    from backend.models._enums import StaffRole as SR
+
+    class _MockStaff:
+        id = "mock-staff-id"
+        name = "Mock Staff"
+        is_active = True
+        token_version = 0
+
+    obj = _MockStaff()
+    obj.role = SR(role)
+    return obj
 
 
 @pytest.fixture
@@ -56,21 +71,46 @@ async def admin_staff(db: AsyncSession) -> Staff:
 
 
 @pytest_asyncio.fixture
-async def admin_token(admin_staff: Staff) -> str:
-    return create_access_token(
-        admin_staff.id, admin_staff.role.value, admin_staff.token_version
-    )
+async def client(db: AsyncSession, admin_staff: Staff) -> AsyncClient:
+    """Yield an AsyncClient that uses the test database and bypasses auth."""
+    # Override both get_db and get_current_staff dependencies
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_current_staff] = lambda: admin_staff
 
-
-@pytest_asyncio.fixture
-async def client(admin_token: str) -> AsyncClient:
     transport = ASGITransport(app=app)
     async with AsyncClient(
         transport=transport,
         base_url="http://test",
-        headers={"Authorization": f"Bearer {admin_token}"},
     ) as ac:
+        # Set feature flag cache after lifespan runs (which clears it)
+        _flag_cache["enable_promotions"] = True
         yield ac
+
+    app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_current_staff, None)
+    _flag_cache.pop("enable_promotions", None)
+
+
+@pytest_asyncio.fixture
+async def cashier_client(db: AsyncSession) -> AsyncClient:
+    """Yield an AsyncClient authenticated as a cashier (not admin)."""
+    mock_staff = _make_mock_staff("CASHIER")
+
+    # Override both get_db and get_current_staff dependencies
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_current_staff] = lambda: mock_staff
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as ac:
+        _flag_cache["enable_promotions"] = True
+        yield ac
+
+    app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_current_staff, None)
+    _flag_cache.pop("enable_promotions", None)
 
 
 class TestPromotionsRouter:
@@ -156,32 +196,15 @@ class TestPromotionsRouter:
         assert data["is_active"] is False
         assert data["name"] == "Original"  # unchanged
 
-    async def test_cashier_cannot_create_promotion(self, db: AsyncSession):
+    async def test_cashier_cannot_create_promotion(self, cashier_client: AsyncClient):
         """Cashier role gets 403 on POST /api/promotions."""
-        cashier = await staff_repo.create(
-            db,
-            name="Cashier",
-            pin_hash="$argon2id$v=19$m=102400,t=2,p=8$...",
-            role=StaffRole.CASHIER.value,
-            is_active=True,
+        resp = await cashier_client.post(
+            "/api/promotions",
+            json={
+                "name": "Cashier Promo",
+                "type": "FLASH",
+                "discount_type": "PERCENTAGE",
+                "discount_value": 10,
+            },
         )
-        token = create_access_token(
-            cashier.id, cashier.role.value, cashier.token_version
-        )
-
-        transport = ASGITransport(app=app)
-        async with AsyncClient(
-            transport=transport,
-            base_url="http://test",
-            headers={"Authorization": f"Bearer {token}"},
-        ) as ac:
-            resp = await ac.post(
-                "/api/promotions",
-                json={
-                    "name": "Cashier Promo",
-                    "type": "FLASH",
-                    "discount_type": "PERCENTAGE",
-                    "discount_value": 10,
-                },
-            )
         assert resp.status_code == 403
