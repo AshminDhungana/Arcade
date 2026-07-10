@@ -35,7 +35,7 @@ def _ensure_tz(dt: datetime | None) -> datetime | None:
     return dt
 
 
-def _to_response(staff: Staff) -> StaffResponse:
+def _to_response(staff) -> StaffResponse:  # type: ignore[no-untyped-def]
     """Normalise ``updated_at`` timezone and build a ``StaffResponse``."""
     staff.updated_at = _ensure_tz(staff.updated_at)
     return StaffResponse.model_validate(staff)

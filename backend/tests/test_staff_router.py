@@ -6,7 +6,6 @@ import tempfile
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -155,9 +154,7 @@ class TestUpdatePin:
         assert resp.status_code == 403
 
     async def test_update_pin_not_found(self, client: AsyncClient) -> None:
-        resp = await client.patch(
-            "/api/staff/nonexistent/pin", json={"pin": "2222"}
-        )
+        resp = await client.patch("/api/staff/nonexistent/pin", json={"pin": "2222"})
         assert resp.status_code == 404
 
     async def test_update_pin_too_short(

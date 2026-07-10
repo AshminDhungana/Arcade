@@ -61,18 +61,14 @@ class TestTokenInvalidation:
         assert loaded.id == staff.id
 
         # Change PIN -> token_version bumps from 0 to 1.
-        await StaffService.update_pin(
-            db, staff_id=staff.id, new_pin="new", staff=staff
-        )
+        await StaffService.update_pin(db, staff_id=staff.id, new_pin="new", staff=staff)
 
         # Old token must now be rejected.
         with pytest.raises(HTTPException) as exc:
             await get_current_staff(token, db)
         assert exc.value.status_code == 401
 
-    async def test_token_rejected_after_deactivation(
-        self, db: AsyncSession
-    ) -> None:
+    async def test_token_rejected_after_deactivation(self, db: AsyncSession) -> None:
         staff = await staff_repo.create(
             db, name="Deact", pin_hash=hash_pin("1234"), role=StaffRole.CASHIER.value
         )
