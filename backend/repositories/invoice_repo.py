@@ -76,6 +76,15 @@ async def get_by_session(db: AsyncSession, session_id: str) -> Sequence[Invoice]
 # -- invoice line items --
 
 
+async def list_line_items(
+    db: AsyncSession, invoice_id: str
+) -> Sequence[InvoiceLineItem]:
+    result = await db.execute(
+        select(InvoiceLineItem).where(InvoiceLineItem.invoice_id == invoice_id)
+    )
+    return result.scalars().all()
+
+
 async def create_line_item(
     db: AsyncSession,
     *,

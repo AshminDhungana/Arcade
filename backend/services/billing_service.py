@@ -299,11 +299,40 @@ async def checkout_session(
     else:
         time_charge = calculate_time_charge(elapsed, locked)
 
+    # 3d. Calculate promotion discount (FR-PROMO-004)
+    promotion_discount_paise: int = 0
+    applied_promotion_name: str | None = None
+    if session_obj.promotion_id:
+        from backend.repositories import promotion_repo
+        from backend.services.promotion_service import PromotionService
+
+        promo = await promotion_repo.get_by_id(db, session_obj.promotion_id)
+        if promo:
+            promotion_discount_paise = (
+                await PromotionService.calculate_promotion_discount(
+                    db,
+                    promo,
+                    time_charge_paise=time_charge,
+                    session_duration_minutes=int(elapsed / 60),
+                    locked_rate_paise=session_obj.locked_rate_paise,
+                    locked_pricing_model=session_obj.locked_pricing_model,
+                )
+            )
+            applied_promotion_name = promo.name
+            logger.info(
+                "Applied promotion %s (%s) discount: %d paise",
+                promo.name,
+                promo.id,
+                promotion_discount_paise,
+            )
+
     # 4. Compute total (POS items summing)
     pos_items = await pos_repo.list_by_session(db, session_obj.id)
     pos_total_paise = sum(item.unit_price_paise * item.quantity for item in pos_items)
     discount_paise = session_obj.discount_paise or 0
-    total_paise = max(0, time_charge + pos_total_paise - discount_paise)
+    # Use session discount as fallback if no promotion; else use promo discount
+    effective_discount = max(discount_paise, promotion_discount_paise)
+    total_paise = max(0, time_charge + pos_total_paise - effective_discount)
 
     # 5. Create Invoice with package credit
     invoice = await invoice_repo.create(
@@ -313,7 +342,7 @@ async def checkout_session(
         shift_id=session_obj.shift_id,
         time_charge_paise=time_charge,
         package_credit_used_paise=package_credit_paise,
-        discount_paise=discount_paise,
+        discount_paise=effective_discount,
         pos_total_paise=pos_total_paise,
         total_paise=total_paise,
         payment_method=payment_method,
@@ -355,15 +384,20 @@ async def checkout_session(
             unit_price_paise=pos_item.unit_price_paise,
             total_paise=pos_item.unit_price_paise * pos_item.quantity,
         )
-    if discount_paise > 0:
+    if effective_discount > 0:
+        discount_desc = (
+            f"Promotion: {applied_promotion_name}"
+            if applied_promotion_name
+            else "Session discount"
+        )
         await invoice_repo.create_line_item(
             db,
             invoice_id=invoice.id,
             type=InvoiceLineItemType.DISCOUNT,
-            description="Session discount",
+            description=discount_desc,
             quantity=1,
-            unit_price_paise=discount_paise,
-            total_paise=discount_paise,
+            unit_price_paise=effective_discount,
+            total_paise=effective_discount,
         )
 
     # 6. Update session -> COMPLETED

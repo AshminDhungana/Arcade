@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,8 @@ async def create(
     min_group_size: int | None = None,
     zone_restriction_id: str | None = None,
     is_active: bool = True,
+    valid_from: datetime | None = None,
+    valid_until: datetime | None = None,
 ) -> Promotion:
     promo = Promotion(  # noqa: A003
         name=name,
@@ -35,6 +38,8 @@ async def create(
         min_group_size=min_group_size,
         zone_restriction_id=zone_restriction_id,
         is_active=is_active,
+        valid_from=valid_from,
+        valid_until=valid_until,
     )
     db.add(promo)
     await db.flush()

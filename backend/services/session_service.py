@@ -23,6 +23,7 @@ from backend.repositories import package_repo, seat_repo, session_repo
 from backend.schemas.session import SessionResponse
 from backend.services import audit_service
 from backend.services.billing_service import resolve_rate
+from backend.services.promotion_service import PromotionService
 
 if TYPE_CHECKING:
     from backend.models.staff import Staff
@@ -146,8 +147,16 @@ async def start_session(
         if entitlement:
             package_entitlement_id = entitlement.id
 
-    # 5. Create session
+    # 4c. Check for applicable promotion
+    promotion_id: str | None = None
     now = datetime.now(UTC)
+    applicable_promo = await PromotionService.get_applicable_promotion(
+        db, seat_id=seat_id, member_id=member_id, time_now=now
+    )
+    if applicable_promo:
+        promotion_id = applicable_promo.id
+
+    # 5. Create session
     session = await session_repo.create(
         db,
         seat_id=seat_id,
@@ -156,6 +165,8 @@ async def start_session(
         locked_rate_paise=locked_rate.rate_paise,
         locked_pricing_model=locked_rate.pricing_model,
         package_entitlement_id=package_entitlement_id,
+        promotion_id=promotion_id,
+        discount_paise=0,  # calculated at checkout
     )
 
     # 6. Update seat → IN_USE

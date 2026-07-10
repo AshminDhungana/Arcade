@@ -220,8 +220,8 @@ On server startup, active sessions are loaded from the database and agents are n
 
 ```bash
 # Clone the repository
-git clone <repo-url> arcade
-cd arcade
+git clone https://github.com/AshminDhungana/Arcade.git
+cd Arcade
 
 # Install all dependencies (Python + frontend + agent)
 make install

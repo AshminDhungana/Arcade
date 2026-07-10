@@ -22,6 +22,7 @@ async def create(
     locked_pricing_model: PricingModel | None = None,
     package_entitlement_id: str | None = None,
     promotion_id: str | None = None,
+    discount_paise: int = 0,
 ) -> GamingSession:
     session = GamingSession(
         seat_id=seat_id,
@@ -31,6 +32,7 @@ async def create(
         locked_pricing_model=locked_pricing_model,
         package_entitlement_id=package_entitlement_id,
         promotion_id=promotion_id,
+        discount_paise=discount_paise,
     )
     db.add(session)
     await db.flush()

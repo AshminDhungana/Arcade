@@ -197,6 +197,7 @@ class AuditAction(Enum):
     WOL_TIMEOUT = "WOL_TIMEOUT"
     WOL_OVERRIDE = "WOL_OVERRIDE"
     PACKAGE_SOLD = "PACKAGE_SOLD"
+    PROMOTION_APPLIED = "PROMOTION_APPLIED"
 
 
 # ── License ──────────────────────────────────────────────────────────────

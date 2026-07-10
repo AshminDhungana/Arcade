@@ -1043,11 +1043,11 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
   - [x] `list_packages(db)` - all available packages (Admin manages via settings API)
   - [x] Package API: `GET /api/packages`, `POST /api/members/{id}/packages` (sell)
 
-- [ ] **Task: Implement `PromotionService` (`backend/services/promotion_service.py`)**
-  - [ ] `get_applicable_promotion(seat_id, member_id, time_now, db) -> Promotion | None`
-  - [ ] Check active promotions; match time window and day of week; return first match
-  - [ ] `store_promotion_id_on_session(session_id, promotion_id, db)` â€” locked at session start
-  - [ ] Promotion API: `GET /api/promotions`, `POST /api/promotions` (Admin), `PATCH /api/promotions/{id}` (Admin)
+- [x] **Task: Implement `PromotionService` (`backend/services/promotion_service.py`)**
+  - [x] `get_applicable_promotion(seat_id, member_id, time_now, db) -> Promotion | None`
+  - [x] Check active promotions; match time window and day of week; return first match
+  - [x] `store_promotion_id_on_session(session_id, promotion_id, db)` â€” locked at session start
+  - [x] Promotion API: `GET /api/promotions`, `POST /api/promotions` (Admin), `PATCH /api/promotions/{id}` (Admin)
 
 - [ ] **Task: Implement `VoucherService` (`backend/services/voucher_service.py`)** (feature-flagged `enable_vouchers`)
   - [ ] `generate_batch(count, value_paise, expires_in_days, db, staff)` â€” creates `count` vouchers with unique random codes; returns batch
