@@ -539,8 +539,11 @@ class TestPromotionIntegration:
         )
 
         # Start session at 12:00 (within window)
+        from datetime import UTC, datetime
+
+        fixed_now = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
         session = await start_session(
-            db, seat_id=sample_seat.id, member_id=None, staff=None
+            db, seat_id=sample_seat.id, member_id=None, staff=None, time_now=fixed_now
         )
 
         assert session.promotion_id is not None

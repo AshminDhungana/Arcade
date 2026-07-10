@@ -103,6 +103,7 @@ async def start_session(
     seat_id: str,
     member_id: str | None = None,
     staff: Staff | None = None,
+    time_now: datetime | None = None,
 ) -> SessionResponse:
     """Start a new session on an available seat.
 
@@ -149,7 +150,9 @@ async def start_session(
 
     # 4c. Check for applicable promotion
     promotion_id: str | None = None
-    now = datetime.now(UTC)
+    now = time_now if time_now is not None else datetime.now(UTC)
+    if now.tzinfo is None or now.tzinfo.utcoffset(now) is None:
+        now = now.replace(tzinfo=UTC)
     applicable_promo = await PromotionService.get_applicable_promotion(
         db, seat_id=seat_id, member_id=member_id, time_now=now
     )
