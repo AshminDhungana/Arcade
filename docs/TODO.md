@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0â€“2 Complete Â· Phase 3 In Progress (Features 3.1.5â€“3.1.6 done)
+**Status:** Phase 0-3 Complete; Phase 4 Epic 4.1 (ENG-A) + 4.2 (ENG-B) Complete (Epic 4.2 Frontend members/settings done 2026-07-11)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1066,11 +1066,13 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
 
 ### Epic 4.2: Frontend â€” Members and Settings (ENG-B)
 
-- [ ] **Task: Implement `MemberSearch` component** â€” debounced search input â†’ `GET /api/members?q=`; selects member for session start modal
-- [ ] **Task: Implement `Members.tsx` page** â€” member list, search, create form, wallet top-up, package purchase, transaction history
-- [ ] **Task: Implement `Settings.tsx` page** â€” feature flags toggles; pricing (zones, rates, device types); peak/off-peak schedules; staff management; menu item management; printer config
-  - [ ] All feature flag toggles call `PATCH /api/settings` and invalidate cache
-  - [ ] **Definition of done:** Toggle flag OFF â†’ corresponding nav item disappears; API endpoint returns 503
+- [x] **Task: Implement `MemberSearch` component** â€” debounced search input â†’ `GET /api/members?q=`; selects member for session start modal
+- [x] **Task: Implement `Members.tsx` page** â€” member list, search, create form, wallet top-up, package purchase, transaction history
+- [x] **Task: Implement `Settings.tsx` page** â€” feature flags toggles; pricing (zones, rates, device types); peak/off-peak schedules; staff management; menu item management; printer config
+  - [x] All feature flag toggles call `PATCH /api/settings` and invalidate cache
+  - [x] **Definition of done:** Toggle flag OFF â†’ corresponding nav item disappears; API endpoint returns 503
+  - **Verification (2026-07-11):** 154 frontend unit tests pass (`npx vitest run`); `npm run lint` clean; `npm run build` (tsc + vite) clean. Backend gating proven by `test_settings_patch.py` (`PATCH /api/settings {enable_members:false}` -> `GET /api/members` returns 503) and `NavShell.test.tsx` (Members nav hidden when `enable_members=false`), wired via `backend/core/feature_flags.py` (`require_feature` -> 503) + `frontend/src/components/NavShell.tsx` (nav filtered by flag). Branch `feature/eng-b-members-settings` (39 commits, tip `ace14d6`); PR against `main` not yet opened.
+  - **Scope note:** `backend/tests/test_main.py` (5 tests: `test_lifespan_*`, `test_health_*`, `test_validation_error_*`) fails on this branch - confirmed **pre-existing on `main`** (both `main.py` and `test_main.py` are byte-identical to `main`; failure is a `starlette.testclient`/`httpx 0.28.1` tooling skew, not Epic 4.2 code). Out of scope; recommend a separate fix (pin `httpx<0.28` or migrate `test_main.py` to `httpx.ASGITransport`).
 
 ### Testing Requirements (Phase 4)
 
