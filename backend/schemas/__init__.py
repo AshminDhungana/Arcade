@@ -5,6 +5,11 @@ from backend.schemas.analytics import AnalyticsSummary, AnalyticsSummaryRequest
 # Audit / Settings
 from backend.schemas.audit import AuditLogResponse
 from backend.schemas.base import BaseCreateSchema, BaseResponseSchema, BaseSchema
+from backend.schemas.device_type import (
+    DeviceTypeCreate,
+    DeviceTypeResponse,
+    DeviceTypeUpdate,
+)
 
 # Event
 from backend.schemas.event import (
@@ -92,13 +97,16 @@ __all__ = [
     "BaseSchema",
     "BaseCreateSchema",
     "BaseResponseSchema",
-    # Seat / Zone
+    # Seat / Zone / Device Type
     "SeatCreate",
     "SeatUpdate",
     "SeatResponse",
     "ZoneCreate",
     "ZoneUpdate",
     "ZoneResponse",
+    "DeviceTypeCreate",
+    "DeviceTypeUpdate",
+    "DeviceTypeResponse",
     # Session
     "SessionCreate",
     "SessionUpdate",

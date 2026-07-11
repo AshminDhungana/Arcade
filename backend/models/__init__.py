@@ -27,6 +27,7 @@ from backend.models._enums import (
     VoucherStatus,
 )
 from backend.models.audit_log import AuditLog
+from backend.models.device_type import DeviceType
 from backend.models.event import Event
 from backend.models.event_participant import EventParticipant
 from backend.models.expense import Expense
@@ -95,4 +96,5 @@ __all__: list[str] = [
     "Voucher",
     "WalletTransaction",
     "Zone",
+    "DeviceType",
 ]

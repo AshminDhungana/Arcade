@@ -12,6 +12,7 @@ from fastapi import APIRouter
 
 from backend.api.routers.audit import router as audit_router
 from backend.api.routers.auth import router as auth_router
+from backend.api.routers.device_types import router as device_type_router
 from backend.api.routers.inventory import router as inventory_router
 from backend.api.routers.invoices import router as invoices_router
 from backend.api.routers.members import router as member_router
@@ -61,4 +62,5 @@ routers: list[APIRouter] = [
     voucher_router,
     staff_router,
     zone_router,
+    device_type_router,
 ]

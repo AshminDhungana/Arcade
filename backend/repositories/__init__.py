@@ -7,6 +7,7 @@ not repositories.
 
 from backend.repositories import (
     audit_repo,
+    device_type_repo,
     event_repo,
     expense_repo,
     inventory_repo,
@@ -27,6 +28,7 @@ from backend.repositories import (
 
 __all__: list[str] = [
     "audit_repo",
+    "device_type_repo",
     "event_repo",
     "expense_repo",
     "inventory_repo",
