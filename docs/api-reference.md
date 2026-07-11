@@ -790,3 +790,147 @@ Sell a package to a member. Cashier role required.
 - `503`: Feature `enable_packages` disabled
 
 ---
+## Member Endpoints
+
+All Member endpoints are feature-flagged (`enable_members`) and require a Cashier+ JWT.
+When the flag is off, every route returns `503` with
+`{"detail": "Feature 'enable_members' is currently disabled."}`.
+
+### `GET /api/members`
+
+Search members by name or phone, or list all when `q` is empty. Cashier+ required.
+
+**Query Parameters:**
+- `q` (string, optional): search term (name/phone); empty lists all
+- `limit` (int, 1–200, default 50): page size
+- `offset` (int, ≥0, default 0): page offset
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "mem_123",
+    "name": "Aarav Sharma",
+    "phone": "9800000001",
+    "birth_month": 5,
+    "wallet_balance_paise": 5000,
+    "loyalty_points": 120,
+    "tier": "BRONZE",
+    "total_visits": 3,
+    "total_seconds_played": 7200,
+    "created_at": "2026-07-06T08:00:00+00:00",
+    "updated_at": "2026-07-06T10:00:00+00:00"
+  }
+]
+```
+
+---
+
+### `POST /api/members`
+
+Create a new member. Tier defaults to `BRONZE`. Phone must be unique. Cashier+ required.
+
+**Request Body:**
+```json
+{
+  "name": "Aarav Sharma",
+  "phone": "9800000001",
+  "birth_month": 5
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": "mem_123",
+  "name": "Aarav Sharma",
+  "phone": "9800000001",
+  "birth_month": 5,
+  "wallet_balance_paise": 0,
+  "loyalty_points": 0,
+  "tier": "BRONZE",
+  "total_visits": 0,
+  "total_seconds_played": 0,
+  "created_at": "2026-07-06T08:00:00+00:00",
+  "updated_at": "2026-07-06T08:00:00+00:00"
+}
+```
+
+**Errors:**
+- `409`: Phone already registered (`{"detail": "Phone number <phone> already registered"}`)
+- `422`: Missing/over-length field
+
+---
+
+### `GET /api/members/{member_id}`
+
+Get a single member by ID. Cashier+ required.
+
+**Response (200 OK):** Member object (same shape as `GET /api/members` items).
+
+**Response (404 Not Found):** `{"detail": "Member <member_id> not found"}`
+
+---
+
+### `POST /api/members/{member_id}/topup`
+
+Add funds to a member's wallet and write a `WALLET_TOPUP` audit entry + ledger row. Cashier+ required.
+
+**Request Body:**
+```json
+{
+  "amount_paise": 5000,
+  "payment_method": "CASH"
+}
+```
+
+**Response (200 OK):** Updated Member object (wallet_balance_paise increased).
+
+**Errors:**
+- `400`: `amount_paise` ≤ 0
+- `404`: Member not found
+- `503`: `enable_members` disabled
+
+---
+
+### `GET /api/members/{member_id}/sessions`
+
+Member session history (most recent first). Cashier+ required.
+
+**Response (200 OK):** Array of `SessionResponse` objects (see Session Endpoints for shape). `404` if member not found.
+
+---
+
+### `GET /api/members/{member_id}/transactions`
+
+Wallet ledger history, newest first. Cashier+ required.
+
+**Query Parameters:** `limit` (1–200, default 50), `offset` (≥0, default 0).
+
+**Response (200 OK):**
+```json
+[
+  {
+    "member_id": "mem_123",
+    "type": "TOPUP",
+    "amount_paise": 5000,
+    "balance_after_paise": 5000,
+    "payment_method": "CASH",
+    "staff_id": "admin001",
+    "reference_id": null,
+    "created_at": "2026-07-06T09:30:00+00:00"
+  },
+  {
+    "member_id": "mem_123",
+    "type": "PACKAGE_PURCHASE",
+    "amount_paise": -20000,
+    "balance_after_paise": 5000,
+    "payment_method": "WALLET",
+    "staff_id": "admin001",
+    "reference_id": "ent_xyz789",
+    "created_at": "2026-07-06T09:35:00+00:00"
+  }
+]
+```
+
+**Errors:** `404` if member not found.
