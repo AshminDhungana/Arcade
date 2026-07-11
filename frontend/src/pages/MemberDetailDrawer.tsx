@@ -46,9 +46,7 @@ const formatDuration = (seconds: number) => {
 };
 
 const renderSignedAmount = (amount: number) => {
-  const abs = Math.abs(amount);
-  const sign = amount < 0 ? '-' : '+';
-  return `${sign}${formatPaise(abs)}`;
+  return amount < 0 ? '-' + formatPaise(Math.abs(amount)) : formatPaise(amount);
 };
 
 export function MemberDetailDrawer({
@@ -129,8 +127,8 @@ export function MemberDetailDrawer({
           </tr>
         </thead>
         <tbody>
-          {walletTransactions.map((tx, i) => (
-            <tr key={`${tx.member_id}-${tx.created_at}-${i}`} className="border-b border-slate-800">
+          {walletTransactions.map((tx) => (
+            <tr key={tx.id} className="border-b border-slate-800">
               <Td className="font-medium capitalize">{tx.type.toLowerCase().replace(/_/g, ' ')}</Td>
               <Td className="text-right font-medium tabular-nums">
                 {renderSignedAmount(tx.amount_paise)}

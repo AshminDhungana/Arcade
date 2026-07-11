@@ -15,12 +15,11 @@ import type { Member, Package, MemberTier } from '@/types/members';
 export type MemberTab = 'sessions' | 'wallet' | 'packages' | 'topup';
 
 export function MembersPage() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MemberTab>('sessions');
 
-  const { data: members = [], isLoading, isError, refetch } = useMembers(searchQuery);
+  const { data: members = [], isLoading, isError, refetch } = useMembers('');
   const createMember = useCreateMember();
   const topupWallet = useTopupWallet();
   const { data: packages = [] } = usePackages();
@@ -38,9 +37,6 @@ export function MembersPage() {
     try {
       await createMember.mutateAsync({ name, phone });
       toast.success('Member created successfully');
-      setIsCreateModalOpen(false);
-      setSearchQuery('');
-      refetch();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create member';
       if (msg.includes('409')) {
@@ -48,7 +44,13 @@ export function MembersPage() {
       } else {
         toast.error(msg);
       }
+      throw err;
     }
+  };
+
+  const handleCreateSuccess = () => {
+    setIsCreateModalOpen(false);
+    refetch();
   };
 
   const handleTopup = async (member: Member, rupees: number) => {
@@ -125,8 +127,6 @@ export function MembersPage() {
               <Th className="text-left">Phone</Th>
               <Th className="text-right">Wallet</Th>
               <Th className="text-left">Tier</Th>
-              <Th className="text-right">Visits</Th>
-              <Th className="text-right">Playtime</Th>
               <Th className="text-right">Actions</Th>
             </tr>
           </thead>
@@ -139,10 +139,6 @@ export function MembersPage() {
                   {formatPaise(m.wallet_balance_paise)}
                 </Td>
                 <Td>{renderMemberTier(m.tier)}</Td>
-                <Td className="text-right tabular-nums text-slate-400">{m.total_visits}</Td>
-                <Td className="text-right tabular-nums text-slate-400">
-                  {Math.floor(m.total_seconds_played / 3600)}h {Math.floor((m.total_seconds_played % 3600) / 60)}m
-                </Td>
                 <Td className="text-right">
                   <Button
                     variant="secondary"
@@ -162,13 +158,14 @@ export function MembersPage() {
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateMember}
+        onSuccess={handleCreateSuccess}
         isLoading={createMember.isPending}
       />
 
       {/* Member Detail Modal (Drawer) */}
       {selectedMember && (
         <MemberDetailDrawer
-          open
+          open={true}
           onClose={() => setSelectedMember(null)}
           member={selectedMember}
           activeTab={activeTab}

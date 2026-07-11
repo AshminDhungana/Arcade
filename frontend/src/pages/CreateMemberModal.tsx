@@ -7,10 +7,11 @@ interface CreateMemberModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (name: string, phone: string) => Promise<void>;
+  onSuccess: () => void;
   isLoading: boolean;
 }
 
-export function CreateMemberModal({ open, onClose, onSubmit, isLoading }: CreateMemberModalProps) {
+export function CreateMemberModal({ open, onClose, onSubmit, onSuccess, isLoading }: CreateMemberModalProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
@@ -36,9 +37,11 @@ export function CreateMemberModal({ open, onClose, onSubmit, isLoading }: Create
 
     if (!valid) return;
 
-    onSubmit(trimmedName, trimmedPhone);
-    setName('');
-    setPhone('');
+    onSubmit(trimmedName, trimmedPhone).then(() => {
+      setName('');
+      setPhone('');
+      onSuccess();
+    });
   };
 
   return (

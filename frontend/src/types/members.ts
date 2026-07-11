@@ -40,6 +40,7 @@ export interface MemberPackageEntitlement {
 }
 
 export interface WalletTransaction {
+  id: string;
   member_id: string;
   type: string; // TOPUP | PACKAGE_PURCHASE | ...
   amount_paise: number; // signed
