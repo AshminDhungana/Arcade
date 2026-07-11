@@ -19,6 +19,7 @@ from backend.api.routers.members import router as member_router
 from backend.api.routers.packages import router as package_router
 from backend.api.routers.pos import router as pos_router
 from backend.api.routers.promotions import router as promotion_router
+from backend.api.routers.schedules import router as schedule_router
 from backend.api.routers.seats import router as seat_router
 from backend.api.routers.sessions import router as session_router
 from backend.api.routers.settings import router as settings_router
@@ -63,4 +64,5 @@ routers: list[APIRouter] = [
     staff_router,
     zone_router,
     device_type_router,
+    schedule_router,
 ]

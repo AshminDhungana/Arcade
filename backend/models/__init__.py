@@ -38,6 +38,7 @@ from backend.models.member import Member
 from backend.models.menu_item import MenuItem
 from backend.models.package import Package
 from backend.models.package_entitlement import MemberPackageEntitlement
+from backend.models.peak_schedule import PeakSchedule
 from backend.models.promotion import Promotion
 from backend.models.reservation import Reservation
 from backend.models.restock_log import RestockLog
@@ -97,4 +98,5 @@ __all__: list[str] = [
     "WalletTransaction",
     "Zone",
     "DeviceType",
+    "PeakSchedule",
 ]

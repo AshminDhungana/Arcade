@@ -46,6 +46,11 @@ from backend.schemas.package import (
     PackageUpdate,
     SellPackageRequest,
 )
+from backend.schemas.peak_schedule import (
+    PeakScheduleCreate,
+    PeakScheduleResponse,
+    PeakScheduleUpdate,
+)
 
 # POS
 from backend.schemas.pos import (
@@ -104,6 +109,9 @@ __all__ = [
     "ZoneCreate",
     "ZoneUpdate",
     "ZoneResponse",
+    "PeakScheduleCreate",
+    "PeakScheduleUpdate",
+    "PeakScheduleResponse",
     "DeviceTypeCreate",
     "DeviceTypeUpdate",
     "DeviceTypeResponse",
