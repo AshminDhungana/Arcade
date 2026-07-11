@@ -934,3 +934,94 @@ Wallet ledger history, newest first. Cashier+ required.
 ```
 
 **Errors:** `404` if member not found.
+
+---
+
+## Promotion Endpoints
+
+Promotions are Admin-only (all routes) and feature-flagged (`enable_promotions`).
+Note: promotion *evaluation* is automatic and internal — `PromotionService.get_applicable_promotion()`
+runs at session start and locks a match onto the session's `promotion_id`. These endpoints only
+manage the promotion catalogue.
+
+### `GET /api/promotions`
+
+List all promotions (active and inactive). Admin only.
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "promo_001",
+    "name": "Evening Happy Hour",
+    "type": "HAPPY_HOUR",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 20,
+    "active_days": "MON,TUE,WED,THU,FRI",
+    "active_from_hour": 18,
+    "active_to_hour": 22,
+    "min_group_size": null,
+    "zone_restriction_id": null,
+    "is_active": true,
+    "valid_from": null,
+    "valid_until": null
+  }
+]
+```
+
+---
+
+### `POST /api/promotions`
+
+Create a promotion. Admin only.
+
+**Request Body:**
+```json
+{
+  "name": "Evening Happy Hour",
+  "type": "HAPPY_HOUR",
+  "discount_type": "PERCENTAGE",
+  "discount_value": 20,
+  "active_days": "MON,TUE,WED,THU,FRI",
+  "active_from_hour": 18,
+  "active_to_hour": 22,
+  "is_active": true
+}
+```
+
+**Response (201 Created):** The created Promotion object (same shape as list items, with `id`).
+
+**Errors:** `403` non-admin; `422` validation (e.g. `discount_value` < 0, invalid enum).
+
+---
+
+### `GET /api/promotions/{promotion_id}`
+
+Get a single promotion by ID. Admin only.
+
+**Response (200 OK):** Promotion object.
+**Response (404 Not Found):** `{"detail": "Promotion not found"}`
+
+---
+
+### `PATCH /api/promotions/{promotion_id}`
+
+Update promotion fields (partial). Admin only.
+
+**Request Body (all fields optional):**
+```json
+{
+  "is_active": false,
+  "discount_value": 25
+}
+```
+
+**Response (200 OK):** Updated Promotion object.
+**Response (404 Not Found):** `{"detail": "Promotion not found"}`
+
+**Field notes:**
+- `active_days`: comma-separated `MON,TUE,...,SUN` (uppercase, 3-letter).
+- `active_from_hour` / `active_to_hour`: hour-of-day window (0–23).
+- `valid_from` / `valid_until`: absolute date range (UTC) or `null`.
+- `type` ∈ `HAPPY_HOUR | FLASH | FIRST_VISIT | GROUP | BIRTHDAY`.
+- `discount_type` ∈ `PERCENTAGE | FIXED_PAISE | BONUS_MINUTES`.
