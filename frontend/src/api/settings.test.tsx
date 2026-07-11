@@ -34,7 +34,11 @@ describe('useToggleFlag', () => {
       const isPatch = init?.method === 'PATCH';
       const enableMembers = isPatch || calls > 0 ? 'false' : 'true';
       calls += 1;
-      return new Response(JSON.stringify({ ...BASE_FLAGS, enable_members: enableMembers }), {
+      const body: Record<string, string> = {};
+      for (const [k, v] of Object.entries({ ...BASE_FLAGS, enable_members: enableMembers === 'true' })) {
+        body[k] = String(v).toLowerCase();
+      }
+      return new Response(JSON.stringify(body), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });

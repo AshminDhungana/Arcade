@@ -38,7 +38,7 @@ export async function fetchFeatureFlags(token: string | null): Promise<FeatureFl
   const flags: Record<string, boolean> = {};
   for (const key of FLAG_KEYS) {
     const value = data[key];
-    flags[key] = String(value).toLowerCase() === 'true';
+    flags[key] = value?.toLowerCase() === 'true';
   }
   return flags as unknown as FeatureFlags;
 }
