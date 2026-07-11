@@ -97,7 +97,7 @@ function ScheduleFormModal({
     field: keyof ScheduleFormData,
     value: string | number | boolean | null,
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value as any }));
+    setFormData((prev) => ({ ...prev, [field]: value }) as typeof prev);
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }

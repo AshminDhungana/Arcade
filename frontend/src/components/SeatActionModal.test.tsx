@@ -22,10 +22,10 @@ const MEMBER: Member = {
   updated_at: '',
 };
 
-let lastMutate: (...args: any[]) => void;
+let lastMutate: (...args: unknown[]) => void;
 
 vi.mock('@/api/sessions', () => ({
-  useStartSession: () => ({ mutate: (...a: any[]) => lastMutate(...a), isPending: false }),
+  useStartSession: () => ({ mutate: (...a: unknown[]) => lastMutate(...a), isPending: false }),
 }));
 
 vi.mock('@/components/MemberSearch', () => ({

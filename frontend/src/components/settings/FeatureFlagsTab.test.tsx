@@ -12,7 +12,7 @@ const isPendingRef = { current: false };
 
 vi.mock('@/api/settings', () => ({
   useToggleFlag: () => ({
-    mutate: (...args: any[]) => mutateFn(...args),
+    mutate: (...args: unknown[]) => mutateFn(...args),
     get isPending() {
       return isPendingRef.current;
     },

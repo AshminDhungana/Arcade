@@ -68,7 +68,7 @@ function ZoneFormModal({
   const [errors, setErrors] = useState<Partial<Record<keyof ZoneFormData, string>>>({});
 
   const handleChange = (field: keyof ZoneFormData, value: string | number | null) => {
-    setFormData((prev) => ({ ...prev, [field]: value as any }));
+    setFormData((prev) => ({ ...prev, [field]: value }) as typeof prev);
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
