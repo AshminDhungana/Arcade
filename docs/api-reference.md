@@ -1025,3 +1025,73 @@ Update promotion fields (partial). Admin only.
 - `valid_from` / `valid_until`: absolute date range (UTC) or `null`.
 - `type` ∈ `HAPPY_HOUR | FLASH | FIRST_VISIT | GROUP | BIRTHDAY`.
 - `discount_type` ∈ `PERCENTAGE | FIXED_PAISE | BONUS_MINUTES`.
+
+## Voucher Endpoints
+
+Vouchers are feature-flagged (`enable_vouchers`). Batch generation is Admin-only;
+redemption requires Cashier+.
+
+A voucher is **monetary** (`value_paise` set) or **time** (`value_minutes` set) — never both.
+Monetary vouchers credit the member wallet on redemption. Time vouchers are **not** wallet-credited;
+they are consumed via package drawdown at session checkout.
+
+### `POST /api/vouchers/batch`
+
+Generate a batch of vouchers with unique 12-char codes. Admin only.
+
+**Request Body:**
+```json
+{
+  "count": 50,
+  "value_paise": 10000,
+  "expires_in_days": 30
+}
+```
+(For time vouchers, set `value_minutes` instead of `value_paise`. Exactly one of the two must be set.)
+
+**Response (201 Created):**
+```json
+{
+  "batch_id": "a1b2c3d4e5f6...",
+  "count": 50,
+  "vouchers": [
+    {
+      "id": "vouch_001",
+      "code": "AB12CD34EF56",
+      "value_paise": 10000,
+      "value_minutes": null,
+      "expires_at": "2026-08-05T10:00:00+00:00",
+      "batch_id": "a1b2c3d4e5f6...",
+      "status": "UNUSED",
+      "redeemed_by_member_id": null,
+      "redeemed_at": null,
+      "created_at": "2026-07-06T10:00:00+00:00"
+    }
+  ]
+}
+```
+
+**Errors:**
+- `400`: `count` out of 1–10000; both/neither `value_paise`/`value_minutes` set; non-positive value
+- `503`: `enable_vouchers` disabled
+
+---
+
+### `POST /api/vouchers/redeem`
+
+Redeem a voucher for a member. Cashier or Admin required.
+
+**Request Body:**
+```json
+{
+  "code": "AB12CD34EF56",
+  "member_id": "mem_123"
+}
+```
+
+**Response (200 OK):** Updated `MemberResponse` object (wallet credited if `value_paise` set).
+
+**Errors:**
+- `404`: Voucher not found, or member not found
+- `400`: Voucher already redeemed (`{"detail": "Voucher already redeemed"}`) or expired
+- `503`: `enable_vouchers` disabled
