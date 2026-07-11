@@ -119,3 +119,31 @@ class StaffService:
             detail="Staff deactivated; token_version incremented",
         )
         return target
+
+    @staticmethod
+    async def reactivate(
+        db: AsyncSession,
+        *,
+        staff_id: str,
+        staff: Staff | None = None,
+    ) -> Staff:
+        """Reactivate a staff member and bump ``token_version``.
+
+        Bumping ``token_version`` invalidates every existing JWT for this
+        staff member on the next request.
+        """
+        target = await staff_repo.get_by_id(db, staff_id)
+        if target is None:
+            raise NotFoundError("Staff not found")
+        target.is_active = True
+        target.token_version += 1
+        target = await staff_repo.update(db, target)
+        await audit_service.log(
+            db,
+            action=AuditAction.STAFF_REACTIVATED,
+            entity_type="staff",
+            entity_id=target.id,
+            staff_id=staff.id if staff else None,
+            detail="Staff reactivated; token_version incremented",
+        )
+        return target

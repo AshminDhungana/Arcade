@@ -108,6 +108,25 @@ async def deactivate_staff(
     return _to_response(updated)
 
 
+@router.patch(
+    "/{staff_id}/reactivate",
+    response_model=StaffResponse,
+    summary="Reactivate a staff member",
+)
+async def reactivate_staff(
+    staff_id: Annotated[str, Path(..., description="Target staff ID")],
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> StaffResponse:
+    """Reactivate a previously deactivated staff member. Admin only.
+
+    Sets ``is_active=True`` and increments ``token_version`` to invalidate
+    all existing JWTs.
+    """
+    updated = await StaffService.reactivate(db, staff_id=staff_id, staff=staff)
+    return _to_response(updated)
+
+
 @router.get(
     "",
     response_model=list[StaffResponse],

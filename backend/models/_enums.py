@@ -201,6 +201,7 @@ class AuditAction(Enum):
     STAFF_CREATED = "STAFF_CREATED"
     STAFF_PIN_CHANGED = "STAFF_PIN_CHANGED"
     STAFF_DEACTIVATED = "STAFF_DEACTIVATED"
+    STAFF_REACTIVATED = "STAFF_REACTIVATED"
 
 
 # ── License ──────────────────────────────────────────────────────────────
