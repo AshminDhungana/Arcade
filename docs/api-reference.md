@@ -1169,3 +1169,46 @@ Reactivate a previously deactivated staff member. Admin only. Sets `is_active=tr
 List all staff members. Admin only.
 
 **Response (200 OK):** Array of `StaffResponse` objects.
+
+## Reference: Enums, Money & Feature Flags
+
+### Money
+
+All monetary fields are integers in **paise** (1 rupee = 100 paise). Examples: `5000` paise = Rs. 50.00.
+The API stores and returns paise; the UI/print layer is the only place that converts to rupees.
+
+### Shared Enums
+
+| Enum | Values |
+|------|--------|
+| `MemberTier` | `BRONZE`, `SILVER`, `GOLD` (loyalty thresholds: SILVER ≥ 500 pts, GOLD ≥ 1000 pts, configurable) |
+| `PaymentMethod` | `CASH`, `CARD`, `WALLET`, `PACKAGE` |
+| `PackageType` | `HOUR_BUNDLE`, `DAY_PASS`, `NIGHT_PASS`, `MONTHLY` |
+| `EntitlementStatus` | `ACTIVE`, `EXHAUSTED`, `EXPIRED` |
+| `PromotionType` | `HAPPY_HOUR`, `FLASH`, `FIRST_VISIT`, `GROUP`, `BIRTHDAY` |
+| `DiscountType` | `PERCENTAGE`, `FIXED_PAISE`, `BONUS_MINUTES` |
+| `VoucherStatus` | `UNUSED`, `REDEEMED`, `EXPIRED` |
+| `StaffRole` | `ADMIN`, `CASHIER` |
+
+### Feature Flags (router-level gating)
+
+When a flag is off, the entire router returns `503`. Flags relevant to this document:
+
+| Flag | Gates |
+|------|-------|
+| `enable_members` | Member endpoints (Task 1) |
+| `enable_packages` | Package endpoints (already documented, Phase 3) |
+| `enable_promotions` | Promotion endpoints (Task 2) |
+| `enable_vouchers` | Voucher endpoints (Task 3) |
+
+### Common Error Codes
+
+| Status | Meaning |
+|--------|---------|
+| `400` | Bad request (e.g. non-positive amount, invalid payment method) |
+| `401` | Missing/invalid JWT, or wrong PIN on login |
+| `403` | JWT valid but role lacks permission (or self-only action) |
+| `404` | Resource not found |
+| `409` | Conflict (duplicate phone on member create) |
+| `422` | Request body validation failure |
+| `503` | Feature flag disabled for this router |
