@@ -1084,8 +1084,8 @@ Complete member system (wallet, loyalty, tiers), time packages, promotions engin
 
 ### Documentation Requirements (Phase 4)
 
-- [ ] `docs/api-reference.md`: members, packages, promotions, vouchers, staff endpoints
-- [ ] `docs/operator-guide.md` stub: member management, wallet topup, package selling
+- [x] `docs/api-reference.md`: members, packages, promotions, vouchers, staff endpoints
+- [x] `docs/operator-guide.md` stub: member management, wallet topup, package selling
 
 ---
 
