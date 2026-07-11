@@ -1,5 +1,5 @@
 // frontend/src/api/sessions.ts
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import type { SessionResponse } from '@/types/session';
 
@@ -35,5 +35,31 @@ export function useSession(sessionId: string) {
     queryFn: () => fetchSession(sessionId, token),
     enabled: !!sessionId && !!token,
     refetchOnWindowFocus: false,
+  });
+}
+
+/** Start a new session on a seat. */
+export async function startSession(
+  body: { seat_id: string; member_id: string | null },
+  token: string | null,
+): Promise<SessionResponse> {
+  const res = await fetch(`${API_BASE}/sessions`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to start session: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as SessionResponse;
+}
+
+/** Hook to start a session. */
+export function useStartSession() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { seat_id: string; member_id: string | null }) => startSession(body, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
   });
 }
