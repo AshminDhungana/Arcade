@@ -1,7 +1,7 @@
 import type { Seat } from '@/types/seat';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Pause, Play, Power, Settings, ShoppingCart, Heart, User, X } from 'lucide-react';
+import { Loader2, Pause, Play, Power, Settings, ShoppingCart, Heart, User, X } from 'lucide-react';
 import { MemberSearch } from './MemberSearch';
 import { useStartSession } from '@/api/sessions';
 import { toast } from '@/store/toastStore';
@@ -89,7 +89,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
                 onClick={handleStartSession}
                 disabled={!member || startSession.isPending}
               >
-                {startSession.isPending && <span className="animate-spin mr-1">⏳</span>}
+                {startSession.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               </ActionButton>
             </>
           )}
