@@ -47,6 +47,7 @@ from backend.models.settings import AppSettings
 from backend.models.shift import Shift
 from backend.models.staff import Staff
 from backend.models.voucher import Voucher
+from backend.models.wallet_transaction import WalletTransaction
 from backend.models.zone import Zone
 
 __all__: list[str] = [
@@ -92,5 +93,6 @@ __all__: list[str] = [
     "Shift",
     "Staff",
     "Voucher",
+    "WalletTransaction",
     "Zone",
 ]

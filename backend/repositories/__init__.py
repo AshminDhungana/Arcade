@@ -22,6 +22,7 @@ from backend.repositories import (
     shift_repo,
     staff_repo,
     voucher_repo,
+    wallet_transaction_repo,
 )
 
 __all__: list[str] = [
@@ -41,4 +42,5 @@ __all__: list[str] = [
     "shift_repo",
     "staff_repo",
     "voucher_repo",
+    "wallet_transaction_repo",
 ]

@@ -25,7 +25,9 @@ from backend.models.staff import Staff
 from backend.repositories import session_repo
 from backend.schemas.member import MemberCreate, MemberResponse, TopupRequest
 from backend.schemas.session import SessionResponse
+from backend.schemas.wallet_transaction import WalletTransactionResponse
 from backend.services.member_service import MemberService
+from backend.services.wallet_service import WalletService
 
 
 def _ensure_tz(dt: datetime | None) -> datetime | None:
@@ -82,6 +84,8 @@ async def create_member(
 ) -> MemberResponse:
     """Create a new member with BRONZE tier."""
     member = await MemberService.create_member(db, name=body.name, phone=body.phone)
+    member.created_at = _ensure_tz(member.created_at)  # type: ignore[assignment]
+    member.updated_at = _ensure_tz(member.updated_at)  # type: ignore[assignment]
     return MemberResponse.model_validate(member)
 
 
@@ -97,6 +101,8 @@ async def get_member(
 ) -> MemberResponse:
     """Get a single member by ID."""
     member = await MemberService.get_member(db, member_id)
+    member.created_at = _ensure_tz(member.created_at)  # type: ignore[assignment]
+    member.updated_at = _ensure_tz(member.updated_at)  # type: ignore[assignment]
     return MemberResponse.model_validate(member)
 
 
@@ -119,6 +125,8 @@ async def topup_wallet(
         payment_method=body.payment_method.value,
         staff=staff,
     )
+    updated.created_at = _ensure_tz(updated.created_at)  # type: ignore[assignment]
+    updated.updated_at = _ensure_tz(updated.updated_at)  # type: ignore[assignment]
     return MemberResponse.model_validate(updated)
 
 
@@ -138,3 +146,25 @@ async def get_member_sessions(
 
     sessions = await session_repo.list_by_member(db, member_id)
     return [SessionResponse.model_validate(s) for s in sessions]
+
+
+@router.get(
+    "/{member_id}/transactions",
+    response_model=Sequence[WalletTransactionResponse],
+    summary="Wallet transaction history for a member",
+)
+async def list_transactions(
+    member_id: str,
+    limit: int = Query(50, ge=1, le=200, description="Page size"),
+    offset: int = Query(0, ge=0, description="Page offset"),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+) -> Sequence[WalletTransactionResponse]:
+    """List a member's wallet transactions, newest first."""
+    await MemberService.get_member(db, member_id)  # 404 if missing
+    txns = await WalletService.list_transactions(
+        db, member_id, limit=limit, offset=offset
+    )
+    for t in txns:
+        t.created_at = _ensure_tz(t.created_at)  # type: ignore[assignment]
+    return [WalletTransactionResponse.model_validate(t) for t in txns]

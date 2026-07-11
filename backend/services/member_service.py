@@ -16,7 +16,7 @@ from backend.core.ws_manager import manager as ws_manager
 from backend.models import Member, Voucher
 from backend.models._enums import AuditAction, MemberTier, VoucherStatus
 from backend.models.settings import AppSettings
-from backend.repositories import member_repo, voucher_repo
+from backend.repositories import member_repo, voucher_repo, wallet_transaction_repo
 from backend.services import audit_service
 
 if TYPE_CHECKING:
@@ -142,8 +142,19 @@ class MemberService:
         member.wallet_balance_paise += amount_paise
         member = await member_repo.update(db, member)
 
-        # Audit log
+        # Ledger row (wallet increased by amount_paise)
         payment_method_val = PaymentMethodEnum(payment_method).value
+        await wallet_transaction_repo.create(
+            db,
+            member_id=member.id,
+            type="TOPUP",
+            amount_paise=amount_paise,
+            balance_after_paise=member.wallet_balance_paise,
+            payment_method=payment_method_val,
+            staff_id=staff.id if staff else None,
+        )
+
+        # Audit log
         await audit_service.log(
             db,
             action=AuditAction.WALLET_TOPUP,

@@ -19,7 +19,7 @@ from backend.models._enums import (
     PaymentMethod,
 )
 from backend.models.package_entitlement import MemberPackageEntitlement
-from backend.repositories import member_repo, package_repo
+from backend.repositories import member_repo, package_repo, wallet_transaction_repo
 from backend.services import audit_service
 
 if TYPE_CHECKING:
@@ -129,6 +129,18 @@ class PackageService:
                 f"Sold package {package.name} ({package.total_minutes} min) "
                 f"for {package.price_paise} paise via {payment_method_enum.value}"
             ),
+        )
+
+        # Ledger row (a package purchase is a spend; negative)
+        await wallet_transaction_repo.create(
+            db,
+            member_id=member_id,
+            type="PACKAGE_PURCHASE",
+            amount_paise=-package.price_paise,
+            balance_after_paise=member.wallet_balance_paise,
+            payment_method=payment_method_enum.value,
+            staff_id=staff.id if staff else None,
+            reference_id=entitlement.id,
         )
 
         # Broadcast member update (wallet may have changed)

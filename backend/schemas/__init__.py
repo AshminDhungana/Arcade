@@ -84,6 +84,7 @@ from backend.schemas.staff import (
     TokenResponse,
 )
 from backend.schemas.voucher import VoucherCreate, VoucherResponse, VoucherUpdate
+from backend.schemas.wallet_transaction import WalletTransactionResponse
 from backend.schemas.zone import ZoneCreate, ZoneResponse, ZoneUpdate
 
 __all__ = [
@@ -106,6 +107,7 @@ __all__ = [
     "MemberCreate",
     "MemberUpdate",
     "MemberResponse",
+    "WalletTransactionResponse",
     "StaffCreate",
     "StaffUpdate",
     "StaffResponse",
