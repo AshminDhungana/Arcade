@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import DashboardPage from './pages/Dashboard';
+import { MembersPage } from './pages/Members';
+import SettingsPage from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useFeatureFlags } from './api/featureFlags';
 import { ToastViewport } from '@/components/ui/Toast';
@@ -20,6 +22,26 @@ export default function App() {
             <ProtectedRoute>
               <NavShell>
                 <DashboardPage />
+              </NavShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/members"
+          element={
+            <ProtectedRoute>
+              <NavShell>
+                <MembersPage />
+              </NavShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <NavShell>
+                <SettingsPage />
               </NavShell>
             </ProtectedRoute>
           }
