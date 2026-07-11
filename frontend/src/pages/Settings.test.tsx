@@ -3,6 +3,61 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SettingsPage from './Settings';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
+import type { Staff } from '@/types/settings';
+
+const STAFF_ADMIN: Staff = {
+  id: 's1',
+  name: 'Admin User',
+  role: 'ADMIN',
+  is_active: true,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+};
+
+const mockState = {
+  staff: [STAFF_ADMIN] as Staff[],
+  createStaffFn: vi.fn(),
+  deactivateStaffFn: vi.fn(),
+  reactivateStaffFn: vi.fn(),
+};
+
+const isPendingRefs = {
+  createStaff: { current: false },
+  deactivateStaff: { current: false },
+  reactivateStaff: { current: false },
+};
+
+vi.mock('@/api/settings', () => ({
+  useStaff: () => ({
+    data: mockState.staff,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useCreateStaff: () => ({
+    mutateAsync: mockState.createStaffFn,
+    get isPending() {
+      return isPendingRefs.createStaff.current;
+    },
+  }),
+  useDeactivateStaff: () => ({
+    mutateAsync: mockState.deactivateStaffFn,
+    get isPending() {
+      return isPendingRefs.deactivateStaff.current;
+    },
+  }),
+  useReactivateStaff: () => ({
+    mutateAsync: mockState.reactivateStaffFn,
+    get isPending() {
+      return isPendingRefs.reactivateStaff.current;
+    },
+  }),
+  useToggleFlag: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+  patchSettings: vi.fn(),
+}));
 
 const renderWithProviders = (ui: React.ReactElement) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -26,6 +81,7 @@ describe('SettingsPage', () => {
         require_member_for_session: false,
       },
     });
+    mockState.staff = [STAFF_ADMIN];
   });
 
   afterEach(() => {
@@ -64,8 +120,11 @@ describe('SettingsPage', () => {
     // Staff tab should be selected
     expect(screen.getByRole('tab', { name: 'Staff', selected: true })).toBeInTheDocument();
 
-    // Staff panel should be visible (still shows coming soon)
-    expect(screen.getByText('Staff panel — coming soon in Task 30')).toBeInTheDocument();
+    // Staff panel should show the staff table (not the coming soon stub)
+    expect(screen.getByText('Admin User')).toBeInTheDocument();
+    expect(screen.getByText('ADMIN')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add staff/i })).toBeInTheDocument();
 
     // Feature Flags panel should no longer be visible
     expect(screen.queryByText('Members')).not.toBeInTheDocument();
