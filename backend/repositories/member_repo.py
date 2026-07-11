@@ -39,8 +39,8 @@ async def get_by_id(db: AsyncSession, member_id: str) -> Member | None:
     return result.scalar_one_or_none()
 
 
-async def list(db: AsyncSession) -> Sequence[Member]:
-    result = await db.execute(select(Member))
+async def list(db: AsyncSession, limit: int = 50, offset: int = 0) -> Sequence[Member]:
+    result = await db.execute(select(Member).limit(limit).offset(offset))
     return result.scalars().all()
 
 
@@ -65,14 +65,19 @@ async def get_by_phone(db: AsyncSession, phone: str) -> Member | None:
     return result.scalar_one_or_none()
 
 
-async def search(db: AsyncSession, query: str) -> Sequence[Member]:
+async def search(
+    db: AsyncSession, query: str, limit: int = 50, offset: int = 0
+) -> Sequence[Member]:
     like = f"%{query}%"
     result = await db.execute(
-        select(Member).where(
+        select(Member)
+        .where(
             or_(
                 Member.name.ilike(like),
                 Member.phone.ilike(like),
             )
         )
+        .limit(limit)
+        .offset(offset)
     )
     return result.scalars().all()

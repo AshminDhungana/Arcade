@@ -107,11 +107,20 @@ class MemberService:
         return member
 
     @staticmethod
-    async def search_members(db: AsyncSession, query: str) -> Sequence[Member]:
+    async def search_members(
+        db: AsyncSession, query: str, limit: int = 50, offset: int = 0
+    ) -> Sequence[Member]:
         """Search members by name or phone using ILIKE pattern."""
         if not query or not query.strip():
             return []
-        return await member_repo.search(db, query.strip())
+        return await member_repo.search(db, query.strip(), limit=limit, offset=offset)
+
+    @staticmethod
+    async def list_members(
+        db: AsyncSession, limit: int = 50, offset: int = 0
+    ) -> Sequence[Member]:
+        """Return all members (paginated)."""
+        return await member_repo.list(db, limit=limit, offset=offset)
 
     @staticmethod
     async def topup_wallet(
