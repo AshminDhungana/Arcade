@@ -24,6 +24,7 @@ from backend.api.routers.settings import router as settings_router
 from backend.api.routers.staff import router as staff_router
 from backend.api.routers.vouchers import router as voucher_router
 from backend.api.routers.ws import router as ws_router
+from backend.api.routers.zones import router as zone_router
 
 __all__ = ["routers"]
 
@@ -59,4 +60,5 @@ routers: list[APIRouter] = [
     promotion_router,
     voucher_router,
     staff_router,
+    zone_router,
 ]

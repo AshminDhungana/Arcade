@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from sqlalchemy import String
+from datetime import UTC, datetime
+
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
@@ -23,3 +25,14 @@ class Zone(Base):
         StrEnumColumn(PricingModel, 25), nullable=False, default=PricingModel.PER_MINUTE
     )
     block_minutes: Mapped[int | None]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )

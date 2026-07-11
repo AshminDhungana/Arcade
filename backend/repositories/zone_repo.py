@@ -43,3 +43,24 @@ async def list(db: AsyncSession) -> Sequence[Zone]:  # noqa: A001
     """Return all zones ordered by name."""
     result = await db.execute(select(Zone).order_by(Zone.name))
     return result.scalars().all()
+
+
+async def update(db: AsyncSession, zone: Zone) -> Zone:
+    """Update a zone."""
+    db.add(zone)
+    await db.flush()
+    await db.refresh(zone)
+    return zone
+
+
+async def delete_by_id(db: AsyncSession, zone_id: str) -> bool:
+    """Delete a zone by ID.
+
+    Returns True if deleted, False if not found.
+    """
+    zone = await get_by_id(db, zone_id)
+    if zone is None:
+        return False
+    await db.delete(zone)
+    await db.flush()
+    return True
