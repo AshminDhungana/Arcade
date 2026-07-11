@@ -1095,3 +1095,77 @@ Redeem a voucher for a member. Cashier or Admin required.
 - `404`: Voucher not found, or member not found
 - `400`: Voucher already redeemed (`{"detail": "Voucher already redeemed"}`) or expired
 - `503`: `enable_vouchers` disabled
+
+## Staff Endpoints
+
+Staff management. Most routes are Admin-only. `PATCH /api/staff/{staff_id}/pin` additionally allows
+the account owner (self) to change their own PIN. PIN changes, deactivation, and reactivation all
+increment `token_version`, immediately invalidating every existing JWT for that staff member.
+
+`StaffResponse` never includes `pin_hash` or `token_version`.
+
+### `POST /api/staff`
+
+Create a staff member. Admin only. PIN is hashed with Argon2id; new staff start at `token_version=0`.
+
+**Request Body:**
+```json
+{
+  "name": "Bob Cashier",
+  "role": "CASHIER",
+  "is_active": true,
+  "pin": "1234"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "id": "cashier001",
+  "name": "Bob Cashier",
+  "role": "CASHIER",
+  "is_active": true,
+  "updated_at": "2026-07-06T08:00:00+00:00"
+}
+```
+
+**Errors:** `403` non-admin; `422` invalid PIN (must be 4–20 chars) or role.
+
+---
+
+### `PATCH /api/staff/{staff_id}/pin`
+
+Update a staff member's PIN. Admin or the staff member themselves. Increments `token_version`.
+
+**Request Body:**
+```json
+{ "pin": "5678" }
+```
+
+**Response (200 OK):** Updated `StaffResponse`.
+
+**Errors:** `403` if caller is neither Admin nor the target; `422` invalid PIN.
+
+---
+
+### `PATCH /api/staff/{staff_id}/deactivate`
+
+Deactivate a staff member. Admin only. Sets `is_active=false` and increments `token_version`.
+
+**Response (200 OK):** Updated `StaffResponse` with `"is_active": false`.
+
+---
+
+### `PATCH /api/staff/{staff_id}/reactivate`
+
+Reactivate a previously deactivated staff member. Admin only. Sets `is_active=true` and increments `token_version`.
+
+**Response (200 OK):** Updated `StaffResponse` with `"is_active": true`.
+
+---
+
+### `GET /api/staff`
+
+List all staff members. Admin only.
+
+**Response (200 OK):** Array of `StaffResponse` objects.
