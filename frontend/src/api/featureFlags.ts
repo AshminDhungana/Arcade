@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 const API_BASE = '/api';
 
 /** All recognised feature flag keys. */
-const FLAG_KEYS: (keyof FeatureFlags)[] = [
+export const FLAG_KEYS: (keyof FeatureFlags)[] = [
   'enable_members',
   'enable_packages',
   'enable_pos',
