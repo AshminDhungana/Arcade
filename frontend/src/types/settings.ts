@@ -47,13 +47,3 @@ export interface MenuItem {
   low_stock_threshold: number | null;
   is_available: boolean;
 }
-
-// Frontend-defined; the backend stores printer config as a JSON string under a
-// settings key (PATCH /api/settings). Refine fields in Task 32 if needed.
-export interface PrinterConfig {
-  enabled: boolean;
-  name?: string;
-  connection_type?: 'network' | 'usb';
-  ip_address?: string;
-  paper_size?: '58mm' | '80mm';
-}

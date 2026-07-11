@@ -45,6 +45,38 @@ export function useToggleFlag() {
   });
 }
 
+// ---------- Settings (read) ----------
+export async function getSettings(token: string | null): Promise<Record<string, string>> {
+  const res = await fetch(`${API_BASE}/settings`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error(`Failed to load settings: ${res.status}`);
+  return (await res.json()) as Record<string, string>;
+}
+
+export function useSettings() {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: () => getSettings(token),
+    staleTime: 30_000,
+  });
+}
+
+// Printer config is stored as scalar settings keys (Task 24/32). The brief's
+// JSON-string shape was replaced with the actual backend keys.
+export interface PrinterConfig {
+  type: 'usb' | 'network' | '';
+  vendor: string;
+  product: string;
+}
+
+export function parsePrinterConfig(settings: Record<string, string>): PrinterConfig {
+  return {
+    type: (settings['printer_type'] ?? '') as PrinterConfig['type'],
+    vendor: settings['printer_usb_vendor'] ?? '',
+    product: settings['printer_usb_product'] ?? '',
+  };
+}
+
 // ---------- Zones ----------
 export async function listZones(token: string | null): Promise<Zone[]> {
   const res = await fetch(`${API_BASE}/zones`, { headers: authHeaders(token) });
