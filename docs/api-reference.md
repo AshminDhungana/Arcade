@@ -187,6 +187,22 @@ Authorization: Bearer <jwt>
 
 ---
 
+### Remote Commands (Epic 5.3)
+
+| Method | Path                          | Auth      | Body                 | Success | Notes                                   |
+| ------ | ------------------------------ | --------- | -------------------- | ------- | --------------------------------------- |
+| POST   | /api/seats/{id}/message       | Cashier+  | `{message: str}`     | 204     | Sends `SHOW_MESSAGE`; audits `MESSAGE_SENT` |
+| GET    | /api/seats/{id}/screenshot    | Cashier+  | —                    | 200 JPEG | Rate-limited 1 in-flight/seat (AC-18); 409 if busy, 504 on timeout, 503 offline |
+| POST   | /api/seats/{id}/restart       | Admin     | —                    | 204     | Sends `RESTART`; audits `SEAT_RESTARTED` (AC-06) |
+| POST   | /api/seats/{id}/shutdown      | Admin     | —                    | 204     | Sends `SHUTDOWN`; audits `SEAT_SHUTDOWN` |
+
+**Contract note for ENG-B (agent):** `TAKE_SCREENSHOT` payload is extended to
+`{request_id}` and the agent MUST echo `request_id` back in its
+`SCREENSHOT_RESULT` `{seat_id, image_base64, captured_at, request_id}` so the
+server can correlate responses.
+
+---
+
 ### Seat Status Reference
 
 | Value        | Meaning                                       |

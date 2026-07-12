@@ -1149,13 +1149,14 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
 
 ### Epic 5.3: Remote Commands and PC Health (ENG-A)
 
-- [ ] **Task: Implement `RemoteCommandService`**
-  - [ ] `send_message(seat_id, message, db, staff)`: send `SHOW_MESSAGE` to agent; audit `MESSAGE_SENT`
-  - [ ] `request_screenshot(seat_id, db, staff)`: check no in-flight screenshot for this seat (rate limit: 1 in-flight per seat); generate `request_id`; send `TAKE_SCREENSHOT`; await `SCREENSHOT_RESPONSE`; return JPEG bytes (AC-18)
-  - [ ] `restart_seat(seat_id, db, staff)`: send `RESTART`; audit `SEAT_RESTARTED` (AC-06)
-  - [ ] `shutdown_seat(seat_id, db, staff)`: send `SHUTDOWN`; audit `SEAT_SHUTDOWN`
-  - [ ] Remote commands API: `POST /api/seats/{id}/message`, `GET /api/seats/{id}/screenshot`, `POST /api/seats/{id}/restart`, `POST /api/seats/{id}/shutdown`
-  - [ ] **âš  RISK:** Screenshot rate-limiting must be enforced at service level, not just route level â€” in-memory lock per seat_id
+- [x] **Task: Implement `RemoteCommandService`** ✅ _Complete (2026-07-12)_
+  - [x] `send_message(...)`: send `SHOW_MESSAGE` to agent; audit `MESSAGE_SENT`
+  - [x] `request_screenshot(...)`: rate-limited 1 in-flight/seat (service-level `set`+`asyncio.Lock`); return JPEG bytes (AC-18)
+  - [x] `restart_seat(...)`: send `RESTART`; audit `SEAT_RESTARTED` (AC-06)
+  - [x] `shutdown_seat(...)`: send `SHUTDOWN`; audit `SEAT_SHUTDOWN`
+  - [x] Remote commands API: `POST /api/seats/{id}/message`, `GET /api/seats/{id}/screenshot`, `POST /api/seats/{id}/restart`, `POST /api/seats/{id}/shutdown`
+  - [x] **⚠ RISK (resolved):** Screenshot rate-limiting enforced at service level (in-memory `set` of in-flight seat_ids guarded by `asyncio.Lock`); 2nd concurrent request → 409.
+  - _ENG-B note:_ agent MUST echo `request_id` in `SCREENSHOT_RESULT` so the server can correlate responses.
 
 - [ ] **Task: Implement Tuya console control** (feature-gated, config-driven)
   - [ ] `TuyaService`: `power_on(seat_id, db)`, `power_off(seat_id, db)` using `tinytuya.Device` with LAN API (no internet at runtime)
