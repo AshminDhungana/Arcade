@@ -14,6 +14,8 @@ from backend.models import ReservationStatus
 from backend.repositories import seat_repo
 from backend.services.reservation_service import (
     SeatUnavailableError,
+    cancel_reservation,
+    confirm_reservation,
     create_reservation,
 )
 
@@ -112,3 +114,77 @@ async def test_create_reservation_persists(db: AsyncSession, seat: str) -> None:
     reloaded = await reservation_repo.get_by_id(db, r.id)
     assert reloaded is not None
     assert reloaded.customer_name == "Carol"
+
+
+async def test_confirm_reservation_success(db: AsyncSession, seat: str) -> None:
+    r = await create_reservation(
+        db,
+        seat_id=seat,
+        customer_name="Dave",
+        reserved_from=datetime.now(UTC) + timedelta(minutes=10),
+        reserved_until=datetime.now(UTC) + timedelta(minutes=30),
+        notes=None,
+        created_by_staff_id="staff-1",
+    )
+    confirmed = await confirm_reservation(db, reservation_id=r.id, staff_id="staff-1")
+    assert confirmed.status == ReservationStatus.CONFIRMED
+
+
+async def test_confirm_reservation_not_found(db: AsyncSession) -> None:
+    with pytest.raises(HTTPException) as exc:
+        await confirm_reservation(db, reservation_id="ghost-id", staff_id="staff-1")
+    assert exc.value.status_code == 404
+
+
+async def test_confirm_reservation_invalid_state(db: AsyncSession, seat: str) -> None:
+    r = await create_reservation(
+        db,
+        seat_id=seat,
+        customer_name="Eve",
+        reserved_from=datetime.now(UTC) + timedelta(minutes=10),
+        reserved_until=datetime.now(UTC) + timedelta(minutes=30),
+        notes=None,
+        created_by_staff_id="staff-1",
+    )
+    await confirm_reservation(db, reservation_id=r.id, staff_id="staff-1")
+    with pytest.raises(HTTPException) as exc:
+        await confirm_reservation(db, reservation_id=r.id, staff_id="staff-1")
+    assert exc.value.status_code == 409
+    assert "can only confirm a pending" in str(exc.value.detail).lower()
+
+
+async def test_cancel_reservation_success(db: AsyncSession, seat: str) -> None:
+    r = await create_reservation(
+        db,
+        seat_id=seat,
+        customer_name="Frank",
+        reserved_from=datetime.now(UTC) + timedelta(minutes=10),
+        reserved_until=datetime.now(UTC) + timedelta(minutes=30),
+        notes=None,
+        created_by_staff_id="staff-1",
+    )
+    cancelled = await cancel_reservation(db, reservation_id=r.id, staff_id="staff-2")
+    assert cancelled.status == ReservationStatus.CANCELLED
+
+
+async def test_cancel_reservation_not_found(db: AsyncSession) -> None:
+    with pytest.raises(HTTPException) as exc:
+        await cancel_reservation(db, reservation_id="ghost-id", staff_id="staff-1")
+    assert exc.value.status_code == 404
+
+
+async def test_cancel_reservation_invalid_state(db: AsyncSession, seat: str) -> None:
+    r = await create_reservation(
+        db,
+        seat_id=seat,
+        customer_name="Grace",
+        reserved_from=datetime.now(UTC) + timedelta(minutes=10),
+        reserved_until=datetime.now(UTC) + timedelta(minutes=30),
+        notes=None,
+        created_by_staff_id="staff-1",
+    )
+    await confirm_reservation(db, reservation_id=r.id, staff_id="staff-1")
+    with pytest.raises(HTTPException) as exc:
+        await cancel_reservation(db, reservation_id=r.id, staff_id="staff-2")
+    assert exc.value.status_code == 409
+    assert "can only cancel a pending" in str(exc.value.detail).lower()

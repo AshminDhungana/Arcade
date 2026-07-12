@@ -12,7 +12,8 @@ from datetime import UTC, datetime
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Reservation, ReservationStatus
+from backend.core.ws_manager import manager as ws_manager
+from backend.models import Reservation, ReservationStatus, Seat, SeatStatus
 from backend.models._enums import AuditAction
 from backend.repositories import reservation_repo, seat_repo
 from backend.services import audit_service
@@ -92,6 +93,76 @@ async def create_reservation(
         staff_id=created_by_staff_id,
         detail=f"seat_id={seat_id}; customer={customer_name}",
     )
+    # flush-only; request-scoped get_db() commits on success
+    await db.flush()
+    await db.refresh(reservation)
+    return _attach_tz(reservation)
+
+
+def _seat_payload(seat: Seat) -> dict[str, str | int | bool | None]:
+    """Build the ``seat_updated`` WebSocket payload for a seat."""
+    from backend.schemas.seat import SeatResponse
+
+    if seat.created_at.tzinfo is None:
+        seat.created_at = seat.created_at.replace(tzinfo=UTC)
+    if seat.updated_at.tzinfo is None:
+        seat.updated_at = seat.updated_at.replace(tzinfo=UTC)
+    return SeatResponse.model_validate(seat).model_dump(mode="json")
+
+
+async def confirm_reservation(
+    db: AsyncSession, *, reservation_id: str, staff_id: str
+) -> Reservation:
+    reservation = await reservation_repo.get_by_id(db, reservation_id)
+    if reservation is None:
+        raise ReservationNotFoundError(reservation_id)
+    if reservation.status != ReservationStatus.PENDING:
+        raise HTTPException(
+            status_code=409, detail="Can only confirm a pending reservation"
+        )
+    reservation.status = ReservationStatus.CONFIRMED
+    reservation = await reservation_repo.update(db, reservation)
+    await audit_service.log(
+        db,
+        action=AuditAction.RESERVATION_CONFIRMED,
+        entity_type="reservation",
+        entity_id=reservation.id,
+        staff_id=staff_id,
+        detail="",
+    )
+    # flush-only; request-scoped get_db() commits on success
+    await db.flush()
+    await db.refresh(reservation)
+    return _attach_tz(reservation)
+
+
+async def cancel_reservation(
+    db: AsyncSession, *, reservation_id: str, staff_id: str
+) -> Reservation:
+    reservation = await reservation_repo.get_by_id(db, reservation_id)
+    if reservation is None:
+        raise ReservationNotFoundError(reservation_id)
+    if reservation.status != ReservationStatus.PENDING:
+        raise HTTPException(
+            status_code=409, detail="Can only cancel a pending reservation"
+        )
+    reservation.status = ReservationStatus.CANCELLED
+    reservation = await reservation_repo.update(db, reservation)
+    await audit_service.log(
+        db,
+        action=AuditAction.RESERVATION_CANCELLED,
+        entity_type="reservation",
+        entity_id=reservation.id,
+        staff_id=staff_id,
+        detail="",
+    )
+    # If the scheduler already flipped the seat to RESERVED, free it again.
+    seat = await seat_repo.get_by_id(db, reservation.seat_id)
+    if seat is not None and seat.status == SeatStatus.RESERVED:
+        seat.status = SeatStatus.AVAILABLE
+        seat = await seat_repo.update(db, seat)
+        payload = _seat_payload(seat)
+        await ws_manager.broadcast_to_dashboards("seat_updated", payload)
     # flush-only; request-scoped get_db() commits on success
     await db.flush()
     await db.refresh(reservation)
