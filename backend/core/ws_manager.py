@@ -13,6 +13,7 @@ All messages use a standard JSON envelope (SDD §9.2)::
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 from dataclasses import dataclass
@@ -132,6 +133,7 @@ class Msg:
     HEALTH = "HEALTH"
     STAFF_OVERRIDE = "STAFF_OVERRIDE"
     PONG = "PONG"
+    SCREENSHOT_RESULT = "SCREENSHOT_RESULT"
 
     # Server -> Agent
     PING = "PING"
@@ -141,6 +143,12 @@ class Msg:
     HEALTH_UPDATE = "health_update"
     ANNOUNCEMENT = "announcement"
     ALERT = "alert"
+
+    # Server -> Agent (remote commands)
+    SHOW_MESSAGE = "SHOW_MESSAGE"
+    TAKE_SCREENSHOT = "TAKE_SCREENSHOT"
+    RESTART = "RESTART"
+    SHUTDOWN = "SHUTDOWN"
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +171,10 @@ class WebSocketManager:
         self._heartbeat_task: asyncio.Task[None] | None = None
         self._pending_pongs: set[str] = set()
         self._health_data: dict[str, dict[str, Any]] = {}
+        # Screenshot request/response correlation (Task 1)
+        self._screenshot_waiters: dict[str, asyncio.Future[bytes]] = {}
+        self._screenshot_seat: dict[str, str] = {}  # request_id -> seat_id
+        self._screenshot_lock = asyncio.Lock()
 
     # --- Dashboards --------------------------------------------------------
 
@@ -193,6 +205,14 @@ class WebSocketManager:
         return True
 
     async def disconnect_agent(self, seat_id: str) -> None:
+        # Cancel any pending screenshot futures for this seat
+        async with self._screenshot_lock:
+            for req_id, req_seat in list(self._screenshot_seat.items()):
+                if req_seat == seat_id:
+                    fut = self._screenshot_waiters.pop(req_id, None)
+                    self._screenshot_seat.pop(req_id, None)
+                    if fut is not None and not fut.done():
+                        fut.cancel()
         async with self._lock:
             self._pending_pongs.discard(seat_id)
             self.agent_connections.pop(seat_id, None)
@@ -205,6 +225,41 @@ class WebSocketManager:
             raise AgentOfflineError(seat_id)
         message = ws_envelope(command["type"], command.get("payload", {}))
         await ws.send_json(message)
+
+    # --- Screenshot request/response correlation ----------------------
+
+    async def wait_for_screenshot(
+        self, request_id: str, *, seat_id: str, timeout: float = 3.0
+    ) -> bytes:
+        """Register a future for *request_id* and await the agent's result.
+
+        Records ``seat_id`` in ``_screenshot_seat`` so a disconnect can cancel
+        the pending future.
+
+        Raises:
+            asyncio.TimeoutError: If no ``SCREENSHOT_RESULT`` arrives in time.
+            asyncio.CancelledError: If the agent disconnects (future cancelled).
+        """
+        loop = asyncio.get_running_loop()
+        fut: asyncio.Future[bytes] = loop.create_future()
+        async with self._screenshot_lock:
+            self._screenshot_waiters[request_id] = fut
+            self._screenshot_seat[request_id] = seat_id
+        try:
+            return await asyncio.wait_for(fut, timeout)
+        except (asyncio.TimeoutError, asyncio.CancelledError):  # noqa: UP041
+            async with self._screenshot_lock:
+                self._screenshot_waiters.pop(request_id, None)
+                self._screenshot_seat.pop(request_id, None)
+            raise
+
+    async def resolve_screenshot(self, request_id: str, data: bytes) -> None:
+        """Resolve the pending future for *request_id* with JPEG *data*."""
+        async with self._screenshot_lock:
+            fut = self._screenshot_waiters.pop(request_id, None)
+            self._screenshot_seat.pop(request_id, None)
+        if fut is not None and not fut.done():
+            fut.set_result(data)
 
     async def broadcast_to_dashboards(
         self, event: str, payload: dict[str, Any]
@@ -225,10 +280,11 @@ class WebSocketManager:
 
     async def handle_agent_message(  # noqa: C901
         self, seat_id: str, message: dict[str, Any]
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """Dispatch an incoming agent message to the appropriate handler.
 
-        Returns a response dict to be sent back to the agent.
+        Returns a response dict to be sent back to the agent, or ``None`` if no
+        response should be sent (e.g., for SCREENSHOT_RESULT).
         """
         msg_type = message.get("type", "").upper()
         payload = message.get("payload", {})
@@ -245,6 +301,9 @@ class WebSocketManager:
             case "PONG":
                 await self.handle_pong(seat_id)
                 return {"type": "PONG_ACK"}
+            case "SCREENSHOT_RESULT":
+                await self._handle_screenshot_response(payload)
+                return None
             case _:
                 return {"type": "ERROR", "message": f"Unknown message type: {msg_type}"}
 
@@ -376,6 +435,24 @@ class WebSocketManager:
             },
         )
         return {"type": "STAFF_OVERRIDE_ACK"}
+
+    async def _handle_screenshot_response(self, payload: dict[str, Any]) -> None:
+        """Decode and resolve an incoming agent screenshot result.
+
+        Returns ``None`` — no ack is sent back to the agent for screenshots.
+        """
+        request_id = payload.get("request_id")
+        if not request_id:
+            logger.warning("SCREENSHOT_RESULT missing request_id; dropping")
+            return None
+        image_b64 = payload.get("image_base64", "")
+        try:
+            data = base64.b64decode(image_b64, validate=True)
+        except Exception:
+            logger.warning("SCREENSHOT_RESULT had invalid base64; dropping")
+            data = b""
+        await self.resolve_screenshot(request_id, data)
+        return None
 
     # --- Heartbeat ----------------------------------------------------------
 

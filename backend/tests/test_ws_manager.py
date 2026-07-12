@@ -416,3 +416,38 @@ class TestAgentHandlers:
 # ---------------------------------------------------------------------------
 # WebSocket endpoints (Task 5)
 # ---------------------------------------------------------------------------
+
+
+# --- Screenshot response correlation ---------------------------------
+
+
+async def test_wait_for_screenshot_resolves_on_result() -> None:
+    """A registered waiter future resolves when resolve_screenshot is called."""
+    mgr = WebSocketManager()
+    fut = asyncio.get_event_loop().create_future()
+    async with mgr._screenshot_lock:
+        mgr._screenshot_waiters["req-1"] = fut
+        mgr._screenshot_seat["req-1"] = "seat_001"
+    await mgr.resolve_screenshot("req-1", b"\xff\xd8\xff\xff\xd9")
+    assert fut.done()
+    assert fut.result() == b"\xff\xd8\xff\xff\xd9"
+
+
+async def test_wait_for_screenshot_unknown_id_noop() -> None:
+    """Resolving an unknown request_id does not raise and drops nothing."""
+    mgr = WebSocketManager()
+    # Must not raise
+    await mgr.resolve_screenshot("ghost", b"data")
+
+
+async def test_disconnect_cancels_pending_screenshot() -> None:
+    """disconnect_agent cancels any pending screenshot future for that seat."""
+    mgr = WebSocketManager()
+    fut = asyncio.get_event_loop().create_future()
+    async with mgr._screenshot_lock:
+        mgr._screenshot_waiters["req-2"] = fut
+        mgr._screenshot_seat["req-2"] = "seat_001"
+    await mgr.disconnect_agent("seat_001")
+    assert fut.cancelled()
+    async with mgr._screenshot_lock:
+        assert "req-2" not in mgr._screenshot_waiters
