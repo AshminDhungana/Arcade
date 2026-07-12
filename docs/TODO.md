@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-3 Complete; Phase 4 Epic 4.1 (ENG-A) + 4.2 (ENG-B) Complete (Epic 4.2 Frontend members/settings done 2026-07-11)
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12) — remaining Phase 5 epics (5.2–5.5) pending
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1123,16 +1123,20 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
 
 ---
 
-### Epic 5.1: Shift Management (ENG-A)
+### Epic 5.1: Shift Management (ENG-A) (Complete 2026-07-12)
 
-- [ ] **Task: Implement `ShiftService`**
-  - [ ] `open_shift(staff_id, opening_cash, db)`: validate no shift already open; create `Shift` record; audit `SHIFT_OPEN`
-  - [ ] `close_shift(staff_id, closing_cash, db)`: validate open shift exists; calculate `expected_cash = opening_cash + cash_collected_this_shift`; set `closed_at`; audit `SHIFT_CLOSE`
-  - [ ] `get_current_shift(db)`: returns open shift or None
-  - [ ] `get_shift_report(shift_id, db)`: sessions during shift, revenue, POS totals, cash reconciliation
-  - [ ] All sessions created during a shift have `shift_id` set (set in `session_service.start_session()`)
-  - [ ] Shift API: `POST /api/shifts/open`, `POST /api/shifts/close`, `GET /api/shifts/current`, `GET /api/shifts/{id}/report`
-  - [ ] **Definition of done:** AC-10 satisfied â€” shift closed with correct reconciliation figures
+- [x] **Task: Implement `ShiftService` (`backend/services/shift_service.py`)**
+  - [x] `open_shift(staff_id, opening_cash_paise, db)`: reject (409 `SHIFT_ALREADY_OPEN`) if a shift is already OPEN; create `Shift` with `float_paise=opening_cash_paise`, `opened_at=utcnow()`, `opened_by_staff_id=staff_id`; audit `SHIFT_OPEN`
+  - [x] `get_current_shift(db)`: returns the OPEN shift or `None` (via `shift_repo.get_open_shift`)
+  - [x] `close_shift(staff_id, closing_cash_paise, db)`: reject (409 `NO_OPEN_SHIFT`) if none open; set `counted_paise`, `closed_at`, `closed_by_staff_id`, `status=CLOSED`; audit `SHIFT_CLOSE`
+  - [x] `get_shift_report(shift_id, db)`: aggregate sessions + invoices for the shift; compute revenue, POS totals, and cash reconciliation (AC-10 below); reject (404) if the shift is not found
+  - [x] **Reconciliation math (integer paise, R-06 mitigation):** `cash_collected = sum(invoice.total_paise where payment_method == CASH)`; `expected_cash = float_paise + cash_collected`; `variance = counted_paise - expected_cash` (None while the shift is still open)
+  - [x] All sessions created during a shift carry `shift_id` - `session_service.start_session()` resolves the open shift via `shift_repo.get_open_shift` and stamps `shift_id` on `session_repo.create(...)`
+  - [x] Shift API router (`backend/api/routers/shifts.py`, prefix `/api/shifts`): `POST /open` (Cashier, 201), `POST /close` (Cashier), `GET /current` (Cashier, `ShiftResponse | None`), `GET /{shift_id}/report` (Admin-only)
+  - [x] Schemas (`backend/schemas/shift.py`): `ShiftOpenRequest` (`float_paise`), `ShiftCloseRequest` (`counted_paise`), `ShiftResponse`, `ShiftReportResponse`
+  - [x] Repo helpers added: `shift_repo.get_open_shift`, `invoice_repo.list_by_shift`, `session_repo.create(shift_id=...)` (nullable FK to `shifts.id`)
+  - [x] **Definition of done:** AC-10 satisfied - `test_report_200_for_admin` asserts `expected_cash_paise == 5000` and `variance_paise == 1500` (float 5000 + cash 0; counted 6500)
+  - [~] **Persistence gap (systemic, same as Epic 4.1):** repos/services `flush()` only; no `await db.commit()` in production code. Shift records are rolled back after the response until a commit-on-success point is added to `get_db()`/routers. Router + service tests pass via the single-session `dependency_overrides[get_db]` pattern. Same fix as Epic 4.1 applies.
 
 ### Epic 5.2: Reservations (ENG-A)
 
@@ -1180,7 +1184,8 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
 
 ### Testing Requirements (Phase 5)
 
-- [ ] `pytest backend/tests/test_shift_service.py` â€” open/close, reconciliation calculations, duplicate open rejection
+- [x] `pytest backend/tests/test_shift_service.py` - open/close, reconciliation calculations, duplicate open rejection (8 tests passing)
+- [x] `pytest backend/tests/test_shifts_router.py` - open/close/current/report HTTP tests, admin-only report gate (6 tests passing)
 - [ ] `pytest backend/tests/test_reservation_service.py` â€” create, time conflict detection, scheduled seat status change, cancel
 - [ ] `pytest backend/tests/test_remote_commands.py` â€” screenshot rate limiting, screenshot response payload validation, restart/shutdown audit log, Tuya mock
 - [ ] `pytest backend/tests/test_backup.py` â€” backup file created with correct name, integrity check, pruning of old files, manual trigger
