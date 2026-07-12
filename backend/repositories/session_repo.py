@@ -23,6 +23,7 @@ async def create(
     package_entitlement_id: str | None = None,
     promotion_id: str | None = None,
     discount_paise: int = 0,
+    shift_id: str | None = None,
 ) -> GamingSession:
     session = GamingSession(
         seat_id=seat_id,
@@ -33,6 +34,7 @@ async def create(
         package_entitlement_id=package_entitlement_id,
         promotion_id=promotion_id,
         discount_paise=discount_paise,
+        shift_id=shift_id,
     )
     db.add(session)
     await db.flush()
