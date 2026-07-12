@@ -73,6 +73,12 @@ async def get_by_session(db: AsyncSession, session_id: str) -> Sequence[Invoice]
     return result.scalars().all()
 
 
+async def list_by_shift(db: AsyncSession, shift_id: str) -> Sequence[Invoice]:
+    """Return all invoices recorded against *shift_id*."""
+    result = await db.execute(select(Invoice).where(Invoice.shift_id == shift_id))
+    return result.scalars().all()
+
+
 # -- invoice line items --
 
 

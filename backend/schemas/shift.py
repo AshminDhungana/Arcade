@@ -31,3 +31,22 @@ class ShiftResponse(ShiftBase, BaseResponseSchema):
     float_paise: int
     counted_paise: int | None = None
     status: ShiftStatus
+
+
+class ShiftOpenRequest(BaseCreateSchema):
+    float_paise: int = Field(0, ge=0)
+
+
+class ShiftCloseRequest(BaseCreateSchema):
+    counted_paise: int = Field(..., ge=0)
+
+
+class ShiftReportResponse(BaseResponseSchema):
+    shift: ShiftResponse
+    session_count: int
+    invoice_count: int
+    total_revenue_paise: int
+    pos_total_paise: int
+    cash_collected_paise: int
+    expected_cash_paise: int
+    variance_paise: int | None = None

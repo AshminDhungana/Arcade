@@ -7,6 +7,7 @@ Uses an in-memory async SQLite DB for repository calls.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -15,7 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from backend.core.database import Base
 from backend.models import SeatStatus, SessionStatus
-from backend.repositories import seat_repo, staff_repo
+from backend.models._enums import ShiftStatus
+from backend.repositories import seat_repo, shift_repo, staff_repo
 from backend.services.session_service import (
     get_session,
     list_active_sessions,
@@ -193,6 +195,41 @@ async def test_start_session_existing_active(
             await start_session(db, seat_id=seat.id, member_id=None, staff=staff_member)
         assert exc_info.value.status_code == 409
         assert "ACTIVE_SESSION_EXISTS" in exc_info.value.detail
+
+
+async def test_start_session_links_current_open_shift(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """start_session stamps shift_id from the currently open shift."""
+    shift = await shift_repo.create(
+        db,
+        opened_by_staff_id=staff_member.id,
+        opened_at=datetime.now(UTC),
+        float_paise=5000,
+        status=ShiftStatus.OPEN,
+    )
+    _, seat = zone_and_seat
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        result = await start_session(
+            db, seat_id=seat.id, member_id=None, staff=staff_member
+        )
+    assert result.shift_id == shift.id
+
+
+async def test_start_session_no_shift_id_when_none_open(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """start_session leaves shift_id None when no shift is open."""
+    _, seat = zone_and_seat
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        result = await start_session(
+            db, seat_id=seat.id, member_id=None, staff=staff_member
+        )
+    assert result.shift_id is None
 
 
 # -------------------------------------------------------------------

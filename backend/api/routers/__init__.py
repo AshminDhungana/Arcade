@@ -24,6 +24,7 @@ from backend.api.routers.schedules import router as schedule_router
 from backend.api.routers.seats import router as seat_router
 from backend.api.routers.sessions import router as session_router
 from backend.api.routers.settings import router as settings_router
+from backend.api.routers.shifts import router as shift_router
 from backend.api.routers.staff import router as staff_router
 from backend.api.routers.vouchers import router as voucher_router
 from backend.api.routers.ws import router as ws_router
@@ -41,7 +42,7 @@ __all__ = ["routers"]
 # Phase 4: routers.append(promotion_router)  # DONE
 # Phase 4: routers.append(voucher_router)  # DONE
 # Phase 4: routers.append(staff_router)  # DONE
-# Phase 5: # routers.append(shift_router)
+# Phase 5: routers.append(shift_router)  # DONE
 # Phase 5: # routers.append(reservation_router)
 # Phase 5: # routers.append(remote_command_router)
 # Phase 6: # routers.append(analytics_router)
@@ -67,4 +68,5 @@ routers: list[APIRouter] = [
     device_type_router,
     schedule_router,
     menu_router,
+    shift_router,
 ]
