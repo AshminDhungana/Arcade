@@ -15,14 +15,15 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel
+from fastapi.responses import Response
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import require_admin, require_cashier
 from backend.core.database import get_db
 from backend.models.staff import Staff
 from backend.schemas.seat import SeatResponse
-from backend.services import seat_service, wol_service
+from backend.services import remote_command_service, seat_service, wol_service
 
 router = APIRouter(prefix="/seats", tags=["seats"])
 
@@ -36,6 +37,12 @@ class _MaintenanceBody(BaseModel):
     """Request body for PATCH /seats/{id}/maintenance."""
 
     note: str | None = None
+
+
+class _MessageBody(BaseModel):
+    """Request body for POST /seats/{id}/message."""
+
+    message: str = Field(..., max_length=1000)
 
 
 # ---------------------------------------------------------------------------
@@ -104,3 +111,45 @@ async def wol_override(
 ) -> SeatResponse:
     """Manually mark a seat as online, bypassing the WoL watchdog (admin only)."""
     return await wol_service.override_seat_online(db, seat_id, staff)
+
+
+@router.post("/{seat_id}/message", status_code=status.HTTP_204_NO_CONTENT)
+async def send_seat_message(
+    seat_id: str,
+    body: _MessageBody,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+) -> None:
+    """Send a ``SHOW_MESSAGE`` command to the seat's agent (cashier+)."""
+    await remote_command_service.send_message(db, seat_id, body.message, staff)
+
+
+@router.get("/{seat_id}/screenshot")
+async def request_seat_screenshot(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+) -> Response:
+    """Request a screenshot from the seat's agent (cashier+). Returns JPEG bytes."""
+    data = await remote_command_service.request_screenshot(db, seat_id, staff)
+    return Response(content=data, media_type="image/jpeg")
+
+
+@router.post("/{seat_id}/restart", status_code=status.HTTP_204_NO_CONTENT)
+async def restart_seat(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> None:
+    """Send ``RESTART`` to the seat's agent (admin only)."""
+    await remote_command_service.restart_seat(db, seat_id, staff)
+
+
+@router.post("/{seat_id}/shutdown", status_code=status.HTTP_204_NO_CONTENT)
+async def shutdown_seat(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> None:
+    """Send ``SHUTDOWN`` to the seat's agent (admin only)."""
+    await remote_command_service.shutdown_seat(db, seat_id, staff)
