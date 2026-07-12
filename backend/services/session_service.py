@@ -19,7 +19,7 @@ from backend.core.ws_manager import AgentOfflineError
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, SeatStatus, SessionStatus
 from backend.models._enums import AuditAction
-from backend.repositories import package_repo, seat_repo, session_repo
+from backend.repositories import package_repo, seat_repo, session_repo, shift_repo
 from backend.schemas.session import SessionResponse
 from backend.services import audit_service
 from backend.services.billing_service import resolve_rate
@@ -141,6 +141,10 @@ async def start_session(
     # 4. Billing rate
     locked_rate = await resolve_rate(db, seat_id=seat_id, member_id=member_id)
 
+    # 4a. Associate the session with the currently open shift (if any)
+    current_shift = await shift_repo.get_open_shift(db)
+    shift_id: str | None = current_shift.id if current_shift else None
+
     # 4b. Check for active package entitlement
     package_entitlement_id: str | None = None
     if member_id:
@@ -170,6 +174,7 @@ async def start_session(
         package_entitlement_id=package_entitlement_id,
         promotion_id=promotion_id,
         discount_paise=0,  # calculated at checkout
+        shift_id=shift_id,
     )
 
     # 6. Update seat → IN_USE
