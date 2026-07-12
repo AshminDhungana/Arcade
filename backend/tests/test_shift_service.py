@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from backend.core.database import Base
 from backend.models._enums import ShiftStatus
 from backend.repositories import shift_repo
-from backend.services.shift_service import get_current_shift, open_shift
+from backend.services.shift_service import close_shift, get_current_shift, open_shift
 
 
 @pytest.fixture
@@ -55,3 +55,19 @@ async def test_get_current_shift_none_when_closed(db: AsyncSession) -> None:
     opened.closed_at = datetime.now(UTC)
     await shift_repo.update(db, opened)
     assert await get_current_shift(db) is None
+
+
+async def test_close_shift_sets_closed_state(db: AsyncSession) -> None:
+    await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    closed = await close_shift(db, staff_id="staff-1", closing_cash_paise=6500)
+    assert closed.status == ShiftStatus.CLOSED
+    assert closed.closed_by_staff_id == "staff-1"
+    assert closed.counted_paise == 6500
+    assert closed.closed_at is not None
+
+
+async def test_close_shift_rejects_when_none_open(db: AsyncSession) -> None:
+    with pytest.raises(HTTPException) as exc:
+        await close_shift(db, staff_id="staff-1", closing_cash_paise=0)
+    assert exc.value.status_code == 409
+    assert "NO_OPEN_SHIFT" in exc.value.detail

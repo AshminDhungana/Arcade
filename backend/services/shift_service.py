@@ -50,3 +50,33 @@ async def open_shift(
 async def get_current_shift(db: AsyncSession) -> Shift | None:
     """Return the currently OPEN shift, or ``None``."""
     return await shift_repo.get_open_shift(db)
+
+
+async def close_shift(
+    db: AsyncSession, *, staff_id: str, closing_cash_paise: int
+) -> Shift:
+    """Close the currently OPEN shift.
+
+    Rejects (409) if no shift is open. Sets ``closed_by_staff_id``,
+    ``counted_paise`` (closing cash), ``closed_at``, and ``status=CLOSED``,
+    then audits ``SHIFT_CLOSE``.
+    """
+    shift = await shift_repo.get_open_shift(db)
+    if shift is None:
+        raise HTTPException(status_code=409, detail="NO_OPEN_SHIFT")
+
+    shift.closed_by_staff_id = staff_id
+    shift.counted_paise = closing_cash_paise
+    shift.closed_at = datetime.now(UTC)
+    shift.status = ShiftStatus.CLOSED
+    shift = await shift_repo.update(db, shift)
+
+    await audit_service.log(
+        db,
+        action=AuditAction.SHIFT_CLOSE,
+        entity_type="shift",
+        entity_id=shift.id,
+        staff_id=staff_id,
+        detail=f"counted_paise={closing_cash_paise}",
+    )
+    return shift
