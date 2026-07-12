@@ -10,13 +10,20 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.core.database import Base
-from backend.models import ReservationStatus
+from backend.models import Reservation, ReservationStatus, SeatStatus
 from backend.repositories import seat_repo
+from backend.schemas.reservation import ReservationUpdate
 from backend.services.reservation_service import (
+    ReservationNotFoundError,
     SeatUnavailableError,
     cancel_reservation,
     confirm_reservation,
     create_reservation,
+    delete_reservation,
+    get_reservation,
+    list_reservations,
+    mark_due_reservations_reserved,
+    update_reservation,
 )
 
 
@@ -188,3 +195,79 @@ async def test_cancel_reservation_invalid_state(db: AsyncSession, seat: str) -> 
         await cancel_reservation(db, reservation_id=r.id, staff_id="staff-2")
     assert exc.value.status_code == 409
     assert "can only cancel a pending" in str(exc.value.detail).lower()
+
+
+async def _seed(db: AsyncSession, seat: str, *, offset: int = 10) -> Reservation:
+    from backend.services.reservation_service import create_reservation
+
+    base = datetime.now(UTC) + timedelta(minutes=offset)
+    return await create_reservation(
+        db,
+        seat_id=seat,
+        customer_name="Test",
+        reserved_from=base,
+        reserved_until=base + timedelta(minutes=20),
+        notes=None,
+        created_by_staff_id="staff-1",
+    )
+
+
+async def test_get_and_list(db: AsyncSession, seat: str) -> None:
+    r = await _seed(db, seat)
+    got = await get_reservation(db, reservation_id=r.id)
+    assert got.id == r.id
+    all_r = await list_reservations(db)
+    assert len(all_r) == 1
+
+
+async def test_get_not_found(db: AsyncSession) -> None:
+    from backend.services.reservation_service import ReservationNotFoundError
+
+    with pytest.raises(ReservationNotFoundError):
+        await get_reservation(db, reservation_id="ghost")
+
+
+async def test_update_notes(db: AsyncSession, seat: str) -> None:
+    r = await _seed(db, seat)
+    updated = await update_reservation(
+        db,
+        reservation_id=r.id,
+        updates=ReservationUpdate(notes="updated note"),
+        staff_id="staff-1",
+    )
+    assert updated.notes == "updated note"
+
+
+async def test_update_window_conflict(db: AsyncSession, seat: str) -> None:
+    first = await _seed(db, seat, offset=10)
+    second = await _seed(db, seat, offset=60)
+    with pytest.raises(SeatUnavailableError):
+        await update_reservation(
+            db,
+            reservation_id=second.id,
+            updates=ReservationUpdate(
+                reserved_from=first.reserved_from, reserved_until=first.reserved_until
+            ),
+            staff_id="staff-1",
+        )
+
+
+async def test_delete_reservation(db: AsyncSession, seat: str) -> None:
+    r = await _seed(db, seat)
+    deleted = await delete_reservation(db, reservation_id=r.id)
+    assert deleted is True
+    with pytest.raises(ReservationNotFoundError):
+        await get_reservation(db, reservation_id=r.id)
+
+
+async def test_mark_due_flips_seat_reserved(db: AsyncSession, seat: str) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from backend.core.ws_manager import manager as ws_manager
+
+    await _seed(db, seat, offset=1)  # starts in 1 minute -> within window
+    with patch.object(ws_manager, "broadcast_to_dashboards", new=AsyncMock()):
+        updated = await mark_due_reservations_reserved(db)
+    assert seat in updated
+    refreshed = await seat_repo.get_by_id(db, seat)
+    assert refreshed.status == SeatStatus.RESERVED

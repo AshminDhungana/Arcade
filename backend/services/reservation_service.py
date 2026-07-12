@@ -7,6 +7,7 @@ their first parameter.  This module is feature-flagged at the API layer
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from fastapi import HTTPException
@@ -16,6 +17,7 @@ from backend.core.ws_manager import manager as ws_manager
 from backend.models import Reservation, ReservationStatus, Seat, SeatStatus
 from backend.models._enums import AuditAction
 from backend.repositories import reservation_repo, seat_repo
+from backend.schemas.reservation import ReservationUpdate
 from backend.services import audit_service
 
 
@@ -167,3 +169,113 @@ async def cancel_reservation(
     await db.flush()
     await db.refresh(reservation)
     return _attach_tz(reservation)
+
+
+async def get_reservation(db: AsyncSession, *, reservation_id: str) -> Reservation:
+    reservation = await reservation_repo.get_by_id(db, reservation_id)
+    if reservation is None:
+        raise ReservationNotFoundError(reservation_id)
+    return _attach_tz(reservation)
+
+
+async def list_reservations(
+    db: AsyncSession,
+    *,
+    seat_id: str | None = None,
+    member_id: str | None = None,
+    status: ReservationStatus | None = None,
+) -> Sequence[Reservation]:
+    reservations = await reservation_repo.list_reservations(
+        db, seat_id=seat_id, member_id=member_id, status=status
+    )
+    return [_attach_tz(r) for r in reservations]
+
+
+async def update_reservation(
+    db: AsyncSession,
+    *,
+    reservation_id: str,
+    updates: ReservationUpdate,
+    staff_id: str,
+) -> Reservation:
+    reservation = await reservation_repo.get_by_id(db, reservation_id)
+    if reservation is None:
+        raise ReservationNotFoundError(reservation_id)
+    if reservation.status == ReservationStatus.CANCELLED:
+        raise HTTPException(
+            status_code=409, detail="Cannot edit a cancelled reservation"
+        )
+    if updates.customer_name is not None:
+        reservation.customer_name = updates.customer_name
+    if updates.member_id is not None:
+        reservation.member_id = updates.member_id
+    if updates.group_reservation_id is not None:
+        reservation.group_reservation_id = updates.group_reservation_id
+    if updates.notes is not None:
+        reservation.notes = updates.notes
+    if updates.reserved_from is not None or updates.reserved_until is not None:
+        new_from = updates.reserved_from or reservation.reserved_from
+        new_until = (
+            updates.reserved_until
+            if updates.reserved_until is not None
+            else reservation.reserved_until
+        )
+        conflicting = await reservation_repo.find_conflicting(
+            db,
+            seat_id=reservation.seat_id,
+            reserved_from=new_from,
+            reserved_until=new_until,
+            exclude_id=reservation.id,
+        )
+        if conflicting:
+            raise SeatUnavailableError(reservation.seat_id)
+        reservation.reserved_from = new_from
+        reservation.reserved_until = new_until
+    reservation.updated_at = datetime.now(UTC)
+    reservation = await reservation_repo.update(db, reservation)
+    await audit_service.log(
+        db,
+        action=AuditAction.RESERVATION_UPDATED,
+        entity_type="reservation",
+        entity_id=reservation.id,
+        staff_id=staff_id,
+        detail="edit",
+    )
+    # flush-only; request-scoped get_db() commits on success
+    await db.flush()
+    await db.refresh(reservation)
+    return _attach_tz(reservation)
+
+
+async def delete_reservation(db: AsyncSession, *, reservation_id: str) -> bool:
+    reservation = await reservation_repo.get_by_id(db, reservation_id)
+    if reservation is None:
+        raise ReservationNotFoundError(reservation_id)
+    deleted = await reservation_repo.delete_by_id(db, reservation_id)
+    # flush-only; request-scoped get_db() commits on success
+    await db.flush()
+    return deleted
+
+
+async def mark_due_reservations_reserved(db: AsyncSession) -> list[str]:
+    """Flip seats of reservations starting within the next 2 minutes to
+    RESERVED and broadcast the change.  Only AVAILABLE seats are touched so
+    we never clobber an in-use or maintenance seat; already-RESERVED seats
+    are skipped (idempotent across minutes).
+    """
+    from datetime import timedelta
+
+    now = datetime.now(UTC)
+    window_end = now + timedelta(minutes=2)
+    due = await reservation_repo.find_due(db, window_start=now, window_end=window_end)
+    updated: list[str] = []
+    for reservation in due:
+        seat = await seat_repo.get_by_id(db, reservation.seat_id)
+        if seat is None or seat.status != SeatStatus.AVAILABLE:
+            continue
+        seat.status = SeatStatus.RESERVED
+        seat = await seat_repo.update(db, seat)
+        await ws_manager.broadcast_to_dashboards("seat_updated", _seat_payload(seat))
+        updated.append(seat.id)
+    await db.commit()
+    return updated
