@@ -28,6 +28,7 @@ class Reservation(Base):
     )
     reserved_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     group_reservation_id: Mapped[str | None] = mapped_column(String(32))
+    notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     status: Mapped[ReservationStatus] = mapped_column(
         StrEnumColumn(ReservationStatus, 10),
         nullable=False,

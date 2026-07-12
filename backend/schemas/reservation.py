@@ -16,7 +16,7 @@ class ReservationBase(BaseCreateSchema):
     reserved_until: AwareDatetime | None = None
     group_reservation_id: str | None = None
     notes: str | None = Field(None, max_length=1000)
-    created_by_staff_id: str
+    created_by_staff_id: str | None = None
 
 
 class ReservationCreate(ReservationBase):
