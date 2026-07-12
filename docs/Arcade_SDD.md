@@ -568,7 +568,8 @@ class InvoiceResponse(BaseModel):
 | POST      | /api/vouchers/redeem        | Cashier | Redeem voucher                                                         |
 | GET       | /api/reservations           | Cashier | List reservations                                                      |
 | POST      | /api/reservations           | Cashier | Create reservation                                                     |
-| DELETE    | /api/reservations/{id}      | Cashier | Cancel reservation                                                     |
+| PATCH     | /api/reservations/{id}      | Cashier | Confirm / cancel / edit reservation                                   |
+| DELETE    | /api/reservations/{id}      | Cashier | Hard-delete reservation record                                         |
 | GET       | /api/staff                  | Admin   | List staff                                                             |
 | POST      | /api/staff                  | Admin   | Create staff member                                                    |
 | POST      | /api/staff/{id}/change-pin  | Admin   | Change staff PIN (increments token_version)                            |
@@ -783,8 +784,8 @@ All models use SQLAlchemy declarative base. All IDs are UUIDs (stored as strings
 | reserved_from        | DateTime UTC  |                                       |
 | reserved_until       | DateTime NULL |                                       |
 | group_reservation_id | String NULL   | Groups linked reservations            |
-| status               | Enum          | PENDING, ACTIVE, COMPLETED, CANCELLED |
-| created_by_staff_id  | String FK     |                                       |
+| status               | Enum          | PENDING, CONFIRMED, COMPLETED, CANCELLED |
+| created_by_staff_id  | String FK     | Server-assigned (authenticated staff); not client-supplied |
 | created_at           | DateTime UTC  |                                       |
 | updated_at           | DateTime UTC  | Set explicitly in service code        |
 

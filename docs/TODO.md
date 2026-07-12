@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12) — remaining Phase 5 epics (5.2–5.5) pending
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12) — remaining Phase 5 epics (5.3–5.5) pending
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1140,12 +1140,12 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
 
 ### Epic 5.2: Reservations (ENG-A)
 
-- [ ] **Task: Implement `ReservationService`** (feature-flagged `enable_reservations`)
-  - [ ] `create_reservation(seat_id, member_id, customer_name, from, to, notes, db, staff)`: validate seat not already reserved in time window; create record; audit `RESERVATION_CREATED`
-  - [ ] `confirm_reservation(reservation_id, db, staff)`: set `status=CONFIRMED`
-  - [ ] `cancel_reservation(reservation_id, db, staff)`: set `status=CANCELLED`; audit `RESERVATION_CANCELLED`
-  - [ ] Scheduled check (APScheduler, every 1 minute): find reservations starting in the next 0â€“2 minutes; set seat `status=RESERVED`; broadcast seat update
-  - [ ] Reservation API: `GET /api/reservations`, `POST /api/reservations`, `PATCH /api/reservations/{id}`, `DELETE /api/reservations/{id}`
+- [x] **Task: Implement `ReservationService`** (feature-flagged `enable_reservations`)
+  - [x] `create_reservation(seat_id, member_id, customer_name, from, to, notes, db, staff)`: validate seat not already reserved in time window; create record; audit `RESERVATION_CREATED`
+  - [x] `confirm_reservation(reservation_id, db, staff)`: set `status=CONFIRMED`
+  - [x] `cancel_reservation(reservation_id, db, staff)`: set `status=CANCELLED`; audit `RESERVATION_CANCELLED`
+  - [x] Scheduled check (APScheduler, every 1 minute): find reservations starting in the next 0â€“2 minutes; set seat `status=RESERVED`; broadcast seat update
+  - [x] Reservation API: `GET /api/reservations`, `POST /api/reservations`, `PATCH /api/reservations/{id}`, `DELETE /api/reservations/{id}`
 
 ### Epic 5.3: Remote Commands and PC Health (ENG-A)
 
