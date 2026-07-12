@@ -16,6 +16,7 @@ guards against a 2nd concurrent request per seat (which is rejected with
 from __future__ import annotations
 
 import asyncio
+import uuid
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -128,3 +129,87 @@ async def send_message(
         staff_id=staff.id if staff else None,
         detail=message,
     )
+
+
+# ---------------------------------------------------------------------------
+# Public API — Task 3
+# ---------------------------------------------------------------------------
+
+
+async def request_screenshot(
+    db: AsyncSession,
+    seat_id: str,
+    staff: Staff | None = None,
+) -> bytes:
+    """Request a screenshot from the seat's agent and return the JPEG bytes.
+
+    Sends a ``TAKE_SCREENSHOT`` command to the agent and awaits the
+    ``SCREENSHOT_RESULT`` response (correlated by ``request_id``).
+
+    Enforces a per-seat in-flight limit of 1 (AC-18). Timeouts after
+    ``SCREENSHOT_TIMEOUT`` seconds (3s, per AC-18).
+
+    Args:
+        db: Database session for seat lookup and audit logging.
+        seat_id: Target seat ID.
+        staff: Optional staff member for audit logging.
+
+    Returns:
+        JPEG image bytes (base64-decoded from the agent's response).
+
+    Raises:
+        HTTPException(404): If the seat does not exist.
+        HTTPException(409): If a screenshot request is already in-flight for this seat.
+        HTTPException(503): If the agent is offline.
+        HTTPException(504): If the agent does not respond within 3 seconds.
+        HTTPException(502): If the agent returns invalid/missing image data.
+    """
+    await _get_seat_or_404(db, seat_id)
+
+    # Enforce per-seat in-flight limit (1 screenshot at a time)
+    async with _screenshot_inflight_lock:
+        if seat_id in _screenshot_inflight:
+            raise ScreenshotInFlightError(seat_id)
+        _screenshot_inflight.add(seat_id)
+
+    request_id = uuid.uuid4().hex
+    try:
+        # Send the TAKE_SCREENSHOT command to the agent
+        await _send_to_agent_or_503(
+            seat_id,
+            {
+                "type": Msg.TAKE_SCREENSHOT,
+                "payload": {"request_id": request_id},
+            },
+        )
+
+        # Wait for the agent's SCREENSHOT_RESULT response
+        try:
+            image_bytes = await ws_manager.wait_for_screenshot(
+                request_id, seat_id=seat_id, timeout=SCREENSHOT_TIMEOUT
+            )
+        except asyncio.TimeoutError as err:  # noqa: UP041
+            raise ScreenshotTimeoutError(seat_id) from err
+        except asyncio.CancelledError as err:
+            # Agent disconnected; treat as timeout per AC-18
+            raise ScreenshotTimeoutError(seat_id) from err
+
+        # Validate JPEG SOI marker (\xff\xd8)
+        if not image_bytes.startswith(b"\xff\xd8"):
+            raise ScreenshotInvalidImageError()
+
+        # Audit the screenshot request
+        await audit_service.log(
+            db,
+            action=AuditAction.SCREENSHOT_TAKEN,
+            entity_type="seat",
+            entity_id=seat_id,
+            staff_id=staff.id if staff else None,
+            detail=f"Screenshot request_id={request_id}",
+        )
+
+        return image_bytes
+    finally:
+        # Always release the in-flight slot
+        async with _screenshot_inflight_lock:
+            _screenshot_inflight.discard(seat_id)

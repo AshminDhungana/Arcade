@@ -6,6 +6,7 @@ WebSocketManager for command sends.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
@@ -118,3 +119,115 @@ async def test_send_message_seat_not_found(db: AsyncSession, staff_member) -> No
     with pytest.raises(HTTPException) as exc_info:
         await rcs.send_message(db, "ghost-id", "hi", staff_member)
     assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# request_screenshot
+# ---------------------------------------------------------------------------
+
+
+async def test_request_screenshot_returns_bytes_and_audits(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """request_screenshot returns JPEG bytes and audits SCREENSHOT_TAKEN."""
+    from backend.models._enums import AuditAction
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+    fake_jpeg = b"\xff\xd8\xff\xe0\x00\x10JFIF\xff\xd9"
+
+    with (
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()),
+        patch.object(
+            rcs.ws_manager, "wait_for_screenshot", new=AsyncMock(return_value=fake_jpeg)
+        ) as mock_wait,
+        patch.object(rcs.audit_service, "log", new=AsyncMock()) as mock_audit,
+        patch("backend.services.remote_command_service.uuid") as mock_uuid,
+    ):
+        mock_uuid.uuid4.return_value.hex = "req-abc"
+        data = await rcs.request_screenshot(db, seat.id, staff_member)
+
+    assert data == fake_jpeg
+    # wait_for_screenshot is called with request_id, seat_id=seat_id, timeout
+    mock_wait.assert_awaited_once()
+    args, kwargs = mock_wait.call_args
+    assert args[0] == "req-abc"
+    assert kwargs.get("timeout") == rcs.SCREENSHOT_TIMEOUT
+    assert mock_audit.call_args.kwargs["action"] == AuditAction.SCREENSHOT_TAKEN
+
+
+async def test_request_screenshot_rate_limited(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """A 2nd concurrent request for the same seat is rejected with 409."""
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+
+    # First call hangs on the await (future never resolved).
+    async def _hang(*args, **kwargs):
+        await asyncio.sleep(10)
+
+    with (
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()),
+        patch.object(rcs.ws_manager, "wait_for_screenshot", new=_hang),
+        patch("backend.services.remote_command_service.uuid") as mock_uuid,
+    ):
+        mock_uuid.uuid4.return_value.hex = "req-first"
+        first = asyncio.create_task(rcs.request_screenshot(db, seat.id, staff_member))
+        # Let the first call register its in-flight lock.
+        await asyncio.sleep(0.2)
+        with pytest.raises(HTTPException) as exc_info:
+            await rcs.request_screenshot(db, seat.id, staff_member)
+        assert exc_info.value.status_code == 409
+        # Clean up the still-hanging first task.
+        first.cancel()
+        try:
+            await first
+        except (asyncio.CancelledError, rcs.ScreenshotTimeoutError):
+            pass
+
+
+async def test_request_screenshot_timeout_504(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """A screenshot with no agent response times out → 504."""
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+
+    async def _timeout(*args, **kwargs):
+        raise asyncio.TimeoutError()  # noqa: UP041
+
+    with (
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()),
+        patch.object(rcs.ws_manager, "wait_for_screenshot", new=_timeout),
+        patch("backend.services.remote_command_service.uuid") as mock_uuid,
+    ):
+        mock_uuid.uuid4.return_value.hex = "req-timeout"
+        with pytest.raises(HTTPException) as exc_info:
+            await rcs.request_screenshot(db, seat.id, staff_member)
+    assert exc_info.value.status_code == 504
+
+
+async def test_request_screenshot_invalid_image_502(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """Non-JPEG response data is rejected with 502."""
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+
+    with (
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()),
+        patch.object(
+            rcs.ws_manager,
+            "wait_for_screenshot",
+            new=AsyncMock(return_value=b"not-an-image"),
+        ),
+        patch("backend.services.remote_command_service.uuid") as mock_uuid,
+    ):
+        mock_uuid.uuid4.return_value.hex = "req-bad"
+        with pytest.raises(HTTPException) as exc_info:
+            await rcs.request_screenshot(db, seat.id, staff_member)
+    assert exc_info.value.status_code == 502
