@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,9 +16,9 @@ async def create(
     db: AsyncSession,
     *,
     opened_by_staff_id: str,
-    opened_at: str,
+    opened_at: datetime,
     float_paise: int = 0,
-    status: str | None = None,
+    status: ShiftStatus | None = None,
 ) -> Shift:
     shift = Shift(
         opened_by_staff_id=opened_by_staff_id,
