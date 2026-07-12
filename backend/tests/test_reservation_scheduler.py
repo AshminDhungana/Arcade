@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.core.database import Base
-from backend.core.scheduler import init_scheduler
+from backend.core.scheduler import _reservation_reminder_job, init_scheduler
 from backend.models import SeatStatus
 from backend.repositories import reservation_repo, seat_repo
 from backend.services.reservation_service import mark_due_reservations_reserved
@@ -88,3 +88,18 @@ async def test_scheduler_registers_reservation_job() -> None:
     assert job is not None
     assert job.trigger.interval == timedelta(minutes=1)
     scheduler.shutdown(wait=False)
+
+
+async def test_job_skips_when_flag_off() -> None:
+    """The job must early-return without touching the DB or service when the
+    ``enable_reservations`` flag is off."""
+    with (
+        patch("backend.core.feature_flags.get_flag", return_value=False) as flag,
+        patch(
+            "backend.services.reservation_service.mark_due_reservations_reserved",
+            new=AsyncMock(),
+        ) as svc,
+    ):
+        await _reservation_reminder_job()
+    flag.assert_called_once_with("enable_reservations")
+    svc.assert_not_called()
