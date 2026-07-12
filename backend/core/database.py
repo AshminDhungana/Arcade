@@ -73,6 +73,10 @@ class Base(DeclarativeBase):
 async def get_db() -> AsyncGenerator[AsyncSession]:
     """Yield an async SQLAlchemy session for FastAPI dependency injection.
 
+    The session is committed when the request completes successfully and
+    rolled back if the handler raises, so service/repository code can stay
+    flush-only (the documented persistence convention for this project).
+
     Usage in a FastAPI router::
 
         @router.get("/data")
@@ -80,4 +84,9 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
             ...
     """
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
