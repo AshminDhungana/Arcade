@@ -531,7 +531,7 @@ async def test_reservation_repo(db: AsyncSession) -> None:
     by_id = await reservation_repo.get_by_id(db, res.id)
     assert by_id is not None
 
-    all_res = await reservation_repo.list(db)
+    all_res = await reservation_repo.list_reservations(db)
     assert len(all_res) == 1
 
 
