@@ -364,3 +364,34 @@ async def test_delete_reservation_releases_reserved_seat(
     assert args[0] == "seat_updated"
     assert args[1]["id"] == seat
     assert args[1]["status"] == "AVAILABLE"
+
+
+async def test_update_window_blocked_when_confirmed(
+    db: AsyncSession, seat: str
+) -> None:
+    r = await _seed(db, seat)
+    await confirm_reservation(db, reservation_id=r.id, staff_id="staff-1")
+    with pytest.raises(HTTPException) as exc:
+        await update_reservation(
+            db,
+            reservation_id=r.id,
+            updates=ReservationUpdate(
+                reserved_from=r.reserved_from + timedelta(minutes=5)
+            ),
+            staff_id="staff-1",
+        )
+    assert exc.value.status_code == 409
+    assert "time window" in str(exc.value.detail).lower()
+
+
+async def test_update_notes_on_confirmed(db: AsyncSession, seat: str) -> None:
+    r = await _seed(db, seat)
+    await confirm_reservation(db, reservation_id=r.id, staff_id="staff-1")
+    updated = await update_reservation(
+        db,
+        reservation_id=r.id,
+        updates=ReservationUpdate(notes="vip arrival"),
+        staff_id="staff-1",
+    )
+    assert updated.status == ReservationStatus.CONFIRMED
+    assert updated.notes == "vip arrival"
