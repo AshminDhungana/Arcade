@@ -19,6 +19,20 @@ from backend.schemas.shift import ShiftReportResponse, ShiftResponse
 from backend.services import audit_service
 
 
+def _attach_utc(shift: Shift) -> Shift:
+    """Re-attach UTC to SQLite-stripped datetimes.
+
+    SQLite DateTime columns drop ``tzinfo`` on the round-trip, but
+    ``ShiftResponse`` requires timezone-aware datetimes, so normalize before
+    pydantic validation.
+    """
+    if shift.opened_at is not None and shift.opened_at.tzinfo is None:
+        shift.opened_at = shift.opened_at.replace(tzinfo=UTC)
+    if shift.closed_at is not None and shift.closed_at.tzinfo is None:
+        shift.closed_at = shift.closed_at.replace(tzinfo=UTC)
+    return shift
+
+
 async def open_shift(
     db: AsyncSession, *, staff_id: str, opening_cash_paise: int = 0
 ) -> Shift:
@@ -46,12 +60,13 @@ async def open_shift(
         staff_id=staff_id,
         detail=f"float_paise={opening_cash_paise}",
     )
-    return shift
+    return _attach_utc(shift)
 
 
 async def get_current_shift(db: AsyncSession) -> Shift | None:
     """Return the currently OPEN shift, or ``None``."""
-    return await shift_repo.get_open_shift(db)
+    shift = await shift_repo.get_open_shift(db)
+    return _attach_utc(shift) if shift is not None else None
 
 
 async def close_shift(
@@ -81,7 +96,7 @@ async def close_shift(
         staff_id=staff_id,
         detail=f"counted_paise={closing_cash_paise}",
     )
-    return shift
+    return _attach_utc(shift)
 
 
 @dataclass(frozen=True)
@@ -124,10 +139,7 @@ async def get_shift_report(db: AsyncSession, *, shift_id: str) -> ShiftReportRes
 
     # SQLite strips tzinfo from DateTime columns on round-trip; re-attach UTC
     # before building the response (which requires timezone-aware datetimes).
-    if shift.opened_at.tzinfo is None:
-        shift.opened_at = shift.opened_at.replace(tzinfo=UTC)
-    if shift.closed_at is not None and shift.closed_at.tzinfo is None:
-        shift.closed_at = shift.closed_at.replace(tzinfo=UTC)
+    _attach_utc(shift)
 
     report = ShiftReport(
         shift=shift,
