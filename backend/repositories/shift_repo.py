@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Shift
+from backend.models._enums import ShiftStatus
 
 
 async def create(
@@ -32,6 +33,12 @@ async def create(
 
 async def get_by_id(db: AsyncSession, shift_id: str) -> Shift | None:
     result = await db.execute(select(Shift).where(Shift.id == shift_id))
+    return result.scalar_one_or_none()
+
+
+async def get_open_shift(db: AsyncSession) -> Shift | None:
+    """Return the single OPEN shift, or ``None`` if none is open."""
+    result = await db.execute(select(Shift).where(Shift.status == ShiftStatus.OPEN))
     return result.scalar_one_or_none()
 
 
