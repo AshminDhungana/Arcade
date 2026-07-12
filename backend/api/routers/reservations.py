@@ -99,4 +99,6 @@ async def update_reservation(
 
 @router.delete("/{reservation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_reservation(reservation_id: str, db: DbDep, staff: CashierDep) -> None:
-    await reservation_service.delete_reservation(db, reservation_id=reservation_id)
+    await reservation_service.delete_reservation(
+        db, reservation_id=reservation_id, staff_id=staff.id
+    )

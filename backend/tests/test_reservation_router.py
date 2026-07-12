@@ -140,12 +140,12 @@ async def test_conflict_returns_409(cashier_client, seat_id) -> None:
     assert resp.status_code == 409
 
 
-async def test_flag_off_returns_503(db, seat_id) -> None:
+async def test_flag_off_returns_503(db, seat_id, monkeypatch) -> None:
     from backend.api.deps import get_current_staff
     from backend.core.feature_flags import _flag_cache
     from backend.main import app
 
-    _flag_cache["enable_reservations"] = False
+    monkeypatch.setitem(_flag_cache, "enable_reservations", False)
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_current_staff] = lambda: _mock_staff(StaffRole.CASHIER)
     transport = ASGITransport(app=app)

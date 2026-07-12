@@ -190,11 +190,12 @@ async def test_cancel_reservation_invalid_state(db: AsyncSession, seat: str) -> 
         notes=None,
         created_by_staff_id="staff-1",
     )
-    await confirm_reservation(db, reservation_id=r.id, staff_id="staff-1")
+    # Cancel once, then try to cancel again - should fail
+    await cancel_reservation(db, reservation_id=r.id, staff_id="staff-2")
     with pytest.raises(HTTPException) as exc:
         await cancel_reservation(db, reservation_id=r.id, staff_id="staff-2")
     assert exc.value.status_code == 409
-    assert "can only cancel a pending" in str(exc.value.detail).lower()
+    assert "already cancelled" in str(exc.value.detail).lower()
 
 
 async def _seed(db: AsyncSession, seat: str, *, offset: int = 10) -> Reservation:
@@ -271,3 +272,95 @@ async def test_mark_due_flips_seat_reserved(db: AsyncSession, seat: str) -> None
     assert seat in updated
     refreshed = await seat_repo.get_by_id(db, seat)
     assert refreshed.status == SeatStatus.RESERVED
+
+
+async def test_cancel_reservation_restores_reserved_seat(
+    db: AsyncSession, seat: str
+) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from backend.core.ws_manager import manager as ws_manager
+    from backend.models import SeatStatus
+
+    # Create a PENDING reservation
+    reservation = await _seed(db, seat, offset=10)
+    # Simulate scheduler flipping seat to RESERVED
+    seat_obj = await seat_repo.get_by_id(db, seat)
+    seat_obj.status = SeatStatus.RESERVED
+    await seat_repo.update(db, seat_obj)
+
+    broadcast_mock = AsyncMock()
+    with patch.object(ws_manager, "broadcast_to_dashboards", broadcast_mock):
+        cancelled = await cancel_reservation(
+            db, reservation_id=reservation.id, staff_id="staff-2"
+        )
+
+    assert cancelled.status == ReservationStatus.CANCELLED
+    refreshed_seat = await seat_repo.get_by_id(db, seat)
+    assert refreshed_seat.status == SeatStatus.AVAILABLE
+    broadcast_mock.assert_awaited_once()
+    args, _ = broadcast_mock.call_args
+    assert args[0] == "seat_updated"
+    assert args[1]["id"] == seat
+    assert args[1]["status"] == "AVAILABLE"
+
+
+async def test_cancel_from_confirmed_releases_seat(db: AsyncSession, seat: str) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from backend.core.ws_manager import manager as ws_manager
+    from backend.models import SeatStatus
+
+    # Create and confirm a reservation
+    reservation = await _seed(db, seat, offset=10)
+    await confirm_reservation(db, reservation_id=reservation.id, staff_id="staff-1")
+    # Simulate scheduler flipping seat to RESERVED
+    seat_obj = await seat_repo.get_by_id(db, seat)
+    seat_obj.status = SeatStatus.RESERVED
+    await seat_repo.update(db, seat_obj)
+
+    broadcast_mock = AsyncMock()
+    with patch.object(ws_manager, "broadcast_to_dashboards", broadcast_mock):
+        cancelled = await cancel_reservation(
+            db, reservation_id=reservation.id, staff_id="staff-2"
+        )
+
+    assert cancelled.status == ReservationStatus.CANCELLED
+    refreshed_seat = await seat_repo.get_by_id(db, seat)
+    assert refreshed_seat.status == SeatStatus.AVAILABLE
+    broadcast_mock.assert_awaited_once()
+    args, _ = broadcast_mock.call_args
+    assert args[0] == "seat_updated"
+    assert args[1]["id"] == seat
+    assert args[1]["status"] == "AVAILABLE"
+
+
+async def test_delete_reservation_releases_reserved_seat(
+    db: AsyncSession, seat: str
+) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from backend.core.ws_manager import manager as ws_manager
+    from backend.models import SeatStatus
+
+    # Create a reservation
+    reservation = await _seed(db, seat, offset=10)
+    # Simulate scheduler flipping seat to RESERVED
+    seat_obj = await seat_repo.get_by_id(db, seat)
+    seat_obj.status = SeatStatus.RESERVED
+    await seat_repo.update(db, seat_obj)
+
+    broadcast_mock = AsyncMock()
+    with patch.object(ws_manager, "broadcast_to_dashboards", broadcast_mock):
+        deleted = await delete_reservation(
+            db, reservation_id=reservation.id, staff_id="staff-1"
+        )
+
+    assert deleted is True
+    refreshed_seat = await seat_repo.get_by_id(db, seat)
+    assert refreshed_seat.status == SeatStatus.AVAILABLE
+    broadcast_mock.assert_awaited_once()
+    args, _ = broadcast_mock.call_args
+    assert args[0] == "seat_updated"
+    assert args[1]["id"] == seat
+    assert args[1]["status"] == "AVAILABLE"

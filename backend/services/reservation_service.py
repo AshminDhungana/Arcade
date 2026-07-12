@@ -144,9 +144,18 @@ async def cancel_reservation(
     reservation = await reservation_repo.get_by_id(db, reservation_id)
     if reservation is None:
         raise ReservationNotFoundError(reservation_id)
-    if reservation.status != ReservationStatus.PENDING:
+    if reservation.status == ReservationStatus.CANCELLED:
+        raise HTTPException(status_code=409, detail="Reservation already cancelled")
+    if reservation.status == ReservationStatus.COMPLETED:
         raise HTTPException(
-            status_code=409, detail="Can only cancel a pending reservation"
+            status_code=409, detail="Cannot cancel a completed reservation"
+        )
+    if reservation.status not in (
+        ReservationStatus.PENDING,
+        ReservationStatus.CONFIRMED,
+    ):
+        raise HTTPException(
+            status_code=409, detail="Can only cancel a pending or confirmed reservation"
         )
     reservation.status = ReservationStatus.CANCELLED
     reservation = await reservation_repo.update(db, reservation)
@@ -214,6 +223,11 @@ async def update_reservation(
     if updates.notes is not None:
         reservation.notes = updates.notes
     if updates.reserved_from is not None or updates.reserved_until is not None:
+        if reservation.status != ReservationStatus.PENDING:
+            raise HTTPException(
+                status_code=409,
+                detail="Can only change the time window of a pending reservation",
+            )
         new_from = updates.reserved_from or reservation.reserved_from
         new_until = (
             updates.reserved_until
@@ -247,11 +261,28 @@ async def update_reservation(
     return _attach_tz(reservation)
 
 
-async def delete_reservation(db: AsyncSession, *, reservation_id: str) -> bool:
+async def delete_reservation(
+    db: AsyncSession, *, reservation_id: str, staff_id: str | None = None
+) -> bool:
     reservation = await reservation_repo.get_by_id(db, reservation_id)
     if reservation is None:
         raise ReservationNotFoundError(reservation_id)
+    # If the seat was flipped to RESERVED, free it again.
+    seat = await seat_repo.get_by_id(db, reservation.seat_id)
+    if seat is not None and seat.status == SeatStatus.RESERVED:
+        seat.status = SeatStatus.AVAILABLE
+        seat = await seat_repo.update(db, seat)
+        payload = _seat_payload(seat)
+        await ws_manager.broadcast_to_dashboards("seat_updated", payload)
     deleted = await reservation_repo.delete_by_id(db, reservation_id)
+    await audit_service.log(
+        db,
+        action=AuditAction.RESERVATION_DELETED,
+        entity_type="reservation",
+        entity_id=reservation.id,
+        staff_id=staff_id,
+        detail="",
+    )
     # flush-only; request-scoped get_db() commits on success
     await db.flush()
     return deleted
