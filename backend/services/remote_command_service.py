@@ -1,0 +1,130 @@
+"""RemoteCommandService — dashboard-to-agent remote commands.
+
+Business logic for pushing commands to a seat's agent over WebSocket:
+
+- ``send_message``     → ``SHOW_MESSAGE`` (best-effort display)
+- ``request_screenshot`` → ``TAKE_SCREENSHOT`` (request/response, rate-limited)
+- ``restart_seat``     → ``RESTART``
+- ``shutdown_seat``    → ``SHUTDOWN``
+
+Screenshot rate-limiting (AC-18) is enforced HERE, at the service layer,
+not in the HTTP route: an in-memory ``set`` of in-flight ``seat_id``s
+guards against a 2nd concurrent request per seat (which is rejected with
+409 rather than queued).
+"""
+
+from __future__ import annotations
+
+import asyncio
+
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.core.ws_manager import AgentOfflineError, Msg
+from backend.core.ws_manager import manager as ws_manager
+from backend.models._enums import AuditAction
+from backend.models.seat import Seat
+from backend.models.staff import Staff
+from backend.repositories import seat_repo
+from backend.services import audit_service
+
+# ---------------------------------------------------------------------------
+# Errors (all HTTPException subclasses so FastAPI renders JSON via main.py)
+# ---------------------------------------------------------------------------
+
+
+class SeatNotFoundError(HTTPException):
+    def __init__(self, seat_id: str) -> None:
+        super().__init__(status_code=404, detail=f"Seat {seat_id} not found")
+
+
+class AgentOfflineHttpError(HTTPException):
+    def __init__(self, seat_id: str) -> None:
+        super().__init__(status_code=503, detail=f"Agent for seat {seat_id} is offline")
+
+
+class ScreenshotInFlightError(HTTPException):
+    def __init__(self, seat_id: str) -> None:
+        super().__init__(
+            status_code=409,
+            detail=f"A screenshot request is already in-flight for seat {seat_id}",
+        )
+
+
+class ScreenshotTimeoutError(HTTPException):
+    def __init__(self, seat_id: str) -> None:
+        super().__init__(
+            status_code=504,
+            detail=f"Screenshot request for seat {seat_id} timed out",
+        )
+
+
+class ScreenshotInvalidImageError(HTTPException):
+    def __init__(self) -> None:
+        super().__init__(status_code=502, detail="Agent returned invalid image data")
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+SCREENSHOT_TIMEOUT = 3.0  # seconds (AC-18: delivered within 3s)
+MESSAGE_DEFAULT_DURATION = 30  # seconds on-screen
+COMMAND_DELAY_SECONDS = 10  # restart/shutdown grace (SDD §9.3)
+
+# In-flight screenshot rate-limit state (AC-18). Service-level, not route-level.
+_screenshot_inflight: set[str] = set()
+_screenshot_inflight_lock = asyncio.Lock()
+
+
+async def _send_to_agent_or_503(seat_id: str, command: dict[str, object]) -> None:
+    """Send a command to the agent, mapping offline → 503."""
+    try:
+        await ws_manager.send_to_agent(seat_id, command)
+    except AgentOfflineError:
+        raise AgentOfflineHttpError(seat_id) from None
+
+
+async def _get_seat_or_404(db: AsyncSession, seat_id: str) -> Seat:
+    seat = await seat_repo.get_by_id(db, seat_id)
+    if seat is None:
+        raise SeatNotFoundError(seat_id)
+    return seat
+
+
+# ---------------------------------------------------------------------------
+# Public API — Task 2
+# ---------------------------------------------------------------------------
+
+
+async def send_message(
+    db: AsyncSession,
+    seat_id: str,
+    message: str,
+    staff: Staff | None = None,
+) -> None:
+    """Send a ``SHOW_MESSAGE`` command to the seat's agent and audit it.
+
+    Raises:
+        HTTPException(404): If the seat does not exist.
+        HTTPException(503): If the agent is offline.
+    """
+    seat = await _get_seat_or_404(db, seat_id)
+    await _send_to_agent_or_503(
+        seat_id,
+        {
+            "type": Msg.SHOW_MESSAGE,
+            "payload": {
+                "text": message,
+                "duration_seconds": MESSAGE_DEFAULT_DURATION,
+            },
+        },
+    )
+    await audit_service.log(
+        db,
+        action=AuditAction.MESSAGE_SENT,
+        entity_type="seat",
+        entity_id=seat.id,
+        staff_id=staff.id if staff else None,
+        detail=message,
+    )
