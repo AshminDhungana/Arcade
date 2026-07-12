@@ -231,3 +231,68 @@ async def test_request_screenshot_invalid_image_502(
         with pytest.raises(HTTPException) as exc_info:
             await rcs.request_screenshot(db, seat.id, staff_member)
     assert exc_info.value.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# restart_seat / shutdown_seat
+# ---------------------------------------------------------------------------
+
+
+async def test_restart_seat_sends_and_audits(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """restart_seat sends RESTART and audits SEAT_RESTARTED."""
+    from backend.models._enums import AuditAction
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+    with (
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send,
+        patch.object(rcs.audit_service, "log", new=AsyncMock()) as mock_audit,
+    ):
+        await rcs.restart_seat(db, seat.id, staff_member)
+    sent = mock_send.call_args.args[1]
+    assert sent["type"] == rcs.Msg.RESTART
+    assert sent["payload"]["delay_seconds"] == rcs.COMMAND_DELAY_SECONDS
+    assert mock_audit.call_args.kwargs["action"] == AuditAction.SEAT_RESTARTED
+
+
+async def test_shutdown_seat_sends_and_audits(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """shutdown_seat sends SHUTDOWN and audits SEAT_SHUTDOWN."""
+    from backend.models._enums import AuditAction
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+    with (
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send,
+        patch.object(rcs.audit_service, "log", new=AsyncMock()) as mock_audit,
+    ):
+        await rcs.shutdown_seat(db, seat.id, staff_member)
+    sent = mock_send.call_args.args[1]
+    assert sent["type"] == rcs.Msg.SHUTDOWN
+    assert mock_audit.call_args.kwargs["action"] == AuditAction.SEAT_SHUTDOWN
+
+
+async def test_restart_seat_offline_503(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """restart_seat raises 503 when the agent is offline."""
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+    with patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send:
+        mock_send.side_effect = rcs.AgentOfflineError(seat.id)
+        with pytest.raises(HTTPException) as exc_info:
+            await rcs.restart_seat(db, seat.id, staff_member)
+    assert exc_info.value.status_code == 503
+
+
+async def test_shutdown_seat_not_found(db: AsyncSession, staff_member) -> None:
+    """shutdown_seat raises 404 for an unknown seat."""
+    from backend.services import remote_command_service as rcs
+
+    with pytest.raises(HTTPException) as exc_info:
+        await rcs.shutdown_seat(db, "ghost-id", staff_member)
+    assert exc_info.value.status_code == 404

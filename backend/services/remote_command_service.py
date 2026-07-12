@@ -213,3 +213,66 @@ async def request_screenshot(
         # Always release the in-flight slot
         async with _screenshot_inflight_lock:
             _screenshot_inflight.discard(seat_id)
+
+
+# ---------------------------------------------------------------------------
+# Public API — Task 4
+# ---------------------------------------------------------------------------
+
+
+async def restart_seat(
+    db: AsyncSession,
+    seat_id: str,
+    staff: Staff | None = None,
+) -> None:
+    """Send ``RESTART`` to the seat's agent and audit ``SEAT_RESTARTED`` (AC-06).
+
+    Raises:
+        HTTPException(404): If the seat does not exist.
+        HTTPException(503): If the agent is offline.
+    """
+    seat = await _get_seat_or_404(db, seat_id)
+    await _send_to_agent_or_503(
+        seat_id,
+        {
+            "type": Msg.RESTART,
+            "payload": {"delay_seconds": COMMAND_DELAY_SECONDS},
+        },
+    )
+    await audit_service.log(
+        db,
+        action=AuditAction.SEAT_RESTARTED,
+        entity_type="seat",
+        entity_id=seat.id,
+        staff_id=staff.id if staff else None,
+        detail=f"seat {seat.name}",
+    )
+
+
+async def shutdown_seat(
+    db: AsyncSession,
+    seat_id: str,
+    staff: Staff | None = None,
+) -> None:
+    """Send ``SHUTDOWN`` to the seat's agent and audit ``SEAT_SHUTDOWN``.
+
+    Raises:
+        HTTPException(404): If the seat does not exist.
+        HTTPException(503): If the agent is offline.
+    """
+    seat = await _get_seat_or_404(db, seat_id)
+    await _send_to_agent_or_503(
+        seat_id,
+        {
+            "type": Msg.SHUTDOWN,
+            "payload": {"delay_seconds": COMMAND_DELAY_SECONDS},
+        },
+    )
+    await audit_service.log(
+        db,
+        action=AuditAction.SEAT_SHUTDOWN,
+        entity_type="seat",
+        entity_id=seat.id,
+        staff_id=staff.id if staff else None,
+        detail=f"seat {seat.name}",
+    )
