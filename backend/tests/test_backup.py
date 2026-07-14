@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest_asyncio
@@ -67,3 +68,61 @@ async def test_run_backup_audits_backup_created(
     assert len(logs) == 1
     assert logs[0].entity_type == "backup"
     assert re.fullmatch(r"arcade_\d{8}_\d{4}\.db", logs[0].entity_id)
+
+
+async def test_prune_deletes_only_old_matching_files(
+    db: AsyncSession, tmp_path: Path
+) -> None:
+    backup_dir = tmp_path / "backups"
+    backup_dir.mkdir()
+    old = backup_dir / "arcade_20200101_0100.db"
+    old.write_bytes(b"old")
+    keep = backup_dir / "arcade_20990101_0100.db"
+    keep.write_bytes(b"new")
+    stray = backup_dir / "notes.txt"
+    stray.write_bytes(b"do-not-touch")
+
+    deleted = await backup_service.prune_old_backups(
+        db,
+        backup_dir=backup_dir,
+        retain_days=7,
+        now=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    assert deleted == 1
+    assert not old.exists()
+    assert keep.exists()
+    assert stray.exists()  # non-matching file untouched
+
+
+async def test_prune_audits_backup_pruned(db: AsyncSession, tmp_path: Path) -> None:
+    backup_dir = tmp_path / "backups"
+    backup_dir.mkdir()
+    (backup_dir / "arcade_20200101_0100.db").write_bytes(b"old")
+
+    await backup_service.prune_old_backups(
+        db,
+        backup_dir=backup_dir,
+        retain_days=7,
+        now=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    logs = await audit_repo.list(db, action=AuditAction.BACKUP_PRUNED.value)
+    assert len(logs) == 1
+    assert "deleted=1" in (logs[0].detail or "")
+
+
+async def test_prune_no_audit_when_nothing_deleted(
+    db: AsyncSession, tmp_path: Path
+) -> None:
+    backup_dir = tmp_path / "backups"
+    backup_dir.mkdir()
+    (backup_dir / "arcade_20990101_0100.db").write_bytes(b"future")
+
+    deleted = await backup_service.prune_old_backups(
+        db,
+        backup_dir=backup_dir,
+        retain_days=7,
+        now=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    assert deleted == 0
+    logs = await audit_repo.list(db, action=AuditAction.BACKUP_PRUNED.value)
+    assert len(logs) == 0
