@@ -205,6 +205,8 @@ class AuditAction(Enum):
     STAFF_PIN_CHANGED = "STAFF_PIN_CHANGED"
     STAFF_DEACTIVATED = "STAFF_DEACTIVATED"
     STAFF_REACTIVATED = "STAFF_REACTIVATED"
+    TUYA_POWER_ON = "TUYA_POWER_ON"
+    TUYA_POWER_OFF = "TUYA_POWER_OFF"
 
 
 # ── License ──────────────────────────────────────────────────────────────
