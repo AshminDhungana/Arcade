@@ -313,6 +313,97 @@ where `payment_method == "CASH"`; `expected_cash_paise = float_paise + cash_coll
 
 ---
 
+## Reservation Endpoints
+
+Reservations are feature-flagged by `enable_reservations` (default `true`). When the flag
+is off, every route returns `503`. All routes require a Cashier (or Admin) JWT. The
+`created_by_staff_id` is taken from the authenticated staff — it is **not** read from the
+request body. A scheduler job (every 1 minute) automatically flips the seat of a reservation
+starting within the next 0–2 minutes to `RESERVED` (only if the seat is `AVAILABLE`).
+
+### `GET /api/reservations`
+
+List reservations. Cashier+ required.
+
+**Query Parameters:** `seat_id` (str, optional), `member_id` (str, optional), `reservation_status` (`ReservationStatus`, optional).
+
+**Response (200 OK):** Array of `ReservationResponse`.
+
+---
+
+### `POST /api/reservations`
+
+Create a reservation. Rejects with `409` if the seat is already reserved in the requested
+time window, or `404` if the seat does not exist. Cashier+ required.
+
+**Request Body:**
+```json
+{
+  "seat_id": "seat_001",
+  "customer_name": "Aarav Sharma",
+  "member_id": "mem_123",
+  "reserved_from": "2026-07-14T18:00:00+00:00",
+  "reserved_until": "2026-07-14T20:00:00+00:00",
+  "notes": "Window seat preferred",
+  "status": "PENDING"
+}
+```
+(`member_id`, `reserved_until`, `notes`, `group_reservation_id` are optional; `status` defaults to `PENDING`.)
+
+**Response (201 Created):** `ReservationResponse` (see shape below).
+
+---
+
+### `PATCH /api/reservations/{reservation_id}`
+
+Update or transition a reservation. Cashier+ required. Setting `status` drives the transition:
+- `status: "CONFIRMED"` → confirms (only allowed from `PENDING`; else `409`).
+- `status: "CANCELLED"` → cancels (allowed from `PENDING`/`CONFIRMED`; not from `COMPLETED` or already `CANCELLED`; else `409`).
+- Any other field update (name, time window, notes) with `status` omitted → edits the record
+  (time-window edits only allowed while `PENDING`; else `409`). Setting `status` to any value
+  other than `CONFIRMED`/`CANCELLED` returns `400`.
+
+**Response (200 OK):** Updated `ReservationResponse`.
+
+---
+
+### `DELETE /api/reservations/{reservation_id}`
+
+Delete a reservation. If the seat had already been flipped to `RESERVED` by the scheduler, it
+is released back to `AVAILABLE`. Cashier+ required.
+
+**Response (204 No Content).**
+
+---
+
+### `ReservationResponse` shape
+
+```json
+{
+  "id": "res_001",
+  "seat_id": "seat_001",
+  "customer_name": "Aarav Sharma",
+  "member_id": "mem_123",
+  "reserved_from": "2026-07-14T18:00:00+00:00",
+  "reserved_until": "2026-07-14T20:00:00+00:00",
+  "group_reservation_id": null,
+  "notes": "Window seat preferred",
+  "created_by_staff_id": "cashier001",
+  "status": "PENDING",
+  "created_at": "2026-07-14T10:00:00+00:00",
+  "updated_at": "2026-07-14T10:00:00+00:00"
+}
+```
+
+**Reservation Status Reference**
+
+| Value       | Meaning                                          |
+|-------------|--------------------------------------------------|
+| `PENDING`   | Created, not yet confirmed                       |
+| `CONFIRMED` | Confirmed by staff                               |
+| `CANCELLED` | Cancelled (seat released)                        |
+| `COMPLETED` | Consumed by a session                            |
+
 ## Session Endpoints
 
 ### `POST /api/sessions`
