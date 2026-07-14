@@ -1409,6 +1409,29 @@ Trigger a backup immediately. **Admin only.** Records the acting staff in the au
 ```
 (`pruned_count` is the number of old backup files deleted by retention pruning in this run.)
 
+---
+
+## Analytics
+
+### GET /api/analytics/summary
+**Auth:** Admin
+
+Returns a single `AnalyticsSummary` object aggregating the cafe's current
+state from local SQLite only (no external calls):
+
+- `total_revenue_paise`, `session_count`, `average_duration_seconds` — today
+- `busiest_hour` — peak hour-of-day over the last 30 days
+- `weekly_revenue` — last 7 days of daily totals
+- `top_pos_items` — top 10 items by quantity sold (last 30 days)
+- `zone_utilisation` — session-hours / available-hours per zone (last 7 days)
+- `member_stats` — new today, active last 30 days, top 5 spenders
+- `health_alerts` — seats with CPU temp ≥ 85 °C or no health report in > 5 min
+- `upcoming_reservations` — today's pending/confirmed reservations
+- `wol_success_rates` — per-seat WoL success rate
+- `current_shift_id`, `shift_opened_at` — the open shift, if any
+
+---
+
 ## Reference: Enums, Money & Feature Flags
 
 ### Money
