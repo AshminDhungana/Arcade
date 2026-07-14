@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14)
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1231,10 +1231,10 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
 
 ---
 
-### Epic 6.1: Analytics Service (ENG-A)
+### Epic 6.1: Analytics Service (ENG-A) ✅ _Complete (2026-07-14)_
 
-- [ ] **Task: Implement `AnalyticsService` (`backend/services/analytics_service.py`)**
-  - [ ] All queries run against local SQLite only (FR-ANALYTICS-002) â€” no external service:
+- [x] **Task: Implement `AnalyticsService` (`backend/services/analytics_service.py`)**
+  - [x] All queries run against local SQLite only (FR-ANALYTICS-002) â€” no external service:
     - Today's revenue: `SUM(invoices.total_paise) WHERE DATE(created_at) = today`
     - Session count and average duration today
     - Busiest hour (group by hour, find peak)
@@ -1245,8 +1245,8 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
     - Active health alerts: seats with CPU temp in red zone or no health report in > 5 minutes
     - Upcoming reservations today
     - WoL success rate per seat
-  - [ ] `GET /api/analytics/summary` (Admin)
-  - [ ] **Pass criteria:** All queries complete in < 2 seconds on 365-day seeded dataset (NFR-PERF-002)
+  - [x] `GET /api/analytics/summary` (Admin)
+  - [x] **Pass criteria:** All queries complete in < 2 seconds on 365-day seeded dataset (NFR-PERF-002) — verified ~0.03–0.06 s (~40–68× margin) on 3650 sessions/invoices
 
 ### Epic 6.2: Events / Tournament Service (ENG-A)
 
