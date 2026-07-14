@@ -41,8 +41,12 @@ async def _backup_job() -> None:
     from backend.core.database import AsyncSessionLocal
     from backend.services import backup_service
 
+    # The job owns this session (no request-scoped get_db here), so it must
+    # commit: run_backup() is flush-only and the audit log would otherwise be
+    # rolled back on close. Mirrors the commit done by reservation_service.
     async with AsyncSessionLocal() as db:
         await backup_service.run_backup(db)
+        await db.commit()
 
 
 def init_scheduler() -> AsyncIOScheduler:
