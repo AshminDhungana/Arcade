@@ -88,10 +88,14 @@ def test_http_exception_handler_returns_json(client: TestClient) -> None:
 
 
 def test_validation_error_returns_422_json(client: TestClient) -> None:
-    """A malformed request body should yield a JSON 422 with detail array."""
-    # FastAPI will return 404 if the router doesn't exist yet, so we just
-    # ensure the app doesn't crash on an invalid payload.
+    """An invalid payload to a non-existent endpoint yields a JSON error.
+
+    The endpoint does not exist, so FastAPI (or the SPA catch-all mount for
+    POST) returns a JSON error rather than crashing. We accept any of the
+    JSON error statuses: 400/404 (no route), 405 (POST to the SPA fallback),
+    or 422 (validation error).
+    """
     resp = client.post("/api/v1/nonexistent-endpoint", content=b"not-json")
-    assert resp.status_code in (404, 422, 400)
+    assert resp.status_code in (400, 404, 405, 422)
     if resp.status_code == 422:
         assert "detail" in resp.json()

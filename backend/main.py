@@ -169,15 +169,8 @@ for _router in api_routers:
     app.include_router(_router, prefix="/api")
 
 # --- Static files / SPA fallback ----------------------------------------
-# frontend/dist/ may not exist if the frontend hasn't been built yet.
-# We catch the error and log a warning so the server starts regardless.
-
-
-_frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
-try:
-    app.mount("/", StaticFiles(directory=_frontend_dist, html=True), name="spa")
-except RuntimeError as exc:
-    logger.warning("Static files not available: %s", exc)
+# The catch-all mount at "/" is registered LAST (see end of file) so it does
+# not shadow explicit routes such as /health.
 
 # --- Exception handlers -------------------------------------------------
 
@@ -252,3 +245,15 @@ async def health() -> dict[str, Any]:
         "seat_count": seat_count,
         "active_sessions": active_sessions,
     }
+
+
+# --- Static files / SPA fallback (registered LAST) ----------------------
+# frontend/dist/ may not exist if the frontend hasn't been built yet.
+# We catch the error and log a warning so the server starts regardless.
+# Registered after all explicit routes so the "/" catch-all does not shadow
+# endpoints like /health.
+_frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+try:
+    app.mount("/", StaticFiles(directory=_frontend_dist, html=True), name="spa")
+except RuntimeError as exc:
+    logger.warning("Static files not available: %s", exc)
