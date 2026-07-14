@@ -21,9 +21,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import require_admin, require_cashier
 from backend.core.database import get_db
+from backend.core.feature_flags import require_feature
 from backend.models.staff import Staff
 from backend.schemas.seat import SeatResponse
-from backend.services import remote_command_service, seat_service, wol_service
+from backend.services import (
+    remote_command_service,
+    seat_service,
+    tuya_service,
+    wol_service,
+)
 
 router = APIRouter(prefix="/seats", tags=["seats"])
 
@@ -153,3 +159,31 @@ async def shutdown_seat(
 ) -> None:
     """Send ``SHUTDOWN`` to the seat's agent (admin only)."""
     await remote_command_service.shutdown_seat(db, seat_id, staff)
+
+
+@router.post(
+    "/{seat_id}/power-on",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_feature("enable_tuya"))],
+)
+async def power_on_seat(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> None:
+    """Power a seat's console ON via its Tuya smart plug (admin only)."""
+    await tuya_service.power_on(db, seat_id)
+
+
+@router.post(
+    "/{seat_id}/power-off",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_feature("enable_tuya"))],
+)
+async def power_off_seat(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> None:
+    """Power a seat's console OFF via its Tuya smart plug (admin only)."""
+    await tuya_service.power_off(db, seat_id)
