@@ -333,7 +333,11 @@ class WebSocketManager:
         from backend.services.wol_service import wol_success_callback as _wol_callback
 
         asyncio.create_task(_wol_callback(seat_id))
-        return {"type": "REGISTERED", "seat_id": seat_id}
+        return {
+            "type": "REGISTERED",
+            "seat_id": seat_id,
+            "cafe_name": get_config().cafe_name,
+        }
 
     async def _handle_sync(
         self, seat_id: str, payload: dict[str, Any]
