@@ -1382,6 +1382,33 @@ List all staff members. Admin only.
 
 **Response (200 OK):** Array of `StaffResponse` objects.
 
+## Backup Endpoints
+
+Arcade performs nightly SQLite backups via APScheduler (`cron` at `Settings.backup_time`,
+default `"03:00"`, job id `nightly_backup`). The WAL is checkpointed (TRUNCATE) into the main
+DB file, the file is copied to `{backup_dir}/arcade_{YYYYMMDD_HHMM}.db`, integrity is verified
+by byte-size comparison, and backups older than `backup_retain_days` (default `30`) are pruned.
+Manual backups and scheduled runs both write `BACKUP_CREATED` (and `BACKUP_PRUNED` when files
+are deleted) to the immutable audit log.
+
+> **Config note:** `backup_dir` defaults to `./backups`, `backup_time` to `03:00`,
+> `backup_retain_days` to `30`. The Epic 5.4 TODO suggested `7` retain days; the code default
+> is `30` (owner decision, out of scope to change). Set them in `arcade.config.json`.
+
+### `POST /api/backup/run`
+
+Trigger a backup immediately. **Admin only.** Records the acting staff in the audit log
+(`staff_id` is passed through); the scheduled job passes `staff_id=None`.
+
+**Response (200 OK):**
+```json
+{
+  "backup_file": "arcade_20260714_0300.db",
+  "pruned_count": 3
+}
+```
+(`pruned_count` is the number of old backup files deleted by retention pruning in this run.)
+
 ## Reference: Enums, Money & Feature Flags
 
 ### Money
