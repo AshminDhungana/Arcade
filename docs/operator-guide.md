@@ -123,3 +123,32 @@ Book a seat for a customer ahead of time. Reservations are on by default
 7. **List/audit:** `GET /api/reservations` (filter by `seat_id`, `member_id`, `reservation_status`).
 
 **Statuses:** `PENDING` → `CONFIRMED` → `COMPLETED`; or `CANCELLED` from `PENDING`/`CONFIRMED`.
+
+## Handling a Frozen / Unresponsive PC
+
+The **server is the source of truth for billing** — a frozen client PC does NOT stop the
+session timer. Act fast so the customer isn't over-billed, and so the seat is freed.
+
+1. **Check the seat status** on the dashboard seat grid:
+   - `OFFLINE` / `UNREACHABLE` → the agent process is down or the PC lost power/network.
+   - Still `IN_USE` but no response → the PC or agent is wedged.
+2. **Try a restart via the dashboard** (Remote Commands → Restart, or `POST /api/seats/{id}/restart`, Admin).
+   The agent gets `RESTART` with a ~10-second grace delay and audits `SEAT_RESTARTED`. If the
+   agent is offline the call returns `503` — move to step 3.
+3. **If the PC is off / agent offline:** use **Wake-on-LAN** (`POST /api/seats/{id}/wol`, Admin)
+   to boot it, or — for console seats on a Tuya smart plug — **Tuya power-on**
+   (`POST /api/seats/{id}/power-on`, Admin; see `docs/deployment.md`). The seat goes `BOOTING`;
+   if no agent registers within 60 s it becomes `UNREACHABLE`.
+4. **Shut down hard** if restart won't work (e.g. wedged OS): `POST /api/seats/{id}/shutdown`
+   (Admin), or physically hold the power button / toggle the Tuya plug.
+5. **Stop billing:** once the PC is back or you've taken it out of service, **pause or end the
+   session** from the seat modal so the customer isn't charged for downtime
+   (`PATCH /api/sessions/{id}/pause` then checkout, or checkout directly).
+6. **Known limitation:** on Windows, `Ctrl+Alt+Del` is OS-protected and **cannot** be
+   intercepted by the kiosk overlay — a determined user can reach the secure desktop. For a
+   truly frozen machine, prefer the dashboard restart/shutdown or the physical/Tuya power
+   toggle over hoping the overlay responds.
+
+> If the screen is merely frozen but the game is still running, a **screenshot**
+> (`GET /api/seats/{id}/screenshot`, Cashier+) can confirm what the customer sees — but a
+> wedged agent returns `503` (offline) or `504` (no response within 3 s).
