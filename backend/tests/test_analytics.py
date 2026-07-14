@@ -182,3 +182,21 @@ async def test_summary_items_zone_members_wol(db: AsyncSession) -> None:
     assert summary.wol_success_rates and summary.wol_success_rates[0].rate_pct == 80.0
     assert summary.upcoming_reservations
     assert summary.upcoming_reservations[0].customer_name == "Bob"
+
+
+def test_compute_health_alerts_pure() -> None:
+    seat = Seat(name="S1", zone_id="z", status=SeatStatus.AVAILABLE.value)
+    seat.id = "s1"  # not flushed to DB here; give a stable id for lookup
+    now = datetime.now(UTC)
+    alerts = analytics_service.compute_health_alerts(
+        [seat],
+        health_data={seat.id: {"cpu_temp": 90.0}},
+        received_at={},
+        now=now,
+    )
+    assert len(alerts) == 1
+    assert set(alerts[0].reasons) == {"cpu_temp_red", "no_health_report"}
+
+    # Maintenance seats are excluded even with no report.
+    mseat = Seat(name="M", zone_id="z", status=SeatStatus.MAINTENANCE.value)
+    assert analytics_service.compute_health_alerts([mseat], {}, {}, now) == []

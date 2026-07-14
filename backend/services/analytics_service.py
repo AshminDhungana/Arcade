@@ -19,13 +19,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.core.ws_manager import (
-    manager,  # noqa: F401  # used by health section (Tasks 6-7)
-)
+from backend.core.ws_manager import manager
 from backend.models import (
     GamingSession,
     Invoice,
@@ -36,11 +35,13 @@ from backend.models import (
     SessionPOSItem,
     Zone,
 )
-from backend.models._enums import ReservationStatus, SessionStatus
+from backend.models._enums import ReservationStatus, SeatStatus, SessionStatus
+from backend.repositories import shift_repo
 from backend.schemas.analytics import (
     AnalyticsSummary,
     BusiestHour,
     DailyRevenue,
+    HealthAlert,
     MemberStats,
     TopPosItem,
     TopSpender,
@@ -54,6 +55,10 @@ UTILISATION_WINDOW_DAYS = 7
 BUSIEST_HOUR_WINDOW_DAYS = 30
 TOP_ITEMS_WINDOW_DAYS = 30
 TOP_SPENDERS_WINDOW_DAYS = 30
+
+# Health-alert thresholds (spec does not fix values).
+CPU_TEMP_RED_CELSIUS = 85.0
+HEALTH_STALE_SECONDS = 300
 
 
 def _day_window(now: datetime) -> tuple[datetime, datetime]:
@@ -276,6 +281,51 @@ def _wol_success_rates(seats: Sequence[Seat]) -> list[WolSuccessRate]:
     return out
 
 
+def compute_health_alerts(
+    seats: Sequence[Seat],
+    health_data: dict[str, dict[str, Any]],
+    received_at: dict[str, datetime],
+    now: datetime,
+    *,
+    temp_red: float = CPU_TEMP_RED_CELSIUS,
+    stale_seconds: int = HEALTH_STALE_SECONDS,
+) -> list[HealthAlert]:
+    """Return seats whose CPU temp is in the red zone or that have not
+    reported health within ``stale_seconds``.
+
+    Seats explicitly OFFLINE or MAINTENANCE are excluded -- they are not
+    expected to report health.
+
+    ``seat.status`` may be an enum member (read from ``StrEnumColumn``) or a
+    raw string (e.g. an in-memory fixture), so the comparison is normalised to
+    the ``SeatStatus`` ``.value`` string on both sides.
+    """
+    excluded = {SeatStatus.OFFLINE.value, SeatStatus.MAINTENANCE.value}
+    alerts: list[HealthAlert] = []
+    for seat in seats:
+        status_val: str = (
+            seat.status.value if isinstance(seat.status, SeatStatus) else seat.status
+        )
+        if status_val in excluded:
+            continue
+        reasons: list[str] = []
+        health = health_data.get(seat.id)
+        if health and health.get("cpu_temp") is not None:
+            try:
+                if float(health["cpu_temp"]) >= temp_red:
+                    reasons.append("cpu_temp_red")
+            except (TypeError, ValueError):
+                pass
+        recv = received_at.get(seat.id)
+        if recv is None or (now - recv).total_seconds() > stale_seconds:
+            reasons.append("no_health_report")
+        if reasons:
+            alerts.append(
+                HealthAlert(seat_id=seat.id, seat_name=seat.name, reasons=reasons)
+            )
+    return alerts
+
+
 async def get_summary(db: AsyncSession) -> AnalyticsSummary:
     now = datetime.now(UTC)
     today_start, tomorrow_start = _day_window(now)
@@ -332,7 +382,17 @@ async def get_summary(db: AsyncSession) -> AnalyticsSummary:
     )
     wol_success_rates = _wol_success_rates(seats)
 
-    # Health alerts + current shift filled in Task 7.
+    health_alerts = compute_health_alerts(
+        seats, manager.all_health_data(), manager.health_received_at_map(), now
+    )
+    shift = await shift_repo.get_open_shift(db)
+    current_shift_id = shift.id if shift else None
+    shift_opened_at = (
+        shift.opened_at.replace(tzinfo=UTC)
+        if shift and shift.opened_at is not None
+        else None
+    )
+
     return AnalyticsSummary(
         total_revenue_paise=int(revenue or 0),
         session_count=int(session_count),
@@ -342,9 +402,9 @@ async def get_summary(db: AsyncSession) -> AnalyticsSummary:
         top_pos_items=top_pos_items,
         zone_utilisation=zone_utilisation,
         member_stats=member_stats,
-        health_alerts=[],
+        health_alerts=health_alerts,
         upcoming_reservations=upcoming_reservations,
         wol_success_rates=wol_success_rates,
-        current_shift_id=None,
-        shift_opened_at=None,
+        current_shift_id=current_shift_id,
+        shift_opened_at=shift_opened_at,
     )
