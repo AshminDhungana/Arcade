@@ -169,3 +169,16 @@ async def test_summary_revenue_and_counts(db: AsyncSession) -> None:
     assert any(d.total_paise == 5000 for d in summary.weekly_revenue)
     assert summary.busiest_hour is not None
     assert summary.busiest_hour.session_count >= 1
+
+
+async def test_summary_items_zone_members_wol(db: AsyncSession) -> None:
+    now = datetime.now(UTC)
+    await _seed_small(db, now)
+    summary = await analytics_service.get_summary(db)
+    assert summary.top_pos_items and summary.top_pos_items[0].name == "Tea"
+    assert summary.zone_utilisation and summary.zone_utilisation[0].zone_name == "Z"
+    assert summary.member_stats.new_today >= 1
+    assert summary.member_stats.active_last_30d >= 1
+    assert summary.wol_success_rates and summary.wol_success_rates[0].rate_pct == 80.0
+    assert summary.upcoming_reservations
+    assert summary.upcoming_reservations[0].customer_name == "Bob"
