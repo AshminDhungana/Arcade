@@ -100,3 +100,26 @@ with a remaining-minute balance that is drawn down automatically during sessions
 **Notes**
 - Packages are feature-flagged by `enable_packages`; if disabled the API returns `503`.
 - A member may hold multiple entitlements; checkout uses the oldest active, non-expired one (FIFO).
+
+## Reservations
+
+Book a seat for a customer ahead of time. Reservations are on by default
+(`enable_reservations=true`); if the feature is off the API returns `503`.
+
+1. **Open Reservations** on the dashboard and choose **New Reservation**.
+2. **Pick a seat**, enter the **customer name** (required), and the **from** / **until** times.
+   Optionally attach a **member** (for loyalty) and a **note**. Leave status as `PENDING`.
+   - API: `POST /api/reservations` with `{seat_id, customer_name, reserved_from, reserved_until?, member_id?, notes?}` → `201` returns `ReservationResponse`.
+   - If the seat is already booked in that window you get `409`; if the seat doesn't exist, `404`.
+3. **Confirm** the booking when the customer confirms (e.g. pays a deposit): set status to `CONFIRMED`.
+   - API: `PATCH /api/reservations/{id}` with `{"status": "CONFIRMED"}` → `200`. (Only valid from `PENDING`; otherwise `409`.)
+4. **Auto-reserve:** about 2 minutes before `reserved_from`, the server automatically sets the
+   seat to `RESERVED` (only if it is still `AVAILABLE`), so it shows as booked on the seat grid.
+5. **At arrival:** start the session on that seat as normal (see Member Management step 4). The
+   reservation becomes `COMPLETED` once a session consumes it.
+6. **Cancel** if the customer doesn't show:
+   - API: `PATCH /api/reservations/{id}` with `{"status": "CANCELLED"}` → `200`. The seat is
+     released back to `AVAILABLE` (allowed from `PENDING`/`CONFIRMED`; not from `COMPLETED`).
+7. **List/audit:** `GET /api/reservations` (filter by `seat_id`, `member_id`, `reservation_status`).
+
+**Statuses:** `PENDING` → `CONFIRMED` → `COMPLETED`; or `CANCELLED` from `PENDING`/`CONFIRMED`.
