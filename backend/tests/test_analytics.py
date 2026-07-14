@@ -1,6 +1,7 @@
 # backend/tests/test_analytics.py  (head of file — fixtures + this test)
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 
@@ -31,6 +32,7 @@ from backend.models._enums import (
     SessionStatus,
     StaffRole,
 )
+from backend.scripts import seed_perf
 from backend.services import analytics_service
 
 
@@ -217,3 +219,14 @@ async def test_summary_endpoint_forbidden_for_cashier(
 ) -> None:
     resp = await cashier_client.get("/api/analytics/summary")
     assert resp.status_code == 403
+
+
+async def test_summary_under_two_seconds_on_year(db: AsyncSession) -> None:
+    await seed_perf.seed_structural(db)
+    await seed_perf.seed_year(db)
+    await db.commit()
+    start = time.perf_counter()
+    summary = await analytics_service.get_summary(db)
+    elapsed = time.perf_counter() - start
+    assert elapsed < 2.0, f"summary took {elapsed:.2f}s"
+    assert summary is not None
