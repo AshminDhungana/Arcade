@@ -2,6 +2,7 @@
 
 from backend.services import (
     auth_service,
+    backup_service,
     billing_service,
     device_type_service,
     inventory_service,
@@ -26,6 +27,7 @@ from backend.services.zone_service import ZoneService
 __all__: list[str] = [
     "auth_service",
     "billing_service",
+    "backup_service",
     "device_type_service",
     "inventory_service",
     "package_service",
