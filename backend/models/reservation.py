@@ -24,7 +24,7 @@ class Reservation(Base):
     customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
     member_id: Mapped[str | None] = mapped_column(String(32))
     reserved_from: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        DateTime(timezone=True), nullable=False, index=True
     )
     reserved_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     group_reservation_id: Mapped[str | None] = mapped_column(String(32))

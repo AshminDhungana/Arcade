@@ -17,7 +17,7 @@ class SessionPOSItem(Base):
         String(32), primary_key=True, default=lambda: __import__("uuid").uuid4().hex
     )
     session_id: Mapped[str] = mapped_column(
-        String(32), ForeignKey("sessions.id"), nullable=False
+        String(32), ForeignKey("sessions.id"), nullable=False, index=True
     )
     menu_item_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("menu_items.id"), nullable=False

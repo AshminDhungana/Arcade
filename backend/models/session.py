@@ -22,17 +22,21 @@ class GamingSession(Base):
         String(32), primary_key=True, default=lambda: __import__("uuid").uuid4().hex
     )
     seat_id: Mapped[str] = mapped_column(
-        String(32), ForeignKey("seats.id"), nullable=False
+        String(32), ForeignKey("seats.id"), nullable=False, index=True
     )
-    member_id: Mapped[str | None] = mapped_column(String(32), ForeignKey("members.id"))
+    member_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("members.id"), index=True
+    )
     shift_id: Mapped[str | None] = mapped_column(String(32), ForeignKey("shifts.id"))
     status: Mapped[SessionStatus] = mapped_column(
         StrEnumColumn(SessionStatus, 10), nullable=False, default=SessionStatus.ACTIVE
     )
     started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        DateTime(timezone=True), nullable=False, index=True
     )
-    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), index=True
+    )
     paused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     total_paused_seconds: Mapped[int] = mapped_column(default=0)
     locked_rate_paise: Mapped[int]

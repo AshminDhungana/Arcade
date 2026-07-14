@@ -25,7 +25,7 @@ class Invoice(Base):
     session_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("sessions.id"), nullable=False
     )
-    member_id: Mapped[str | None] = mapped_column(String(32))
+    member_id: Mapped[str | None] = mapped_column(String(32), index=True)
     shift_id: Mapped[str | None] = mapped_column(String(32))
     time_charge_paise: Mapped[int] = mapped_column(default=0)
     package_credit_used_paise: Mapped[int] = mapped_column(default=0)
@@ -36,7 +36,10 @@ class Invoice(Base):
         StrEnumColumn(PaymentMethod, 10), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+        index=True,
     )
 
     # Relationship to line items (populated at checkout time)
