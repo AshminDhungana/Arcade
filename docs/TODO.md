@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14) — remaining Phase 5 epics (5.4–5.5) pending
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14) — remaining Phase 5 epics (5.5) pending
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1164,16 +1164,16 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
   - [x] Test with mock: if `tuya_devices` list empty, skip silently
   - [x] API: `POST /api/seats/{id}/power-on`, `POST /api/seats/{id}/power-off` (Admin)
 
-### Epic 5.4: Nightly Backup (ENG-A)
+### Epic 5.4: Nightly Backup (ENG-A) ✅ _Complete (merged to main 2026-07-14)_
 
-- [ ] **Task: Implement `BackupService` with APScheduler**
-  - [ ] `BackupService.run_backup()`: copy `arcade.db` to `{backup_dir}/arcade_{YYYYMMDD_HHMM}.db`; verify copy integrity (file size comparison)
-  - [ ] `BackupService.prune_old_backups()`: delete files older than `backup_retain_days` (default 7)
-  - [ ] Schedule via `AsyncIOScheduler`: `cron` trigger at `backup_time` from config (default 03:00)
-  - [ ] Scheduler started in FastAPI `lifespan` startup; shut down in `lifespan` shutdown
-  - [ ] `POST /api/backup/run` (Admin): trigger manual backup
-  - [ ] Backup log in audit table: `BACKUP_CREATED`, `BACKUP_PRUNED`
-  - [ ] **Definition of done:** AC-20 â€” backup runs at configured time; old files are pruned; manual trigger works
+- [x] **Task: Implement nightly SQLite backup service with APScheduler** (module-of-functions style, mirrors `shift_service` / `audit_service`)
+  - [x] `backup_service.run_backup(db, *, source_db=None, backup_dir=None, retain_days=None, staff_id=None)` — checkpoints the WAL into the main file, copies `arcade.db` to `{backup_dir}/arcade_{YYYYMMDD_HHMM}.db`, verifies copy integrity (byte-size comparison), audits `BACKUP_CREATED`, then prunes old backups and audits `BACKUP_PRUNED`. Flush-only per convention; the request-scoped `get_db()` commits.
+  - [x] `backup_service.prune_old_backups(db, *, backup_dir=None, retain_days=None, now=None, staff_id=None)` — deletes files matching `arcade_{YYYYMMDD_HHMM}.db` older than `retain_days`; audits `BACKUP_PRUNED` only when something was deleted; stray files untouched.
+  - [x] `POST /api/backup/run` (Admin) — `backend/api/routers/backup.py`, response schema `BackupRunResponse` (`backend/schemas/backup.py`). Passes `staff.id` so manual backups are attributable in the audit log; the scheduled job passes `staff_id=None`.
+  - [x] `core/scheduler.py` `_backup_job()` — `AsyncIOScheduler` `cron` trigger at `config.backup_time` (default `"03:00"`), `id="nightly_backup"`, registered by `init_scheduler()` (wired into `lifespan` startup; `shutdown_scheduler()` on shutdown). Job owns its `AsyncSessionLocal()` session and `await db.commit()` so scheduled-run audit entries persist (AC-20 gap — audit entries were rolled back before the `2f6a69f` fix).
+  - [x] `wal_checkpoint(TRUNCATE)` busy-check (follow-up fix): `_checkpoint_and_copy` reads the checkpoint's `busy` flag and retries once, warning on persistent busy — covers the partial-checkpoint edge where a live writer holds the lock during the copy.
+  - [x] **Definition of done:** AC-20 satisfied — backup runs at the configured time; old files are pruned; manual trigger works; manual backups record the acting staff in the audit log.
+  - [~] **Config discrepancy (owner decision, not a defect):** Epic TODO states `backup_retain_days` default `7`; `config.py` defaults to `30`. Service reads `config.backup_retain_days` as source of truth. Change to `7` is a one-line `config.py` edit if the owner wants the documented value — out of scope for this epic.
 
 ### Epic 5.5: Agent Overlay Enhancements (ENG-B)
 
@@ -1190,7 +1190,9 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
 - [x] `pytest backend/tests/test_reservation_service.py` â€” create, time conflict detection, scheduled seat status change, confirm/cancel, delete, seat-restore on cancel/delete (21 tests passing)
 - [ ] `pytest backend/tests/test_remote_commands.py` â€” screenshot rate limiting, screenshot response payload validation, restart/shutdown audit log, Tuya mock
 - [x] `pytest backend/tests/test_tuya_service.py backend/tests/test_tuya_start_session.py backend/tests/test_tuya_checkout.py backend/tests/test_tuya_router.py` — LAN power-on/off, feature-flag + empty-config silent skip, audit, non-fatal failure, start_session/checkout wiring, admin + enable_tuya gating (15 tests passing)
-- [ ] `pytest backend/tests/test_backup.py` â€” backup file created with correct name, integrity check, pruning of old files, manual trigger
+- [x] `pytest backend/tests/test_backup.py` — timestamped file created with correct name, byte-size integrity check, pruning of old matching files (stray files untouched), manual trigger, `staff_id` recorded on manual backups / `None` for scheduled runs, and `test_run_backup_flushes_wal_before_copy` (WAL checkpoint flush verified)
+- [x] `pytest backend/tests/test_backup_router.py` — `POST /api/backup/run` returns 200 for Admin and 403 when not admin
+- [x] `pytest backend/tests/test_scheduler.py` — `init_scheduler()` returns a running `AsyncIOScheduler`; `nightly_backup` cron job registered from `config.backup_time`
 
 ### Documentation Requirements (Phase 5)
 
