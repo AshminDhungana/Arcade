@@ -41,9 +41,19 @@ body {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .cafe-brand .accent { color: #4fc3f7; }
+
+.cafe-logo {
+  max-height: 6vw;
+  width: auto;
+  object-fit: contain;
+}
 
 .clock {
   font-size: 12vw;

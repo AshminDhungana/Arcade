@@ -122,6 +122,10 @@ function initKiosk(): void {
 // ---------------------------------------------------------------------------
 
 function updateOverlay(overlay: KioskOverlay, data: OverlayData): void {
+  // Branded cafe name/logo header (Task 9 — Epic 5.5)
+  if (data.cafeName) {
+    overlay.setCafeName(data.cafeName, data.cafeLogo);
+  }
   // Session status drives the indicator
   if (data.sessionActive) {
     overlay.setSessionActive(true);
