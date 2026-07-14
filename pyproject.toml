@@ -38,6 +38,13 @@ disallow_untyped_decorators = false
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["backend/tests"]
+# validation_tasks/ holds early-project spike tests (arch01–arch06) that are
+# no longer relevant. arch06 flips the event-loop policy to Proactor mid-suite
+# (see its conftest), which conflicts with the Selector-based aiosqlite setup
+# mandated in backend/tests/conftest.py and crashes the whole-suite run with a
+# native access-violation/GC stack-overflow. They can still be run on demand
+# via `pytest backend/tests/validation_tasks/`.
+addopts = "--ignore=backend/tests/validation_tasks"
 
 [build-system]
 requires = ["setuptools>=61.0"]
