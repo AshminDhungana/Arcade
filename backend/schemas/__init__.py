@@ -1,6 +1,17 @@
 """Arcade Pydantic schemas."""
 
-from backend.schemas.analytics import AnalyticsSummary, AnalyticsSummaryRequest
+from backend.schemas.analytics import (
+    AnalyticsSummary,
+    BusiestHour,
+    DailyRevenue,
+    HealthAlert,
+    MemberStats,
+    TopPosItem,
+    TopSpender,
+    UpcomingReservation,
+    WolSuccessRate,
+    ZoneUtilisation,
+)
 
 # Audit / Settings
 from backend.schemas.audit import AuditLogResponse
@@ -172,7 +183,15 @@ __all__ = [
     "HealthMetricsRequest",
     "HealthMetricsResponse",
     "AnalyticsSummary",
-    "AnalyticsSummaryRequest",
+    "BusiestHour",
+    "DailyRevenue",
+    "TopPosItem",
+    "ZoneUtilisation",
+    "TopSpender",
+    "MemberStats",
+    "HealthAlert",
+    "UpcomingReservation",
+    "WolSuccessRate",
     # Event
     "EventCreate",
     "EventUpdate",
