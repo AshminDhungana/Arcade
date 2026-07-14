@@ -218,6 +218,101 @@ server can correlate responses.
 
 ---
 
+## Shift Endpoints
+
+A **shift** is an open till. Exactly one shift may be open at a time; every session
+started while a shift is open is stamped with that shift's id, so the shift report
+reconciles all cash and revenue. Cashier (or Admin) JWT required.
+
+### `POST /api/shifts/open`
+
+Open a new shift. Rejects with `409` `SHIFT_ALREADY_OPEN` if a shift is already open. Cashier+ required.
+
+**Request Body:**
+```json
+{ "float_paise": 5000 }
+```
+(`float_paise` is the opening cash drawer amount in paise; defaults to `0` if omitted. `ge=0`.)
+
+**Response (201 Created):**
+```json
+{
+  "id": "shift_001",
+  "opened_by_staff_id": "cashier001",
+  "closed_by_staff_id": null,
+  "opened_at": "2026-07-14T09:00:00+00:00",
+  "closed_at": null,
+  "float_paise": 5000,
+  "counted_paise": null,
+  "status": "OPEN"
+}
+```
+
+---
+
+### `POST /api/shifts/close`
+
+Close the currently open shift. Rejects with `409` `NO_OPEN_SHIFT` if no shift is open. Cashier+ required.
+
+**Request Body:**
+```json
+{ "counted_paise": 6500 }
+```
+(`counted_paise` is the cash actually counted in the drawer at close; required, `ge=0`.)
+
+**Response (200 OK):** Same `ShiftResponse` shape as `/open`, with `status: "CLOSED"`, `closed_at` set, `closed_by_staff_id` set, and `counted_paise` populated.
+
+---
+
+### `GET /api/shifts/current`
+
+Return the open shift, or `null` if none is open. Cashier+ required.
+
+**Response (200 OK):** `ShiftResponse | null`.
+
+---
+
+### `GET /api/shifts/{shift_id}/report`
+
+Aggregate sessions + invoices for a shift and compute the cash reconciliation. **Admin only.** Returns `404` if the shift is not found.
+
+**Response (200 OK):**
+```json
+{
+  "shift": {
+    "id": "shift_001",
+    "opened_by_staff_id": "cashier001",
+    "closed_by_staff_id": "cashier001",
+    "opened_at": "2026-07-14T09:00:00+00:00",
+    "closed_at": "2026-07-14T18:00:00+00:00",
+    "float_paise": 5000,
+    "counted_paise": 6500,
+    "status": "CLOSED"
+  },
+  "session_count": 12,
+  "invoice_count": 12,
+  "total_revenue_paise": 37000,
+  "pos_total_paise": 9000,
+  "cash_collected_paise": 0,
+  "expected_cash_paise": 5000,
+  "variance_paise": 1500
+}
+```
+
+**Reconciliation math (integer paise):** `cash_collected_paise` = sum of `invoice.total_paise`
+where `payment_method == "CASH"`; `expected_cash_paise = float_paise + cash_collected_paise`;
+`variance_paise = counted_paise - expected_cash_paise`. While the shift is still `OPEN`,
+`variance_paise` is `null` (the drawer has not been counted yet).
+
+**Shift Status Reference**
+
+| Value    | Meaning                       |
+|----------|-------------------------------|
+| `OPEN`   | Till open, sessions in progress |
+| `CLOSED` | Till counted and closed       |
+
+---
+
 ## Session Endpoints
 
 ### `POST /api/sessions`
