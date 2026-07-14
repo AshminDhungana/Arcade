@@ -200,3 +200,20 @@ def test_compute_health_alerts_pure() -> None:
     # Maintenance seats are excluded even with no report.
     mseat = Seat(name="M", zone_id="z", status=SeatStatus.MAINTENANCE.value)
     assert analytics_service.compute_health_alerts([mseat], {}, {}, now) == []
+
+
+async def test_summary_endpoint_admin(
+    admin_client: AsyncClient, db: AsyncSession
+) -> None:
+    now = datetime.now(UTC)
+    await _seed_small(db, now)
+    resp = await admin_client.get("/api/analytics/summary")
+    assert resp.status_code == 200
+    assert resp.json()["total_revenue_paise"] == 5000
+
+
+async def test_summary_endpoint_forbidden_for_cashier(
+    cashier_client: AsyncClient,
+) -> None:
+    resp = await cashier_client.get("/api/analytics/summary")
+    assert resp.status_code == 403

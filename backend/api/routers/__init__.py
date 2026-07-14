@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.routers.analytics import router as analytics_router
 from backend.api.routers.audit import router as audit_router
 from backend.api.routers.auth import router as auth_router
 from backend.api.routers.backup import router as backup_router
@@ -47,7 +48,7 @@ __all__ = ["routers"]
 # Phase 5: routers.append(shift_router)  # DONE
 # Phase 5: routers.append(reservation_router)  # DONE
 # Phase 5: # routers.append(remote_command_router)
-# Phase 6: # routers.append(analytics_router)
+# Phase 6: routers.append(analytics_router)  # DONE
 # Phase 6: # routers.append(event_router)
 # Phase 6: # routers.append(settings_router)
 
@@ -73,4 +74,5 @@ routers: list[APIRouter] = [
     menu_router,
     shift_router,
     reservation_router,
+    analytics_router,
 ]
