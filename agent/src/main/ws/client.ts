@@ -50,6 +50,7 @@ export class AgentWebSocketClient {
   ) {
     this.commandHandlers = createCommandHandlers(platform, {
       seatId: config.seat_id,
+      getCafeName: () => this.cafeName,
     }, store);
   }
 
