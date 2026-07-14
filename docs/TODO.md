@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14) — remaining Phase 5 epics (5.5) pending
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1175,13 +1175,16 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
   - [x] **Definition of done:** AC-20 satisfied — backup runs at the configured time; old files are pruned; manual trigger works; manual backups record the acting staff in the audit log.
   - [~] **Config discrepancy (owner decision, not a defect):** Epic TODO states `backup_retain_days` default `7`; `config.py` defaults to `30`. Service reads `config.backup_retain_days` as source of truth. Change to `7` is a one-line `config.py` edit if the owner wants the documented value — out of scope for this epic.
 
-### Epic 5.5: Agent Overlay Enhancements (ENG-B)
+### Epic 5.5: Agent Overlay Enhancements (ENG-B) ✅ _Complete (merged to main 2026-07-14)_
 
-- [ ] **Task: Enhance agent kiosk overlay with branded content**
-  - [ ] Read cafe name from `agent.config.json` (add `cafe_name` field â€” or fetch from server on REGISTER)
-  - [ ] Overlay: cafe name/logo, current time (large), "Session in progress" ticker, "Call Staff" button (sends `STAFF_ALERT` to server)
-  - [ ] Low-time warning: modal overlay with countdown "5 minutes remaining â€” please see staff"
-  - [ ] Staff message popup: display `SHOW_MESSAGE` content for 30 seconds, then auto-dismiss
+- [x] **Task: Enhance agent kiosk overlay with branded content**
+  - [x] Read cafe name from `agent.config.json` (add `cafe_name` field â€” or fetch from server on REGISTER)
+  - [x] Overlay: cafe name/logo, current time (large), "Session in progress" ticker, "Call Staff" button (sends `STAFF_ALERT` to server)
+  - [x] Low-time warning: modal overlay with countdown "5 minutes remaining â€” please see staff"
+  - [x] Staff message popup: display `SHOW_MESSAGE` content for 30 seconds, then auto-dismiss
+  - **HUD window (in-session):** added a transparent, click-through `BrowserWindow` (`showHud` / `hideHud` / `showLowTimeWarning` on `IPlatformService`) that overlays the live game during a session - ticker, low-time modal, staff popup, and Call Staff button route to the HUD while a session is active and to the kiosk when idle
+  - **Verification:** Agent `npx vitest run` 79/79 passing; `tsc` (main + renderer) clean; `npm run lint` clean. Backend `pytest` 46 tests passing.
+  - **Known gaps (out of scope for v1.0):** HUD window is Windows-first (macOS/Linux factory throws - completed in Phase 7); server does not yet push a live `overlay:timer` during a session, so the HUD ticker is not yet counting down end-to-end (kiosk clock works); no runtime E2E test.
 
 ### Testing Requirements (Phase 5)
 
