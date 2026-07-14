@@ -86,3 +86,43 @@ seat has no Tuya device, or the plug is unreachable, the call is a silent no-op 
 at WARNING). The same service also fires automatically on session start (power ON) and checkout
 (power OFF) for seats that have a plug bound. See `docs/api-reference.md` → Remote Commands for
 the endpoint contract.
+
+## Receipt Printer Setup
+
+Arcade prints ESC/POS thermal receipts (via `python-escpos`) automatically on checkout, and
+offers a PDF fallback. All money is formatted as `Rs. X.XX` in the print layer only. Printer
+settings live in `arcade.config.json` (they are **not** in the `AppSettings` DB table).
+
+### USB printer (recommended)
+
+1. Connect the thermal printer via USB and note its vendor/product IDs (e.g. Epson:
+   `0x04b8` / `0x0202`).
+2. Set in `arcade.config.json`:
+   ```json
+   {
+     "printer_type": "usb",
+     "printer_usb_vendor": "0x04b8",
+     "printer_usb_product": "0x0202"
+   }
+   ```
+3. Restart the server. On the next checkout the receipt prints automatically.
+
+### Network printer
+
+Set `"printer_type": "network"`. The current `PrintService` connects to
+`Network("127.0.0.1", 9100)` — i.e. a printer reachable at localhost:9100 (common when the
+printer is shared through a local print server on the counter PC). See Known Limitations.
+
+### PDF fallback
+
+If no printer is configured (or the printer is unavailable), printing logs a warning and falls
+back to a dummy printer — no receipt is emitted. Staff can always open a print-friendly receipt
+from the dashboard: `GET /api/invoices/{id}/pdf` returns HTML that triggers the browser's
+`window.print()` dialog (save as PDF or print to any available printer).
+
+> **Known limitations:**
+> - Network printing is hardcoded to `127.0.0.1:9100`; a directly networked printer at a
+>   different IP is not yet configurable without a code change.
+> - If `printer_type` is unset or unrecognised, Arcade silently uses the dummy printer (no
+>   paper, just a log line) rather than erroring — confirm the receipt actually prints on first
+>   setup.
