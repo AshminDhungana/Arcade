@@ -38,6 +38,9 @@ export class AgentWebSocketClient {
   /** Whether a staff override is currently active. */
   public overrideActive = false;
 
+  /** Cafe name fetched from the server on REGISTERED. */
+  public cafeName = '';
+
   private persistTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -71,6 +74,11 @@ export class AgentWebSocketClient {
   /** Is the a staff override currently active? */
   isOverrideActiveBool(): boolean {
     return this.overrideActive;
+  }
+
+  /** Cafe name reported by the server (empty until REGISTERED arrives). */
+  getCafeName(): string {
+    return this.cafeName;
   }
 
   /** Initiates a connection to the Arcade server. */
@@ -244,6 +252,15 @@ export class AgentWebSocketClient {
         if (payload.session_id) {
           this.store?.markSynced(payload.session_id);
           console.log(`[WS] SYNC_ACK received for session: ${payload.session_id}`, payload);
+        }
+        return;
+      }
+
+      // Capture the cafe name so SHOW_OVERLAY can brand the kiosk (Epic 5.5).
+      if (message.type === 'REGISTERED') {
+        const payload = message.payload as { cafe_name?: string };
+        if (payload.cafe_name) {
+          this.cafeName = payload.cafe_name;
         }
         return;
       }
