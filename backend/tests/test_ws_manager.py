@@ -412,6 +412,24 @@ class TestAgentHandlers:
         await mgr.handle_pong("seat_001")
         assert "seat_001" not in mgr._pending_pongs
 
+    async def test_handle_staff_alert_broadcasts_alert(self, mock_config):  # type: ignore[no-untyped-def]
+        del mock_config
+        mgr = WebSocketManager()
+        dash = _fake_ws()
+        await mgr.connect_dashboard(dash)
+        await mgr.handle_agent_message(
+            "seat_001",
+            {
+                "type": "STAFF_ALERT",
+                "payload": {"reason": "need help"},
+            },
+        )
+        assert any(
+            msg.get("type") == "alert"
+            and msg.get("payload", {}).get("type") == "STAFF_ALERT"
+            for msg in dash.sent_messages
+        )
+
 
 # ---------------------------------------------------------------------------
 # WebSocket endpoints (Task 5)

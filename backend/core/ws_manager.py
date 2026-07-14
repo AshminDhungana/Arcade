@@ -132,6 +132,7 @@ class Msg:
     SYNC = "SYNC"
     HEALTH = "HEALTH"
     STAFF_OVERRIDE = "STAFF_OVERRIDE"
+    STAFF_ALERT = "STAFF_ALERT"
     PONG = "PONG"
     SCREENSHOT_RESULT = "SCREENSHOT_RESULT"
 
@@ -298,6 +299,8 @@ class WebSocketManager:
                 return await self._handle_health(seat_id, payload)
             case "STAFF_OVERRIDE":
                 return await self._handle_staff_override(seat_id, payload)
+            case "STAFF_ALERT":
+                return await self._handle_staff_alert(seat_id, payload)
             case "PONG":
                 await self.handle_pong(seat_id)
                 return {"type": "PONG_ACK"}
@@ -435,6 +438,20 @@ class WebSocketManager:
             },
         )
         return {"type": "STAFF_OVERRIDE_ACK"}
+
+    async def _handle_staff_alert(
+        self, seat_id: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Handle agent STAFF_ALERT message.
+
+        Broadcasts an ``ALERT`` to all dashboard clients so staff see the
+        call, and acknowledges the agent.
+        """
+        await self.broadcast_to_dashboards(
+            Msg.ALERT,
+            {"type": "STAFF_ALERT", "seat_id": seat_id, **payload},
+        )
+        return {"type": "STAFF_ALERT_ACK"}
 
     async def _handle_screenshot_response(self, payload: dict[str, Any]) -> None:
         """Decode and resolve an incoming agent screenshot result.
