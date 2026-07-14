@@ -195,11 +195,21 @@ Authorization: Bearer <jwt>
 | GET    | /api/seats/{id}/screenshot    | Cashier+  | —                    | 200 JPEG | Rate-limited 1 in-flight/seat (AC-18); 409 if busy, 504 on timeout, 503 offline |
 | POST   | /api/seats/{id}/restart       | Admin     | —                    | 204     | Sends `RESTART`; audits `SEAT_RESTARTED` (AC-06) |
 | POST   | /api/seats/{id}/shutdown      | Admin     | —                    | 204     | Sends `SHUTDOWN`; audits `SEAT_SHUTDOWN` |
+| POST   | /api/seats/{id}/power-on   | Admin     | —                    | 204     | Tuya smart-plug ON; feature-flagged `enable_tuya`; audits `TUYA_POWER_ON`; best-effort (failure logged, not fatal) |
+| POST   | /api/seats/{id}/power-off  | Admin     | —                    | 204     | Tuya smart-plug OFF; feature-flagged `enable_tuya`; audits `TUYA_POWER_OFF`; best-effort (failure logged, not fatal) |
 
 **Contract note for ENG-B (agent):** `TAKE_SCREENSHOT` payload is extended to
 `{request_id}` and the agent MUST echo `request_id` back in its
 `SCREENSHOT_RESULT` `{seat_id, image_base64, captured_at, request_id}` so the
 server can correlate responses.
+
+**Tuya console control (local LAN, no cloud at runtime):** `power_on`/`power_off` use the
+TinyTuya local protocol against the plug bound to the seat in `arcade.config.json`
+`tuya_devices`. If `enable_tuya` is off, the seat has no Tuya device, or the plug is
+unreachable, the call is a silent no-op (failure is logged at WARNING, never raised). The
+same service is also invoked automatically by `session_service.start_session()` (power ON)
+and `billing_service.checkout()` (power OFF) when the seat has a Tuya device bound. See
+`docs/deployment.md` for the one-time pairing procedure.
 
 ---
 
@@ -1402,6 +1412,8 @@ When a flag is off, the entire router returns `503`. Flags relevant to this docu
 | `enable_packages` | Package endpoints (already documented, Phase 3) |
 | `enable_promotions` | Promotion endpoints (Task 2) |
 | `enable_vouchers` | Voucher endpoints (Task 3) |
+| `enable_reservations` | Reservation endpoints (Task 2) |
+| `enable_tuya` | Tuya power-on/off remote commands (Task 3) |
 
 ### Common Error Codes
 
