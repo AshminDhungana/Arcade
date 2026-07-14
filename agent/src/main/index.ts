@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import * as fs from 'node:fs';
@@ -7,15 +7,6 @@ import { AgentWebSocketClient } from './ws/client.js';
 import { BetterSqliteSessionStore } from './storage/session_store.js';
 import { loadAgentConfig } from './config/loader.js';
 import type { IPlatformService } from './platform/types.js';
-
-function createWindow(): void {
-  const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    title: 'Arcade Agent',
-  });
-  win.loadURL('data:text/html,<h1>Arcade Agent (scaffold)</h1>');
-}
 
 let platformService: IPlatformService | null = null;
 let wsClient: AgentWebSocketClient | null = null;
@@ -79,13 +70,9 @@ async function bootstrap(): Promise<void> {
 }
 
 app.whenReady().then(() => {
-  createWindow();
   bootstrap().catch((err) => {
     console.error('[Agent] Bootstrap failed:', err);
     process.exit(1);
-  });
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
