@@ -5,8 +5,8 @@
   "type": "module",
   "main": "dist/main/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && electron-builder",
-    "start": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && electron .",
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && node scripts/copy-renderer-assets.mjs && electron-builder",
+    "start": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && node scripts/copy-renderer-assets.mjs && electron .",
     "lint": "eslint src",
     "test": "vitest"
   },
