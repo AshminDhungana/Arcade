@@ -138,6 +138,7 @@ class Msg:
 
     # Server -> Agent
     PING = "PING"
+    LOW_TIME_WARNING = "LOW_TIME_WARNING"
 
     # Server -> Dashboard
     SEAT_UPDATED = "seat_updated"
