@@ -32,6 +32,19 @@ async def _reservation_reminder_job() -> None:
             )
 
 
+async def _backup_job() -> None:
+    """Nightly: checkpoint + copy the live DB and prune old backups.
+
+    Runs outside any request context, so it opens its own DB session for the
+    audit log — same pattern as ``_reservation_reminder_job``.
+    """
+    from backend.core.database import AsyncSessionLocal
+    from backend.services import backup_service
+
+    async with AsyncSessionLocal() as db:
+        await backup_service.run_backup(db)
+
+
 def init_scheduler() -> AsyncIOScheduler:
     """Create and start an ``AsyncIOScheduler`` with the reservation reminder job."""
     scheduler = AsyncIOScheduler()
@@ -41,6 +54,18 @@ def init_scheduler() -> AsyncIOScheduler:
         "interval",
         minutes=1,
         id="reservation_reminder",
+        max_instances=1,
+        replace_existing=True,
+    )
+    from backend.core.config import get_config
+
+    hh, mm = get_config().backup_time.split(":")
+    scheduler.add_job(
+        _backup_job,
+        "cron",
+        hour=int(hh),
+        minute=int(mm),
+        id="nightly_backup",
         max_instances=1,
         replace_existing=True,
     )
