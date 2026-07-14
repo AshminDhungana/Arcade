@@ -7,6 +7,7 @@ import { AgentWebSocketClient } from './ws/client.js';
 import { BetterSqliteSessionStore } from './storage/session_store.js';
 import { loadAgentConfig } from './config/loader.js';
 import type { IPlatformService } from './platform/types.js';
+import type { AgentConfig } from './ws/types.js';
 
 let platformService: IPlatformService | null = null;
 let wsClient: AgentWebSocketClient | null = null;
@@ -21,9 +22,13 @@ async function bootstrap(): Promise<void> {
   const fromCwd = path.join(process.cwd(), 'agent.config.json');
   const configPath = fs.existsSync(fromExe) ? fromExe : fromCwd;
 
-  let config;
+  let config: AgentConfig;
   try {
-    config = loadAgentConfig(configPath);
+    // `loadAgentConfig` returns a `LoadedAgentConfig` whose optional
+    // fields are typed `T | null`; `AgentConfig` uses `T | undefined`.
+    // They are equivalent at runtime (both falsy in the PIN check), so
+    // a single cast reconciles the two interfaces here.
+    config = loadAgentConfig(configPath) as AgentConfig;
   } catch (err) {
     const message = (err as Error).message;
     console.error('[Agent] Failed to load configuration:', message);
