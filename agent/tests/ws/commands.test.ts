@@ -22,6 +22,9 @@ describe('Command Handlers', () => {
         cpuModel: 'Intel i7', cpuCores: 8, totalMemoryGB: 16, totalDiskGB: 512,
         osName: 'win32', osVersion: '10.0.22631', hostname: 'test-pc',
       }),
+      showHud: vi.fn(),
+      hideHud: vi.fn(),
+      showLowTimeWarning: vi.fn(),
     };
     handlers = createCommandHandlers(mockPlatform, { seatId: 'seat_001' });
   });
@@ -69,12 +72,9 @@ describe('Command Handlers', () => {
     expect(mockPlatform.captureScreenshot).not.toHaveBeenCalled();
   });
 
-  it('LOW_TIME_WARNING calls sendAnnouncement with warning', () => {
+  it('LOW_TIME_WARNING routes to showLowTimeWarning', () => {
     handlers.LOW_TIME_WARNING({ minutes_remaining: 5 });
-    expect(mockPlatform.sendAnnouncement).toHaveBeenCalledWith(
-      'Warning: 5 minutes remaining',
-      10_000,
-    );
+    expect(mockPlatform.showLowTimeWarning).toHaveBeenCalledWith(5);
   });
 
   it('RESET_OVERRIDE is a no-op', () => {

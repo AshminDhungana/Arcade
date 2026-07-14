@@ -46,7 +46,7 @@ export function createCommandHandlers(
       store?.clearSession(payload.session_id);
       // Show the kiosk overlay to block desktop access
       platform.showKioskOverlay({
-        cafeName: deps.getCafeName?.() ?? 'Arcade',
+        cafeName: deps.getCafeName?.() || 'Arcade',
         announcements: [],
         callStaffEnabled: true,
         sessionActive: false,

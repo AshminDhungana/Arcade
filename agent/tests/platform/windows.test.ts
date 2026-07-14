@@ -6,19 +6,25 @@ const mockWebContents = {
   loadURL: vi.fn(),
 };
 
-const mockWindow = {
-  webContents: mockWebContents,
-  show: vi.fn(),
-  hide: vi.fn(),
-  destroy: vi.fn(),
-  isDestroyed: vi.fn().mockReturnValue(false),
-};
-
 vi.mock('electron', async () => {
   const actual = await vi.importActual<object>('electron');
+
+  class MockBrowserWindow {
+    webContents = mockWebContents;
+    show = vi.fn();
+    hide = vi.fn();
+    destroy = vi.fn();
+    loadFile = vi.fn();
+    setIgnoreMouseEvents = vi.fn();
+    isDestroyed = vi.fn().mockReturnValue(false);
+    isVisible = vi.fn().mockReturnValue(true);
+    on = vi.fn();
+    constructor(_opts?: Record<string, unknown>) {}
+  }
+
   return {
     ...actual,
-    BrowserWindow: vi.fn().mockImplementation(() => ({ ...mockWindow })),
+    BrowserWindow: MockBrowserWindow,
     desktopCapturer: {
       getSources: vi.fn().mockResolvedValue([
         {
@@ -92,6 +98,9 @@ describe('WindowsPlatformService', () => {
       'enableAutoStart',
       'disableAutoStart',
       'getSystemInfo',
+      'showHud',
+      'hideHud',
+      'showLowTimeWarning',
     ];
     for (const m of expected) {
       expect(typeof (service as Record<string, unknown>)[m]).toBe('function');
