@@ -8,6 +8,7 @@ than ``backup_retain_days``. Mirrors the module-of-functions style of
 
 from __future__ import annotations
 
+import logging
 import re
 import shutil
 from dataclasses import dataclass
@@ -20,6 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from backend.core.config import get_config
 from backend.models._enums import AuditAction
 from backend.services import audit_service
+
+logger = logging.getLogger(__name__)
 
 # Matches backup filenames so pruning never touches unrelated files.
 _BACKUP_NAME_RE = re.compile(r"^arcade_(\d{8}_\d{4})\.db$")
@@ -62,7 +65,17 @@ async def _checkpoint_and_copy(src: Path, dst: Path) -> tuple[int, int]:
     chk = create_async_engine(URL.create("sqlite+aiosqlite", database=str(src)))
     try:
         async with chk.connect() as conn:
-            await conn.exec_driver_sql("PRAGMA wal_checkpoint(TRUNCATE)")
+            for attempt in range(2):
+                result = await conn.exec_driver_sql("PRAGMA wal_checkpoint(TRUNCATE)")
+                row = result.fetchone()
+                busy = row[0] if row else 0
+                if busy == 0:
+                    break
+                logger.warning(
+                    "wal_checkpoint(TRUNCATE) busy on attempt %d for %s",
+                    attempt + 1,
+                    src,
+                )
     finally:
         await chk.dispose()
     shutil.copy2(src, dst)
@@ -75,6 +88,7 @@ async def run_backup(
     source_db: Path | None = None,
     backup_dir: Path | None = None,
     retain_days: int | None = None,
+    staff_id: str | None = None,
 ) -> BackupResult:
     """Copy the live DB to a timestamped file and prune old backups.
 
@@ -82,6 +96,8 @@ async def run_backup(
     :param source_db: Override the live source DB (used in tests).
     :param backup_dir: Override the destination dir (used in tests).
     :param retain_days: Override ``config.backup_retain_days`` (used in tests).
+    :param staff_id: ID of the staff member who triggered the backup, if any
+        (manual Admin trigger). System-initiated runs (scheduler) pass None.
     """
     config = get_config()
     src = source_db or _source_db_path()
@@ -104,11 +120,14 @@ async def run_backup(
         action=AuditAction.BACKUP_CREATED,
         entity_type="backup",
         entity_id=dst.name,
+        staff_id=staff_id,
         detail=f"path={dst};size={dst_size}",
     )
 
     retain = retain_days if retain_days is not None else config.backup_retain_days
-    pruned = await prune_old_backups(db, backup_dir=target_dir, retain_days=retain)
+    pruned = await prune_old_backups(
+        db, backup_dir=target_dir, retain_days=retain, staff_id=staff_id
+    )
     return BackupResult(backup_path=dst, pruned_count=pruned)
 
 
@@ -118,11 +137,15 @@ async def prune_old_backups(
     backup_dir: Path | None = None,
     retain_days: int | None = None,
     now: datetime | None = None,
+    staff_id: str | None = None,
 ) -> int:
     """Delete backup files older than ``retain_days``; audit ``BACKUP_PRUNED``.
 
     Only files matching ``arcade_{YYYYMMDD_HHMM}.db`` are considered, so a
     stray ``notes.txt`` in the backup dir is never deleted.
+
+    :param staff_id: ID of the staff member who triggered the prune, if any
+        (manual Admin trigger). System-initiated runs pass None.
     """
     config = get_config()
     target_dir = backup_dir or _resolve_backup_dir(config.backup_dir)
@@ -149,6 +172,7 @@ async def prune_old_backups(
             action=AuditAction.BACKUP_PRUNED,
             entity_type="backup",
             entity_id="prune",
+            staff_id=staff_id,
             detail=f"deleted={deleted};retain_days={retain}",
         )
     return deleted

@@ -21,7 +21,7 @@ AdminDep = Annotated[Staff, Depends(require_admin)]
 
 @router.post("/run", response_model=BackupRunResponse)
 async def run_backup(db: DbDep, staff: AdminDep) -> BackupRunResponse:
-    result = await backup_service.run_backup(db)
+    result = await backup_service.run_backup(db, staff_id=staff.id)
     return BackupRunResponse(
         backup_file=result.backup_path.name,
         pruned_count=result.pruned_count,

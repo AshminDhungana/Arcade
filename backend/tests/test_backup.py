@@ -70,6 +70,30 @@ async def test_run_backup_audits_backup_created(
     assert re.fullmatch(r"arcade_\d{8}_\d{4}\.db", logs[0].entity_id)
 
 
+async def test_run_backup_records_staff_id_when_provided(
+    db: AsyncSession, source_db: Path, tmp_path: Path
+) -> None:
+    """A manual Admin-triggered backup threads the staff_id into the audit log;
+    the default (scheduled) path leaves it None."""
+    await backup_service.run_backup(
+        db, source_db=source_db, backup_dir=tmp_path / "backups", staff_id="staff_abc"
+    )
+    logs = await audit_repo.list(db, action=AuditAction.BACKUP_CREATED.value)
+    assert len(logs) == 1
+    assert logs[0].staff_id == "staff_abc"
+
+
+async def test_run_backup_staff_id_defaults_to_none(
+    db: AsyncSession, source_db: Path, tmp_path: Path
+) -> None:
+    await backup_service.run_backup(
+        db, source_db=source_db, backup_dir=tmp_path / "backups"
+    )
+    logs = await audit_repo.list(db, action=AuditAction.BACKUP_CREATED.value)
+    assert len(logs) == 1
+    assert logs[0].staff_id is None
+
+
 async def test_prune_deletes_only_old_matching_files(
     db: AsyncSession, tmp_path: Path
 ) -> None:
@@ -126,3 +150,52 @@ async def test_prune_no_audit_when_nothing_deleted(
     assert deleted == 0
     logs = await audit_repo.list(db, action=AuditAction.BACKUP_PRUNED.value)
     assert len(logs) == 0
+
+
+async def test_run_backup_flushes_wal_before_copy(
+    db: AsyncSession, tmp_path: Path
+) -> None:
+    """A row committed only to the WAL (never manually checkpointed) must still
+    land in the backup, proving ``_checkpoint_and_copy`` runs the WAL checkpoint
+    *before* the file copy.
+
+    The shipped ``source_db`` fixture uses a default DELETE-journal DB, so the
+    ``PRAGMA wal_checkpoint(TRUNCATE)`` path is never actually exercised there.
+    This test drives a real WAL-mode source so the checkpoint branch runs.
+    """
+    src = tmp_path / "arcade_wal.db"
+    engine = create_async_engine(URL.create("sqlite+aiosqlite", database=str(src)))
+    # journal_mode cannot be changed inside an active transaction, so set it on
+    # an autocommit connection first.
+    async with engine.connect() as conn:
+        autocommit_conn = await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await autocommit_conn.exec_driver_sql("PRAGMA journal_mode=WAL")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        create_probe_sql = (
+            "CREATE TABLE IF NOT EXISTS wal_probe "
+            "(id INTEGER PRIMARY KEY, payload TEXT)"
+        )
+        await conn.exec_driver_sql(create_probe_sql)
+        await conn.exec_driver_sql(
+            "INSERT INTO wal_probe (id, payload) VALUES (1, 'checkpoint-me')"
+        )
+    await engine.dispose()
+
+    backup_dir = tmp_path / "backups"
+    result = await backup_service.run_backup(db, source_db=src, backup_dir=backup_dir)
+
+    # Open the *backup* file (not the source) and verify the WAL-only row is
+    # present — the copy would be missing it if it ran before the checkpoint.
+    backup_engine = create_async_engine(
+        URL.create("sqlite+aiosqlite", database=str(result.backup_path))
+    )
+    try:
+        async with backup_engine.connect() as conn:
+            row = (
+                await conn.exec_driver_sql("SELECT payload FROM wal_probe WHERE id = 1")
+            ).fetchone()
+            assert row is not None
+            assert row[0] == "checkpoint-me"
+    finally:
+        await backup_engine.dispose()
