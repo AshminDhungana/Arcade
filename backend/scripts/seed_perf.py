@@ -190,6 +190,6 @@ if __name__ == "__main__":
         t0 = time.perf_counter()
         async with AsyncSessionLocal() as db:
             await seed_perf(db)
-        print(f"Performance seed complete in {time.perf_counter() - t0:.1f}s")  # noqa: T201
+        print(f"Performance seed complete in {time.perf_counter() - t0:.1f}s")
 
     asyncio.run(_main())
