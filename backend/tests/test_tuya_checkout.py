@@ -45,6 +45,7 @@ def _fake_invoice() -> SimpleNamespace:
         pos_total_paise=0,
         total_paise=0,
         payment_method=PaymentMethod.CASH,
+        created_at=None,
     )
 
 
@@ -86,6 +87,7 @@ async def test_checkout_triggers_tuya_power_off() -> None:
             "get_by_id",
             new=AsyncMock(return_value=_fake_seat()),
         ),
+        patch.object(billing_service.seat_repo, "update", new=AsyncMock()),
         patch.object(
             billing_service.ws_manager, "broadcast_to_dashboards", new=AsyncMock()
         ),
@@ -143,6 +145,7 @@ async def test_checkout_continues_when_tuya_raises() -> None:
             "get_by_id",
             new=AsyncMock(return_value=_fake_seat()),
         ),
+        patch.object(billing_service.seat_repo, "update", new=AsyncMock()),
         patch.object(
             billing_service.ws_manager, "broadcast_to_dashboards", new=AsyncMock()
         ),

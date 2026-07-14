@@ -65,7 +65,7 @@ def patches(monkeypatch):
 
 async def test_power_on_skips_when_no_devices(patches, monkeypatch) -> None:
     """No tuya_devices => no device built, no audit."""
-    monkeypatch.setattr(tuya_service, "get_flag", lambda: True)
+    monkeypatch.setattr(tuya_service, "get_flag", lambda _: True)
     monkeypatch.setattr(tuya_service, "get_config", lambda: CFG_EMPTY)
     await tuya_service.power_on(DB, "seat-1")
     assert _FakeDevice.instances == []
@@ -74,7 +74,7 @@ async def test_power_on_skips_when_no_devices(patches, monkeypatch) -> None:
 
 async def test_power_on_builds_device_and_turns_on(patches, monkeypatch) -> None:
     """With a configured device, turn_on is called and the action is audited."""
-    monkeypatch.setattr(tuya_service, "get_flag", lambda: True)
+    monkeypatch.setattr(tuya_service, "get_flag", lambda _: True)
     monkeypatch.setattr(tuya_service, "get_config", lambda: CFG_WITH_DEVICE)
     await tuya_service.power_on(DB, "seat-1")
     assert len(_FakeDevice.instances) == 1
@@ -87,7 +87,7 @@ async def test_power_on_builds_device_and_turns_on(patches, monkeypatch) -> None
 
 async def test_power_off_turns_off(patches, monkeypatch) -> None:
     """power_off drives turn_off and audits TUYA_POWER_OFF."""
-    monkeypatch.setattr(tuya_service, "get_flag", lambda: True)
+    monkeypatch.setattr(tuya_service, "get_flag", lambda _: True)
     monkeypatch.setattr(tuya_service, "get_config", lambda: CFG_WITH_DEVICE)
     await tuya_service.power_off(DB, "seat-1")
     assert _FakeDevice.instances[0].turn_off_called is True
@@ -96,7 +96,7 @@ async def test_power_off_turns_off(patches, monkeypatch) -> None:
 
 async def test_power_on_skips_when_flag_off(patches, monkeypatch) -> None:
     """Flag off => silent no-op."""
-    monkeypatch.setattr(tuya_service, "get_flag", lambda: False)
+    monkeypatch.setattr(tuya_service, "get_flag", lambda _: False)
     monkeypatch.setattr(tuya_service, "get_config", lambda: CFG_WITH_DEVICE)
     await tuya_service.power_on(DB, "seat-1")
     assert _FakeDevice.instances == []
@@ -105,7 +105,7 @@ async def test_power_on_skips_when_flag_off(patches, monkeypatch) -> None:
 
 async def test_power_on_skips_when_no_device_for_seat(patches, monkeypatch) -> None:
     """seat_id has no Tuya config => silent no-op."""
-    monkeypatch.setattr(tuya_service, "get_flag", lambda: True)
+    monkeypatch.setattr(tuya_service, "get_flag", lambda _: True)
     monkeypatch.setattr(tuya_service, "get_config", lambda: CFG_WITH_DEVICE)
     await tuya_service.power_on(DB, "seat-unknown")
     assert _FakeDevice.instances == []
@@ -115,7 +115,7 @@ async def test_power_on_skips_when_no_device_for_seat(patches, monkeypatch) -> N
 async def test_power_on_failure_is_logged_not_raised(patches, monkeypatch) -> None:
     """A plug exception is swallowed; the call still returns normally."""
     monkeypatch.setattr(tinytuya, "Device", _BoomingDevice)
-    monkeypatch.setattr(tuya_service, "get_flag", lambda: True)
+    monkeypatch.setattr(tuya_service, "get_flag", lambda _: True)
     monkeypatch.setattr(tuya_service, "get_config", lambda: CFG_WITH_DEVICE)
     # Must NOT raise.
     await tuya_service.power_on(DB, "seat-1")

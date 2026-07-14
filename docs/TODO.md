@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control pending — remaining Phase 5 epics (5.4–5.5) pending
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14) — remaining Phase 5 epics (5.4–5.5) pending
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1158,17 +1158,17 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
   - [x] **⚠ RISK (resolved):** Screenshot rate-limiting enforced at service level (in-memory `set` of in-flight seat_ids guarded by `asyncio.Lock`); 2nd concurrent request → 409.
   - _ENG-B note:_ agent MUST echo `request_id` in `SCREENSHOT_RESULT` so the server can correlate responses.
 
-- [ ] **Task: Implement Tuya console control** (feature-gated, config-driven)
-  - [ ] `TuyaService`: `power_on(seat_id, db)`, `power_off(seat_id, db)` using `tinytuya.Device` with LAN API (no internet at runtime)
-  - [ ] Called from `session_service.start_session()` (if seat has tuya_device) and `billing_service.checkout()` (power off after checkout)
-  - [ ] Test with mock: if `tuya_devices` list empty, skip silently
-  - [ ] API: `POST /api/seats/{id}/power-on`, `POST /api/seats/{id}/power-off` (Admin)
+- [x] **Task: Implement Tuya console control** (feature-gated, config-driven)
+  - [x] `TuyaService`: `power_on(seat_id, db)`, `power_off(seat_id, db)` using `tinytuya.Device` with LAN API (no internet at runtime)
+  - [x] Called from `session_service.start_session()` (if seat has tuya_device) and `billing_service.checkout()` (power off after checkout)
+  - [x] Test with mock: if `tuya_devices` list empty, skip silently
+  - [x] API: `POST /api/seats/{id}/power-on`, `POST /api/seats/{id}/power-off` (Admin)
 
 ### Epic 5.4: Nightly Backup (ENG-A)
 
 - [ ] **Task: Implement `BackupService` with APScheduler**
   - [ ] `BackupService.run_backup()`: copy `arcade.db` to `{backup_dir}/arcade_{YYYYMMDD_HHMM}.db`; verify copy integrity (file size comparison)
-  - [ ] `BackupService.prune_old_backups()`: delete files older than `backup_retain_days` (default 30)
+  - [ ] `BackupService.prune_old_backups()`: delete files older than `backup_retain_days` (default 7)
   - [ ] Schedule via `AsyncIOScheduler`: `cron` trigger at `backup_time` from config (default 03:00)
   - [ ] Scheduler started in FastAPI `lifespan` startup; shut down in `lifespan` shutdown
   - [ ] `POST /api/backup/run` (Admin): trigger manual backup
@@ -1189,6 +1189,7 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
 - [x] `pytest backend/tests/test_shifts_router.py` - open/close/current/report HTTP tests, admin-only report gate (6 tests passing)
 - [x] `pytest backend/tests/test_reservation_service.py` â€” create, time conflict detection, scheduled seat status change, confirm/cancel, delete, seat-restore on cancel/delete (21 tests passing)
 - [ ] `pytest backend/tests/test_remote_commands.py` â€” screenshot rate limiting, screenshot response payload validation, restart/shutdown audit log, Tuya mock
+- [x] `pytest backend/tests/test_tuya_service.py backend/tests/test_tuya_start_session.py backend/tests/test_tuya_checkout.py backend/tests/test_tuya_router.py` — LAN power-on/off, feature-flag + empty-config silent skip, audit, non-fatal failure, start_session/checkout wiring, admin + enable_tuya gating (15 tests passing)
 - [ ] `pytest backend/tests/test_backup.py` â€” backup file created with correct name, integrity check, pruning of old files, manual trigger
 
 ### Documentation Requirements (Phase 5)
