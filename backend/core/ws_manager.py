@@ -173,6 +173,7 @@ class WebSocketManager:
         self._heartbeat_task: asyncio.Task[None] | None = None
         self._pending_pongs: set[str] = set()
         self._health_data: dict[str, dict[str, Any]] = {}
+        self._health_received_at: dict[str, datetime] = {}
         # Screenshot request/response correlation (Task 1)
         self._screenshot_waiters: dict[str, asyncio.Future[bytes]] = {}
         self._screenshot_seat: dict[str, str] = {}  # request_id -> seat_id
@@ -418,14 +419,24 @@ class WebSocketManager:
     ) -> dict[str, Any]:
         """Handle agent HEALTH message.
 
-        Stores health metrics in memory and broadcasts to all dashboards.
+        Stores health metrics in memory (with a received-at timestamp) and
+        broadcasts to all dashboards. The broadcast payload is unchanged.
         """
         self._health_data[seat_id] = payload
+        self._health_received_at[seat_id] = datetime.now(UTC)
         await self.broadcast_to_dashboards(
             Msg.HEALTH_UPDATE,
             {"seat_id": seat_id, **payload},
         )
         return {"type": "HEALTH_ACK"}
+
+    def all_health_data(self) -> dict[str, dict[str, Any]]:
+        """Return a shallow copy of the latest health metrics per seat."""
+        return dict(self._health_data)
+
+    def health_received_at_map(self) -> dict[str, datetime]:
+        """Return a copy of the last health-report timestamp per seat."""
+        return dict(self._health_received_at)
 
     async def _handle_staff_override(
         self, seat_id: str, payload: dict[str, Any]
