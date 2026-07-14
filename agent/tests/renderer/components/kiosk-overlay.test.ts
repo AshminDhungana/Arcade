@@ -69,3 +69,14 @@ describe('KioskOverlay', () => {
     expect(parent.querySelector('.kiosk-overlay')).toBeNull();
   });
 });
+
+describe('KioskOverlay branding', () => {
+  it('setCafeName renders the cafe name into the brand header', () => {
+    const parent = document.createElement('div');
+    const overlay = new KioskOverlay(parent);
+    overlay.setCafeName('Neon Cafe');
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand).not.toBeNull();
+    expect(brand!.textContent).toContain('Neon Cafe');
+  });
+});

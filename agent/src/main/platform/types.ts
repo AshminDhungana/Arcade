@@ -83,16 +83,33 @@ export interface IPlatformService {
   hideKioskOverlay(): void;
 
   /**
-   * Update the visible timer display on the kiosk overlay.
+   * Show (or create) the transparent, always-on-top HUD window that
+   * overlays the live game during a session (ticker, low-time, messages).
+   */
+  showHud(): void;
+
+  /** Hide and destroy the HUD window, if it exists. */
+  hideHud(): void;
+
+  /**
+   * Show the low-time warning in the active window (HUD during a session,
+   * kiosk when idle).
+   */
+  showLowTimeWarning(minutes: number): void;
+
+  /**
+   * Update the visible timer display on the active overlay (HUD during a
+   * session, kiosk when idle).
    *
-   * Must be called after `showKioskOverlay`. No-op if the overlay is not visible.
+   * Must be called after `showKioskOverlay`/`showHud`. No-op if the relevant
+   * window is not visible.
    */
   updateTimer(timeString: string): void;
 
   /**
-   * Announce a message on the kiosk overlay for a given duration (milliseconds).
+   * Announce a message on the active overlay for a given duration (milliseconds).
    *
-   * No-op if the overlay is not visible.
+   * No-op if the relevant window is not visible.
    */
   sendAnnouncement(text: string, durationMs: number): void;
 

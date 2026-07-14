@@ -30,3 +30,16 @@ async def test_nightly_backup_job_registered() -> None:
         assert str(fields["minute"]) == str(int(mm))
     finally:
         shutdown_scheduler(sched)
+
+
+@pytest.mark.asyncio
+async def test_low_time_warning_job_registered() -> None:
+    """An interval job named 'low_time_warning' must be present."""
+    sched = init_scheduler()
+    try:
+        job = sched.get_job("low_time_warning")
+        assert job is not None
+        # APScheduler stores the interval as a timedelta.
+        assert job.trigger.interval.total_seconds() == 60  # 1 minute
+    finally:
+        shutdown_scheduler(sched)

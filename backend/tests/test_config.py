@@ -169,3 +169,23 @@ def test_invalid_backup_time_format(
     bad.write_text(json.dumps(valid_config), encoding="utf-8")
     with pytest.raises(ValidationError, match="backup_time"):
         load_config(str(bad))
+
+
+# ---------------------------------------------------------------------------
+# Scenario 8: low_time_warning_minutes (Epic 5.5)
+# ---------------------------------------------------------------------------
+
+
+def test_low_time_warning_minutes_default() -> None:
+    from backend.core.config import Settings
+
+    s = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert s.low_time_warning_minutes == 5
+
+
+def test_low_time_warning_minutes_env_override(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setenv("LOW_TIME_WARNING_MINUTES", "10")
+    from backend.core.config import Settings
+
+    s = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert s.low_time_warning_minutes == 10

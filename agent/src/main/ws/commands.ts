@@ -17,6 +17,8 @@ export type CommandHandlers = {
 /** Dependencies required by the command handler factory. */
 export interface HandlerDeps {
   seatId: string;
+  /** Returns the cafe name fetched from the server (defaults to 'Arcade'). */
+  getCafeName?: () => string;
 }
 
 /**
@@ -28,13 +30,13 @@ export interface HandlerDeps {
  */
 export function createCommandHandlers(
   platform: IPlatformService,
-  _deps: HandlerDeps,
+  deps: HandlerDeps,
   store?: SessionStore,
 ): CommandHandlers {
   return {
     HIDE_OVERLAY(payload) {
       // Persist session locally so elapsed time survives disconnect/crash
-      store?.persistSession(payload.session_id, _deps.seatId, payload.started_at);
+      store?.persistSession(payload.session_id, deps.seatId, payload.started_at);
       // Hide the kiosk overlay so the user can access the desktop
       platform.hideKioskOverlay();
     },
@@ -44,7 +46,10 @@ export function createCommandHandlers(
       store?.clearSession(payload.session_id);
       // Show the kiosk overlay to block desktop access
       platform.showKioskOverlay({
-        cafeName: 'Arcade', announcements: [], callStaffEnabled: true, sessionActive: false,
+        cafeName: deps.getCafeName?.() || 'Arcade',
+        announcements: [],
+        callStaffEnabled: true,
+        sessionActive: false,
       });
     },
 
@@ -69,17 +74,8 @@ export function createCommandHandlers(
 
     LOW_TIME_WARNING(_payload) {
       const { minutes_remaining } = _payload;
-      // Show an announcement banner (legacy text toast)
-      platform.sendAnnouncement(
-        `Warning: ${minutes_remaining} minutes remaining`, 10_000,
-      );
-      // Also trigger the special low-time modal in the renderer
-      if ('kioskWindow' in platform) {
-        const kWin = (platform as unknown as { kioskWindow?: { webContents: { send: (channel: string, data: unknown) => void } } }).kioskWindow;
-        if (kWin?.webContents) {
-          kWin.webContents.send('overlay:low-time', { minutes: minutes_remaining });
-        }
-      }
+      // Route to the active window (HUD during a session, kiosk when idle).
+      platform.showLowTimeWarning(minutes_remaining);
     },
 
     RESET_OVERRIDE(_payload) {

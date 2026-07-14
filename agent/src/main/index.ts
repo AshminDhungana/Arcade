@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import * as fs from 'node:fs';
@@ -7,15 +7,7 @@ import { AgentWebSocketClient } from './ws/client.js';
 import { BetterSqliteSessionStore } from './storage/session_store.js';
 import { loadAgentConfig } from './config/loader.js';
 import type { IPlatformService } from './platform/types.js';
-
-function createWindow(): void {
-  const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    title: 'Arcade Agent',
-  });
-  win.loadURL('data:text/html,<h1>Arcade Agent (scaffold)</h1>');
-}
+import type { AgentConfig } from './ws/types.js';
 
 let platformService: IPlatformService | null = null;
 let wsClient: AgentWebSocketClient | null = null;
@@ -30,9 +22,13 @@ async function bootstrap(): Promise<void> {
   const fromCwd = path.join(process.cwd(), 'agent.config.json');
   const configPath = fs.existsSync(fromExe) ? fromExe : fromCwd;
 
-  let config;
+  let config: AgentConfig;
   try {
-    config = loadAgentConfig(configPath);
+    // `loadAgentConfig` returns a `LoadedAgentConfig` whose optional
+    // fields are typed `T | null`; `AgentConfig` uses `T | undefined`.
+    // They are equivalent at runtime (both falsy in the PIN check), so
+    // a single cast reconciles the two interfaces here.
+    config = loadAgentConfig(configPath) as AgentConfig;
   } catch (err) {
     const message = (err as Error).message;
     console.error('[Agent] Failed to load configuration:', message);
@@ -79,13 +75,9 @@ async function bootstrap(): Promise<void> {
 }
 
 app.whenReady().then(() => {
-  createWindow();
   bootstrap().catch((err) => {
     console.error('[Agent] Bootstrap failed:', err);
     process.exit(1);
-  });
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 

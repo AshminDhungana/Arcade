@@ -49,6 +49,18 @@ async def _backup_job() -> None:
         await db.commit()
 
 
+async def _low_time_warning_job() -> None:
+    """Every minute, warn seats whose session time is about to run out.
+
+    Opens its own DB session (no request scope), mirroring ``_backup_job``.
+    """
+    from backend.core.database import AsyncSessionLocal
+    from backend.services import low_time_service
+
+    async with AsyncSessionLocal() as db:
+        await low_time_service.emit_low_time_warnings(db)
+
+
 def init_scheduler() -> AsyncIOScheduler:
     """Create and start an ``AsyncIOScheduler`` with the reservation reminder job."""
     scheduler = AsyncIOScheduler()
@@ -70,6 +82,14 @@ def init_scheduler() -> AsyncIOScheduler:
         hour=int(hh),
         minute=int(mm),
         id="nightly_backup",
+        max_instances=1,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        _low_time_warning_job,
+        "interval",
+        minutes=1,
+        id="low_time_warning",
         max_instances=1,
         replace_existing=True,
     )

@@ -13,6 +13,7 @@ from typing import Any, cast
 
 import pytest
 
+from backend.core.config import get_config
 from backend.core.ws_manager import (
     HEARTBEAT_INTERVAL,
     HEARTBEAT_TIMEOUT,
@@ -155,6 +156,9 @@ def mock_config(monkeypatch):  # type: ignore[no-untyped-def]
     fake_config = Settings.model_validate(
         {
             "jwt_secret": "a" * 64,
+            # Mirror the real config's cafe name so the REGISTERED reply echoed
+            # by the (patched) manager matches the loaded config (Epic 5.5).
+            "cafe_name": get_config().cafe_name,
             "agent_secrets": {
                 "seat_001": "secret_001",
                 "seat_002": "secret_002",
@@ -376,6 +380,8 @@ class TestAgentHandlers:
             },
         )
         assert result.get("type") == "REGISTERED"
+        # Agent fetches the cafe name once on REGISTER (Epic 5.5).
+        assert result.get("cafe_name") == get_config().cafe_name
 
     async def test_handle_health_broadcasts_to_dashboards(self, mock_config):  # type: ignore[no-untyped-def]
         del mock_config
@@ -411,6 +417,24 @@ class TestAgentHandlers:
         mgr._pending_pongs.add("seat_001")
         await mgr.handle_pong("seat_001")
         assert "seat_001" not in mgr._pending_pongs
+
+    async def test_handle_staff_alert_broadcasts_alert(self, mock_config):  # type: ignore[no-untyped-def]
+        del mock_config
+        mgr = WebSocketManager()
+        dash = _fake_ws()
+        await mgr.connect_dashboard(dash)
+        await mgr.handle_agent_message(
+            "seat_001",
+            {
+                "type": "STAFF_ALERT",
+                "payload": {"reason": "need help"},
+            },
+        )
+        assert any(
+            msg.get("type") == "alert"
+            and msg.get("payload", {}).get("type") == "STAFF_ALERT"
+            for msg in dash.sent_messages
+        )
 
 
 # ---------------------------------------------------------------------------

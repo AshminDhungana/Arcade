@@ -16,6 +16,7 @@ export interface KioskOverlayState {
  */
 export class KioskOverlay {
   public readonly container: HTMLDivElement;
+  private readonly cafeBrandEl: HTMLDivElement;
   private readonly clockEl: HTMLDivElement;
   private readonly timerEl: HTMLDivElement;
   private readonly sessionIndicator: HTMLDivElement;
@@ -25,6 +26,10 @@ export class KioskOverlay {
     this.container = document.createElement('div');
     this.container.className = 'kiosk-overlay';
     parent.appendChild(this.container);
+
+    this.cafeBrandEl = document.createElement('div');
+    this.cafeBrandEl.className = 'cafe-brand';
+    this.container.appendChild(this.cafeBrandEl);
 
     this.clockEl = document.createElement('div');
     this.clockEl.className = 'clock';
@@ -67,6 +72,21 @@ export class KioskOverlay {
       this.sessionIndicator.classList.remove('active');
       this.timerEl.textContent = '';
     }
+  }
+
+  /** Render the branded cafe name/logo header. */
+  setCafeName(name: string, logo?: string): void {
+    this.cafeBrandEl.replaceChildren();
+    if (logo) {
+      const img = document.createElement('img');
+      img.src = logo;
+      img.className = 'cafe-logo';
+      img.alt = name;
+      this.cafeBrandEl.appendChild(img);
+    }
+    const span = document.createElement('span');
+    span.textContent = name;
+    this.cafeBrandEl.appendChild(span);
   }
 
   /** Return whether clock is running. */

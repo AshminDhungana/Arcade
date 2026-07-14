@@ -27,8 +27,12 @@ const BLOCKED_SHORTCUTS = [
 
 export class WindowsPlatformService implements IPlatformService {
   private kioskWindow: BrowserWindow | null = null;
+  private hudWindow: BrowserWindow | null = null;
+  private sessionActive = false;
 
   showKioskOverlay(content: OverlayContent): void {
+    this.sessionActive = false;
+    this.hideHud();
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
       this.kioskWindow.webContents.send('overlay:update', content);
@@ -92,6 +96,55 @@ export class WindowsPlatformService implements IPlatformService {
       this.kioskWindow.destroy();
     }
     this.kioskWindow = null;
+    // A session is now active: show the HUD over the game.
+    this.sessionActive = true;
+    this.showHud();
+  }
+
+  showHud(): void {
+    if (this.hudWindow && !this.hudWindow.isDestroyed()) {
+      this.hudWindow.show();
+      return;
+    }
+    const preloadPath = path.join(__dirname, '../../renderer/preload.js');
+    this.hudWindow = new BrowserWindow({
+      fullscreen: true,
+      transparent: true,
+      frame: false,
+      alwaysOnTop: true,
+      closable: false,
+      skipTaskbar: true,
+      focusable: false,
+      webPreferences: {
+        devTools: false,
+        contextIsolation: true,
+        sandbox: true,
+        nodeIntegration: false,
+        preload: preloadPath,
+      },
+    });
+    // Click-through: mouse events pass to the game, forwarded by Electron.
+    this.hudWindow.setIgnoreMouseEvents(true, { forward: true });
+    this.hudWindow.on('closed', () => {
+      this.hudWindow = null;
+    });
+    const htmlPath = path.join(__dirname, '../../renderer/hud.html');
+    this.hudWindow.loadFile(htmlPath);
+  }
+
+  hideHud(): void {
+    if (this.hudWindow && !this.hudWindow.isDestroyed()) {
+      this.hudWindow.hide();
+      this.hudWindow.destroy();
+    }
+    this.hudWindow = null;
+  }
+
+  showLowTimeWarning(minutes: number): void {
+    const win = this.sessionActive ? this.hudWindow : this.kioskWindow;
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('overlay:low-time', { minutes });
+    }
   }
 
   isKioskVisible(): boolean {
@@ -103,14 +156,16 @@ export class WindowsPlatformService implements IPlatformService {
   }
 
   updateTimer(timeString: string): void {
-    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
-      this.kioskWindow.webContents.send('overlay:timer', { timeString });
+    const win = this.sessionActive ? this.hudWindow : this.kioskWindow;
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('overlay:timer', { timeString });
     }
   }
 
   sendAnnouncement(text: string, durationMs: number): void {
-    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
-      this.kioskWindow.webContents.send('overlay:announcement', {
+    const win = this.sessionActive ? this.hudWindow : this.kioskWindow;
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('overlay:announcement', {
         text,
         durationMs,
       });

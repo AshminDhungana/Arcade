@@ -8,6 +8,7 @@ into an immutable Pydantic model using Pydantic v2.
 from __future__ import annotations
 
 import json
+import os
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -45,6 +46,13 @@ class Settings(BaseModel):
 
     # ── Server basics ────────────────────────────────────────────────
     cafe_name: str = "Arcade"
+    # Minutes remaining at which the low-time warning fires (Epic 5.5).
+    # Defaults to 5; overridable via the LOW_TIME_WARNING_MINUTES env var so
+    # ops can tune it without editing arcade.config.json. JSON, when present,
+    # still takes precedence over the env fallback.
+    low_time_warning_minutes: int = Field(
+        default_factory=lambda: int(os.environ.get("LOW_TIME_WARNING_MINUTES", "5"))
+    )
     host: str = "0.0.0.0"  # noqa: S104  # nosec B104
     port: int = Field(default=8000, ge=1, le=65535)
 
