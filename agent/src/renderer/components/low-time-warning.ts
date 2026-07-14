@@ -11,6 +11,14 @@ export interface LowTimeWarningOptions {
   onDismiss?: () => void;
 }
 
+/** Format a duration in seconds as zero-padded "MM:SS" (pure, for tests). */
+export function formatCountdown(totalSeconds: number): string {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const mm = String(Math.floor(safe / 60)).padStart(2, '0');
+  const ss = String(safe % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
 /**
  * Build and return the low-time warning modal element.
  * Callers must insert it into the DOM and remove it when done.
@@ -24,6 +32,9 @@ export function createLowTimeModal(options: LowTimeWarningOptions): HTMLDivEleme
     ? '1 minute remaining'
     : `${options.minutesRemaining} minutes remaining`;
 
+  const countdownEl = document.createElement('div');
+  countdownEl.className = 'low-time-countdown';
+
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-title">⏰ Time Running Low</div>
@@ -36,9 +47,27 @@ export function createLowTimeModal(options: LowTimeWarningOptions): HTMLDivEleme
       </div>
     </div>
   `;
+  // Mount the live countdown beneath the body copy.
+  modal.querySelector('.modal-content')?.appendChild(countdownEl);
+
+  let remaining = options.minutesRemaining * 60;
+  const renderCountdown = () => {
+    countdownEl.textContent = `${formatCountdown(remaining)} remaining — please see staff`;
+  };
+  renderCountdown();
+  const timer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(timer);
+      countdownEl.textContent = '00:00 remaining — please see staff';
+      return;
+    }
+    renderCountdown();
+  }, 1000);
 
   const closeBtn = modal.querySelector<HTMLButtonElement>('#low-time-close');
   closeBtn?.addEventListener('click', () => {
+    clearInterval(timer);
     options.onDismiss?.();
     hideModal(modal);
   });

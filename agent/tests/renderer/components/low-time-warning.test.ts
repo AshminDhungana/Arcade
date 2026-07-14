@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createLowTimeModal, showModal, hideModal } from '../../../src/renderer/components/low-time-warning.js';
+import { createLowTimeModal, showModal, hideModal, formatCountdown } from '../../../src/renderer/components/low-time-warning.js';
 
 describe('createLowTimeModal', () => {
   it('renders modal with correct minutes text (plural)', () => {
@@ -33,6 +33,14 @@ describe('createLowTimeModal', () => {
 
     expect(onDismiss).toHaveBeenCalled();
     document.body.innerHTML = '';
+  });
+});
+
+describe('formatCountdown', () => {
+  it('formats minutes and seconds as MM:SS', () => {
+    expect(formatCountdown(5 * 60)).toBe('05:00');
+    expect(formatCountdown(4 * 60 + 59)).toBe('04:59');
+    expect(formatCountdown(0)).toBe('00:00');
   });
 });
 
