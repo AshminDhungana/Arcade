@@ -1199,9 +1199,9 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
 
 ### Documentation Requirements (Phase 5)
 
-- [ ] `docs/api-reference.md`: shifts, reservations, remote commands, Tuya, backup endpoints
-- [ ] `docs/operator-guide.md`: shift open/close procedure, how to handle frozen PC, reservations workflow
-- [ ] `docs/deployment.md`: Tuya smart plug pairing (one-time internet required), printer setup
+- [x] `docs/api-reference.md`: shifts, reservations, remote commands, Tuya, backup endpoints
+- [x] `docs/operator-guide.md`: shift open/close procedure, how to handle frozen PC, reservations workflow
+- [x] `docs/deployment.md`: Tuya smart plug pairing (one-time internet required), printer setup
 
 ---
 
