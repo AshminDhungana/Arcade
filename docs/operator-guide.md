@@ -8,6 +8,38 @@ schemas). All calls require a `Bearer` JWT from `POST /api/auth/login`.
 
 ---
 
+## Shift Open / Close
+
+Open a shift at the start of each working day (or each cashier's till session) and close it
+when you hand over or cash out. Only one shift can be open at a time.
+
+### Open a shift
+
+1. From the dashboard, open **Shifts** and choose **Open Shift**.
+2. Enter the **opening float** in **rupees** (cash already in the drawer).
+   - API: `POST /api/shifts/open` with `{"float_paise": <paise>}` → `201` returns the open `ShiftResponse` (`status: "OPEN"`). Omit `float_paise` for `0`.
+   - If a shift is already open you get `409` `SHIFT_ALREADY_OPEN` — close the existing shift first.
+3. Keep the shift id; every session started now is tied to this shift automatically.
+
+### Close a shift
+
+1. From **Shifts**, choose **Close Shift**.
+2. Count the cash in the drawer and enter the **counted total** in **rupees**.
+   - API: `POST /api/shifts/close` with `{"counted_paise": <paise>}` → `200` returns the closed `ShiftResponse`.
+   - If no shift is open you get `409` `NO_OPEN_SHIFT`.
+3. Review the **reconciliation**: `variance = counted − expected`, where
+   `expected = float + cash_collected`. A non-zero variance means the drawer differs from the
+   system — investigate before sign-off. (`variance_paise` is `null` while the shift is still open.)
+
+### View the shift report (Admin)
+
+- API: `GET /api/shifts/{shift_id}/report` → `ShiftReportResponse` with `session_count`,
+  `invoice_count`, `total_revenue_paise`, `pos_total_paise`, `cash_collected_paise`,
+  `expected_cash_paise`, and `variance_paise`.
+- The currently open shift: `GET /api/shifts/current` → `ShiftResponse | null`.
+
+---
+
 ## Member Management
 
 Create and look up members so they can be attached to sessions and accumulate loyalty points.
