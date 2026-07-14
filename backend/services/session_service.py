@@ -118,7 +118,8 @@ async def start_session(
         8. Broadcast ``seat_updated`` to dashboards.
         9. Send ``HIDE_OVERLAY`` to the agent (non-blocking).
         10. Write audit log entry ``SESSION_START``.
-        11. Return ``SessionResponse``.
+        11. Power the console ON via Tuya (non-blocking, best-effort).
+        12. Return ``SessionResponse``.
     """
     # 1. Validate seat exists
     seat = await seat_repo.get_by_id(db, seat_id)
@@ -210,6 +211,14 @@ async def start_session(
         staff_id=staff.id if staff else None,
         detail="",
     )
+
+    # 10. Console power-on (non-blocking; failure logged, never fatal)
+    try:
+        from backend.services import tuya_service
+
+        await tuya_service.power_on(db, seat_id)
+    except Exception:
+        logger.warning("Tuya power-on raised for seat %s", seat_id, exc_info=True)
 
     return _session_to_response(session)
 

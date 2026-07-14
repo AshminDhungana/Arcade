@@ -435,6 +435,16 @@ async def checkout_session(
             "Agent offline for seat %s — SHOW_OVERLAY not sent", session_obj.seat_id
         )
 
+    # 9b. Console power-off (non-blocking; failure logged, never fatal)
+    try:
+        from backend.services import tuya_service
+
+        await tuya_service.power_off(db, session_obj.seat_id)
+    except Exception:
+        logger.warning(
+            "Tuya power-off raised for seat %s", session_obj.seat_id, exc_info=True
+        )
+
     # 10. Trigger receipt print (non-blocking)
     from backend.schemas.invoice import InvoiceResponse
 

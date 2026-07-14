@@ -13,6 +13,7 @@ from backend.services import (
     seat_service,
     session_service,
     shift_service,
+    tuya_service,
     wallet_service,
     zone_service,
 )
@@ -35,6 +36,7 @@ __all__: list[str] = [
     "seat_service",
     "session_service",
     "shift_service",
+    "tuya_service",
     "wallet_service",
     "zone_service",
     "LockedRate",

@@ -219,6 +219,7 @@ async def seed_feature_flags(db) -> None:  # type: ignore[no-untyped-def]
         "enable_expense_tracking": "false",
         "enable_health_monitoring": "true",
         "require_member_for_session": "false",
+        "enable_tuya": "false",
     }
     for key, value in flags.items():
         db.add(AppSettings(key=key, value=value, updated_at=datetime.now(UTC)))
