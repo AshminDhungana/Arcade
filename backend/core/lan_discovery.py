@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import socket
 from typing import Any
 
@@ -22,7 +23,7 @@ async def _beacon_loop() -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.setblocking(False)
-    payload = _BEACON_MAGIC + b"|" + str(discovery_payload()).encode()
+    payload = _BEACON_MAGIC + b"|" + json.dumps(discovery_payload()).encode()
     while True:
         try:
             sock.sendto(payload, ("<broadcast>", _BEACON_PORT))
