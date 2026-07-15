@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import sys
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -125,41 +126,58 @@ def build_and_write_license(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate an offline Arcade license key"
+        description="Generate an offline Arcade license key (CLI or GUI)"
     )
-    parser.add_argument(
-        "--hardware-id", required=True, help="Hardware ID of the target machine"
-    )
-    parser.add_argument("--cafe-name", required=True, help="Name of the cafe")
+    parser.add_argument("--hardware-id", help="Hardware ID of the target machine")
+    parser.add_argument("--cafe-name", help="Name of the cafe")
     parser.add_argument(
         "--license-type", choices=["PERPETUAL", "TRIAL"], default="PERPETUAL"
     )
     parser.add_argument(
         "--trial-days", type=int, default=30, help="Days for trial license"
     )
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Launch the graphical interface instead of the CLI",
+    )
+    parser.add_argument(
+        "--output",
+        default="license.key",
+        help="Output path for the license file (default: license.key)",
+    )
     args = parser.parse_args()
 
-    private_key_hex = load_private_key()
-    blob = generate_license(
-        private_key_hex,
-        args.hardware_id,
-        args.cafe_name,
-        license_type=args.license_type,
-        trial_days=args.trial_days,
-    )
+    # GUI mode: explicit flag, or no identifying args supplied.
+    if args.gui or (not args.hardware_id and not args.cafe_name):
+        from .license_gui import launch_gui  # lazy: no customtkinter on CLI path
 
-    output_path = Path("license.key")
-    output_path.write_text(blob)
+        launch_gui()
+        return
 
+    # CLI mode (preserves existing behavior).
+    if not args.hardware_id or not args.cafe_name:
+        parser.error("--hardware-id and --cafe-name are required in CLI mode")
+
+    try:
+        build_and_write_license(
+            hardware_id=args.hardware_id,
+            cafe_name=args.cafe_name,
+            license_type=args.license_type,
+            trial_days=args.trial_days if args.license_type == "TRIAL" else None,
+            output_path=args.output,
+        )
+    except KeygenError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    output_path = Path(args.output)
     print(f"License written to: {output_path.resolve()}")
     print(f"  Cafe:     {args.cafe_name}")
     print(f"  HWID:     {args.hardware_id}")
     print(f"  Type:     {args.license_type}")
     print(f"  Trial:    {args.trial_days} days")
-    print(
-        f'  Verified: python -c "from backend.licensing.verify import check_license; '
-        f"print(check_license('{output_path}'))\"",
-    )
+    print(f"  Verified: {format_verify_command(output_path)}")
 
 
 if __name__ == "__main__":
