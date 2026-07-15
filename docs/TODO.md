@@ -788,6 +788,7 @@ Both engineers test together on real hardware:
   - [x] Validate all required fields present; exit with clear error via `ConfigError` dialog if missing
   - [x] `agent.config.json` must be `chmod 600` on Linux/macOS â€” documented in `docs/agent-setup.md`
   - [x] `agent.config.json` is in `.gitignore`
+  - [x] **Updated by self-provisioning (Phase 11):** the agent now also *writes* this file after a first-run enrollment (server returns `seat_id` + `agent_secret` + `cafe_name`); `master_code_hash` (build-injected, nullable) and `cafe_name` were added; `agent_secret` may be absent pre-enrollment and is auto-filled by the server.
   - [x] **Tests**: `agent/tests/config/validator.test.ts` (10 tests), `agent/tests/config/loader.test.ts` (5 tests) â€” all passing
   - [x] **Definition of done:** 71 tests across 14 test files; all passing
 
@@ -1649,6 +1650,7 @@ Package the system for customer distribution. Server as standalone executable (n
 
 - `arcade.spec` PyInstaller spec; bundled executable for all three OSes
 - Agent distributables: Windows `.exe` (NSIS), macOS `.dmg`, Linux AppImage + `.deb`
+- Agent **self-provisions** on first launch (auto-discovers server on LAN, enrolls via one-time dashboard code) — no hand-copied `agent.config.json`
 - Deployment documentation complete and customer-ready
 - GitHub Release `v1.0.0` with all artifacts
 
@@ -1686,6 +1688,15 @@ Package the system for customer distribution. Server as standalone executable (n
   - [ ] `productName: "Arcade Agent"`, `copyright: "Neurotech Biratnagar"`
   - [ ] Create `agent/assets/icon.png` (256Ã—256 placeholder; replace with cafe branding before release)
   - [ ] Verify installer sets `chmod 600 agent.config.json` on Linux/macOS post-install
+
+- [ ] **Task: Agent self-provisioning (no hand-copied config)**
+  - [ ] Server advertises itself on LAN via UDP beacon (`backend/core/lan_discovery.py`) + `GET /api/discovery` fallback
+  - [ ] Dashboard generates a one-time, 15-min, single-use enroll code per seat (`POST /api/seats/{id}/enroll-code`, admin)
+  - [ ] Agent calls `POST /api/agent/enroll` (public, code-gated, rate-limited) → receives `seat_id` + `agent_secret` + `cafe_name`
+  - [ ] Agent writes its own `agent.config.json` on first run; reuses it on reboot (no re-enroll)
+  - [ ] First-run setup window collects the code; `Ctrl+Shift+O` staff-override PIN doubles as the in-agent Settings gate
+  - [ ] Emergency **master PIN** injected at build (`agent/src/main/master-pin.ts`, `MASTER_PIN_HASH`) — accepted only when server unreachable; never shown in UI
+  - [ ] Reference: `docs/superpowers/plans/2026-07-15-agent-self-provisioning.md`
 
 ### Epic 11.2: Keygen packaging (Optional)
   - [ ] **Task: Create PyInstaller spec file (`keygen.spec`)**
@@ -1969,7 +1980,10 @@ All engineers must use the exact field names below. ENG-B (Launcher) writes this
   "cafe_name": "string",
   "seat_id": "string (e.g., 'seat_001')",
   "agent_secret": "string (64-char hex â€” unique per seat)",
-  "override_code_hash": "string (Argon2id PHC hash, null or absent to disable Staff Override)"
+  "override_code_hash": "string (Argon2id PHC hash, null or absent to disable Staff Override)",
+  "master_code_hash": "string (Argon2id PHC hash, build-injected per cafe; null to disable emergency master PIN)",
+  "reconnect_max_seconds": "int (default 60)",
+  "health_interval_seconds": "int (default 60)"
 }
 ```
 

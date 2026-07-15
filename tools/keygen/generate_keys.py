@@ -14,6 +14,19 @@ After running, commit ONLY the updated public_key.py (not the .pem).
 
 from __future__ import annotations
 
+# ===========================================================================
+# EMERGENCY MASTER PIN  (per-cafe, seller-only — NEVER shown in any UI)
+# ---------------------------------------------------------------------------
+# The Arcade Agent's emergency unlock PIN is set per cafe at build time and
+# baked into agent/src/main/master-pin.ts as MASTER_PIN_HASH (Argon2id, same
+# params as the staff override PINs). It is the ONLY credential that works when
+# the agent cannot reach the server. Per spec D6/D7 it is accepted ONLY when the
+# server is unreachable; when connected, only the staff override PIN works.
+#
+# REMEMBRANCE — fill one row per cafe and keep in the seller's secure notes:
+#   Cafe: ____________   Master PIN: ____________   MASTER_PIN_HASH: ____________
+# This file is internal tooling and must never be committed or shipped.
+# ===========================================================================
 import sys
 from pathlib import Path
 
