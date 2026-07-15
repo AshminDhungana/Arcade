@@ -34,10 +34,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.routers import agent as agent_router
 from backend.api.routers import routers as api_routers
-from backend.core.config import load_config
+from backend.core.config import get_config, load_config
 from backend.core.database import AsyncSessionLocal, async_engine
 from backend.core.feature_flags import load_flags
 from backend.core.scheduler import init_scheduler, shutdown_scheduler
@@ -78,6 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     # 4. Load feature flags into in-memory cache
     async with AsyncSessionLocal() as db:
         await load_flags(db)
+        await _seed_legacy_secrets(db)
 
     # 5. Recover any sessions that were active during an unclean shutdown
     await recover_active_sessions()
@@ -123,6 +125,23 @@ async def _verify_database_wal() -> None:
         )
         raise RuntimeError(msg)
     logger.debug("WAL mode confirmed: %s", journal_mode)
+
+
+# ---------------------------------------------------------------------------
+# Legacy config secret seed
+# ---------------------------------------------------------------------------
+
+
+async def _seed_legacy_secrets(db: AsyncSession) -> None:
+    """Copy config-file agent_secrets into the DB once (backward compat)."""
+    from backend.repositories import seat_repo
+
+    config = get_config()
+    legacy = getattr(config, "agent_secrets", None) or {}
+    for seat_id, secret in legacy.items():
+        existing = await seat_repo.get_agent_secret(db, seat_id)
+        if existing is None and secret:
+            await seat_repo.set_agent_secret(db, seat_id, secret)
 
 
 # ---------------------------------------------------------------------------
