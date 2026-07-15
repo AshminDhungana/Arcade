@@ -160,6 +160,17 @@ class EventStatus(Enum):
     COMPLETED = "COMPLETED"
 
 
+class EventBracketGroup(Enum):
+    WINNERS = "WINNERS"
+    LOSERS = "LOSERS"
+    GRAND_FINAL = "GRAND_FINAL"
+
+
+class EventMatchStatus(Enum):
+    PENDING = "PENDING"
+    COMPLETED = "COMPLETED"
+
+
 # ── Audit ────────────────────────────────────────────────────────────────
 
 
@@ -207,6 +218,9 @@ class AuditAction(Enum):
     STAFF_REACTIVATED = "STAFF_REACTIVATED"
     TUYA_POWER_ON = "TUYA_POWER_ON"
     TUYA_POWER_OFF = "TUYA_POWER_OFF"
+    EVENT_CREATED = "EVENT_CREATED"
+    EVENT_PARTICIPANT_REGISTERED = "EVENT_PARTICIPANT_REGISTERED"
+    EVENT_MATCH_RECORDED = "EVENT_MATCH_RECORDED"
 
 
 # ── License ──────────────────────────────────────────────────────────────
