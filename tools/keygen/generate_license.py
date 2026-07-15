@@ -12,7 +12,6 @@ from __future__ import annotations
 import argparse
 import base64
 import json
-import sys
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -22,10 +21,21 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PRIVATE_KEY_PATH = REPO_ROOT / "tools" / "keygen" / "private_key.pem"
 
 
-def _load_private_key() -> str:
+class KeygenError(Exception):
+    """Raised for user-facing keygen failures (e.g. missing private key)."""
+
+
+def load_private_key() -> str:
+    """Load the Ed25519 private key hex from private_key.pem.
+
+    Raises:
+        KeygenError: if the private key file is missing.
+    """
     if not PRIVATE_KEY_PATH.exists():
-        print(f"ERROR: Private key not found at {PRIVATE_KEY_PATH}", file=sys.stderr)
-        sys.exit(1)
+        raise KeygenError(
+            f"Private key not found at {PRIVATE_KEY_PATH}. "
+            "Run `python -m tools.keygen.generate_keys` first."
+        )
     return PRIVATE_KEY_PATH.read_text().strip()
 
 
@@ -62,6 +72,57 @@ def generate_license(
     return base64.b64encode(json.dumps(envelope).encode()).decode()
 
 
+def parse_trial_days(value: str | None) -> int | None:
+    """Parse a trial-days field from UI/CLI text.
+
+    Blank/None -> None (PERPETUAL). Otherwise must be a positive int.
+
+    Raises:
+        ValueError: if the value is non-numeric or not positive.
+    """
+    if value is None or value.strip() == "":
+        return None
+    days = int(value)  # raises ValueError on non-numeric
+    if days <= 0:
+        raise ValueError("trial_days must be a positive integer")
+    return days
+
+
+def format_verify_command(output_path: str | Path) -> str:
+    """Return the CLI verify command string (unchanged text for backward compat)."""
+    return (
+        f'python -c "from backend.licensing.verify import check_license; '
+        f"print(check_license('{output_path}'))\""
+    )
+
+
+def build_and_write_license(
+    hardware_id: str,
+    cafe_name: str,
+    license_type: str = "PERPETUAL",
+    trial_days: int | None = None,
+    output_path: str | Path = "license.key",
+) -> str:
+    """Load the private key, sign a license, and write it to ``output_path``.
+
+    Returns the base64-encoded license blob. Shared by the CLI and GUI so
+    both produce identical, verifiable licenses.
+
+    Raises:
+        KeygenError: if the private key is missing.
+    """
+    private_key_hex = load_private_key()
+    blob = generate_license(
+        private_key_hex=private_key_hex,
+        hardware_id=hardware_id,
+        cafe_name=cafe_name,
+        license_type=license_type,
+        trial_days=trial_days,
+    )
+    Path(output_path).write_text(blob, encoding="utf-8")
+    return blob
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate an offline Arcade license key"
@@ -78,7 +139,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    private_key_hex = _load_private_key()
+    private_key_hex = load_private_key()
     blob = generate_license(
         private_key_hex,
         args.hardware_id,
