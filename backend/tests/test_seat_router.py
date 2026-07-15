@@ -6,12 +6,15 @@ bypass JWT auth in favour of a mock staff object.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 
 from backend.api.deps import get_current_staff
+from backend.core.database import AsyncSessionLocal
 from backend.main import app
 
 # ---------------------------------------------------------------------------
@@ -72,7 +75,26 @@ def cashier_client() -> Iterator[TestClient]:
 # ---------------------------------------------------------------------------
 
 
+def _clear_seats() -> None:
+    """Truncate seats so isolation-sensitive assertions aren't poisoned by rows
+    left in the shared persistent test DB by other tests.
+
+    ``foreign_keys`` is toggled off locally for the delete so we don't have to
+    enumerate every FK-dependent table; the engine re-asserts it per connection.
+    """
+
+    async def _go() -> None:
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("PRAGMA foreign_keys=OFF"))
+            await db.execute(text("DELETE FROM seats"))
+            await db.execute(text("PRAGMA foreign_keys=ON"))
+            await db.commit()
+
+    asyncio.run(_go())
+
+
 def test_list_seats_empty(client: TestClient) -> None:
+    _clear_seats()
     resp = client.get("/api/seats")
     assert resp.status_code == 200
     assert resp.json() == []
