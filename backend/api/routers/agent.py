@@ -7,12 +7,15 @@ Routes::
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import get_config
 from backend.core.database import get_db
+from backend.core.lan_discovery import discovery_payload
 from backend.core.security import is_ip_locked, record_failed_attempt
 from backend.models.seat import Seat
 from backend.repositories import seat_repo
@@ -77,3 +80,9 @@ async def enroll_agent(
         cafe_name=get_config().cafe_name,
         override_code_hash=override_hash,
     )
+
+
+@router.get("/discovery")
+async def discovery() -> dict[str, Any]:
+    """Fallback discovery: returns server address when UDP beacon is blocked."""
+    return discovery_payload()

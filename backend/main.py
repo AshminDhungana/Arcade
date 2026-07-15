@@ -41,6 +41,10 @@ from backend.api.routers import routers as api_routers
 from backend.core.config import get_config, load_config
 from backend.core.database import AsyncSessionLocal, async_engine
 from backend.core.feature_flags import load_flags
+from backend.core.lan_discovery import (
+    start_discovery_beacon,
+    stop_discovery_beacon,
+)
 from backend.core.scheduler import init_scheduler, shutdown_scheduler
 from backend.core.startup import (
     boot_all_seats,
@@ -93,11 +97,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     # 8. WebSocket manager is ready (lazy init in ws_manager module)
     logger.info("Arcade server %s — startup complete", __version__)
 
+    # 9. Start LAN discovery beacon so agents can self-locate the server
+    start_discovery_beacon()
+
     yield
 
     # --- SHUTDOWN ---------------------------------------------------------
     shutdown_scheduler(scheduler)
     await ws_manager.close_all()
+    stop_discovery_beacon()
     await async_engine.dispose()
     logger.info("Arcade server — shutdown complete")
 
