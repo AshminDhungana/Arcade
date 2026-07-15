@@ -3,11 +3,11 @@ import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
 
 from backend.core.database import AsyncSessionLocal, Base, async_engine
 from backend.main import app
-from backend.models import Seat
+from backend.models import Seat, Zone
+from backend.models._enums import PricingModel
 from backend.services.enrollment_service import generate_enroll_code
 
 
@@ -15,16 +15,19 @@ async def _ensure_schema_and_zone() -> None:
     """Self-contained DB setup (see test_enrollment_service.py for rationale)."""
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        existing = await conn.execute(text("SELECT 1 FROM zones WHERE id = 'z1'"))
-        if existing.first() is None:
-            await conn.execute(
-                text(
-                    "INSERT INTO zones (id, name, rate_per_minute_paise, "
-                    "rate_per_hour_paise, pricing_model, block_minutes) "
-                    "VALUES ('z1', 'Test Zone', 1, 60, 'PER_MINUTE', 15)"
+    async with AsyncSessionLocal() as db:
+        if await db.get(Zone, "z1") is None:
+            db.add(
+                Zone(
+                    id="z1",
+                    name="Test Zone",
+                    rate_per_minute_paise=1,
+                    rate_per_hour_paise=60,
+                    pricing_model=PricingModel.PER_MINUTE,
+                    block_minutes=15,
                 )
             )
-            await conn.commit()
+            await db.commit()
 
 
 def _client():

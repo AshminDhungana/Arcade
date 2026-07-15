@@ -27,7 +27,8 @@ from backend.core.ws_manager import (
     server_anchor_elapsed,
     ws_envelope,
 )
-from backend.models import Seat
+from backend.models import Seat, Zone
+from backend.models._enums import PricingModel
 
 # ---------------------------------------------------------------------------
 # Protocol helpers (Task 1)
@@ -181,20 +182,20 @@ def mock_config(monkeypatch):  # type: ignore[no-untyped-def]
 async def _ensure_zone_z1() -> None:
     """Make sure the FK target zone ``z1`` exists in the (persistent) test DB.
 
-    Uses raw SQL (rather than the ORM ``Zone`` row) so the helper stays robust
-    against schema drift in the shared ``arcade.db`` (e.g. a stale ``zones``
-    table missing newer columns).
+    Inserted via the ORM so model defaults (``created_at``/``updated_at``) and
+    any future columns are applied automatically — the schema is always current
+    thanks to the session-scoped ``_reset_test_schema`` fixture in conftest.
     """
-    from sqlalchemy import text
-
     async with AsyncSessionLocal() as db:
-        existing = await db.execute(text("SELECT 1 FROM zones WHERE id = 'z1'"))
-        if existing.first() is None:
-            await db.execute(
-                text(
-                    "INSERT INTO zones (id, name, rate_per_minute_paise, "
-                    "rate_per_hour_paise, pricing_model, block_minutes) "
-                    "VALUES ('z1', 'Test Zone', 1, 60, 'PER_MINUTE', 15)"
+        if await db.get(Zone, "z1") is None:
+            db.add(
+                Zone(
+                    id="z1",
+                    name="Test Zone",
+                    rate_per_minute_paise=1,
+                    rate_per_hour_paise=60,
+                    pricing_model=PricingModel.PER_MINUTE,
+                    block_minutes=15,
                 )
             )
             await db.commit()

@@ -2,10 +2,10 @@
 import uuid
 
 import pytest
-from sqlalchemy import text
 
 from backend.core.database import AsyncSessionLocal, Base, async_engine
-from backend.models import Seat
+from backend.models import Seat, Zone
+from backend.models._enums import PricingModel
 from backend.services.enrollment_service import (
     generate_enroll_code,
     verify_and_consume_enroll_code,
@@ -15,24 +15,27 @@ from backend.services.enrollment_service import (
 async def _ensure_schema_and_zone() -> None:
     """Self-contained DB setup for this module.
 
-    The repo shares one persistent ``arcade.db`` across all tests with no
-    global reset, so each test module must bootstrap its own schema and the
-    ``z1`` FK target it relies on. Mirrors the robust convention in
-    ``test_ws_secret_db.py`` (unique ids + cleanup) so reruns don't collide
-    with leftover rows.
+    A session-scoped fixture in conftest resets the shared ``arcade.db`` to the
+    current schema at session start, so ``create_all`` here is a redundant
+    no-op. The ``z1`` FK target is seeded via the ORM so model defaults
+    (``created_at``/``updated_at``) and any future columns are applied
+    automatically.
     """
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        existing = await conn.execute(text("SELECT 1 FROM zones WHERE id = 'z1'"))
-        if existing.first() is None:
-            await conn.execute(
-                text(
-                    "INSERT INTO zones (id, name, rate_per_minute_paise, "
-                    "rate_per_hour_paise, pricing_model, block_minutes) "
-                    "VALUES ('z1', 'Test Zone', 1, 60, 'PER_MINUTE', 15)"
+    async with AsyncSessionLocal() as db:
+        if await db.get(Zone, "z1") is None:
+            db.add(
+                Zone(
+                    id="z1",
+                    name="Test Zone",
+                    rate_per_minute_paise=1,
+                    rate_per_hour_paise=60,
+                    pricing_model=PricingModel.PER_MINUTE,
+                    block_minutes=15,
                 )
             )
-            await conn.commit()
+            await db.commit()
 
 
 async def _make_seat(db, seat_id: str) -> Seat:
