@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Loader2, Pause, Play, Power, Settings, ShoppingCart, Heart, User, X } from 'lucide-react';
 import { MemberSearch } from './MemberSearch';
 import { useStartSession } from '@/api/sessions';
+import { generateEnrollCode, regenerateOverridePin } from '@/api/seats';
 import { toast } from '@/store/toastStore';
 import type { Member } from '@/types/members';
 
@@ -103,6 +104,18 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
           <ActionButton icon={<Power className="h-5 w-5" />} label="Wake-on-LAN" variant="secondary" />
           <ActionButton icon={<Heart className="h-5 w-5" />} label="View Health" variant="secondary" />
           <ActionButton icon={<Settings className="h-5 w-5" />} label="Maintenance" variant="secondary" />
+          <ActionButton icon={<Settings className="h-5 w-5" />} label="Enroll Code" variant="secondary" onClick={async () => {
+            try {
+              const { code } = await generateEnrollCode(seat.id);
+              toast.success(`Enroll code for ${seat.name}: ${code}`);
+            } catch (e) { toast.error((e as Error).message); }
+          }} />
+          <ActionButton icon={<Settings className="h-5 w-5" />} label="Regenerate Override PIN" variant="secondary" onClick={async () => {
+            try {
+              const { override_pin } = await regenerateOverridePin(seat.id);
+              toast.success(`New override PIN for ${seat.name}: ${override_pin} (shown once)`);
+            } catch (e) { toast.error((e as Error).message); }
+          }} />
         </nav>
       </div>
     </div>

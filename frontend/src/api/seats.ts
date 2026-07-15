@@ -21,6 +21,22 @@ export async function fetchSeat(seatId: string): Promise<Seat> {
   return (await res.json()) as Seat;
 }
 
+/** Generate a one-time enroll code for a seat.
+ *  The backend mints a short-lived code used by the agent to self-enroll. */
+export async function generateEnrollCode(seatId: string): Promise<{ code: string; expires_at: string }> {
+  const res = await fetch(`${API_BASE}/seats/${seatId}/enroll-code`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Failed to generate enroll code: ${res.status}`);
+  return res.json();
+}
+
+/** Regenerate the override PIN for a seat.
+ *  The backend mints a fresh 6-digit PIN and returns it once. */
+export async function regenerateOverridePin(seatId: string): Promise<{ override_pin: string }> {
+  const res = await fetch(`${API_BASE}/seats/${seatId}/override-pin`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Failed to regenerate override PIN: ${res.status}`);
+  return res.json();
+}
+
 /** React Query hook for listing all seats.
  *  Invalidated automatically by `useWebSocket` on `seat_updated` events. */
 export function useSeats() {
