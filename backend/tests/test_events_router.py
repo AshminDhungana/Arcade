@@ -204,16 +204,18 @@ class TestEventsRouter:
         event_id = created.json()["id"]
         for name in ("A", "B"):
             await client.post(f"/api/events/{event_id}/register", json={"name": name})
-        # Bracket now has 1 match (2 players). The summary exposes only a match
-        # count, so resolve the match id directly via the repository.
-        from backend.repositories import event_match_repo
-
-        matches = await event_match_repo.list_matches_by_event(db, event_id)
-        assert len(matches) == 1
-        winner = matches[0].slot_a_id
+        # Resolve the match id from the summary's matches array (the summary now
+        # exposes each match's id so consumers can drive PATCH /match directly).
+        summary = await client.get(f"/api/events/{event_id}/summary")
+        summary_data = summary.json()
+        assert len(summary_data["matches"]) >= 1
+        assert isinstance(summary_data["matches"][0]["id"], str)
+        assert summary_data["matches"][0]["id"]
+        match_id = summary_data["matches"][0]["id"]
+        winner = summary_data["matches"][0]["slot_a_id"]
         res = await client.patch(
             f"/api/events/{event_id}/match",
-            json={"match_id": matches[0].id, "winner_id": winner},
+            json={"match_id": match_id, "winner_id": winner},
         )
         assert res.status_code == 200, res.text
         summary = await client.get(f"/api/events/{event_id}/summary")

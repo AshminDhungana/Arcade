@@ -3,6 +3,8 @@ from datetime import UTC, datetime
 
 import pytest
 import pytest_asyncio
+from fastapi import HTTPException
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -310,3 +312,116 @@ async def test_summary_revenue_and_counts(db: AsyncSession) -> None:
     assert summary["entry_fee_paise"] == 1000
     assert summary["entry_fee_revenue_paise"] == 2000  # 2 * 1000
     assert summary["prize_pool_paise"] == 5000
+
+
+@pytest.mark.asyncio
+async def test_double_elim_non_power_of_two_record_raises_400(
+    db: AsyncSession,
+) -> None:
+    staff = await _make_staff(db)
+    event = await event_service.EventService.create_event(
+        db,
+        name="DE",
+        game_title="G",
+        event_date=datetime(2026, 8, 1, 18, 0, tzinfo=UTC),
+        entry_fee_paise=0,
+        bracket_type=EventBracketType.DOUBLE_ELIMINATION,
+        staff=staff,
+    )
+    await _register_n(db, staff, event, 3)
+    with pytest.raises(HTTPException) as exc:
+        await event_service.EventService.record_match_result(
+            db, event_id=event.id, match_id="nope", winner_id="nope", staff=staff
+        )
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_double_elim_8player_playthrough(db: AsyncSession) -> None:
+    staff = await _make_staff(db)
+    event = await event_service.EventService.create_event(
+        db,
+        name="DE",
+        game_title="G",
+        event_date=datetime(2026, 8, 1, 18, 0, tzinfo=UTC),
+        entry_fee_paise=0,
+        bracket_type=EventBracketType.DOUBLE_ELIMINATION,
+        staff=staff,
+    )
+    parts = await _register_n(db, staff, event, 8)
+    matches = await event_match_repo.list_matches_by_event(db, event.id)
+    # 8 players double elim: WB 7 + LB 6 + GF 1 = 14 matches.
+    assert len(matches) == 14
+
+    # Drive every match: always advance parts[0] (the eventual champion).
+    for _ in range(40):
+        pending = [
+            m
+            for m in await event_match_repo.list_matches_by_event(db, event.id)
+            if m.status.value == "PENDING"
+            and m.slot_a_id is not None
+            and m.slot_b_id is not None
+        ]
+        if not pending:
+            break
+        m = pending[0]
+        winner = m.slot_a_id if m.slot_a_id == parts[0].id else m.slot_b_id
+        await event_service.EventService.record_match_result(
+            db, event_id=event.id, match_id=m.id, winner_id=winner, staff=staff
+        )
+    summary = await event_service.EventService.get_event_summary(db, event_id=event.id)
+    assert summary["is_complete"] is True
+    assert summary["champion_participant_id"] == parts[0].id
+    assert len([p for p in parts if not p.eliminated]) == 1
+
+
+@pytest_asyncio.fixture
+async def db_fk() -> AsyncSession:
+    """Async session on an in-memory engine with PRAGMA foreign_keys=ON.
+
+    Mirrors the production connect listener in backend/core/database.py (only
+    the foreign_keys pragma) so self-referential FK deletes can be exercised
+    under FK enforcement.
+    """
+
+    def _enable_fk(conn: object, _: object) -> None:
+        cursor = conn.cursor()  # type: ignore[attr-defined]
+        cursor.execute("PRAGMA foreign_keys = ON")
+        cursor.close()
+
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    event.listens_for(engine.sync_engine, "connect")(_enable_fk)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+    async with Session() as session:
+        yield session
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_single_elim_reregister_under_fk(db_fk: AsyncSession) -> None:
+    """Re-registration rebuilds the bracket via delete_matches_by_event.
+
+    Under PRAGMA foreign_keys=ON (production), the self-referential FK columns
+    of event_matches previously raised IntegrityError during the delete. This
+    proves the #1 fix: register 4 participants one at a time with no exception
+    and end with exactly 3 matches (2->4 power-of-2 single elim).
+    """
+    staff = await _make_staff(db_fk)
+    event = await event_service.EventService.create_event(
+        db_fk,
+        name="Cup",
+        game_title="G",
+        event_date=datetime(2026, 8, 1, 18, 0, tzinfo=UTC),
+        entry_fee_paise=0,
+        bracket_type=EventBracketType.SINGLE_ELIMINATION,
+        staff=staff,
+    )
+    await _register_n(db_fk, staff, event, 4)
+    matches = await event_match_repo.list_matches_by_event(db_fk, event.id)
+    assert len(matches) == 3

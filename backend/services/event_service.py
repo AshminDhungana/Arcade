@@ -225,10 +225,23 @@ class EventService:
         match_id: str,
         winner_id: str,
         staff: Staff | None = None,
-    ) -> EventMatch | None:
+    ) -> EventMatch:
         event = await event_repo.get_event_by_id(db, event_id)
         if event is None:
             raise EventNotFoundError(event_id)
+        # Surface the double-elim power-of-2 requirement at record time so the
+        # operator gets an actionable 400 instead of a confusing 404 / empty
+        # summary when the bracket was deferred (count not a power of 2).
+        if event.bracket_type == EventBracketType.DOUBLE_ELIMINATION:
+            participants = await event_repo.list_participants(db, event.id)
+            if len(participants) & (len(participants) - 1) != 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Double elimination requires a power-of-2 number "
+                        "of participants"
+                    ),
+                )
         match = await event_match_repo.get_match_by_id(db, match_id)
         if match is None or match.event_id != event_id:
             raise EventMatchNotFoundError(match_id)
@@ -296,6 +309,7 @@ class EventService:
             "entry_fee_revenue_paise": len(participants) * event.entry_fee_paise,
             "champion_participant_id": champion,
             "is_complete": event.status == EventStatus.COMPLETED,
+            "matches": matches,
         }
 
 
@@ -445,8 +459,17 @@ def _build_double_elim_spec(participant_ids: list[str]) -> list[dict[str, Any]]:
     for t in range(1, r_lb + 1):
         for i in range(sizes[t - 1]):
             m = matches[lb_idx[(t, i)]]
-            wt = m["winner_to"]
-            m["winner_to"] = lb_idx[wt] if wt is not None else gf_index
+            if t == r_lb:
+                # Last losers-bracket round feeds the Grand Final.
+                m["winner_to"] = gf_index
+            elif sizes[t] == sizes[t - 1]:
+                # Drop round: same number of matches as the previous round, so
+                # each match advances 1:1 into the next losers round.
+                m["winner_to"] = lb_idx[(t + 1, i)]
+            else:
+                # Consolidation round: the next round is half the size, so two
+                # consecutive matches in round t merge into one match in t+1.
+                m["winner_to"] = lb_idx[(t + 1, i // 2)]
     for r in range(1, k + 1):
         count = p // (2**r)
         for i in range(count // 2 if r == 1 else count):

@@ -103,3 +103,4 @@ class EventSummaryResponse(BaseResponseSchema):
     entry_fee_revenue_paise: int
     champion_participant_id: str | None
     is_complete: bool
+    matches: list[EventMatchResponse] = []

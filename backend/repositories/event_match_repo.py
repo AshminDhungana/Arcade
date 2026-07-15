@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.event_match import EventMatch
@@ -74,9 +76,19 @@ async def update_match(db: AsyncSession, match: EventMatch) -> EventMatch:
 
 
 async def delete_matches_by_event(db: AsyncSession, event_id: str) -> int:
-    result = await db.execute(select(EventMatch).where(EventMatch.event_id == event_id))
-    matches = result.scalars().all()
-    for m in matches:
-        await db.delete(m)
+    # Null out the self-referential FK columns FIRST so the bulk DELETE does not
+    # violate PRAGMA foreign_keys=ON. Rows reference each other via
+    # next_match_id / next_loser_match_id (no ORM relationship), so deleting
+    # rows that still point at one another raises IntegrityError under FK
+    # enforcement. This path runs on every single-elim re-registration rebuild.
+    await db.execute(
+        update(EventMatch)
+        .where(EventMatch.event_id == event_id)
+        .values(next_match_id=None, next_loser_match_id=None)
+    )
+    result = cast(
+        CursorResult[Any],
+        await db.execute(delete(EventMatch).where(EventMatch.event_id == event_id)),
+    )
     await db.flush()
-    return len(matches)
+    return result.rowcount

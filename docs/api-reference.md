@@ -1471,6 +1471,9 @@ otherwise eliminated. The final match (no `next_match_id`) sets the event
   participants (padded to the next power of 2 with byes).
 - Double elimination requires a power-of-2 participant count; otherwise
   recording a result returns `400`.
+- `GET /api/events/{id}/summary` includes a `matches` array (each with `id`,
+  slot ids, and `status`) so consumers can drive `PATCH /api/events/{id}/match`
+  without a separate lookup.
 
 ---
 
