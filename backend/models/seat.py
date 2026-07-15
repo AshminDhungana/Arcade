@@ -29,6 +29,13 @@ class Seat(Base):
     plug_id: Mapped[str | None] = mapped_column(String(255))
     is_console: Mapped[bool] = mapped_column(default=False)
     notes: Mapped[str | None] = mapped_column(String(1000))
+    # --- Self-provisioning (Phase 11) ---
+    agent_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    enroll_code_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    enroll_code_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    override_code_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     wol_attempts: Mapped[int] = mapped_column(default=0, nullable=False)
     wol_successes: Mapped[int] = mapped_column(default=0, nullable=False)
     wol_failures: Mapped[int] = mapped_column(default=0, nullable=False)
