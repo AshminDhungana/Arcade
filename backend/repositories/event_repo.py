@@ -99,6 +99,15 @@ async def get_participant_by_id(
     return result.scalar_one_or_none()
 
 
+async def update_participant(
+    db: AsyncSession, participant: EventParticipant
+) -> EventParticipant:
+    db.add(participant)
+    await db.flush()
+    await db.refresh(participant)
+    return participant
+
+
 async def list_participants(
     db: AsyncSession, event_id: str
 ) -> Sequence[EventParticipant]:

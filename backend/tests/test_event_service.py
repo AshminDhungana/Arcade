@@ -181,3 +181,132 @@ async def test_register_insufficient_funds(db: AsyncSession) -> None:
             name=None,
             staff=staff,
         )
+
+
+async def _register_n(db, staff, event, n, with_members=False):
+    parts = []
+    for i in range(n):
+        if with_members:
+            m = await member_repo.create(
+                db, name=f"M{i}", phone=f"9800001{i:03d}", wallet_balance_paise=100000
+            )
+            p = await event_service.EventService.register_participant(
+                db,
+                event_id=event.id,
+                member_id=m.id,
+                seat_id=None,
+                name=None,
+                staff=staff,
+            )
+        else:
+            p = await event_service.EventService.register_participant(
+                db,
+                event_id=event.id,
+                member_id=None,
+                seat_id=None,
+                name=f"P{i}",
+                staff=staff,
+            )
+        parts.append(p)
+    return parts
+
+
+@pytest.mark.asyncio
+async def test_single_elim_4player_playthrough(db: AsyncSession) -> None:
+    staff = await _make_staff(db)
+    event = await event_service.EventService.create_event(
+        db,
+        name="Cup",
+        game_title="G",
+        event_date=datetime(2026, 8, 1, 18, 0, tzinfo=UTC),
+        entry_fee_paise=0,
+        bracket_type=EventBracketType.SINGLE_ELIMINATION,
+        staff=staff,
+    )
+    parts = await _register_n(db, staff, event, 4)
+    matches = await event_match_repo.list_matches_by_event(db, event.id)
+    assert len(matches) == 3  # 4 players -> 3 matches
+
+    # Play round 1: parts[0] and parts[2] win.
+    r1 = [m for m in matches if m.round == 1]
+    for m in r1:
+        winner = (
+            m.slot_a_id
+            if m.slot_a_id == parts[0].id or m.slot_a_id == parts[2].id
+            else m.slot_b_id
+        )
+        await event_service.EventService.record_match_result(
+            db, event_id=event.id, match_id=m.id, winner_id=winner, staff=staff
+        )
+    # Final: the winner between parts[0] and parts[2].
+    final = [m for m in matches if m.next_match_id is None][0]
+    await event_service.EventService.record_match_result(
+        db, event_id=event.id, match_id=final.id, winner_id=parts[0].id, staff=staff
+    )
+    summary = await event_service.EventService.get_event_summary(db, event_id=event.id)
+    assert summary["is_complete"] is True
+    assert summary["champion_participant_id"] == parts[0].id
+    # Exactly one champion; the other three eliminated.
+    survivors = [p for p in parts if not p.eliminated]
+    assert survivors == [parts[0]]
+
+
+@pytest.mark.asyncio
+async def test_double_elim_4player_playthrough(db: AsyncSession) -> None:
+    staff = await _make_staff(db)
+    event = await event_service.EventService.create_event(
+        db,
+        name="DE",
+        game_title="G",
+        event_date=datetime(2026, 8, 1, 18, 0, tzinfo=UTC),
+        entry_fee_paise=0,
+        bracket_type=EventBracketType.DOUBLE_ELIMINATION,
+        staff=staff,
+    )
+    parts = await _register_n(db, staff, event, 4)
+    matches = await event_match_repo.list_matches_by_event(db, event.id)
+    # 4 players double elim: WB 3 + LB 2 + GF 1 = 6 matches.
+    assert len(matches) == 6
+
+    # Drive every match: always advance parts[0] (the eventual champion).
+    # Repeat until the event is COMPLETED.
+    for _ in range(20):
+        pending = [
+            m
+            for m in await event_match_repo.list_matches_by_event(db, event.id)
+            if m.status.value == "PENDING"
+            and m.slot_a_id is not None
+            and m.slot_b_id is not None
+        ]
+        if not pending:
+            break
+        m = pending[0]
+        winner = m.slot_a_id if m.slot_a_id == parts[0].id else m.slot_b_id
+        await event_service.EventService.record_match_result(
+            db, event_id=event.id, match_id=m.id, winner_id=winner, staff=staff
+        )
+    summary = await event_service.EventService.get_event_summary(db, event_id=event.id)
+    assert summary["is_complete"] is True
+    assert summary["champion_participant_id"] == parts[0].id
+    assert len([p for p in parts if not p.eliminated]) == 1
+
+
+@pytest.mark.asyncio
+async def test_summary_revenue_and_counts(db: AsyncSession) -> None:
+    staff = await _make_staff(db)
+    event = await event_service.EventService.create_event(
+        db,
+        name="Cup",
+        game_title="G",
+        event_date=datetime(2026, 8, 1, 18, 0, tzinfo=UTC),
+        entry_fee_paise=1000,
+        prize_pool_paise=5000,
+        bracket_type=EventBracketType.SINGLE_ELIMINATION,
+        staff=staff,
+    )
+    await _register_n(db, staff, event, 2, with_members=True)
+    summary = await event_service.EventService.get_event_summary(db, event_id=event.id)
+    assert summary["participant_count"] == 2
+    assert summary["entry_fee_paise"] == 1000
+    assert summary["entry_fee_revenue_paise"] == 2000  # 2 * 1000
+    assert summary["prize_pool_paise"] == 5000
