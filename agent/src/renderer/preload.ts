@@ -42,6 +42,9 @@ interface ElectronAPI {
 
   /** Renderer → Main: attempt a staff override with the given PIN. */
   staffOverride: (pin: string) => void;
+
+  /** Renderer → Main: enroll this agent using the given code. */
+  enroll: (code: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +85,9 @@ const api: ElectronAPI = {
   staffOverride: (pin: string) => {
     ipcRenderer.send('staff-override', pin);
   },
+
+  enroll: (code: string) =>
+    ipcRenderer.invoke('agent:enroll', code),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);
