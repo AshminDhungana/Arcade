@@ -6,6 +6,9 @@ import { getPlatformService } from './platform/index.js';
 import { AgentWebSocketClient } from './ws/client.js';
 import { BetterSqliteSessionStore } from './storage/session_store.js';
 import { loadAgentConfig } from './config/loader.js';
+import { discoverServer } from './discovery.js';
+import { enrollAgent } from './enroll.js';
+import { openSetupWindow } from './setup_window.js';
 import type { IPlatformService } from './platform/types.js';
 import type { AgentConfig } from './ws/types.js';
 
@@ -21,6 +24,38 @@ async function bootstrap(): Promise<void> {
   const fromExe = path.join(path.dirname(process.execPath), 'agent.config.json');
   const fromCwd = path.join(process.cwd(), 'agent.config.json');
   const configPath = fs.existsSync(fromExe) ? fromExe : fromCwd;
+
+  if (!fs.existsSync(configPath)) {
+    // ---- First-run: no local config → show setup window ----
+    // NOTE: onEnrolled is a no-op here. openSetupWindow (Task 12) fires
+    // onEnrolled on webContents 'did-finish-load' — the instant the setup
+    // HTML loads, BEFORE the user can enter the enroll code. Putting
+    // app.relaunch()/app.exit(0) in onEnrolled (as the brief specifies)
+    // would relaunch immediately and loop forever, since config is never
+    // written. The relaunch is instead placed in the 'agent:enroll' IPC
+    // handler (below), AFTER enrollAgent() succeeds and the renderer is
+    // signalled via 'enroll:done'.
+    const setupWin = openSetupWindow(() => {});
+    ipcMain.handle('agent:enroll', async (_e, code: string) => {
+      try {
+        const serverUrl = await discoverServer();
+        if (!serverUrl) {
+          return { ok: false, error: 'Server not found on LAN. Check the server is running.' };
+        }
+        await enrollAgent(serverUrl, code, configPath, {
+          reconnect_max_seconds: 60,
+          health_interval_seconds: 60,
+        });
+        setupWin.webContents.send('enroll:done');
+        app.relaunch();
+        app.exit(0);
+        return { ok: true }; // unreachable after exit(0); kept for type completeness
+      } catch (err) {
+        return { ok: false, error: (err as Error).message };
+      }
+    });
+    return;
+  }
 
   let config: AgentConfig;
   try {
