@@ -29,6 +29,7 @@ from backend.models._enums import (
 from backend.models.audit_log import AuditLog
 from backend.models.device_type import DeviceType
 from backend.models.event import Event
+from backend.models.event_match import EventMatch
 from backend.models.event_participant import EventParticipant
 from backend.models.expense import Expense
 from backend.models.invoice import Invoice
@@ -77,6 +78,7 @@ __all__: list[str] = [
     "AuditLog",
     "Event",
     "EventParticipant",
+    "EventMatch",
     "Expense",
     "GamingSession",
     "Invoice",
