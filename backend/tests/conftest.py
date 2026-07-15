@@ -53,7 +53,21 @@ if not _config_path.exists():
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session", autouse=True)
 def _reset_test_schema() -> None:
-    """Recreate ``backend/arcade.db`` from the current models before any test."""
+    """Recreate ``backend/arcade.db`` from the current models before any test.
+
+    ``drop_all`` + ``create_all`` rebuilds every table tracked by
+    ``Base.metadata`` but does NOT touch Alembic's own ``alembic_version``
+    bookkeeping table (it is not part of ``Base.metadata``). If that table is
+    absent — which is always the case on a fresh checkout, since ``arcade.db``
+    is gitignored and never reaches CI — the application's ``lifespan`` still
+    runs ``run_migrations()`` (``alembic upgrade head``) on startup and, finding
+    no recorded revision, re-emits every migration's ``CREATE TABLE``. Those
+    collide with the tables ``create_all`` just built, raising
+    ``OperationalError: table already exists``. Stamping head after
+    ``create_all`` records the revision so ``run_migrations()`` is a no-op —
+    the same state a locally-cached DB already has from prior runs, which is
+    why this only failed in CI.
+    """
     from backend.core.database import Base, async_engine
 
     async def _recreate() -> None:
@@ -62,3 +76,24 @@ def _reset_test_schema() -> None:
             await conn.run_sync(Base.metadata.create_all)
 
     asyncio.run(_recreate())
+    _stamp_alembic_head()
+
+
+def _stamp_alembic_head() -> None:
+    """Record the current Alembic revision so startup migrations are a no-op.
+
+    Mirrors the engine/url wiring used by :func:`backend.core.startup.run_migrations`
+    so the stamp lands on the same ``arcade.db`` file the app connects to. Runs
+    Alembic in a fresh thread/event loop (it calls ``asyncio.run`` internally),
+    which is safe here because the fixture body is synchronous.
+    """
+    from alembic import command as alembic_command
+    from alembic.config import Config as AlembicConfig
+
+    from backend.core.database import async_engine
+
+    here = Path(__file__).resolve().parent
+    alembic_cfg = AlembicConfig(here.parent / "alembic.ini")
+    alembic_cfg.set_main_option("script_location", str(here.parent / "alembic"))
+    alembic_cfg.set_main_option("sqlalchemy.url", str(async_engine.url))
+    alembic_command.stamp(alembic_cfg, "head")
