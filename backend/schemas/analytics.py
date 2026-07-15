@@ -17,6 +17,11 @@ class DailyRevenue(BaseResponseSchema):
     total_paise: int = Field(ge=0)
 
 
+class DailyCount(BaseResponseSchema):
+    date: str
+    count: int = Field(ge=0)
+
+
 class TopPosItem(BaseResponseSchema):
     menu_item_id: str
     name: str
@@ -72,6 +77,7 @@ class AnalyticsSummary(BaseResponseSchema):
     busiest_hour: BusiestHour | None = None
     weekly_revenue: list[DailyRevenue] = Field(default_factory=list)
     top_pos_items: list[TopPosItem] = Field(default_factory=list)
+    member_registration_trend: list[DailyCount] = Field(default_factory=list)
     zone_utilisation: list[ZoneUtilisation] = Field(default_factory=list)
     member_stats: MemberStats
     health_alerts: list[HealthAlert] = Field(default_factory=list)

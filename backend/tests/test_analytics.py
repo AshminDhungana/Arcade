@@ -230,3 +230,28 @@ async def test_summary_under_two_seconds_on_year(db: AsyncSession) -> None:
     elapsed = time.perf_counter() - start
     assert elapsed < 2.0, f"summary took {elapsed:.2f}s"
     assert summary is not None
+
+
+async def test_summary_member_registration_trend_fills_gaps(db: AsyncSession) -> None:
+    now = datetime.now(UTC)
+    for i, offset in enumerate([0, 0, 3]):
+        db.add(
+            Member(
+                name=f"M{i}",
+                phone=f"+977980000{i:04d}",
+                created_at=(now - timedelta(days=offset)).replace(
+                    hour=9, minute=0, second=0, microsecond=0
+                ),
+            )
+        )
+    await db.commit()
+
+    summary = await analytics_service.get_summary(db)
+    trend = summary.member_registration_trend
+    assert len(trend) == 30
+    today_key = now.strftime("%Y-%m-%d")
+    three_days_key = (now - timedelta(days=3)).strftime("%Y-%m-%d")
+    ten_days_key = (now - timedelta(days=10)).strftime("%Y-%m-%d")
+    assert next(d.count for d in trend if d.date == today_key) == 2
+    assert next(d.count for d in trend if d.date == three_days_key) == 1
+    assert next(d.count for d in trend if d.date == ten_days_key) == 0

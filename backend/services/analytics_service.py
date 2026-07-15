@@ -40,6 +40,7 @@ from backend.repositories import shift_repo
 from backend.schemas.analytics import (
     AnalyticsSummary,
     BusiestHour,
+    DailyCount,
     DailyRevenue,
     HealthAlert,
     MemberStats,
@@ -55,6 +56,7 @@ UTILISATION_WINDOW_DAYS = 7
 BUSIEST_HOUR_WINDOW_DAYS = 30
 TOP_ITEMS_WINDOW_DAYS = 30
 TOP_SPENDERS_WINDOW_DAYS = 30
+MEMBER_TREND_DAYS = 30
 
 # Health-alert thresholds (spec does not fix values).
 CPU_TEMP_RED_CELSIUS = 85.0
@@ -104,6 +106,30 @@ async def _weekly_revenue(
     while day < end:
         key = day.strftime("%Y-%m-%d")
         out.append(DailyRevenue(date=key, total_paise=totals.get(key, 0)))
+        day += timedelta(days=1)
+    return out
+
+
+async def _member_registration_trend(
+    db: AsyncSession, start: datetime, end: datetime
+) -> list[DailyCount]:
+    """Daily new-member counts over the window; fills gap days with 0."""
+    rows = (
+        await db.execute(
+            select(
+                func.strftime("%Y-%m-%d", Member.created_at).label("d"),
+                func.count().label("c"),
+            )
+            .where(Member.created_at >= start, Member.created_at < end)
+            .group_by("d")
+        )
+    ).all()
+    counts = {r.d: int(r.c) for r in rows}
+    out: list[DailyCount] = []
+    day = start
+    while day < end:
+        key = day.strftime("%Y-%m-%d")
+        out.append(DailyCount(date=key, count=counts.get(key, 0)))
         day += timedelta(days=1)
     return out
 
@@ -377,6 +403,9 @@ async def get_summary(db: AsyncSession) -> AnalyticsSummary:
         db, seats, zones, today_start - timedelta(days=UTILISATION_WINDOW_DAYS), now
     )
     member_stats = await _member_stats(db, today_start, thirty_days_ago)
+    member_registration_trend = await _member_registration_trend(
+        db, today_start - timedelta(days=MEMBER_TREND_DAYS - 1), tomorrow_start
+    )
     upcoming_reservations = await _upcoming_reservations(
         db, today_start, tomorrow_start, now
     )
@@ -400,6 +429,7 @@ async def get_summary(db: AsyncSession) -> AnalyticsSummary:
         busiest_hour=busiest_hour,
         weekly_revenue=weekly_revenue,
         top_pos_items=top_pos_items,
+        member_registration_trend=member_registration_trend,
         zone_utilisation=zone_utilisation,
         member_stats=member_stats,
         health_alerts=health_alerts,
