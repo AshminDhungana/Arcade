@@ -17,7 +17,12 @@ export async function enrollAgent(
   configPath: string,
   intervals: { reconnect_max_seconds: number; health_interval_seconds: number },
 ): Promise<LoadedAgentConfig> {
-  const res = await fetch(`${serverUrl.replace(/\/$/, '')}/api/agent/enroll`, {
+  // discoverServer() returns a `ws://`/`wss://` URL for the WebSocket client;
+  // fetch() rejects the `ws://` scheme, so derive an http(s) origin for the
+  // enroll HTTP call (server_url stays as-is in the persisted config).
+  const scheme = serverUrl.startsWith('wss://') ? 'https://' : 'http://';
+  const base = scheme + serverUrl.slice(serverUrl.indexOf('://') + 3).replace(/\/$/, '');
+  const res = await fetch(`${base}/api/agent/enroll`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

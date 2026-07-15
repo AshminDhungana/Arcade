@@ -105,9 +105,11 @@ self-provisions on first launch.
 
 ### Later changes (in-agent Settings)
 In the agent's staff-override dialog, the **Override** button (enter the staff override
-PIN to drop the kiosk) and the **Settings** button (re-enroll with a new code, change the
-server address, or adjust reconnect/health intervals) are both available. Changes are
-saved locally and applied on reconnect.
+PIN to drop the kiosk) and the **Settings** button are both available. The **Settings**
+button currently re-opens the setup window to **re-enroll the agent with a new code**.
+Editing the server address or adjusting reconnect/health intervals from in-agent Settings
+is a planned **v2** enhancement and is **not** available in v1 — those fields must be set
+out-of-band (e.g. hand-editing `agent.config.json`) for now.
 
 ### Emergency master PIN
 If the agent cannot reach the server, the staff override PIN is unavailable (it is

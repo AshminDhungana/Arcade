@@ -147,9 +147,18 @@ async def _seed_legacy_secrets(db: AsyncSession) -> None:
     config = get_config()
     legacy = getattr(config, "agent_secrets", None) or {}
     for seat_id, secret in legacy.items():
+        # A stray legacy key whose seat row no longer exists must not abort
+        # boot. set_agent_secret raises ValueError("Unknown seat_id") in that
+        # case — skip it so startup continues.
         existing = await seat_repo.get_agent_secret(db, seat_id)
         if existing is None and secret:
-            await seat_repo.set_agent_secret(db, seat_id, secret)
+            try:
+                await seat_repo.set_agent_secret(db, seat_id, secret)
+            except ValueError:
+                logger.warning(
+                    "Skipping legacy agent_secret seed for unknown seat_id: %s",
+                    seat_id,
+                )
 
 
 # ---------------------------------------------------------------------------
