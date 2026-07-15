@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import asyncio
 import json as _json
+import uuid
 from datetime import UTC, datetime
 from typing import Any, cast
 
 import pytest
 
 from backend.core.config import get_config
+from backend.core.database import AsyncSessionLocal
 from backend.core.ws_manager import (
     HEARTBEAT_INTERVAL,
     HEARTBEAT_TIMEOUT,
@@ -25,6 +27,7 @@ from backend.core.ws_manager import (
     server_anchor_elapsed,
     ws_envelope,
 )
+from backend.models import Seat
 
 # ---------------------------------------------------------------------------
 # Protocol helpers (Task 1)
@@ -150,7 +153,12 @@ def _fake_ws() -> Any:
 
 @pytest.fixture
 def mock_config(monkeypatch):  # type: ignore[no-untyped-def]
-    """Temporarily replace get_config to return a config with known agent secrets."""
+    """Temporarily replace get_config so the REGISTERED reply echoes a known cafe name.
+
+    Note: ``connect_agent`` no longer reads agent secrets from config (Task 5) —
+    it validates against the DB. Agent-secret tests seed a ``Seat`` row via
+    ``seeded_seat`` instead.
+    """
     from backend.core.config import Settings
 
     fake_config = Settings.model_validate(
@@ -159,14 +167,60 @@ def mock_config(monkeypatch):  # type: ignore[no-untyped-def]
             # Mirror the real config's cafe name so the REGISTERED reply echoed
             # by the (patched) manager matches the loaded config (Epic 5.5).
             "cafe_name": get_config().cafe_name,
-            "agent_secrets": {
-                "seat_001": "secret_001",
-                "seat_002": "secret_002",
-            },
         }
     )
     monkeypatch.setattr("backend.core.ws_manager.get_config", lambda: fake_config)
     return fake_config
+
+
+# ---------------------------------------------------------------------------
+# DB-seeded seat helpers (Task 5): connect_agent validates against the DB
+# ---------------------------------------------------------------------------
+
+
+async def _ensure_zone_z1() -> None:
+    """Make sure the FK target zone ``z1`` exists in the (persistent) test DB.
+
+    Uses raw SQL (rather than the ORM ``Zone`` row) so the helper stays robust
+    against schema drift in the shared ``arcade.db`` (e.g. a stale ``zones``
+    table missing newer columns).
+    """
+    from sqlalchemy import text
+
+    async with AsyncSessionLocal() as db:
+        existing = await db.execute(text("SELECT 1 FROM zones WHERE id = 'z1'"))
+        if existing.first() is None:
+            await db.execute(
+                text(
+                    "INSERT INTO zones (id, name, rate_per_minute_paise, "
+                    "rate_per_hour_paise, pricing_model, block_minutes) "
+                    "VALUES ('z1', 'Test Zone', 1, 60, 'PER_MINUTE', 15)"
+                )
+            )
+            await db.commit()
+
+
+@pytest.fixture
+async def seeded_seat():
+    """Seed a ``Seat`` with a unique id and matching ``agent_secret``.
+
+    Yields ``(seat_id, secret)`` and deletes the row afterwards so the test is
+    idempotent against the persistent ``arcade.db``.
+    """
+    await _ensure_zone_z1()
+    seat_id = f"seat_ws_{uuid.uuid4().hex[:12]}"
+    secret = f"secret_{uuid.uuid4().hex[:12]}"
+    async with AsyncSessionLocal() as db:
+        db.add(Seat(id=seat_id, name=seat_id, zone_id="z1", agent_secret=secret))
+        await db.commit()
+    try:
+        yield seat_id, secret
+    finally:
+        async with AsyncSessionLocal() as db:
+            seat = await db.get(Seat, seat_id)
+            if seat is not None:
+                await db.delete(seat)
+                await db.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -203,44 +257,50 @@ class TestDashboardRegistry:
 class TestAgentRegistry:
     async def test_connect_agent_valid_secret_accepts(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
+        seeded_seat,
     ) -> None:
+        seat_id, secret = seeded_seat
         mgr = WebSocketManager()
         ws = _fake_ws()
-        ok = await mgr.connect_agent("seat_001", "secret_001", ws)
+        ok = await mgr.connect_agent(seat_id, secret, ws)
         assert ok is True
-        assert "seat_001" in mgr.agent_connections
-        assert mgr.agent_connections["seat_001"] is ws
+        assert seat_id in mgr.agent_connections
+        assert mgr.agent_connections[seat_id] is ws
+        await mgr.close_all()
 
     async def test_connect_agent_invalid_secret_rejects(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
+        seeded_seat,
     ) -> None:
+        seat_id, secret = seeded_seat
         mgr = WebSocketManager()
         ws = _fake_ws()
-        ok = await mgr.connect_agent("seat_001", "wrong_secret", ws)
+        ok = await mgr.connect_agent(seat_id, "wrong_secret", ws)
         assert ok is False
         assert ws.is_closed
-        assert "seat_001" not in mgr.agent_connections
+        assert seat_id not in mgr.agent_connections
+        await mgr.close_all()
 
     async def test_connect_agent_unknown_seat_rejects(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
         ws = _fake_ws()
         ok = await mgr.connect_agent("seat_999", "anything", ws)
         assert ok is False
+        await mgr.close_all()
 
     async def test_disconnect_agent_removes(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
+        seeded_seat,
     ) -> None:
+        seat_id, secret = seeded_seat
         mgr = WebSocketManager()
         ws = _fake_ws()
-        await mgr.connect_agent("seat_001", "secret_001", ws)
-        await mgr.disconnect_agent("seat_001")
-        assert "seat_001" not in mgr.agent_connections
+        await mgr.connect_agent(seat_id, secret, ws)
+        await mgr.disconnect_agent(seat_id)
+        assert seat_id not in mgr.agent_connections
+        await mgr.close_all()
 
 
 # ---------------------------------------------------------------------------
@@ -251,17 +311,18 @@ class TestAgentRegistry:
 class TestSendAndBroadcast:
     async def test_send_to_agent_delivers_message(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
+        seeded_seat,
     ) -> None:
+        seat_id, secret = seeded_seat
         mgr = WebSocketManager()
         ws = _fake_ws()
-        await mgr.connect_agent("seat_001", "secret_001", ws)
-        await mgr.send_to_agent("seat_001", {"type": "HIDE_OVERLAY", "payload": {}})
+        await mgr.connect_agent(seat_id, secret, ws)
+        await mgr.send_to_agent(seat_id, {"type": "HIDE_OVERLAY", "payload": {}})
         assert any(msg.get("type") == "HIDE_OVERLAY" for msg in ws.sent_messages)
+        await mgr.close_all()
 
     async def test_send_to_agent_offline_raises_error(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
     ) -> None:
         mgr = WebSocketManager()
         with pytest.raises(AgentOfflineError):
@@ -305,9 +366,10 @@ class TestSendAndBroadcast:
 class TestHeartbeat:
     async def test_heartbeat_sends_ping_after_interval(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
+        seeded_seat,
     ) -> None:
         """After HEARTBEAT_INTERVAL, the manager sends PING to all agents."""
+        seat_id, secret = seeded_seat
         mgr = WebSocketManager()
         # Patch the interval to something tiny for test speed
         import backend.core.ws_manager as _ws
@@ -316,7 +378,7 @@ class TestHeartbeat:
         _ws.HEARTBEAT_INTERVAL = 0.05  # 50 ms
         try:
             ws = _fake_ws()
-            await mgr.connect_agent("seat_001", "secret_001", ws)
+            await mgr.connect_agent(seat_id, secret, ws)
             # Wait for two heartbeat intervals
             await asyncio.sleep(0.12)
             assert any(msg.get("type") == "PING" for msg in ws.sent_messages)
@@ -326,20 +388,23 @@ class TestHeartbeat:
 
     async def test_pong_clears_pending_state(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
+        seeded_seat,
     ) -> None:
+        seat_id, secret = seeded_seat
         mgr = WebSocketManager()
         ws = _fake_ws()
-        await mgr.connect_agent("seat_001", "secret_001", ws)
+        await mgr.connect_agent(seat_id, secret, ws)
         # Simulate receiving a PONG
-        await mgr.handle_pong("seat_001")
-        assert "seat_001" not in mgr._pending_pongs
+        await mgr.handle_pong(seat_id)
+        assert seat_id not in mgr._pending_pongs
+        await mgr.close_all()
 
     async def test_missing_pong_disconnects_agent(  # type: ignore[no-untyped-def]
         self,
-        mock_config,  # noqa: ARG002
+        seeded_seat,
     ) -> None:
         """An agent that never responds to PING is disconnected next tick."""
+        seat_id, secret = seeded_seat
         mgr = WebSocketManager()
         # Speed up heartbeat
         import backend.core.ws_manager as _ws
@@ -348,12 +413,12 @@ class TestHeartbeat:
         _ws.HEARTBEAT_INTERVAL = 0.03
         try:
             ws = _fake_ws()
-            await mgr.connect_agent("seat_001", "secret_001", ws)
+            await mgr.connect_agent(seat_id, secret, ws)
             # Wait for two ticks (first tick sends PING, second tick detects no PONG)
             await asyncio.sleep(0.08)
             # Agent should have been closed
             assert ws.is_closed
-            assert "seat_001" not in mgr.agent_connections
+            assert seat_id not in mgr.agent_connections
         finally:
             _ws.HEARTBEAT_INTERVAL = old_interval
             await mgr.close_all()
