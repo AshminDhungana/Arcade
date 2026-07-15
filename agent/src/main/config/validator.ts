@@ -53,6 +53,23 @@ export function validateAgentConfig(raw: unknown): ValidationResult {
     }
   }
 
+  // master_code_hash — optional, string or null
+  let master_code_hash: string | null = null;
+  if (r.master_code_hash !== undefined && r.master_code_hash !== null) {
+    if (typeof r.master_code_hash !== 'string') {
+      errors.push('master_code_hash must be a string or null');
+    } else {
+      master_code_hash = r.master_code_hash;
+    }
+  }
+
+  // cafe_name — optional, string or null
+  let cafe_name: string | null = null;
+  if (r.cafe_name !== undefined && r.cafe_name !== null) {
+    if (typeof r.cafe_name !== 'string') errors.push('cafe_name must be a string or null');
+    else cafe_name = r.cafe_name;
+  }
+
   // reconnect_max_seconds — optional, default 60
   let reconnect_max_seconds = 60;
   if (r.reconnect_max_seconds !== undefined) {
@@ -84,6 +101,8 @@ export function validateAgentConfig(raw: unknown): ValidationResult {
       seat_id: r.seat_id as string,
       agent_secret: r.agent_secret as string,
       override_code_hash,
+      master_code_hash,
+      cafe_name,
       reconnect_max_seconds,
       health_interval_seconds,
     },

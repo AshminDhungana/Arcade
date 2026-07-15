@@ -59,3 +59,27 @@ export function loadAgentConfig(configPath: string): LoadedAgentConfig {
 
   return result.config;
 }
+
+/**
+ * Persist a `LoadedAgentConfig` back to disk as JSON.
+ *
+ * Only the on-disk fields are written; defaults are materialised so the
+ * file is self-contained and re-validatable. File is created with
+ * `0o600` permissions so the agent secret stays private.
+ *
+ * @param config The validated config to persist.
+ * @param configPath Absolute or relative path to `agent.config.json`.
+ */
+export function saveAgentConfig(config: LoadedAgentConfig, configPath: string): void {
+  const onDisk = {
+    server_url: config.server_url,
+    seat_id: config.seat_id,
+    agent_secret: config.agent_secret,
+    override_code_hash: config.override_code_hash ?? null,
+    master_code_hash: config.master_code_hash ?? null,
+    cafe_name: config.cafe_name ?? null,
+    reconnect_max_seconds: config.reconnect_max_seconds,
+    health_interval_seconds: config.health_interval_seconds,
+  };
+  fs.writeFileSync(configPath, JSON.stringify(onDisk, null, 2), { mode: 0o600 });
+}

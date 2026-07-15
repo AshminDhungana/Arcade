@@ -11,6 +11,8 @@ export interface RawAgentConfig {
   seat_id: string;
   agent_secret: string;
   override_code_hash?: string | null;
+  master_code_hash?: string | null;
+  cafe_name?: string | null;
   reconnect_max_seconds?: number;
   health_interval_seconds?: number;
 }
@@ -21,6 +23,8 @@ export interface LoadedAgentConfig {
   seat_id: string;
   agent_secret: string;
   override_code_hash: string | null;
+  master_code_hash: string | null;
+  cafe_name: string | null;
   reconnect_max_seconds: number;
   health_interval_seconds: number;
 }
