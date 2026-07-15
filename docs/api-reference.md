@@ -1432,6 +1432,48 @@ state from local SQLite only (no external calls):
 
 ---
 
+## Events / Tournaments (`enable_tournaments`)
+
+All event endpoints require the `enable_tournaments` feature flag (503 when off).
+
+| Method | Path | Auth | Description |
+| ------ | ---- | ---- | ----------- |
+| GET | /api/events | Admin | List events |
+| POST | /api/events | Admin | Create event |
+| POST | /api/events/{id}/register | Cashier | Register a participant (deducts wallet for members) |
+| PATCH | /api/events/{id}/match | Admin | Record a match result (advances the bracket) |
+| GET | /api/events/{id}/summary | Admin | Event summary: participants, matches, prize pool, entry-fee revenue, champion |
+
+### Create event
+`POST /api/events`
+```json
+{ "name": "Spring Cup", "game_title": "Tekken 8",
+  "event_date": "2026-08-01T18:00:00Z", "entry_fee_paise": 5000,
+  "prize_pool_paise": 20000, "bracket_type": "SINGLE_ELIMINATION" }
+```
+
+### Register participant
+`POST /api/events/{id}/register` — body `{"member_id": "<id>"}` (deducts
+`entry_fee_paise` from the member wallet) **or** `{"name": "Walk-in"}` (no
+deduction; cash collected at counter). Registering a member with an insufficient
+wallet balance is rejected with `400`. Walk-ins are not charged but still count
+toward entry-fee revenue in the summary.
+
+### Record match result
+`PATCH /api/events/{id}/match` — body
+`{"match_id": "<id>", "winner_id": "<participant_id>"}`. Winner advances to
+`next_match_id`; in double elimination the loser drops to the losers bracket,
+otherwise eliminated. The final match (no `next_match_id`) sets the event
+`COMPLETED` and names the champion.
+
+### Bracket notes
+- The bracket is generated lazily: single elimination as soon as there are ≥2
+  participants (padded to the next power of 2 with byes).
+- Double elimination requires a power-of-2 participant count; otherwise
+  recording a result returns `400`.
+
+---
+
 ## Reference: Enums, Money & Feature Flags
 
 ### Money
