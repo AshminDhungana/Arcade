@@ -19,6 +19,7 @@ import { createCommandHandlers } from './commands.js';
 import { saveAgentConfig } from '../config/loader.js';
 import type { LoadedAgentConfig } from '../config/types.js';
 import os from 'node:os';
+import { verify } from '@node-rs/argon2';
 
 type ConnectionState = 'connecting' | 'open' | 'closing' | 'disconnected';
 
@@ -173,13 +174,13 @@ export class AgentWebSocketClient {
     const overrideHash = this.config.override_code_hash;
     const masterHash = this.config.master_code_hash ?? null;
 
-    // Always allow the staff override PIN if configured.
-    if (overrideHash && this._timingSafeCompare(pin, overrideHash)) {
+    // Always allow the staff override PIN if configured and it verifies.
+    if (overrideHash && (await verify(overrideHash, pin))) {
       this._activateOverride();
       return 'override';
     }
-    // Master PIN only when the server is unreachable (emergency).
-    if (!connected && masterHash && this._timingSafeCompare(pin, masterHash)) {
+    // Master PIN only when the server is unreachable (emergency), and it verifies.
+    if (!connected && masterHash && (await verify(masterHash, pin))) {
       this._activateOverride();
       return 'master';
     }
@@ -200,16 +201,6 @@ export class AgentWebSocketClient {
       this.config.override_code_hash = payload.override_code_hash ?? null;
       if (this.configPath) saveAgentConfig(this.config as LoadedAgentConfig, this.configPath);
     }
-  }
-
-  /** Timing-safe string comparison (prevents timing side-channel attacks). */
-  private _timingSafeCompare(a: string, b: string): boolean {
-    if (a.length !== b.length) return false;
-    let result = 0;
-    for (let i = 0; i < a.length; i++) {
-      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    }
-    return result === 0;
   }
 
   clearOverride(): void {

@@ -13,6 +13,12 @@ class MockWebSocket {
 }
 vi.stubGlobal('WebSocket', MockWebSocket);
 
+// Mock Argon2 so the unit test isolates the GATE logic (connected-vs-disconnected
+// routing), not real crypto. With `verify` as `hash === pin`, the existing cases pass.
+vi.mock('@node-rs/argon2', () => ({
+  verify: vi.fn(async (hash: string, pin: string) => hash === pin),
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
