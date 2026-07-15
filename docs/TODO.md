@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14)
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1248,14 +1248,14 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
   - [x] `GET /api/analytics/summary` (Admin)
   - [x] **Pass criteria:** All queries complete in < 2 seconds on 365-day seeded dataset (NFR-PERF-002) — verified ~0.03–0.06 s (~40–68× margin) on 3650 sessions/invoices
 
-### Epic 6.2: Events / Tournament Service (ENG-A)
+### Epic 6.2: Events / Tournament Service (ENG-A) ✅ _Complete (verified 2026-07-15)_
 
-- [ ] **Task: Implement `EventService`** (feature-flagged `enable_tournaments`)
-  - [ ] `create_event(name, game, date, entry_fee_paise, prize_pool_paise, bracket_type, db, staff)`
-  - [ ] `register_participant(event_id, member_id, seat_id, db, staff)`: deduct entry fee; create `EventParticipant`
-  - [ ] `record_match_result(match_id, winner_id, db, staff)`: advance winner in bracket; move loser to losers' bracket (double elimination) or eliminate (single elimination)
-  - [ ] `get_event_summary(event_id, db)`: participants, results, prize pool, entry fee revenue
-  - [ ] Event API: `GET /api/events`, `POST /api/events`, `POST /api/events/{id}/register`, `PATCH /api/events/{id}/match`, `GET /api/events/{id}/summary`
+- [x] **Task: Implement `EventService`** (feature-flagged `enable_tournaments`)
+  - [x] `create_event(name, game, date, entry_fee_paise, prize_pool_paise, bracket_type, db, staff)`
+  - [x] `register_participant(event_id, member_id, seat_id, db, staff)`: deduct entry fee; create `EventParticipant`
+  - [x] `record_match_result(match_id, winner_id, db, staff)`: advance winner in bracket; move loser to losers' bracket (double elimination) or eliminate (single elimination)
+  - [x] `get_event_summary(event_id, db)`: participants, results, prize pool, entry fee revenue
+  - [x] Event API: `GET /api/events`, `POST /api/events`, `POST /api/events/{id}/register`, `PATCH /api/events/{id}/match`, `GET /api/events/{id}/summary`
 
 ### Epic 6.3: Frontend â€” Analytics and Events (ENG-B)
 
