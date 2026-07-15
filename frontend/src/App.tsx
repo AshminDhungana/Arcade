@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import DashboardPage from './pages/Dashboard';
 import { MembersPage } from './pages/Members';
+import { AnalyticsPage } from './pages/Analytics';
 import SettingsPage from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useFeatureFlags } from './api/featureFlags';
@@ -32,6 +33,16 @@ export default function App() {
             <ProtectedRoute>
               <NavShell>
                 <MembersPage />
+              </NavShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <NavShell>
+                <AnalyticsPage />
               </NavShell>
             </ProtectedRoute>
           }

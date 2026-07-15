@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Settings as SettingsIcon } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, Settings as SettingsIcon } from 'lucide-react';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import type { ReactNode } from 'react';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, flag: null },
   { to: '/members', label: 'Members', icon: Users, flag: 'enable_members' as const },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3, flag: null },
   { to: '/settings', label: 'Settings', icon: SettingsIcon, flag: null },
 ];
 
