@@ -1687,6 +1687,15 @@ Package the system for customer distribution. Server as standalone executable (n
   - [ ] Create `agent/assets/icon.png` (256Ã—256 placeholder; replace with cafe branding before release)
   - [ ] Verify installer sets `chmod 600 agent.config.json` on Linux/macOS post-install
 
+### Epic 11.2: Keygen packaging (Optional)
+  - [ ] **Task: Create PyInstaller spec file (`keygen.spec`)**
+  - [ ] Entry point: `generate_license.py`
+  - [ ] Include: `tools\keygen\*`
+  - [ ] Hidden imports: `customtkinter`
+  - [ ] Build Directory should be inside 'tools\keygen\dist'
+  - [ ] Exclude eveything outside the tools directory.
+  - [ ] Build for Windows, macos and linux.
+
 ### Acceptance Criteria (Phase 11)
 
 - [ ] Customer can run `arcade-windows.exe` on fresh Windows machine without Python (NFR-PORT-003)

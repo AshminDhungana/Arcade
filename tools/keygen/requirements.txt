@@ -1,3 +1,4 @@
 # GUI dependency for the license keygen tool.
 # Install with: pip install -r tools/keygen/requirements.txt
 customtkinter>=5.2.0
+PyNaCl==1.6.2
