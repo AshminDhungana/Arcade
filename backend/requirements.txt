@@ -1,4 +1,5 @@
 # === Validated by ARCH-01/03/05/06 spikes — do NOT downgrade ===
+customtkinter>=5.2.0
 fastapi==0.138.1
 sqlalchemy[asyncio]==2.0.51
 aiosqlite==0.22.1

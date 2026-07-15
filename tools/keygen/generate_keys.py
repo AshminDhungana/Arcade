@@ -73,10 +73,14 @@ HOW TO SIGN A LICENSE
        python -c "from backend.licensing.fingerprint import get_hardware_id;"
        python -c "print(get_hardware_id())"
 
-  2. Generate the license:
-       python -m tools.keygen.generate_license \\
-         --hardware-id <32-hex-id> \\
-         --cafe-name  "Galaxy Gaming Lounge"
+  2. Generate the license (choose one):
+       CLI:
+         python -m tools.keygen.generate_license \\
+           --hardware-id <32-hex-id> \\
+           --cafe-name  "Galaxy Gaming Lounge"
+       GUI (no args needed):
+         python -m tools.keygen.generate_license --gui
+         # then fill the form and click Generate License
 
   3. This produces a signed `license.key` file. Deliver it to the customer.
 
