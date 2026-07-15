@@ -229,6 +229,15 @@ class WebSocketManager:
         message = ws_envelope(command["type"], command.get("payload", {}))
         await ws.send_json(message)
 
+    async def push_override_pin(self, seat_id: str, override_code_hash: str) -> None:
+        """Send a connected agent its new staff-override PIN hash (after regenerate)."""
+        ws = self.agent_connections.get(seat_id)
+        if ws is None:
+            return
+        await ws.send_json(
+            ws_envelope("SET_OVERRIDE_PIN", {"override_code_hash": override_code_hash})
+        )
+
     # --- Screenshot request/response correlation ----------------------
 
     async def wait_for_screenshot(

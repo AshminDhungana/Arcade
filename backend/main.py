@@ -35,6 +35,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 
+from backend.api.routers import agent as agent_router
 from backend.api.routers import routers as api_routers
 from backend.core.config import load_config
 from backend.core.database import AsyncSessionLocal, async_engine
@@ -167,6 +168,9 @@ app.add_middleware(
 # --- API routers --------------------------------------------------------
 for _router in api_routers:
     app.include_router(_router, prefix="/api")
+
+# Public agent self-provisioning endpoint (no /api prefix needed; mounted here).
+app.include_router(agent_router.router, prefix="/api")
 
 # --- Static files / SPA fallback ----------------------------------------
 # The catch-all mount at "/" is registered LAST (see end of file) so it does

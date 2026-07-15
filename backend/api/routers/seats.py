@@ -11,7 +11,9 @@ Routes::
 
 from __future__ import annotations
 
+import secrets
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
@@ -22,7 +24,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import require_admin, require_cashier
 from backend.core.database import get_db
 from backend.core.feature_flags import require_feature
+from backend.core.security import hash_pin
+from backend.core.ws_manager import manager
+from backend.models.seat import Seat
 from backend.models.staff import Staff
+from backend.repositories import seat_repo
 from backend.schemas.seat import SeatResponse
 from backend.services import (
     remote_command_service,
@@ -30,6 +36,7 @@ from backend.services import (
     tuya_service,
     wol_service,
 )
+from backend.services.enrollment_service import generate_enroll_code
 
 router = APIRouter(prefix="/seats", tags=["seats"])
 
@@ -187,3 +194,54 @@ async def power_off_seat(
 ) -> None:
     """Power a seat's console OFF via its Tuya smart plug (admin only)."""
     await tuya_service.power_off(db, seat_id)
+
+
+# ---------------------------------------------------------------------------
+# Enrollment
+# ---------------------------------------------------------------------------
+
+
+class _EnrollCodeResponse(BaseModel):
+    """Response for POST /seats/{id}/enroll-code."""
+
+    code: str
+    expires_at: str
+
+
+class _OverridePinResponse(BaseModel):
+    """Response for POST /seats/{id}/override-pin."""
+
+    override_pin: str
+
+
+@router.post("/{seat_id}/enroll-code", response_model=_EnrollCodeResponse)
+async def create_enroll_code(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> _EnrollCodeResponse:
+    """Generate a single-use, 15-minute enroll code for a seat (admin only)."""
+    code = await generate_enroll_code(db, seat_id, ttl_seconds=900)
+    seat = await db.get(Seat, seat_id)
+    expires = seat.enroll_code_expires_at if seat else None
+    return _EnrollCodeResponse(
+        code=code,
+        expires_at=(expires or datetime.now(UTC)).isoformat(),
+    )
+
+
+@router.post("/{seat_id}/override-pin", response_model=_OverridePinResponse)
+async def regenerate_override_pin(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> _OverridePinResponse:
+    """Mint/regenerate a seat's staff-override PIN (admin). Returns the plaintext
+    PIN once (it is one-way hashed, never stored plaintext) and pushes the new
+    hash to a connected agent via WebSocket.
+    """
+    pin = f"{secrets.randbelow(1_000_000):06d}"
+    pin_hash = hash_pin(pin)
+    await seat_repo.set_override_pin_hash(db, seat_id, pin_hash)
+    await manager.push_override_pin(seat_id, pin_hash)
+    return _OverridePinResponse(override_pin=pin)
