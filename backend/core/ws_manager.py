@@ -195,8 +195,10 @@ class WebSocketManager:
     # --- Agents ------------------------------------------------------------
 
     async def connect_agent(self, seat_id: str, secret: str, ws: WebSocket) -> bool:
-        config = get_config()
-        expected = config.agent_secrets.get(seat_id)
+        from backend.repositories import seat_repo
+
+        async with AsyncSessionLocal() as db:
+            expected = await seat_repo.get_agent_secret(db, seat_id)
         if expected is None or expected != secret:
             await ws.close(code=1008, reason="Invalid agent secret")
             return False
