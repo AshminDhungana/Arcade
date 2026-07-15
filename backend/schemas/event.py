@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from pydantic import AwareDatetime, Field
 
-from backend.models._enums import EventBracketType, EventStatus
+from backend.models._enums import (
+    EventBracketGroup,
+    EventBracketType,
+    EventMatchStatus,
+    EventStatus,
+)
 from backend.schemas.base import BaseCreateSchema, BaseResponseSchema
 
 
@@ -57,3 +62,44 @@ class EventParticipantUpdate(BaseCreateSchema):
 
 class EventParticipantResponse(EventParticipantBase, BaseResponseSchema):
     id: str
+
+
+class EventRegisterRequest(BaseCreateSchema):
+    """Body for POST /api/events/{id}/register."""
+
+    member_id: str | None = None
+    name: str | None = Field(None, max_length=255)
+    seat_id: str | None = None
+
+
+class EventMatchResultRequest(BaseCreateSchema):
+    """Body for PATCH /api/events/{id}/match."""
+
+    match_id: str
+    winner_id: str
+
+
+class EventMatchResponse(BaseResponseSchema):
+    id: str
+    event_id: str
+    bracket_group: EventBracketGroup
+    round: int
+    slot_a_id: str | None
+    slot_b_id: str | None
+    winner_id: str | None
+    status: EventMatchStatus
+    next_match_id: str | None
+    next_loser_match_id: str | None
+
+
+class EventSummaryResponse(BaseResponseSchema):
+    event: EventResponse
+    participant_count: int
+    participants: list[EventParticipantResponse]
+    match_count: int
+    completed_match_count: int
+    prize_pool_paise: int
+    entry_fee_paise: int
+    entry_fee_revenue_paise: int
+    champion_participant_id: str | None
+    is_complete: bool
