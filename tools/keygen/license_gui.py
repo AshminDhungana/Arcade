@@ -17,12 +17,20 @@ from __future__ import annotations
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
-from .generate_license import (
-    KeygenError,
-    build_and_write_license,
-    format_verify_command,
-    parse_trial_days,
-)
+try:
+    from .generate_license import (
+        KeygenError,
+        build_and_write_license,
+        format_verify_command,
+        parse_trial_days,
+    )
+except ImportError:  # direct `python generate_license.py` run: no parent package
+    from generate_license import (
+        KeygenError,
+        build_and_write_license,
+        format_verify_command,
+        parse_trial_days,
+    )
 
 # Brand palette (mirrors frontend/src/index.css) as (light, dark) tuples.
 _BRAND = {

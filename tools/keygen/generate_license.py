@@ -150,7 +150,13 @@ def main() -> None:
 
     # GUI mode: explicit flag, or no identifying args supplied.
     if args.gui or (not args.hardware_id and not args.cafe_name):
-        from .license_gui import launch_gui  # lazy: no customtkinter on CLI path
+        # Lazy import so the CLI path never pulls in customtkinter.
+        # Works both as `python -m tools.keygen.generate_license` (package)
+        # and as a direct `python generate_license.py` run (no parent package).
+        try:
+            from .license_gui import launch_gui
+        except ImportError:
+            from license_gui import launch_gui
 
         launch_gui()
         return
