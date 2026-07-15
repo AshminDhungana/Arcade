@@ -61,8 +61,7 @@ class InsufficientFundsError(HTTPException):
         super().__init__(
             status_code=400,
             detail=(
-                f"Insufficient wallet balance: need {needed} paise, "
-                f"have {have} paise"
+                f"Insufficient wallet balance: need {needed} paise, have {have} paise"
             ),
         )
 
