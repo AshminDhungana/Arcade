@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +18,7 @@ async def create_event(
     *,
     name: str,
     game_title: str,
-    event_date: str,
+    event_date: datetime,
     entry_fee_paise: int = 0,
     prize_pool_paise: int = 0,
     bracket_type: str | None = None,
@@ -96,6 +97,15 @@ async def get_participant_by_id(
         select(EventParticipant).where(EventParticipant.id == participant_id)
     )
     return result.scalar_one_or_none()
+
+
+async def update_participant(
+    db: AsyncSession, participant: EventParticipant
+) -> EventParticipant:
+    db.add(participant)
+    await db.flush()
+    await db.refresh(participant)
+    return participant
 
 
 async def list_participants(
