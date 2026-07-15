@@ -1263,14 +1263,18 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
 
 ### Epic 6.3: Frontend â€” Analytics and Events (ENG-B)
 
-- [ ] **Task: Implement `Analytics.tsx` with Recharts**
-  - [ ] KPI cards row: today's revenue, session count, avg duration, busiest hour
-  - [ ] Weekly revenue: `BarChart`
-  - [ ] Seat utilisation: grouped `BarChart` or `RadarChart`
-  - [ ] Top POS items: horizontal `BarChart`
-  - [ ] Member registration trend: `LineChart`
-  - [ ] Health alerts: warning cards for overheating/offline seats
-  - [ ] Mobile-responsive: all charts stack vertically at 375px (FR-MOB-001, FR-MOB-002, AC-05)
+- [x] **Task: Implement `Analytics.tsx` with Recharts** ✅ _Complete (verified 2026-07-16)_
+  - [x] KPI cards row: today's revenue (`formatPaise`), session count, avg duration (`formatDuration`), busiest hour (`formatHour`) — `src/components/analytics/KpiRow.tsx` + `KpiCard.tsx`
+  - [x] Weekly revenue `BarChart` — `src/components/analytics/RevenueBarChart.tsx` (YAxis ticks formatted via `formatPaise`)
+  - [x] Seat utilisation per-zone `BarChart`, threshold-coloured (`utilisationColor`: green <60%, amber 60-84%, red >=85%) — `src/components/analytics/SeatUtilisationChart.tsx`
+  - [x] Top POS items horizontal `BarChart` (`layout="vertical"`, largest on top) — `src/components/analytics/TopPosItemsChart.tsx`
+  - [x] Member registration trend `LineChart` (30-day, fed by new backend `member_registration_trend` field) — `src/components/analytics/MemberTrendChart.tsx`
+  - [x] Health alerts: merged cards — summary `health_alerts` (overheating `cpu_temp_red` / stale `no_health_report`) + offline/`UNREACHABLE` seats derived client-side from `useSeats()` (backend excludes OFFLINE/MAINTENANCE) — `src/components/analytics/HealthAlerts.tsx` + `HealthAlertCard.tsx`
+  - [x] `ChartCard.tsx` wrapper: `role="img"` + descriptive `aria-label`, empty-state "No data yet."
+  - [x] Mobile-responsive at 375px by construction: `KpiRow` `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`; charts grid `grid-cols-1 lg:grid-cols-2`; every chart `width="100%"`; all grids collapse to a single column at <640px (no horizontal overflow) (FR-MOB-001, FR-MOB-002, AC-05)
+  - [x] Backend extension (plan Task 1): `AnalyticsSummary.member_registration_trend: list[DailyCount]` added to `schemas/analytics.py` + `_member_registration_trend()` helper in `services/analytics_service.py` (mirrors `_weekly_revenue`, fills 30-day gap days with 0); 1 new backend test `test_summary_member_registration_trend_fills_gaps`
+  - [x] Wire: `/analytics` route added to `src/App.tsx` (ProtectedRoute + NavShell) and `Analytics` nav entry added to `src/components/NavShell.tsx`
+  - [x] **Verification (2026-07-16):** Frontend `npx vitest run` -> **173 passed / 54 files**; `npm run build` (tsc strict + vite) clean; `npm run lint` (ESLint) clean. Backend `pytest` -> **648 passed, 2 skipped**; `test_analytics.py` 7/7; pre-commit (ruff, ruff-format, mypy --strict, bandit) all pass. 13 commits on `main` (`01090bb` backend ... `f874bcd` types/hook); feature-flag gated via `useAnalyticsSummary` `enabled: !!token` + ProtectedRoute. **Not yet done:** live visual eyeball at 375px in a real browser (responsive layout verified by construction via the automated page test asserting `grid-cols-1` is present) — run `npm run dev` + backend to confirm visually.
 
 - [ ] **Task: Implement `Events.tsx`**
   - [ ] Event list and create form (feature-flagged)
