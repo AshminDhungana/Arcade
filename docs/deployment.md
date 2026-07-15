@@ -87,6 +87,34 @@ at WARNING). The same service also fires automatically on session start (power O
 (power OFF) for seats that have a plug bound. See `docs/api-reference.md` → Remote Commands for
 the endpoint contract.
 
+## Agent Installation & Provisioning
+
+The Arcade Agent is distributed as a platform installer (`ArcadeAgent-<ver>-setup.exe`,
+`.dmg`, AppImage). **No `agent.config.json` is shipped or hand-copied.** The agent
+self-provisions on first launch.
+
+### First-time setup (operator)
+1. On the dashboard, open the target seat and click **Enroll Code** (admin). A one-time
+   code (e.g. `ABCD-EFGH`) appears — it expires in 15 minutes and is single-use.
+2. On the gaming PC, install and launch `ArcadeAgent`. The agent auto-discovers the
+   server on the LAN (UDP beacon). If discovery fails on a strict network, the operator
+   can set `server_url` in the setup window.
+3. In the first-run window, type the enroll code and click **Connect**. The agent
+   contacts the server, receives its `seat_id` + `agent_secret`, writes a local
+   `agent.config.json`, and relaunches into the kiosk. **Done — no file copying.**
+
+### Later changes (in-agent Settings)
+In the agent's staff-override dialog, the **Override** button (enter the staff override
+PIN to drop the kiosk) and the **Settings** button (re-enroll with a new code, change the
+server address, or adjust reconnect/health intervals) are both available. Changes are
+saved locally and applied on reconnect.
+
+### Emergency master PIN
+If the agent cannot reach the server, the staff override PIN is unavailable (it is
+provisioned by the server). The build-injected **master PIN** then works as an emergency
+unlock (see `tools/keygen/generate_keys.py`). It is accepted **only** when the server is
+unreachable, and is never shown in the UI.
+
 ## Receipt Printer Setup
 
 Arcade prints ESC/POS thermal receipts (via `python-escpos`) automatically on checkout, and
