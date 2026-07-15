@@ -15,6 +15,7 @@ from backend.api.routers.audit import router as audit_router
 from backend.api.routers.auth import router as auth_router
 from backend.api.routers.backup import router as backup_router
 from backend.api.routers.device_types import router as device_type_router
+from backend.api.routers.events import router as event_router
 from backend.api.routers.inventory import router as inventory_router
 from backend.api.routers.invoices import router as invoices_router
 from backend.api.routers.members import router as member_router
@@ -49,7 +50,7 @@ __all__ = ["routers"]
 # Phase 5: routers.append(reservation_router)  # DONE
 # Phase 5: # routers.append(remote_command_router)
 # Phase 6: routers.append(analytics_router)  # DONE
-# Phase 6: # routers.append(event_router)
+# Phase 6: routers.append(event_router)  # DONE
 # Phase 6: # routers.append(settings_router)
 
 routers: list[APIRouter] = [
@@ -75,4 +76,5 @@ routers: list[APIRouter] = [
     shift_router,
     reservation_router,
     analytics_router,
+    event_router,
 ]

@@ -109,6 +109,17 @@ class EventService:
         return event
 
     @staticmethod
+    async def _list_events(db: AsyncSession) -> list[Event]:
+        return list(await event_repo.list_events(db))
+
+    @staticmethod
+    async def _get_event_or_404(db: AsyncSession, event_id: str) -> Event:
+        event = await event_repo.get_event_by_id(db, event_id)
+        if event is None:
+            raise EventNotFoundError(event_id)
+        return event
+
+    @staticmethod
     async def register_participant(
         db: AsyncSession,
         *,
