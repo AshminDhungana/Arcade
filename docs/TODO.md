@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -115,6 +115,7 @@ Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-val
 | 4     | Members, Packages, Promotions    | Member/package/promo/voucher/staff services   | Member UI, settings page                       | 1.5 weeks       |
 | 5     | Operations & Experience          | Shift mgmt, reservations, health, backup      | Shift UI, reservation UI, health dashboard     | 1.5 weeks       |
 | 6     | Analytics & Events               | Analytics service, event/tournament service   | Analytics page, events page                    | 1 week          |
+| 6.5   | Session Integrity, Overlay Control & Assigned-Time (NEW) | Print-gate + outbox, overlay force API, expiry sweep | Force-overlay UI, assigned-time UI, unprinted-invoice badge | 1 week           |
 | 7     | Cross-Platform Agent Polish      | macOS agent impl, cross-platform testing      | Linux agent impl, kiosk hardening verification | 1 week          |
 | 8     | Testing & QA                     | Backend integration + perf tests, CI pipeline | Frontend E2E, cross-browser                    | 1 week          |
 | 9     | Security Hardening               | Auth audit, key audit, Bandit/pip-audit       | Dependency audit, input validation audit       | 3â€“4 days        |
@@ -124,7 +125,7 @@ Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-val
 | 13    | Production Release               | Final AC verification, release artifacts      | Release packaging, customer deployment         | 2â€“3 days        |
 | 14    | Post-Launch Support & V2 Scoping | Bug SLA process, V2 scope doc                 | â€”                                              | Ongoing         |
 
-**Total estimated duration:** 14â€“16 weeks for two engineers working concurrently.
+**Total estimated duration:** 15-17 weeks for two engineers working concurrently (includes new Phase 6.5).
 
 ---
 
@@ -144,6 +145,8 @@ Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-val
 | R-10 | Cross-compilation not supported by PyInstaller            | Cannot build Windows `.exe` on macOS    | Medium      | Plan a Windows build machine (or GitHub Actions Windows runner) from Phase 0                             |
 | R-11 | Alembic migration fails on customer DB after upgrade      | Data inaccessible after software update | High        | Test migration on a copy of production DB before release; include rollback script                        |
 | R-12 | ESC/POS thermal printer model incompatibility             | Receipt printing fails                  | Medium      | Abstract `PrintService` to allow printer model config; test with target hardware; maintain PDF fallback  |
+| R-13 | Print-gate (`require_print_before_release`) blocks seat release when printer is offline | Seat stuck occupied, operational disruption | Medium | Flag defaults `false`; PIN-gated "Force close (unprinted)" override; outbox retry with backoff (Epic 6.5.1) |
+| R-14 | Forced overlay and pause-triggered overlay compute paused time via two separate code paths, causing billing drift | Incorrect customer billing | Medium | Route both through one shared pause-accrual helper; add parity test comparing both paths (Epic 6.5.3) |
 
 ---
 
@@ -151,11 +154,11 @@ Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-val
 
 ```
 Timeline â†’
-ENG-A: [Phase 0 Backend] â†’ [Phase 1 FastAPI+DB+Models] â†’ [Phase 2 Services+API] â†’ [Phase 3 Billing+POS] â†’ [Phase 4 Members+Staff] â†’ [Phase 5 Shifts+Reservations] â†’ [Phase 6 Analytics] â†’ [Phase 7 macOS] â†’ [Phase 8 Tests+CI] â†’ [Phase 9 Security] â†’ [Phase 10 Perf] â†’ [Phase 11 Packaging] â†’ ...
+ENG-A: [Phase 0 Backend] â†’ [Phase 1 FastAPI+DB+Models] â†’ [Phase 2 Services+API] â†’ [Phase 3 Billing+POS] â†’ [Phase 4 Members+Staff] â†’ [Phase 5 Shifts+Reservations] â†’ [Phase 6 Analytics] â†’ [Phase 6.5 Print+Overlay+Timer] â†’ [Phase 7 macOS] â†’ [Phase 8 Tests+CI] â†’ [Phase 9 Security] â†’ [Phase 10 Perf] â†’ [Phase 11 Packaging] â†’ ...
 
-ENG-B: [Phase 0 Frontend] â†’ [Phase 1 Launcher+Keygen] â†’ [Phase 2 Agent+Dashboard] â†’ [Phase 3 Checkout UI] â†’ [Phase 4 Member UI] â†’ [Phase 5 Ops UI] â†’ [Phase 6 Analytics UI] â†’ [Phase 7 Linux] â†’ [Phase 8 E2E Tests] â†’ [Phase 9 Dep Audit] â†’ [Phase 10 Bundle] â†’ [Phase 11 Agent Pkg] â†’ ...
+ENG-B: [Phase 0 Frontend] â†’ [Phase 1 Launcher+Keygen] â†’ [Phase 2 Agent+Dashboard] â†’ [Phase 3 Checkout UI] â†’ [Phase 4 Member UI] â†’ [Phase 5 Ops UI] â†’ [Phase 6 Analytics UI] â†’ [Phase 6.5 Overlay+Timer UI] â†’ [Phase 7 Linux] â†’ [Phase 8 E2E Tests] â†’ [Phase 9 Dep Audit] â†’ [Phase 10 Bundle] â†’ [Phase 11 Agent Pkg] â†’ ...
 
-âš¡ CHECKPOINTS: 0-END, 1-A, 1-B, 2-A, 3-A, 4-A, 5-A, 6-A, 8-END, 13-END
+âš¡ CHECKPOINTS: 0-END, 1-A, 1-B, 2-A, 3-A, 4-A, 5-A, 6-A, 6.5-A, 8-END, 13-END
 ```
 
 ---
@@ -1291,6 +1294,90 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
 
 ---
 
+## Phase 6.5: Session Integrity, Owner Overlay Control & Assigned-Time Enforcement (NEW)
+
+### Objectives
+
+Close five gaps identified in the 2026-07-15 feature audit against the live product: gate seat release on receipt confirmation (configurable), give the owner a manual overlay control independent of session state, unify overlay-visible/billing-paused semantics into one code path, and add an optional per-session assigned-time limit with auto-overlay and time extension. This phase touches Session Core (Phase 2), Billing/Print (Phase 3), and Remote Commands/Overlay (Phase 5) code, so every task below names the exact existing task it modifies.
+
+### Deliverables
+
+- `PrintService` gains an outbox-style print-job queue and an `Invoice.print_status` field
+- `RemoteCommandService` gains manual overlay force show/hide (single seat + bulk)
+- Agent `IPlatformService` / WS client gain `FORCE_OVERLAY_ON` / `FORCE_OVERLAY_OFF` handling, decoupled from `STAFF_OVERRIDE`
+- `SessionService` gains optional `assigned_end_at`, an expiry sweep, and an extend-time endpoint
+- New seat status `EXPIRED`; two new WS message types; two new feature flags
+- Dashboard: "Force Overlay" action per seat + bulk action, "Unprinted invoices" indicator, "Assigned time" field in Start Session, "+ Add time" action
+
+### Dependencies
+
+- Phase 2 (Session Core), Phase 3 (Billing/Print), Phase 5 (Remote Commands, Agent Overlay) complete - all satisfied as of 2026-07-15
+
+### âš¡ CHECKPOINT 6.5-A
+
+- [ ] Failed or skipped print does not block seat release by default; when `require_print_before_release=true` it does, with a PIN-gated override
+- [ ] Owner can force the overlay on/off for any seat from the dashboard regardless of session state; action is audit-logged
+- [ ] Forcing overlay on (manually or via time expiry) pauses billed time using the same accrual path as `pause_session()` - no drift between the two
+- [ ] A seat with an assigned time limit auto-shows the overlay at expiry (after a `LOW_TIME_WARNING`), and "Add time" resumes it correctly
+
+---
+
+### Epic 6.5.1: Print-Gated Session Closure (ENG-A) (NEW)
+
+- [ ] **Task: Add print-status tracking to `Invoice`**
+  - [ ] New `Invoice.print_status` enum: `PENDING`, `PRINTED`, `FAILED`, `SKIPPED`
+  - [ ] **Modifies Feature 3.1.5 (Print Service, `print_service.py`, `print_receipt()`):** currently only logs a `WARNING` on failure - change to persist `print_status` on the invoice so failure is queryable, not just logged
+  - [ ] Add `print_jobs` table (outbox pattern): `invoice_id`, `attempts`, `next_retry_at`, `last_error`; background retry via APScheduler (same mechanism as Epic 5.4 backup job)
+
+- [ ] **Task: Feature-flagged hard print gate for venues that require it**
+  - [ ] New config field `require_print_before_release` (default `false`) - **Modifies Appendix B (`arcade.config.json` schema)**
+  - [ ] **Modifies Feature 3.1.2 (Checkout Flow, `billing_service.checkout_session()`, step 15 "Send `SHOW_OVERLAY` to agent"):** when the flag is `true`, do not send `SHOW_OVERLAY` / free the seat until `print_status != PENDING`
+  - [ ] On `FAILED`: surface a PIN-gated "Force close (unprinted)" action that completes the same checkout step anyway; **modifies** `checkout_session()` to accept an optional `override_reason`, and **modifies Feature 3.1.6 (Audit Log Service)** call list to add `CHECKOUT_FORCED_UNPRINTED`
+  - [ ] When flag is `false` (default): today's behaviour is unchanged, but any `FAILED`/`SKIPPED` invoice appears on a new dashboard "Unprinted Invoices" list until reprinted
+
+- [ ] **Task: Shift-close reconciliation gate**
+  - [ ] **Modifies Epic 5.1 (`ShiftService.close_shift()`):** warn (non-blocking by default; configurable to blocking) if unprinted invoices exist inside the shift window being closed
+
+### Epic 6.5.2: Manual Overlay Control (ENG-A + ENG-B) (NEW)
+
+- [ ] **Task: New WS command types** - **Modifies Appendix A (Integration Points Reference table):** add `FORCE_OVERLAY_ON`, `FORCE_OVERLAY_OFF` rows; add an `overlay_forced` field to the `seat_updated` broadcast payload
+- [ ] **Task: Backend** - **Modifies Epic 5.3 (`RemoteCommandService`):** add `force_overlay(seat_id, show: bool, db, staff)`; audit `OVERLAY_FORCED_ON` / `OVERLAY_FORCED_OFF`; new routes `POST /api/seats/{id}/overlay`, `POST /api/seats/bulk/overlay` (Admin)
+- [ ] **Task: Agent** - **Modifies Feature 2.2.1 (`IPlatformService`)** to expose the existing `showKioskOverlay()`/`hideKioskOverlay()` to a new command, and **Modifies Feature 2.2.2 (Agent WebSocket Client message handlers)**: add `FORCE_OVERLAY_ON -> platform.showKioskOverlay()`, `FORCE_OVERLAY_OFF -> platform.hideKioskOverlay()`. Track `overlayForced` as a separate flag from `override_active` so this doesn't collide with the existing `STAFF_OVERRIDE` suppression logic in the same feature ("while `override_active`: suppress `SHOW_OVERLAY` commands")
+- [ ] **Task: Frontend** - **Modifies Feature 2.3.2 (`SeatCard` seat-modal actions list** - currently "Start Session, Pause/Resume, Checkout, Set Maintenance, WoL, View Health"): add "Force Overlay On/Off"; add a dashboard-header bulk "Lock all idle seats" button (Admin only)
+
+### Epic 6.5.3: Overlay <-> Timer Coupling (ENG-A) (NEW)
+
+- [ ] **Task: Route forced overlay through the pause accounting path**
+  - [ ] **Modifies Feature 2.1.2 (Session Service, `pause_session()`):** extract the `total_paused_seconds` accrual into a reusable internal helper; call it from both `pause_session()` and the new `force_overlay(show=True, ...)` when a session is `ACTIVE` on that seat, so there is exactly one source of truth for paused-time math instead of two
+  - [ ] Make the behaviour config-driven, not hardcoded: new flag `overlay_pauses_billing` (default `true`) - some venues intentionally keep billing running while the overlay is up (an "Overtime"-style mode some existing cyber cafe platforms support), so this must be a setting, not an assumption
+- [ ] **Task: Close the documented HUD gap** - **Modifies Epic 5.5 known-gap note** ("server does not yet push a live `overlay:timer` during a session"): add a periodic `overlay:timer` push (every 10s, piggybacking on the existing `updateElapsed()` cadence in `ws/client.ts`) so the in-game HUD countdown actually ticks - this is required plumbing for Epic 6.5.4's expiry countdown too
+
+### Epic 6.5.4: Assigned-Time Auto-Overlay & Extension (ENG-A + ENG-B) (NEW)
+
+- [ ] **Task: Schema** - add nullable `Session.assigned_end_at`; **Modifies Feature 2.1.2 (`session_service.start_session()`):** accept an optional `assigned_minutes` param and compute `assigned_end_at = now + assigned_minutes`
+- [ ] **Task: New seat status** - **Modifies the seat status enum used by `SeatStatusBadge` (Feature 2.3.2)** - currently `AVAILABLE / IN_USE / PAUSED / RESERVED / MAINTENANCE / BOOTING / UNREACHABLE`: add `EXPIRED` with its own badge colour
+- [ ] **Task: Expiry sweep** - new `session_service.sweep_expired_sessions()`, scheduled via APScheduler on a short interval (same polling pattern already used in **Epic 5.2's reservation scheduled check**, not the once-nightly cron pattern from Epic 5.4): finds sessions where `assigned_end_at <= now AND status = ACTIVE`, sends the existing `LOW_TIME_WARNING` message (already in Appendix A) 5 minutes before expiry, and at expiry calls the Epic 6.5.2 `force_overlay(show=True)` and sets seat status `EXPIRED`
+- [ ] **Task: Extend endpoint** - `POST /api/sessions/{id}/extend` (`{additional_minutes}`, Cashier+): pushes `assigned_end_at` forward; if the seat is `EXPIRED` because of this mechanism (not a manual force or a pause), calls `force_overlay(show=False)` and reverts the seat to `IN_USE`; audit `SESSION_EXTENDED`
+- [ ] **Task: Feature flag + settings UI** - new flag `enable_assigned_time_limit` (default `false`) - **Modifies Appendix D (Feature Flag Defaults Reference)**; **Modifies Feature 4.x (`Settings.tsx`):** add an "Advanced" section (matches how this was originally described - rarely used, opt-in) exposing the per-session assigned-time toggle rather than a global always-on limit
+- [ ] **Task: Frontend** - **Modifies the Start Session flow inside Feature 2.3.2's seat-modal actions:** add an optional "Assign time limit" field, shown only when `enable_assigned_time_limit` is on; add a "+ Add time" button on `SeatCard` for `EXPIRED` or `IN_USE` seats that have an assigned limit set
+
+### Testing Requirements (Phase 6.5)
+
+- [ ] `pytest backend/tests/test_print_service.py` - print status transitions, outbox retry/backoff, `require_print_before_release` gate blocks/allows correctly, `CHECKOUT_FORCED_UNPRINTED` audit entry
+- [ ] `pytest backend/tests/test_remote_commands.py` - extend with force-overlay show/hide, bulk action, audit entries
+- [ ] `pytest backend/tests/test_session_service.py` - extend with paused-time accrual parity between `pause_session()` and forced overlay; expiry sweep; extend-time resets `EXPIRED -> IN_USE`
+- [ ] Agent: `vitest` - `FORCE_OVERLAY_ON`/`OFF` handlers don't collide with `STAFF_OVERRIDE` suppression; `overlay:timer` push
+- [ ] Frontend: `SeatCard` renders `EXPIRED` status; Force Overlay + Add Time actions call the correct endpoints
+- [ ] **End-to-end (manual):** set a 2-minute assigned limit, confirm `LOW_TIME_WARNING` at 1 minute remaining, overlay auto-shows at 0, "Add time" resumes correctly with continuous billed-time accounting across the pause
+
+### Documentation Requirements (Phase 6.5)
+
+- [ ] `docs/api-reference.md`: overlay force endpoints, session extend endpoint, invoice print-status field
+- [ ] `docs/operator-guide.md`: when to enable `require_print_before_release` and `enable_assigned_time_limit`; how "Force Overlay" differs from Pause; shift-close unprinted-invoice workflow
+- [ ] Appendix A, B, D updated to reflect the new commands, config field, and flags (see below)
+
+---
+
 ## Phase 7: Cross-Platform Agent Polish (macOS & Linux)
 
 ### Objectives
@@ -1920,6 +2007,8 @@ To be completed at the end of Phase 13, before any customer delivery.
 | Session start             | Dashboard | FastAPI       | REST POST             | `SessionStartRequest`                                                                |
 | `HIDE_OVERLAY`            | FastAPI   | Agent         | WebSocket JSON        | `{type: "HIDE_OVERLAY", session_id}`                                                 |
 | `SHOW_OVERLAY`            | FastAPI   | Agent         | WebSocket JSON        | `{type: "SHOW_OVERLAY"}`                                                             |
+| `FORCE_OVERLAY_ON` (NEW)  | FastAPI   | Agent         | WebSocket JSON        | `{type: "FORCE_OVERLAY_ON", seat_id}` - manual, decoupled from session state         |
+| `FORCE_OVERLAY_OFF` (NEW) | FastAPI   | Agent         | WebSocket JSON        | `{type: "FORCE_OVERLAY_OFF", seat_id}`                                               |
 | `TAKE_SCREENSHOT`         | FastAPI   | Agent         | WebSocket JSON        | `{type: "TAKE_SCREENSHOT", request_id}`                                              |
 | `SCREENSHOT_RESPONSE`     | Agent     | FastAPI       | WebSocket JSON        | `{type: "SCREENSHOT_RESPONSE", request_id, data: "base64jpeg"}`                      |
 | `SHOW_MESSAGE`            | FastAPI   | Agent         | WebSocket JSON        | `{type: "SHOW_MESSAGE", message}`                                                    |
@@ -1930,6 +2019,7 @@ To be completed at the end of Phase 13, before any customer delivery.
 | `STAFF_OVERRIDE`          | Agent     | FastAPI       | WebSocket JSON        | `{type: "STAFF_OVERRIDE", payload: {seat_id, timestamp}}`                            |
 | `RESET_OVERRIDE`          | FastAPI   | Agent         | WebSocket JSON        | `{type: "RESET_OVERRIDE", payload: {}}`                                              |
 | `LOW_TIME_WARNING`        | FastAPI   | Agent         | WebSocket JSON        | `{type: "LOW_TIME_WARNING", minutes_remaining}`                                      |
+| Session extend (NEW)      | Dashboard | FastAPI       | REST POST             | `{additional_minutes}` -> `POST /api/sessions/{id}/extend`                           |
 | `seat_updated` broadcast  | FastAPI   | Dashboard     | WebSocket JSON        | `{event: "seat_updated", data: SeatResponse}`                                        |
 | `health_update` broadcast | FastAPI   | Dashboard     | WebSocket JSON        | `{event: "health_update", data: {seat_id, metrics}}`                                 |
 | WoL magic packet          | FastAPI   | Client PC NIC | UDP                   | 6Ã—0xFF + 16Ã—MAC address bytes                                                        |
@@ -1966,6 +2056,7 @@ All engineers must use the exact field names below. ENG-B (Launcher) writes this
       "protocol_version": "string"
     }
   ],
+  "require_print_before_release": "boolean (default: false) - NEW, see Phase 6.5",
   "printer_type": "string ('usb' or 'network')",
   "printer_usb_vendor": "string (hex, e.g., '0x04b8')",
   "printer_usb_product": "string (hex)"
@@ -2015,6 +2106,9 @@ ARCADE_LOG_LEVEL=DEBUG
 | `enable_expense_tracking`    | `false` | Expense log and P&L              | Expense endpoints             |
 | `enable_health_monitoring`   | `true`  | PC hardware metrics from agent   | Health endpoints              |
 | `require_member_for_session` | `false` | Require member login to unlock   | Applied at session start      |
+| `require_print_before_release` (NEW) | `false` | Block seat release until receipt print confirmed | Checkout release step (Phase 6.5) |
+| `enable_assigned_time_limit` (NEW)    | `false` | Per-session assigned time limit, auto-overlay on expiry | Session start / extend endpoints (Phase 6.5) |
+| `overlay_pauses_billing` (NEW)        | `true`  | Whether showing the overlay (forced or expiry) pauses billed time | Applied in `pause_session()` / `force_overlay()` (Phase 6.5) |
 
 ---
 
@@ -2039,4 +2133,5 @@ PRAGMA temp_store = MEMORY;        -- Keep temp tables in RAM
 
 _This roadmap is the authoritative implementation plan for Arcade v1.0. It supersedes the v2.0 TODO.md. Changes to requirements must be reflected here before implementation begins._
 
-_Last updated: June 2026_
+
+_Last updated: July 2026 - Phase 6.5 (NEW) added following the 2026-07-15 feature audit_
