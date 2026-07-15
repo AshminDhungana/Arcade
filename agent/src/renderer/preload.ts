@@ -43,6 +43,9 @@ interface ElectronAPI {
   /** Renderer → Main: attempt a staff override with the given PIN. */
   staffOverride: (pin: string) => void;
 
+  /** Renderer → Main: open the agent settings (setup) window. */
+  openSettings: () => void;
+
   /** Renderer → Main: enroll this agent using the given code. */
   enroll: (code: string) => Promise<{ ok: boolean; error?: string }>;
 }
@@ -85,6 +88,8 @@ const api: ElectronAPI = {
   staffOverride: (pin: string) => {
     ipcRenderer.send('staff-override', pin);
   },
+
+  openSettings: () => ipcRenderer.send('agent:open-settings'),
 
   enroll: (code: string) =>
     ipcRenderer.invoke('agent:enroll', code),

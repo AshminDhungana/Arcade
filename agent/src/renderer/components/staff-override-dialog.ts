@@ -8,6 +8,7 @@
 export interface StaffOverrideOptions {
   onOverride: (pin: string) => void;
   onCancel?: () => void;
+  onSettings?: () => void;
 }
 
 /** Build the staff-override modal element with a numeric keypad. */
@@ -40,6 +41,7 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
       <div class="modal-actions">
         <button class="modal-btn secondary" id="override-cancel">Cancel</button>
         <button class="modal-btn primary" id="override-confirm">Override</button>
+        <button class="modal-btn" id="override-settings">Settings</button>
       </div>
     </div>
   `;
@@ -89,6 +91,11 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
       pin = '';
       updateDisplay();
     }
+  });
+
+  // Settings button
+  modal.querySelector<HTMLButtonElement>('#override-settings')?.addEventListener('click', () => {
+    options.onSettings?.();
   });
 
   return modal;

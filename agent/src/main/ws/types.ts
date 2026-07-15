@@ -44,7 +44,10 @@ export interface AgentConfig {
   agent_secret: string;
 
   /** Optional Argon2id hash of the staff override PIN. */
-  override_code_hash?: string;
+  override_code_hash?: string | null;
+
+  /** Optional Argon2id hash of the emergency master PIN. */
+  master_code_hash?: string | null;
 
   /** Optional: maximum reconnect delay in seconds (default 60). */
   reconnect_max_seconds?: number;

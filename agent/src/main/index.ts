@@ -88,7 +88,7 @@ async function bootstrap(): Promise<void> {
   const sessionStore = new BetterSqliteSessionStore(dbPath);
   sessionStore.init();
 
-  wsClient = new AgentWebSocketClient(config, platformService, sessionStore);
+  wsClient = new AgentWebSocketClient(config, platformService, sessionStore, configPath);
   wsClient.connect();
   console.log('[Agent] WebSocket client connecting...');
 
@@ -106,6 +106,16 @@ async function bootstrap(): Promise<void> {
 
   ipcMain.on('staff-override', (_event, pin: string) => {
     void wsClient?.triggerStaffOverride(pin);
+  });
+
+  // Open the setup window in "edit" mode. Reuses the setup window for v1
+  // (re-enroll + server_url edit). onEnrolled is intentionally a no-op:
+  // openSetupWindow fires it on 'did-finish-load' (the instant the window
+  // loads, before the user edits anything), so a relaunch here would loop.
+  // Settings changes apply on next restart; a save-and-relaunch IPC is
+  // out of scope for v1.
+  ipcMain.on('agent:open-settings', () => {
+    openSetupWindow(() => {});
   });
 }
 

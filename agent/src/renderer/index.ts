@@ -20,6 +20,7 @@ declare global {
       onSessionStatus: (callback: (active: boolean) => void) => void;
       callStaff: () => void;
       staffOverride: (pin: string) => void;
+      openSettings: () => void;
     };
   }
 }
@@ -88,6 +89,7 @@ function initKiosk(): void {
           onOverride: (pin) => {
             window.electronAPI.staffOverride(pin);
           },
+          onSettings: () => window.electronAPI.openSettings(),
           onCancel: () => {
             /* dialog will clean itself up via its internal handler */
           },

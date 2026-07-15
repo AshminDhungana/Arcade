@@ -16,6 +16,8 @@ import {
   RECONNECT_CAP_MS,
 } from './types.js';
 import { createCommandHandlers } from './commands.js';
+import { saveAgentConfig } from '../config/loader.js';
+import type { LoadedAgentConfig } from '../config/types.js';
 import os from 'node:os';
 
 type ConnectionState = 'connecting' | 'open' | 'closing' | 'disconnected';
@@ -47,6 +49,7 @@ export class AgentWebSocketClient {
     private readonly config: AgentConfig,
     private readonly platform: IPlatformService,
     private readonly store?: SessionStore,
+    private readonly configPath: string = '',
   ) {
     this.commandHandlers = createCommandHandlers(platform, {
       seatId: config.seat_id,
@@ -160,31 +163,43 @@ export class AgentWebSocketClient {
     };
   }
 
-  /** Attempt staff override. Returns true if PIN verified successfully. */
-  async triggerStaffOverride(pin: string): Promise<boolean> {
-    if (!this.config.override_code_hash) {
-      console.warn('[Agent] Staff override attempted but override_code_hash not configured');
-      return false;
+  /**
+   * Verify a PIN and unlock. Connected → only staff override PIN.
+   * Disconnected → staff override PIN OR emergency master PIN.
+   * Returns 'override' | 'master' | false.
+   */
+  async triggerStaffOverride(pin: string): Promise<'override' | 'master' | false> {
+    const connected = this.isConnected();
+    const overrideHash = this.config.override_code_hash;
+    const masterHash = this.config.master_code_hash ?? null;
+
+    // Always allow the staff override PIN if configured.
+    if (overrideHash && this._timingSafeCompare(pin, overrideHash)) {
+      this._activateOverride();
+      return 'override';
     }
-
-    // NOTE: This is a timing-safe placeholder comparison.
-    // Production code should use an Argon2id-aware library
-    // (e.g. @node-rs/argon2) to verify against the PHC-formatted hash.
-    const verified = this._timingSafeCompare(pin, this.config.override_code_hash);
-
-    if (!verified) {
-      console.warn('[Agent] Staff override PIN verification failed');
-      return false;
+    // Master PIN only when the server is unreachable (emergency).
+    if (!connected && masterHash && this._timingSafeCompare(pin, masterHash)) {
+      this._activateOverride();
+      return 'master';
     }
+    console.warn('[Agent] PIN verification failed');
+    return false;
+  }
 
+  private _activateOverride(): void {
     this.overrideActive = true;
     this.platform.hideKioskOverlay();
-    this.send('STAFF_OVERRIDE', {
-      seat_id: this.config.seat_id,
-      verified: true,
-    });
-    console.log('[Agent] Staff override activated');
-    return true;
+    this.send('STAFF_OVERRIDE', { seat_id: this.config.seat_id, verified: true });
+    console.log('[Agent] Override activated');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _applyServerPush(type: string, payload: any): void {
+    if (type === 'SET_OVERRIDE_PIN') {
+      this.config.override_code_hash = payload.override_code_hash ?? null;
+      if (this.configPath) saveAgentConfig(this.config as LoadedAgentConfig, this.configPath);
+    }
   }
 
   /** Timing-safe string comparison (prevents timing side-channel attacks). */
@@ -220,6 +235,7 @@ export class AgentWebSocketClient {
   private handleMessage(event: MessageEvent): void {
     try {
       const message = JSON.parse(event.data as string) as WSMessage;
+      this._applyServerPush(message.type, message.payload);
 
       // Heartbeat PONG — just clear the timeout waiting flag
       if (message.type === 'PONG') {
