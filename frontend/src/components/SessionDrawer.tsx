@@ -83,7 +83,7 @@ export function SessionDrawer({ seat, sessionId, onClose }: SessionDrawerProps) 
           <button
             type="button"
             onClick={handleClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
             aria-label="Close drawer"
           >
             <X className="h-5 w-5" />
@@ -91,13 +91,13 @@ export function SessionDrawer({ seat, sessionId, onClose }: SessionDrawerProps) 
         </header>
 
         {/* Tab switcher */}
-        <nav className="flex border-b border-slate-700 bg-slate-800/50 px-5" aria-label="Drawer tabs">
+        <nav className="flex overflow-x-auto border-b border-slate-700 bg-slate-800/50 px-5" aria-label="Drawer tabs">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-400'
                   : 'border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200'
