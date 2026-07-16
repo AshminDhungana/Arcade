@@ -105,7 +105,7 @@ export function MembersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div data-testid="members-header" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold text-white">Members</h1>
         <div className="w-full sm:flex-1 sm:max-w-md">
           <MemberSearch onSelect={handleMemberSelect} />

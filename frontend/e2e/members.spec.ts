@@ -20,6 +20,15 @@ test.describe('Members page', () => {
       await expect(authenticatedPage.getByRole('heading', { name: /members/i })).toBeVisible();
       await expectNoHorizontalOverflow(authenticatedPage, `members ${width}px`);
       await expectTapTargets(authenticatedPage, 'button', `members buttons @ ${width}px`);
+
+      // Stacking guard: header must be a vertical column below `sm` (640px) and a
+      // row at sm+. The overflow check alone does NOT catch a revert to the old
+      // single-row header, because flex children shrink to fit.
+      const expectedDir = width < 640 ? 'column' : 'row';
+      const flexDir = await authenticatedPage
+        .getByTestId('members-header')
+        .evaluate((el) => getComputedStyle(el).flexDirection);
+      expect(flexDir, `members header flex-direction @ ${width}px`).toBe(expectedDir);
     });
   }
 });
