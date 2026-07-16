@@ -130,6 +130,25 @@ async def test_start_session_member_required(
     assert exc_info.value.status_code == 400
 
 
+async def test_start_session_without_member_allowed_when_flag_off(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """Session starts with member_id=None when require_member_for_session is off."""
+    _, seat = zone_and_seat
+    with patch(
+        "backend.services.session_service.get_flag",
+        side_effect=lambda key: False,
+    ):  # type: ignore[override]
+        with patch("backend.services.session_service.ws_manager") as mock_ws:
+            mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+            mock_ws.send_to_agent = AsyncMock(return_value=None)
+            result = await start_session(
+                db, seat_id=seat.id, member_id=None, staff=staff_member
+            )
+    assert result.status == SessionStatus.ACTIVE
+    assert result.member_id is None
+
+
 async def test_start_session_links_package_entitlement(
     db: AsyncSession, zone_and_seat, staff_member
 ):
