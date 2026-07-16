@@ -79,7 +79,7 @@ class PromotionService:
         Returns:
             Matching Promotion or None
         """
-        if not get_flag("enable_promotions"):
+        if not get_flag("enable_vouchers"):
             return None
 
         if time_now is None:

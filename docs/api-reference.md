@@ -1151,7 +1151,7 @@ Wallet ledger history, newest first. Cashier+ required.
 
 ## Promotion Endpoints
 
-Promotions are Admin-only (all routes) and feature-flagged (`enable_promotions`).
+Promotions are Admin-only (all routes) and feature-flagged (`enable_vouchers`).
 Note: promotion *evaluation* is automatic and internal — `PromotionService.get_applicable_promotion()`
 runs at session start and locks a match onto the session's `promotion_id`. These endpoints only
 manage the promotion catalogue.
@@ -1567,7 +1567,7 @@ When a flag is off, the entire router returns `503`. Flags relevant to this docu
 |------|-------|
 | `enable_members` | Member endpoints (Task 1) |
 | `enable_packages` | Package endpoints (already documented, Phase 3) |
-| `enable_promotions` | Promotion endpoints (Task 2) |
+| `enable_vouchers` | Voucher & promotion endpoints |
 | `enable_vouchers` | Voucher endpoints (Task 3) |
 | `enable_reservations` | Reservation endpoints (Task 2) |
 | `enable_tuya` | Tuya power-on/off remote commands (Task 3) |

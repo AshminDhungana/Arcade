@@ -49,7 +49,7 @@ async def db() -> AsyncGenerator[AsyncSession]:
         Session = async_sessionmaker(engine, expire_on_commit=False)
         async with Session() as session:
             await session.execute(
-                insert(AppSettings).values(key="enable_promotions", value="true")
+                insert(AppSettings).values(key="enable_vouchers", value="true")
             )
             await session.commit()
             await load_flags(session)
@@ -83,12 +83,12 @@ async def client(db: AsyncSession, admin_staff: Staff) -> AsyncClient:
         base_url="http://test",
     ) as ac:
         # Set feature flag cache after lifespan runs (which clears it)
-        _flag_cache["enable_promotions"] = True
+        _flag_cache["enable_vouchers"] = True
         yield ac
 
     app.dependency_overrides.pop(get_db, None)
     app.dependency_overrides.pop(get_current_staff, None)
-    _flag_cache.pop("enable_promotions", None)
+    _flag_cache.pop("enable_vouchers", None)
 
 
 @pytest_asyncio.fixture
@@ -105,12 +105,12 @@ async def cashier_client(db: AsyncSession) -> AsyncClient:
         transport=transport,
         base_url="http://test",
     ) as ac:
-        _flag_cache["enable_promotions"] = True
+        _flag_cache["enable_vouchers"] = True
         yield ac
 
     app.dependency_overrides.pop(get_db, None)
     app.dependency_overrides.pop(get_current_staff, None)
-    _flag_cache.pop("enable_promotions", None)
+    _flag_cache.pop("enable_vouchers", None)
 
 
 class TestPromotionsRouter:
@@ -208,3 +208,17 @@ class TestPromotionsRouter:
             },
         )
         assert resp.status_code == 403
+
+
+async def test_promotions_503_when_vouchers_off(client: AsyncClient) -> None:
+    """Promotions share the enable_vouchers flag; off → 503."""
+    _flag_cache["enable_vouchers"] = False
+    resp = await client.get("/api/promotions")
+    assert resp.status_code == 503
+
+
+async def test_promotions_ok_when_vouchers_on(client: AsyncClient) -> None:
+    """When enable_vouchers is on, promotions list returns 200/empty."""
+    _flag_cache["enable_vouchers"] = True
+    resp = await client.get("/api/promotions")
+    assert resp.status_code == 200

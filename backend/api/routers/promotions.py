@@ -28,8 +28,8 @@ from backend.schemas.promotion import (
 
 router = APIRouter(prefix="/promotions", tags=["promotions"])
 
-# Feature flag: entire router disabled when enable_promotions=false
-router.dependencies.append(Depends(require_feature("enable_promotions")))
+# Feature flag: entire router disabled when enable_vouchers=false
+router.dependencies.append(Depends(require_feature("enable_vouchers")))
 
 
 @router.get(
