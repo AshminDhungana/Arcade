@@ -8,10 +8,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from backend.models._enums import InvoiceLineItemType
-from backend.schemas.invoice import InvoiceResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.core.config import get_config
+from backend.core.database import AsyncSessionLocal
+from backend.models._enums import InvoiceLineItemType, InvoicePrintStatus
+from backend.models.invoice import Invoice
+from backend.repositories import invoice_repo, print_job_repo
+from backend.schemas.invoice import InvoiceLineItemResponse, InvoiceResponse
 
 if TYPE_CHECKING:
     from backend.core.config import Settings
@@ -188,10 +195,10 @@ async def print_receipt(
     *,
     duration_seconds: int = 0,
     seat_name: str = "",
-) -> None:
+) -> bool:
     """Print a receipt asynchronously — never blocks the caller.
 
-    On any failure, logs a warning and returns without raising.
+    On any failure, logs a warning and returns ``False`` without raising.
 
     Args:
         invoice: Populated InvoiceResponse with line_items.
@@ -199,6 +206,9 @@ async def print_receipt(
         config: Runtime Settings from core.config.
         duration_seconds: Elapsed session duration in seconds, for receipt display.
         seat_name: Name of the seat, for display.
+
+    Returns:
+        ``True`` if the receipt was printed, ``False`` on failure.
     """
     try:
         receipt_lines = _format_receipt(
@@ -208,7 +218,197 @@ async def print_receipt(
         # Run the blocking ESC/POS I/O in a thread so the event loop stays free
         await asyncio.to_thread(_run_escpos, printer, receipt_lines)
         logger.info("Receipt printed for invoice %s", invoice.id)
+        return True
     except Exception:
         logger.warning(
             "Failed to print receipt for invoice %s", invoice.id, exc_info=True
         )
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Print-status tracking + outbox retry
+# ---------------------------------------------------------------------------
+
+
+MAX_PRINT_ATTEMPTS: int = 5
+
+
+def _next_retry_delay(attempts_completed: int) -> timedelta:
+    """Exponential backoff capped at 30 minutes.
+
+    Args:
+        attempts_completed: Number of print attempts already made.
+
+    Returns:
+        Delay before the next attempt.
+    """
+    return timedelta(minutes=min(2**attempts_completed, 30))
+
+
+def _build_invoice_response(invoice: Invoice) -> InvoiceResponse:
+    """Rebuild an :class:`InvoiceResponse` (with line items) from an ORM invoice."""
+    # SQLite returns naive datetimes, but the schema requires tz-aware values.
+    created_at = invoice.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=UTC)
+    return InvoiceResponse(
+        id=invoice.id,
+        session_id=invoice.session_id,
+        member_id=invoice.member_id,
+        shift_id=invoice.shift_id,
+        time_charge_paise=invoice.time_charge_paise,
+        package_credit_used_paise=invoice.package_credit_used_paise,
+        discount_paise=invoice.discount_paise,
+        pos_total_paise=invoice.pos_total_paise,
+        total_paise=invoice.total_paise,
+        payment_method=invoice.payment_method,
+        print_status=invoice.print_status,
+        created_at=created_at,
+        line_items=[
+            InvoiceLineItemResponse(
+                id=li.id,
+                invoice_id=li.invoice_id,
+                type=li.type,
+                description=li.description,
+                quantity=li.quantity,
+                unit_price_paise=li.unit_price_paise,
+                total_paise=li.total_paise,
+            )
+            for li in (invoice.line_items or [])
+        ],
+    )
+
+
+async def _print_receipt_core(
+    invoice: InvoiceResponse,
+    cafe_name: str,
+    config: Settings,
+    *,
+    duration_seconds: int = 0,
+    seat_name: str = "",
+) -> tuple[bool, str | None]:
+    """Print and return ``(success, error_message)``. Never raises."""
+    try:
+        receipt_lines = _format_receipt(
+            invoice, cafe_name, duration_seconds=duration_seconds, seat_name=seat_name
+        )
+        printer = _get_printer(config)
+        await asyncio.to_thread(_run_escpos, printer, receipt_lines)
+        logger.info("Receipt printed for invoice %s", invoice.id)
+        return True, None
+    except Exception as exc:  # noqa: BLE001 — surface reason to the outbox
+        logger.warning(
+            "Failed to print receipt for invoice %s", invoice.id, exc_info=True
+        )
+        return False, str(exc)
+
+
+async def _persist_outcome(
+    db: AsyncSession,
+    invoice_id: str,
+    ok: bool,
+    last_error: str | None,
+) -> None:
+    """Record the print outcome on the invoice and upsert/delete its job row."""
+    inv = await invoice_repo.get_by_id(db, invoice_id)
+    if inv is None:
+        return
+    if ok:
+        inv.print_status = InvoicePrintStatus.PRINTED
+        existing = await print_job_repo.get_by_invoice(db, invoice_id)
+        if existing is not None:
+            await print_job_repo.delete(db, existing)
+        return
+
+    inv.print_status = InvoicePrintStatus.FAILED
+    now = datetime.now(UTC)
+    existing = await print_job_repo.get_by_invoice(db, invoice_id)
+    if existing is None:
+        await print_job_repo.create(
+            db,
+            invoice_id=invoice_id,
+            attempts=1,
+            last_error=last_error,
+            next_retry_at=now + _next_retry_delay(1),
+        )
+        return
+    existing.attempts += 1
+    existing.last_error = last_error
+    if existing.attempts >= MAX_PRINT_ATTEMPTS:
+        existing.next_retry_at = None  # give up; invoice stays FAILED
+    else:
+        existing.next_retry_at = now + _next_retry_delay(existing.attempts)
+    await print_job_repo.update(db, existing)
+
+
+async def enqueue_and_track_print(
+    invoice_id: str,
+    invoice: InvoiceResponse,
+    cafe_name: str,
+    config: Settings,
+    *,
+    duration_seconds: int = 0,
+    seat_name: str = "",
+    session_factory: Any = AsyncSessionLocal,
+) -> None:
+    """Print a receipt and persist the outcome + outbox job.
+
+    Opens its own DB session (injectable for tests) so it is safe to call from
+    ``asyncio.create_task`` after the request session has closed. On success the
+    invoice is marked PRINTED and any job row removed; on failure it is marked
+    FAILED and a job row is upserted for background retry.
+    """
+    ok, err = await _print_receipt_core(
+        invoice,
+        cafe_name,
+        config,
+        duration_seconds=duration_seconds,
+        seat_name=seat_name,
+    )
+    async with session_factory() as db:
+        await _persist_outcome(db, invoice_id, ok, err)
+        await db.commit()
+
+
+async def mark_print_skipped(db: AsyncSession, invoice_id: str) -> None:
+    """Mark an invoice as intentionally not printed (no retry)."""
+    inv = await invoice_repo.get_by_id(db, invoice_id)
+    if inv is None:
+        return
+    inv.print_status = InvoicePrintStatus.SKIPPED
+    existing = await print_job_repo.get_by_invoice(db, invoice_id)
+    if existing is not None:
+        await print_job_repo.delete(db, existing)
+    await db.flush()
+
+
+async def retry_due_print_jobs(db: AsyncSession) -> int:
+    """Re-attempt all due print jobs. Flush-only; the caller commits.
+
+    Returns the number of jobs processed.
+    """
+    now = datetime.now(UTC)
+    jobs = await print_job_repo.list_due(db, now)
+    retried = 0
+    for job in jobs:
+        inv = await invoice_repo.get_by_id(db, job.invoice_id)
+        if inv is None:
+            await print_job_repo.delete(db, job)
+            continue
+        config = get_config()
+        response = _build_invoice_response(inv)
+        ok, err = await _print_receipt_core(response, config.cafe_name, config)
+        if ok:
+            inv.print_status = InvoicePrintStatus.PRINTED
+            await print_job_repo.delete(db, job)
+        else:
+            job.attempts += 1
+            job.last_error = err
+            if job.attempts >= MAX_PRINT_ATTEMPTS:
+                job.next_retry_at = None
+            else:
+                job.next_retry_at = now + _next_retry_delay(job.attempts)
+            await print_job_repo.update(db, job)
+        retried += 1
+    return retried
