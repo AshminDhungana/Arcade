@@ -105,12 +105,12 @@ export function MembersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold text-white">Members</h1>
-        <div className="flex items-center gap-3 flex-1 max-w-md">
+        <div className="w-full sm:flex-1 sm:max-w-md">
           <MemberSearch onSelect={handleMemberSelect} />
         </div>
-        <Button variant="emerald" onClick={() => setIsCreateModalOpen(true)}>
+        <Button variant="emerald" className="w-full sm:w-auto" onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           New Member
         </Button>
