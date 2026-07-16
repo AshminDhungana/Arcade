@@ -1276,10 +1276,14 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
   - [x] Wire: `/analytics` route added to `src/App.tsx` (ProtectedRoute + NavShell) and `Analytics` nav entry added to `src/components/NavShell.tsx`
   - [x] **Verification (2026-07-16):** Frontend `npx vitest run` -> **173 passed / 54 files**; `npm run build` (tsc strict + vite) clean; `npm run lint` (ESLint) clean. Backend `pytest` -> **648 passed, 2 skipped**; `test_analytics.py` 7/7; pre-commit (ruff, ruff-format, mypy --strict, bandit) all pass. 13 commits on `main` (`01090bb` backend ... `f874bcd` types/hook); feature-flag gated via `useAnalyticsSummary` `enabled: !!token` + ProtectedRoute. **Not yet done:** live visual eyeball at 375px in a real browser (responsive layout verified by construction via the automated page test asserting `grid-cols-1` is present) — run `npm run dev` + backend to confirm visually.
 
-- [ ] **Task: Implement `Events.tsx`**
-  - [ ] Event list and create form (feature-flagged)
-  - [ ] Bracket view: single/double elimination; winners highlighted; match result entry
-  - [ ] Event summary panel (revenue, prize pool)
+- [x] **Task: Implement `Events.tsx`** ✅ _Complete (verified 2026-07-16)_
+  - [x] Event list + create form (feature-flagged via `enable_tournaments`): `src/components/events/EventList.tsx` (card grid `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, status badge, prize pool via `formatPaise`), `src/components/events/CreateEventModal.tsx` (rupees→paise via `Math.round(Number(x)*100)`, toasts)
+  - [x] Bracket view: single / double elimination, winners highlighted, match result entry: `src/components/events/bracket.ts` (`buildBracket()` pure util → WINNERS/LOSERS/GRAND_FINAL groups + champion resolution), `src/components/events/BracketView.tsx` (horizontally scrollable `overflow-x-auto` round columns, champion banner), `src/components/events/MatchCard.tsx` (winner `text-emerald-400` + `CheckCircle`; loser `text-slate-500` line-through; bye; Admin-gated "Record result"), `src/components/events/RecordResultModal.tsx` (`PATCH /api/events/{id}/match` via `useRecordMatchResult`)
+  - [x] Event summary panel (revenue, prize pool): `src/components/events/EventSummaryPanel.tsx` (KPI cards: prize pool / entry-fee revenue / participants / matches completed + champion banner `Trophy`/`text-amber-400`), `src/components/events/EventDetail.tsx` (Tabs: Bracket / Summary / Participants; `EventSummaryPanel` gated to Summary tab), `src/components/events/ParticipantsList.tsx` + `RegisterParticipantModal.tsx` (`POST /register` via `useRegisterParticipant`, Cashier+)
+  - [x] Data layer + types: `src/types/events.ts` (mirrors `backend/schemas/event.py`, paise integers), `src/api/events.ts` (5 React Query hooks: `useEvents`, `useEventSummary`, `useCreateEvent`, `useRegisterParticipant`, `useRecordMatchResult`; Bearer auth; query keys `['events']` / `['events','summary',eventId]`), `src/pages/Events.tsx` (`EventsPage` list↔detail state)
+  - [x] Wire: `/events` route added to `src/App.tsx` (ProtectedRoute + NavShell, mirrors `/analytics`); `Events` nav entry gated by `enable_tournaments` in `src/components/NavShell.tsx`
+  - [x] Tests: `src/api/events.test.tsx` (4), `src/components/events/bracket.test.ts` (3), `src/pages/Events.test.tsx` (4 — list, create, summary, bracket+record), `src/components/NavShell.test.tsx` (flag-gating)
+  - [x] **Verification (2026-07-16):** Frontend `npx vitest run` → **185 passed / 57 files**; `npm run build` (tsc strict + vite) clean; `npm run lint` (ESLint) clean. Feature-flag gated via `enable_tournaments` (NavShell entry + `/events` route — reuse of the backend-only flag, no new `enable_events`). Subagent-driven plan executed (`docs/superpowers/plans/2026-07-16-events-page.md`); final whole-branch review: READY-WITH-FOLLOWUPS. **Pre-GA follow-ups (non-blocking):** form required-field validation + error states; `CreateEventModal` silently defaults empty `event_date` to "now"; `EventList` card omits `event_date` display. **Not yet done:** live visual eyeball at 375px in a real browser (responsive layout verified by construction + the automated page test asserting `grid-cols-1` is present).
 
 - [ ] **Task: Feature flag UI finalisation** â€” audit all pages for flag compliance; test all 10 flags (AC-08)
 - [ ] **Task: Mobile responsiveness pass** â€” test at 375px, 390px, 412px, 768px; fix any overflow or tap target issues (AC-05)
@@ -1293,7 +1297,7 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
 
 ### Documentation Requirements (Phase 6)
 
-- [ ] `docs/api-reference.md`: analytics and events endpoints
+- [x] `docs/api-reference.md`: analytics and events endpoints
 - [ ] `docs/deployment.md`: feature flag reference table (flag, default, scope, recommended setting)
 
 ---
