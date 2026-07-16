@@ -36,10 +36,22 @@ const SEATS = [
   },
 ];
 
-/** Intercept all backend calls; abort the WebSocket. */
+/**
+ * Intercept backend API calls and abort the WebSocket.
+ *
+ * IMPORTANT: the route glob is `**/*` (not `**/api/**`). The app eagerly imports
+ * source modules such as `/src/api/featureFlags.ts`; a `**/api/**` glob would also
+ * match those and fulfill them as JSON, breaking the Vite module graph and crashing
+ * the app before render. We therefore intercept ONLY top-level `/api/...` paths
+ * (the real backend API) and `route.fallback()` everything else (including `/src/...`)
+ * so Vite can serve it.
+ */
 export async function mockApi(page: Page): Promise<void> {
-  await page.route('**/api/**', async (route) => {
+  await page.route('**/*', async (route) => {
     const url = new URL(route.request().url());
+    const path = url.pathname;
+    if (path.startsWith('/ws/')) return route.abort();
+    if (!path.startsWith('/api/')) return route.fallback();
     const method = route.request().method();
     if (url.pathname === '/api/auth/login' && method === 'POST') {
       return route.fulfill({
@@ -74,7 +86,6 @@ export async function mockApi(page: Page): Promise<void> {
     if (url.pathname === '/api/menu') return route.fulfill({ json: [] });
     return route.fulfill({ json: {} });
   });
-  await page.route('**/ws/**', (route) => route.abort());
 }
 
 /** Log in through the real UI (auth store is in-memory, so we drive the form). */
