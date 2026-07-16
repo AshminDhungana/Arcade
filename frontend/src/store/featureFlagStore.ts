@@ -17,6 +17,8 @@ const DEFAULT_FLAGS: FeatureFlags = {
 
 interface FeatureFlagStore {
   flags: FeatureFlags;
+  /** True once flags have been fetched from the backend at least once. */
+  flagsLoaded: boolean;
 
   /** Replace all flags with new values (called after fetch). */
   setFlags: (flags: FeatureFlags) => void;
@@ -30,10 +32,11 @@ interface FeatureFlagStore {
 
 export const useFeatureFlagStore = create<FeatureFlagStore>((set, get) => ({
   flags: { ...DEFAULT_FLAGS },
+  flagsLoaded: false,
 
-  setFlags: (flags) => set({ flags }),
+  setFlags: (flags) => set({ flags, flagsLoaded: true }),
 
   getFlag: (name) => get().flags[name] ?? false,
 
-  clear: () => set({ flags: { ...DEFAULT_FLAGS } }),
+  clear: () => set({ flags: { ...DEFAULT_FLAGS }, flagsLoaded: false }),
 }));
