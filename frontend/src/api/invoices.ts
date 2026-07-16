@@ -90,6 +90,37 @@ export function useCheckout() {
   });
 }
 
+/** Hook to list unprinted invoices. */
+export function useUnprintedInvoices() {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['invoices', 'unprinted'],
+    queryFn: () => listUnprinted(token),
+    refetchInterval: 15 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** Hook to reprint an invoice. */
+export function useReprintInvoice() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (invoiceId: string) => reprintInvoice(invoiceId, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoices', 'unprinted'] }),
+  });
+}
+
+/** Hook to mark an invoice as printed. */
+export function useMarkInvoicePrinted() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (invoiceId: string) => markInvoicePrinted(invoiceId, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoices', 'unprinted'] }),
+  });
+}
+
 /** Open PDF receipt in new tab for printing. */
 export async function printInvoicePdf(invoiceId: string, token: string | null): Promise<void> {
   const res = await fetch(`${API_BASE}/invoices/${invoiceId}/pdf`, {
@@ -104,4 +135,41 @@ export async function printInvoicePdf(invoiceId: string, token: string | null): 
   if (!win) {
     throw new Error('Popup blocked - please allow popups for receipt printing');
   }
+}
+
+/** List invoices that failed/skipped printing. */
+export async function listUnprinted(token: string | null): Promise<Invoice[]> {
+  const res = await fetch(`${API_BASE}/invoices/unprinted`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to list unprinted invoices: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as Invoice[];
+}
+
+/** Re-run the thermal print for a FAILED/SKIPPED invoice. */
+export async function reprintInvoice(invoiceId: string, token: string | null): Promise<Invoice> {
+  const res = await fetch(`${API_BASE}/invoices/${invoiceId}/reprint`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Reprint failed' }));
+    throw new Error(err.detail ?? `Reprint failed: ${res.status}`);
+  }
+  return (await res.json()) as Invoice;
+}
+
+/** Mark an invoice as printed (PDF already printed by cashier). */
+export async function markInvoicePrinted(invoiceId: string, token: string | null): Promise<Invoice> {
+  const res = await fetch(`${API_BASE}/invoices/${invoiceId}/mark-printed`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Mark printed failed' }));
+    throw new Error(err.detail ?? `Mark printed failed: ${res.status}`);
+  }
+  return (await res.json()) as Invoice;
 }

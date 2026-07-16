@@ -2,6 +2,8 @@
 
 export type PaymentMethod = 'CASH' | 'WALLET' | 'CARD' | 'PACKAGE';
 
+export type InvoicePrintStatus = 'PENDING' | 'PRINTED' | 'FAILED' | 'SKIPPED';
+
 export type InvoiceLineItemType =
   | 'TIME_CHARGE'
   | 'PACKAGE_CREDIT'
@@ -33,6 +35,7 @@ export interface Invoice {
   pos_total_paise: number;
   total_paise: number;
   payment_method: PaymentMethod;
+  print_status?: InvoicePrintStatus;
   created_at: string;
   line_items: InvoiceLineItem[];
 }

@@ -63,3 +63,36 @@ export function useStartSession() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
   });
 }
+
+/** Force-close a held (unprinted) checkout via own-PIN re-auth. */
+export async function forceCloseUnprinted(
+  sessionId: string,
+  pin: string,
+  reason: string,
+  token: string | null,
+): Promise<SessionResponse> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/force-close-unprinted`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ pin, override_reason: reason }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Force close failed' }));
+    throw new Error(err.detail ?? `Force close failed: ${res.status}`);
+  }
+  return (await res.json()) as SessionResponse;
+}
+
+/** Hook to force-close a held checkout. */
+export function useForceCloseUnprinted() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, pin, reason }: { sessionId: string; pin: string; reason: string }) =>
+      forceCloseUnprinted(sessionId, pin, reason, token),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices', 'unprinted'] });
+      qc.invalidateQueries({ queryKey: ['seats'] });
+    },
+  });
+}
