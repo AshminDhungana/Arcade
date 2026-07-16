@@ -54,6 +54,7 @@ describe('FeatureFlagsTab', () => {
         enable_expense_tracking: false,
         enable_health_monitoring: false,
         require_member_for_session: false,
+        require_print_before_release: false,
       },
     });
     mutateFn = vi.fn();
@@ -66,9 +67,10 @@ describe('FeatureFlagsTab', () => {
     vi.clearAllMocks();
   });
 
-  it('renders all 10 feature flags with labels and descriptions', () => {
+  it('renders all 11 feature flags with labels and descriptions', () => {
     render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
 
+    expect(screen.getByText('Require Print Before Release')).toBeInTheDocument();
     expect(screen.getByText('Members')).toBeInTheDocument();
     expect(screen.getByText('Show the Members management surface')).toBeInTheDocument();
     expect(screen.getByText('Packages')).toBeInTheDocument();
@@ -95,7 +97,7 @@ describe('FeatureFlagsTab', () => {
     render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
 
     const switches = screen.getAllByRole('switch');
-    expect(switches).toHaveLength(10);
+    expect(switches).toHaveLength(11);
 
     switches.forEach((sw) => {
       expect(sw).not.toBeChecked();
