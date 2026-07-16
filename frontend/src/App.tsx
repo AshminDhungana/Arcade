@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import DashboardPage from './pages/Dashboard';
 import { MembersPage } from './pages/Members';
 import { AnalyticsPage } from './pages/Analytics';
+import { EventsPage } from './pages/Events';
 import SettingsPage from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useFeatureFlags } from './api/featureFlags';
@@ -43,6 +44,16 @@ export default function App() {
             <ProtectedRoute>
               <NavShell>
                 <AnalyticsPage />
+              </NavShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events"
+          element={
+            <ProtectedRoute>
+              <NavShell>
+                <EventsPage />
               </NavShell>
             </ProtectedRoute>
           }

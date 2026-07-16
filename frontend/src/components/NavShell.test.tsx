@@ -34,4 +34,21 @@ describe('NavShell', () => {
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('aria-current', 'page');
   });
+
+  it('shows the Events nav item only when enable_tournaments is on', () => {
+    useFeatureFlagStore.setState({
+      flags: { ...useFeatureFlagStore.getState().flags, enable_tournaments: false },
+    });
+    const { unmount } = render(
+      <MemoryRouter><NavShell><div>child</div></NavShell></MemoryRouter>,
+    );
+    expect(screen.queryByText('Events')).toBeNull();
+    unmount();
+
+    useFeatureFlagStore.setState({
+      flags: { ...useFeatureFlagStore.getState().flags, enable_tournaments: true },
+    });
+    render(<MemoryRouter><NavShell><div>child</div></NavShell></MemoryRouter>);
+    expect(screen.getByText('Events')).toBeInTheDocument();
+  });
 });
