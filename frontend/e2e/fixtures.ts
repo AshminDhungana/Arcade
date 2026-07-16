@@ -86,6 +86,32 @@ export async function mockApi(page: Page): Promise<void> {
     if (url.pathname === '/api/menu') return route.fulfill({ json: [] });
     if (url.pathname === '/api/pos/menu') return route.fulfill({ json: [] });
     if (url.pathname.startsWith('/api/pos/items')) return route.fulfill({ json: [] });
+    if (path.match(/\/api\/sessions\/[^/]+\/checkout$/) && method === 'POST') {
+      return route.fulfill({
+        json: {
+          id: 'inv-1',
+          session_id: 'sess-1',
+          time_charge_paise: 1000,
+          package_credit_used_paise: 0,
+          discount_paise: 0,
+          pos_total_paise: 0,
+          total_paise: 1000,
+          line_items: [
+            {
+              id: 'li-1',
+              invoice_id: 'inv-1',
+              type: 'TIME_CHARGE',
+              description: 'Time Charge (PER_MINUTE)',
+              quantity: 1,
+              unit_price_paise: 1000,
+              total_paise: 1000,
+              created_at: '2026-07-16T00:00:00Z',
+              updated_at: '2026-07-16T00:00:00Z',
+            },
+          ],
+        },
+      });
+    }
     return route.fulfill({ json: {} });
   });
 }
