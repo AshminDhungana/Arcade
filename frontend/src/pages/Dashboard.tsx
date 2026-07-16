@@ -1,5 +1,6 @@
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { SeatGrid } from '@/components/SeatGrid';
+import { UnprintedInvoices } from '@/components/UnprintedInvoices';
 
 function ConnectionBadge({
   status,
@@ -43,7 +44,8 @@ export default function DashboardPage() {
       </header>
 
       {/* Main content */}
-      <main className="p-6">
+      <main className="p-6 space-y-6">
+        <UnprintedInvoices />
         <SeatGrid />
       </main>
     </div>
