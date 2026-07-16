@@ -18,7 +18,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
       <div ref={ref} className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-xl">
         <header className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Close" className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white -mr-2"><X className="h-5 w-5" /></button>
         </header>
         <div>{children}</div>
         {footer && <footer className="mt-6 flex justify-end gap-2">{footer}</footer>}
