@@ -85,6 +85,7 @@ class TestMigrationBasics:
             "expenses",
             "events",
             "event_participants",
+            "print_jobs",
         }
 
         async with async_engine.connect() as conn:
@@ -130,6 +131,18 @@ class TestMigrationBasics:
 
         async with async_engine.connect() as conn:
             result = await conn.execute(text("PRAGMA table_info(sessions)"))
+            actual = {row[1] for row in result}
+            missing = expected - actual
+            assert not missing, f"Missing columns: {missing}"
+
+    @pytest.mark.asyncio
+    async def test_invoices_print_status_column(self) -> None:
+        """Invoices table has the print_status column."""
+        from backend.core.database import async_engine
+
+        expected = {"id", "print_status"}
+        async with async_engine.connect() as conn:
+            result = await conn.execute(text("PRAGMA table_info(invoices)"))
             actual = {row[1] for row in result}
             missing = expected - actual
             assert not missing, f"Missing columns: {missing}"
