@@ -43,12 +43,7 @@ export function EventDetail({ eventId, onBack }: { eventId: string; onBack: () =
 
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
-      {tab === 'bracket' && (
-        <>
-          <BracketView summary={summary} eventId={eventId} />
-          <EventSummaryPanel summary={summary} />
-        </>
-      )}
+      {tab === 'bracket' && <BracketView summary={summary} eventId={eventId} />}
       {tab === 'summary' && <EventSummaryPanel summary={summary} />}
       {tab === 'participants' && (
         <ParticipantsList summary={summary} onRegister={() => setIsRegisterOpen(true)} />

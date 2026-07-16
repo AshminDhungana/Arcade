@@ -74,9 +74,10 @@ describe('EventsPage', () => {
     render(<EventsPage />, { wrapper: makeWrapper() });
     await waitFor(() => expect(screen.getByText('FIFA Cup')).toBeInTheDocument());
     fireEvent.click(screen.getByLabelText(/open event fifa cup/i));
-    await waitFor(() => expect(screen.getByText('Summary')).toBeInTheDocument());
-    expect(screen.getByText('Rs. 200.00')).toBeInTheDocument(); // prize pool KPI
-    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0); // champion (rendered in both BracketView + EventSummaryPanel)
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Summary' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: 'Summary' }));
+    await waitFor(() => expect(screen.getByText('Rs. 200.00')).toBeInTheDocument()); // prize pool KPI
+    expect(screen.getByText('Alice')).toBeInTheDocument(); // champion (unique on the Summary tab)
   });
 
   it('renders the bracket with the winner highlighted and records a result', async () => {
