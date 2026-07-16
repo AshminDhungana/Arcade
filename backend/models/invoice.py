@@ -9,7 +9,7 @@ from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.core.database import Base
-from backend.models._enums import PaymentMethod
+from backend.models._enums import InvoicePrintStatus, PaymentMethod
 from backend.models._types import StrEnumColumn
 
 if TYPE_CHECKING:
@@ -34,6 +34,11 @@ class Invoice(Base):
     total_paise: Mapped[int] = mapped_column(default=0)
     payment_method: Mapped[PaymentMethod] = mapped_column(
         StrEnumColumn(PaymentMethod, 10), nullable=False
+    )
+    print_status: Mapped[InvoicePrintStatus] = mapped_column(
+        StrEnumColumn(InvoicePrintStatus, 10),
+        nullable=False,
+        default=InvoicePrintStatus.PENDING,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

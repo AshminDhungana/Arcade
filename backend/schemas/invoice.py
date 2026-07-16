@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import AwareDatetime, Field
 
-from backend.models._enums import InvoiceLineItemType, PaymentMethod
+from backend.models._enums import InvoiceLineItemType, InvoicePrintStatus, PaymentMethod
 from backend.schemas.base import BaseCreateSchema, BaseResponseSchema
 
 
@@ -51,4 +51,5 @@ class InvoiceUpdate(BaseCreateSchema):
 class InvoiceResponse(InvoiceBase, BaseResponseSchema):
     id: str
     created_at: AwareDatetime
+    print_status: InvoicePrintStatus = InvoicePrintStatus.PENDING
     line_items: list[InvoiceLineItemResponse] = []
