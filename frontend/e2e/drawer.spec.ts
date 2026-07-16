@@ -29,6 +29,10 @@ test.describe('SessionDrawer', () => {
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       );
       expect(overflow, `pos overflow at ${width}px`).toBeLessThanOrEqual(0);
+      const direction = await authenticatedPage
+        .getByTestId('pos-panel')
+        .evaluate((el) => getComputedStyle(el).flexDirection);
+      expect(direction, `pos layout at ${width}px`).toBe(width < 768 ? 'column' : 'row');
     });
   }
 

@@ -45,7 +45,7 @@ export function POSPanel({ sessionId }: POSPanelProps) {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 md:flex-row">
+    <div className="flex h-full flex-col gap-4 md:flex-row" data-testid="pos-panel">
       {/* Menu Grid — left side */}
       <div className="flex-1 min-w-0 md:flex-[3]">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
