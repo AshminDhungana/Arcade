@@ -39,12 +39,12 @@ const SEATS = [
 /**
  * Intercept backend API calls and abort the WebSocket.
  *
- * IMPORTANT: the route glob is `**/*` (not `**/api/**`). The app eagerly imports
- * source modules such as `/src/api/featureFlags.ts`; a `**/api/**` glob would also
- * match those and fulfill them as JSON, breaking the Vite module graph and crashing
- * the app before render. We therefore intercept ONLY top-level `/api/...` paths
- * (the real backend API) and `route.fallback()` everything else (including `/src/...`)
- * so Vite can serve it.
+ * IMPORTANT: the route glob is the catch-all pattern (not the "/api/" one). The
+ * app eagerly imports source modules such as /src/api/featureFlags.ts; an "/api/"
+ * glob would also match those and fulfill them as JSON, breaking the Vite module
+ * graph and crashing the app before render. We therefore intercept ONLY top-level
+ * /api/... paths (the real backend API) and route.fallback() everything else
+ * (including /src/...), so Vite can serve it.
  */
 export async function mockApi(page: Page): Promise<void> {
   await page.route('**/*', async (route) => {
