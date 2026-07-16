@@ -45,9 +45,9 @@ export function POSPanel({ sessionId }: POSPanelProps) {
   };
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="flex h-full flex-col gap-4 md:flex-row">
       {/* Menu Grid — left side */}
-      <div className="flex-[3] min-w-0">
+      <div className="flex-1 min-w-0 md:flex-[3]">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
           Menu
         </h3>
@@ -62,7 +62,7 @@ export function POSPanel({ sessionId }: POSPanelProps) {
       </div>
 
       {/* Session Tab — right side */}
-      <div className="flex-[2] min-w-0 border-l border-slate-700/50 pl-4">
+      <div className="flex-1 min-w-0 border-l border-slate-700/50 pl-4 md:flex-[2] md:border-l md:pl-4">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
           Session Tab
         </h3>

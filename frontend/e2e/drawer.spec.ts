@@ -21,6 +21,18 @@ test.describe('SessionDrawer', () => {
   }
 
   for (const width of VIEWPORTS) {
+    test(`POS panel stacks, no overflow at ${width}px`, async ({ authenticatedPage }) => {
+      await authenticatedPage.setViewportSize({ width, height: 800 });
+      await authenticatedPage.getByRole('button', { name: /PC-03/i }).click();
+      await authenticatedPage.getByRole('tab', { name: /pos/i }).click();
+      const overflow = await authenticatedPage.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `pos overflow at ${width}px`).toBeLessThanOrEqual(0);
+    });
+  }
+
+  for (const width of VIEWPORTS) {
     test(`seat action modal controls >= 44px at ${width}px`, async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ width, height: 800 });
       await authenticatedPage.getByRole('button', { name: /PC-01/i }).click();
