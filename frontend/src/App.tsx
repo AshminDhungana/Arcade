@@ -6,6 +6,7 @@ import { AnalyticsPage } from './pages/Analytics';
 import { EventsPage } from './pages/Events';
 import SettingsPage from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
+import RequireFeature from './components/RequireFeature';
 import { useFeatureFlags } from './api/featureFlags';
 import { ToastViewport } from '@/components/ui/Toast';
 import { NavShell } from './components/NavShell';
@@ -32,9 +33,11 @@ export default function App() {
           path="/members"
           element={
             <ProtectedRoute>
-              <NavShell>
-                <MembersPage />
-              </NavShell>
+              <RequireFeature flag="enable_members">
+                <NavShell>
+                  <MembersPage />
+                </NavShell>
+              </RequireFeature>
             </ProtectedRoute>
           }
         />
@@ -52,9 +55,11 @@ export default function App() {
           path="/events"
           element={
             <ProtectedRoute>
-              <NavShell>
-                <EventsPage />
-              </NavShell>
+              <RequireFeature flag="enable_tournaments">
+                <NavShell>
+                  <EventsPage />
+                </NavShell>
+              </RequireFeature>
             </ProtectedRoute>
           }
         />
