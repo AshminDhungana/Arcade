@@ -1230,7 +1230,8 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
 ### âš¡ CHECKPOINT 6-A
 
 - [ ] Analytics summary query completes in < 2 seconds on seeded 1-year dataset
-- [ ] All 10 feature flags tested: toggle OFF â†’ nav disappears, page 404s, API returns 503 (AC-08)
+- [x] All 10 feature flags tested: toggle OFF â†’ nav disappears, page 404s, API returns 503 (AC-08)
+  - Gaps (flag correct, feature not yet built): `enable_expense_tracking` (no UI/endpoint); `enable_reservations` & `enable_vouchers` (backend-only, 503-verified); `enable_tuya` (backend-only hardware flag, out of the 10-flag UI scope).
 - [ ] Dashboard usable at 375px (iPhone SE width) â€” owner can check revenue from phone (AC-05)
 
 ---
@@ -1285,7 +1286,7 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
   - [x] Tests: `src/api/events.test.tsx` (4), `src/components/events/bracket.test.ts` (3), `src/pages/Events.test.tsx` (4 — list, create, summary, bracket+record), `src/components/NavShell.test.tsx` (flag-gating)
   - [x] **Verification (2026-07-16):** Frontend `npx vitest run` → **185 passed / 57 files**; `npm run build` (tsc strict + vite) clean; `npm run lint` (ESLint) clean. Feature-flag gated via `enable_tournaments` (NavShell entry + `/events` route — reuse of the backend-only flag, no new `enable_events`). Subagent-driven plan executed (`docs/superpowers/plans/2026-07-16-events-page.md`); final whole-branch review: READY-WITH-FOLLOWUPS. **Pre-GA follow-ups (non-blocking):** form required-field validation + error states; `CreateEventModal` silently defaults empty `event_date` to "now"; `EventList` card omits `event_date` display. **Not yet done:** live visual eyeball at 375px in a real browser (responsive layout verified by construction + the automated page test asserting `grid-cols-1` is present).
 
-- [ ] **Task: Feature flag UI finalisation** â€” audit all pages for flag compliance; test all 10 flags (AC-08)
+- [x] **Task: Feature flag UI finalisation** â€” audit all pages for flag compliance; test all 10 flags (AC-08)
 - [ ] **Task: Mobile responsiveness pass** â€” test at 375px, 390px, 412px, 768px; fix any overflow or tap target issues (AC-05)
 
 ### Testing Requirements (Phase 6)

@@ -34,7 +34,7 @@ async def db() -> AsyncGenerator[AsyncSession]:
         async with Session() as session:
             # Enable promotions feature flag
             await session.execute(
-                insert(AppSettings).values(key="enable_promotions", value="true")
+                insert(AppSettings).values(key="enable_vouchers", value="true")
             )
             await session.commit()
             from backend.core.feature_flags import load_flags

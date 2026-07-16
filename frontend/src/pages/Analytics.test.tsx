@@ -4,9 +4,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { AnalyticsPage } from './Analytics';
 import { useAuthStore } from '@/store/authStore';
+import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import type { AnalyticsSummary } from '@/types/analytics';
 import type { Seat } from '@/types/seat';
 import { SeatStatus } from '@/types/seat';
+
+const ALL_FLAGS = {
+  enable_members: false, enable_packages: false, enable_pos: false,
+  enable_inventory: false, enable_reservations: false, enable_vouchers: false,
+  enable_tournaments: false, enable_expense_tracking: false,
+  enable_health_monitoring: false, require_member_for_session: false,
+};
 
 const SUMMARY: AnalyticsSummary = {
   total_revenue_paise: 25050,
@@ -63,6 +71,8 @@ describe('AnalyticsPage', () => {
       }),
     );
     useAuthStore.setState({ accessToken: 'tok' });
+    // HealthAlerts is gated; seed the flag on so existing assertions hold.
+    useFeatureFlagStore.getState().setFlags({ ...ALL_FLAGS, enable_health_monitoring: true });
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -89,5 +99,21 @@ describe('AnalyticsPage', () => {
 
     // Mobile-first: root grids collapse to a single column at 375px.
     expect(container.querySelector('[class*="grid-cols-1"]')).not.toBeNull();
+  });
+
+  it('hides HealthAlerts when enable_health_monitoring is off', async () => {
+    useFeatureFlagStore.getState().setFlags({ ...ALL_FLAGS, enable_health_monitoring: false });
+    render(<AnalyticsPage />, { wrapper: makeWrapper() });
+    await waitFor(() =>
+      expect(screen.queryByText(/health alert/i)).not.toBeInTheDocument(),
+    );
+  });
+
+  it('shows HealthAlerts when enable_health_monitoring is on', async () => {
+    useFeatureFlagStore.getState().setFlags({ ...ALL_FLAGS, enable_health_monitoring: true });
+    render(<AnalyticsPage />, { wrapper: makeWrapper() });
+    await waitFor(() =>
+      expect(screen.getByText(/health alert/i)).toBeInTheDocument(),
+    );
   });
 });

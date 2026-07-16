@@ -9,6 +9,7 @@ import { SeatUtilisationChart } from '@/components/analytics/SeatUtilisationChar
 import { TopPosItemsChart } from '@/components/analytics/TopPosItemsChart';
 import { MemberTrendChart } from '@/components/analytics/MemberTrendChart';
 import { HealthAlerts } from '@/components/analytics/HealthAlerts';
+import { useFeatureFlagStore } from '@/store/featureFlagStore';
 
 function sumPaise(items: { total_paise: number }[]): number {
   return items.reduce((s, d) => s + d.total_paise, 0);
@@ -17,6 +18,9 @@ function sumPaise(items: { total_paise: number }[]): number {
 export function AnalyticsPage() {
   const { data: summary, isLoading, isError, error, refetch } = useAnalyticsSummary();
   const { data: seats = [] } = useSeats();
+  const healthMonitoringEnabled = useFeatureFlagStore(
+    (s) => s.flags.enable_health_monitoring,
+  );
 
   if (isLoading) {
     return (
@@ -88,7 +92,9 @@ export function AnalyticsPage() {
         </ChartCard>
       </div>
 
-      <HealthAlerts alerts={summary.health_alerts} seats={seats} />
+      {healthMonitoringEnabled && (
+        <HealthAlerts alerts={summary.health_alerts} seats={seats} />
+      )}
     </main>
   );
 }

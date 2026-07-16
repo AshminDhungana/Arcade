@@ -271,3 +271,10 @@ class TestPackagesRouter:
             json={"package_id": "nonexistent", "payment_method": "CASH"},
         )
         assert response.status_code == 404
+
+
+async def test_packages_503_when_flag_off(client: AsyncClient) -> None:
+    """When enable_packages is off, list endpoint returns 503."""
+    _flag_cache["enable_packages"] = False
+    resp = await client.get("/api/packages")
+    assert resp.status_code == 503
