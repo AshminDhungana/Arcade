@@ -1275,7 +1275,7 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
   - [x] Mobile-responsive at 375px by construction: `KpiRow` `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`; charts grid `grid-cols-1 lg:grid-cols-2`; every chart `width="100%"`; all grids collapse to a single column at <640px (no horizontal overflow) (FR-MOB-001, FR-MOB-002, AC-05)
   - [x] Backend extension (plan Task 1): `AnalyticsSummary.member_registration_trend: list[DailyCount]` added to `schemas/analytics.py` + `_member_registration_trend()` helper in `services/analytics_service.py` (mirrors `_weekly_revenue`, fills 30-day gap days with 0); 1 new backend test `test_summary_member_registration_trend_fills_gaps`
   - [x] Wire: `/analytics` route added to `src/App.tsx` (ProtectedRoute + NavShell) and `Analytics` nav entry added to `src/components/NavShell.tsx`
-  - [x] **Verification (2026-07-16):** Frontend `npx vitest run` -> **173 passed / 54 files**; `npm run build` (tsc strict + vite) clean; `npm run lint` (ESLint) clean. Backend `pytest` -> **648 passed, 2 skipped**; `test_analytics.py` 7/7; pre-commit (ruff, ruff-format, mypy --strict, bandit) all pass. 13 commits on `main` (`01090bb` backend ... `f874bcd` types/hook); feature-flag gated via `useAnalyticsSummary` `enabled: !!token` + ProtectedRoute. **Not yet done:** live visual eyeball at 375px in a real browser (responsive layout verified by construction via the automated page test asserting `grid-cols-1` is present) — run `npm run dev` + backend to confirm visually.
+  - [x] **Verification (2026-07-16):** Frontend `npx vitest run` -> **173 passed / 54 files**; `npm run build` (tsc strict + vite) clean; `npm run lint` (ESLint) clean. Backend `pytest` -> **648 passed, 2 skipped**; `test_analytics.py` 7/7 + new `test_events.py` 6/6 (events integration lifecycle) = 13 analytics/events tests; pre-commit (ruff, ruff-format, mypy --strict, bandit) all pass. 13 commits on `main` (`01090bb` backend ... `f874bcd` types/hook); feature-flag gated via `useAnalyticsSummary` `enabled: !!token` + ProtectedRoute. **Not yet done:** live visual eyeball at 375px in a real browser (responsive layout verified by construction via the automated page test asserting `grid-cols-1` is present) — run `npm run dev` + backend to confirm visually.
 
 - [x] **Task: Implement `Events.tsx`** ✅ _Complete (verified 2026-07-16)_
   - [x] Event list + create form (feature-flagged via `enable_tournaments`): `src/components/events/EventList.tsx` (card grid `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, status badge, prize pool via `formatPaise`), `src/components/events/CreateEventModal.tsx` (rupees→paise via `Math.round(Number(x)*100)`, toasts)
@@ -1291,15 +1291,15 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
 
 ### Testing Requirements (Phase 6)
 
-- [ ] `pytest backend/tests/test_analytics.py` â€” all summary fields correct with seeded 30-day dataset; performance < 2 seconds
-- [ ] `pytest backend/tests/test_events.py` â€” create, register, match results, single/double elimination advancement, entry fee deduction
-- [ ] Frontend: feature flag snapshot tests (all ON, all OFF, each individually toggled)
-- [ ] **Manual mobile test:** Open dashboard on Android/iOS at 375px â€” verify revenue visible, session status visible, no horizontal overflow
+- [x] `pytest backend/tests/test_analytics.py` â€” all summary fields correct with seeded 30-day dataset; performance < 2 seconds
+- [x] `pytest backend/tests/test_events.py` â€” create, register, match results, single/double elimination advancement, entry fee deduction
+- [x] Frontend: feature flag snapshot tests (all ON, all OFF, each individually toggled)
+- [ ] **Manual mobile test:** Open dashboard on Android/iOS at 375px â€” verify revenue visible, session status visible, no horizontal overflow — _deferred per owner (2026-07-16)_
 
 ### Documentation Requirements (Phase 6)
 
 - [x] `docs/api-reference.md`: analytics and events endpoints
-- [ ] `docs/deployment.md`: feature flag reference table (flag, default, scope, recommended setting)
+- [x] `docs/deployment.md`: feature flag reference table (flag, default, scope, recommended setting)
 
 ---
 
