@@ -43,3 +43,15 @@ async def test_low_time_warning_job_registered() -> None:
         assert job.trigger.interval.total_seconds() == 60  # 1 minute
     finally:
         shutdown_scheduler(sched)
+
+
+@pytest.mark.asyncio
+async def test_print_retry_job_registered() -> None:
+    """An interval job named 'print_retry' must be present (60s)."""
+    sched = init_scheduler()
+    try:
+        job = sched.get_job("print_retry")
+        assert job is not None
+        assert job.trigger.interval.total_seconds() == 60  # 1 minute
+    finally:
+        shutdown_scheduler(sched)

@@ -61,6 +61,26 @@ async def _low_time_warning_job() -> None:
         await low_time_service.emit_low_time_warnings(db)
 
 
+async def _print_retry_job() -> None:
+    """Every minute, retry due print jobs from the outbox.
+
+    Opens its own DB session (no request scope), mirroring ``_backup_job``.
+    Exceptions are logged and swallowed so a print failure never tears down
+    the scheduler loop.
+    """
+    from backend.core.database import AsyncSessionLocal
+    from backend.services import print_service
+
+    try:
+        async with AsyncSessionLocal() as db:
+            retried = await print_service.retry_due_print_jobs(db)
+            if retried:
+                logger.info("Retried %d print job(s).", retried)
+            await db.commit()
+    except Exception:  # noqa: BLE001 — keep the scheduler loop alive
+        logger.exception("Print retry job failed.")
+
+
 def init_scheduler() -> AsyncIOScheduler:
     """Create and start an ``AsyncIOScheduler`` with the reservation reminder job."""
     scheduler = AsyncIOScheduler()
@@ -90,6 +110,14 @@ def init_scheduler() -> AsyncIOScheduler:
         "interval",
         minutes=1,
         id="low_time_warning",
+        max_instances=1,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        _print_retry_job,
+        "interval",
+        minutes=1,
+        id="print_retry",
         max_instances=1,
         replace_existing=True,
     )
