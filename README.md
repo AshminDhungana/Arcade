@@ -6,7 +6,7 @@
 
 Sessions, billing, POS, members, PC control, and analytics — one system, zero subscriptions, zero internet dependency.
 
-[![Status](https://img.shields.io/badge/status-active--development-brightgreen)](https://github.com/AshminDhungana/Arcade)
+[![Status](https://img.shields.io/badge/status-active--development-brightgreen)](https://github.com/AshminDhungana/Agentium)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Python](https://img.shields.io/badge/backend-Python%203.11%2B-3776AB?logo=python&logoColor=white)](#tech-stack)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](#tech-stack)
