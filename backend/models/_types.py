@@ -90,7 +90,15 @@ class UTCDatetime(TypeDecorator[datetime]):
         super().__init__(length=32, **kwargs)  # ISO UTC format fits in 32 chars
 
     def process_bind_param(self, value: datetime | None, dialect: Any) -> str | None:
-        """Serialize a timezone-aware datetime to UTC ISO string."""
+        """Serialize a timezone-aware datetime to a fixed-width UTC ISO string.
+
+        Uses ``strftime`` with 6-digit microseconds + ``Z`` so that every
+        stored value has identical width. This keeps lexicographic (TEXT)
+        comparison in ``print_job_repo.list_due`` (``next_retry_at <= now``)
+        robust regardless of microsecond precision — a whole-second timestamp
+        (``microsecond=0``) would otherwise sort *after* a microsecond-precise
+        one under ISO ``isoformat()``, which drops the ``.%f`` segment.
+        """
         if value is None:
             return None
         # Ensure value is timezone-aware (UTC)
@@ -98,8 +106,8 @@ class UTCDatetime(TypeDecorator[datetime]):
             value = value.replace(tzinfo=UTC)
         elif value.tzinfo != UTC:
             value = value.astimezone(UTC)
-        # Return ISO format with 'Z' suffix for UTC
-        return value.isoformat().replace("+00:00", "Z")
+        # Fixed-width ISO format with 'Z' suffix for UTC (always 6-digit µs)
+        return value.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
     def process_result_value(self, value: str | None, dialect: Any) -> datetime | None:
         """Deserialize ISO string to timezone-aware UTC datetime."""

@@ -337,6 +337,43 @@ class TestPrintStatusTracking:
         assert job.next_retry_at is not None
 
     @pytest.mark.anyio
+    async def test_enqueue_persistence_failure_stays_retryable(self) -> None:
+        """A persistence failure in the fire-and-forget task must NOT raise and
+        MUST leave a ``PrintJob`` retry row so the invoice stays retryable.
+        """
+        db = await _in_memory_session()
+        inv = await invoice_repo.create(
+            db, session_id="s-fail", payment_method=_CASH, total_paise=500
+        )
+        await db.commit()
+        cfg = _make_config()
+        factory = _sessionmaker()
+
+        # Simulate a transient DB error in the persistence step so the primary
+        # background commit cannot complete. The fallback must open a fresh
+        # session and still record a retryable PrintJob row.
+        async def _boom(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("transient DB error")
+
+        with (
+            patch.object(ps, "_get_printer", return_value=_DummyOKPrinter()),
+            patch.object(ps, "_persist_outcome", side_effect=_boom),
+        ):
+            # Must not raise (fire-and-forget task hardening).
+            await ps.enqueue_and_track_print(
+                inv.id, _resp_for(inv), "Test", cfg, session_factory=factory
+            )
+
+        # A PrintJob retry row must exist so the scheduler can still pick it up.
+        async with _MAKER() as db2:
+            reloaded = await invoice_repo.get_by_id(db2, inv.id)
+            assert reloaded.print_status == InvoicePrintStatus.PENDING
+            job = await ps.print_job_repo.get_by_invoice(db2, inv.id)
+        assert job is not None
+        assert job.attempts == 0
+        assert job.next_retry_at is not None
+
+    @pytest.mark.anyio
     async def test_retry_due_print_jobs_succeeds(self) -> None:
         db = await _in_memory_session()
         inv = await invoice_repo.create(

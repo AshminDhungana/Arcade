@@ -359,16 +359,61 @@ async def enqueue_and_track_print(
     invoice is marked PRINTED and any job row removed; on failure it is marked
     FAILED and a job row is upserted for background retry.
     """
-    ok, err = await _print_receipt_core(
-        invoice,
-        cafe_name,
-        config,
-        duration_seconds=duration_seconds,
-        seat_name=seat_name,
-    )
-    async with session_factory() as db:
-        await _persist_outcome(db, invoice_id, ok, err)
-        await db.commit()
+    try:
+        ok, err = await _print_receipt_core(
+            invoice,
+            cafe_name,
+            config,
+            duration_seconds=duration_seconds,
+            seat_name=seat_name,
+        )
+    except Exception as exc:  # noqa: BLE001 — never escape the fire-and-forget task
+        logger.exception(
+            "Unexpected error in print core for invoice %s; recording retry row",
+            invoice_id,
+        )
+        await _ensure_retry_row(invoice_id, str(exc), session_factory)
+        return
+
+    try:
+        async with session_factory() as db:
+            await _persist_outcome(db, invoice_id, ok, err)
+            await db.commit()
+    except Exception as exc:  # noqa: BLE001 — never escape the fire-and-forget task
+        logger.exception(
+            "Failed to persist print outcome for invoice %s; "
+            "recording a retryable outbox row",
+            invoice_id,
+        )
+        await _ensure_retry_row(invoice_id, str(exc), session_factory)
+
+
+async def _ensure_retry_row(invoice_id: str, error: str, session_factory: Any) -> None:
+    """Best-effort: ensure a retryable ``PrintJob`` outbox row exists.
+
+    Called when the primary persistence step fails so the invoice is never
+    silently left at PENDING with no retry path. Opens a FRESH session from the
+    injected ``session_factory`` (NOT ``AsyncSessionLocal`` directly) so it
+    stays consistent with the in-memory factory used in tests. A double failure
+    (the fallback itself raises) is only logged — it must never propagate out
+    of the fire-and-forget task.
+    """
+    try:
+        async with session_factory() as db:
+            existing = await print_job_repo.get_by_invoice(db, invoice_id)
+            if existing is None:
+                await print_job_repo.create(
+                    db,
+                    invoice_id=invoice_id,
+                    attempts=0,
+                    last_error=error,
+                    next_retry_at=datetime.now(UTC) + _next_retry_delay(0),
+                )
+            await db.commit()
+    except Exception:  # noqa: BLE001 — double failure: log only
+        logger.exception(
+            "Failed to create fallback retry row for invoice %s", invoice_id
+        )
 
 
 async def mark_print_skipped(db: AsyncSession, invoice_id: str) -> None:
