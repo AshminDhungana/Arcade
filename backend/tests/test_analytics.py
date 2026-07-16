@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 
 from backend.api.deps import get_current_staff, get_db
 from backend.core.database import Base
+from backend.core.ws_manager import manager as _ws_manager
 from backend.main import app
 from backend.models import (
     GamingSession,
@@ -255,3 +256,78 @@ async def test_summary_member_registration_trend_fills_gaps(db: AsyncSession) ->
     assert next(d.count for d in trend if d.date == today_key) == 2
     assert next(d.count for d in trend if d.date == three_days_key) == 1
     assert next(d.count for d in trend if d.date == ten_days_key) == 0
+
+
+@pytest_asyncio.fixture
+async def clean_health() -> AsyncGenerator[None]:
+    """Isolate the module-level WebSocketManager health state so the
+    summary's health_alerts assertion is deterministic (no real agents)."""
+    _ws_manager._health_data.clear()
+    _ws_manager._health_received_at.clear()
+    yield
+    _ws_manager._health_data.clear()
+    _ws_manager._health_received_at.clear()
+
+
+async def test_summary_all_fields_on_30day_dataset(
+    db: AsyncSession, clean_health: None
+) -> None:
+    """Every AnalyticsSummary field has an exact, deterministic value on the
+    30-day seed (Task1)."""
+    await seed_perf.seed_30_day(db)
+    await db.commit()
+    s = await analytics_service.get_summary(db)
+
+    # Today-only window
+    assert s.total_revenue_paise == 8000
+    assert s.session_count == 2
+    assert s.average_duration_seconds == pytest.approx(2700.0)
+
+    # Busiest hour (30-day window): hour 10 has S1 + S3 = 2 sessions
+    assert s.busiest_hour is not None
+    assert s.busiest_hour.hour == 10
+    assert s.busiest_hour.session_count == 2
+
+    # Weekly revenue: 7 days, only today has revenue (8000)
+    assert len(s.weekly_revenue) == 7
+    assert sum(d.total_paise for d in s.weekly_revenue) == 8000
+
+    # Top POS items: Tea = 2 (S1) + 3 (S2) = 5
+    assert s.top_pos_items and s.top_pos_items[0].name == "Tea"
+    assert s.top_pos_items[0].quantity == 5
+
+    # Member registration trend: 30 entries, 1 new 29d-ago, 1 new today
+    assert len(s.member_registration_trend) == 30
+    assert s.member_registration_trend[0].count == 1
+    assert s.member_registration_trend[-1].count == 1
+    assert sum(d.count for d in s.member_registration_trend) == 2
+
+    # Zone utilisation (7-day window): 1.5 session-hrs over 1 seat.
+    # available_hours = 7d window but measured up to `now`, so it is
+    # 168 + (hours into today); assert the deterministic parts exactly.
+    assert s.zone_utilisation and s.zone_utilisation[0].zone_name == "Z"
+    assert s.zone_utilisation[0].session_hours == pytest.approx(1.5)
+    assert s.zone_utilisation[0].available_hours >= 168.0
+    assert s.zone_utilisation[0].available_hours < 192.0
+
+    # Member stats
+    assert s.member_stats.new_today == 1
+    assert s.member_stats.active_last_30d == 1
+    assert (
+        s.member_stats.top_spenders and s.member_stats.top_spenders[0].name == "Alice"
+    )
+
+    # WoL: 8 successes / 10 attempts = 80.0%
+    assert s.wol_success_rates and s.wol_success_rates[0].rate_pct == pytest.approx(
+        80.0
+    )
+
+    # Upcoming reservation (today)
+    assert s.upcoming_reservations and s.upcoming_reservations[0].customer_name == "Bob"
+
+    # No health reports -> no alerts
+    assert s.health_alerts == []
+
+    # No open shift
+    assert s.current_shift_id is None
+    assert s.shift_opened_at is None

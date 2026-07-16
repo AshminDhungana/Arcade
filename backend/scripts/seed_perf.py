@@ -178,6 +178,147 @@ async def seed_year(
         await db.flush()
 
 
+async def seed_30_day(db: AsyncSession) -> None:
+    """Deterministic ~30-day dataset for analytics-summary correctness tests.
+
+    Spans every analytics window so a single ``get_summary`` call can be asserted
+    field-by-field with exact values:
+
+    * today-only:   S1 (10:00-11:00, CASH 5000) + S2 (12:00-12:30, CASH 3000)
+      -> total_revenue 8000, session_count 2, avg_duration 2700s.
+    * 7-day:        only today has revenue -> weekly_revenue sum 8000.
+    * 30-day:       S3 (member Alice, exactly 30 days ago at 10:00, WALLET 2000)
+      makes hour 10 the busiest (2 sessions) and Alice the top spender / active.
+    * member trend: Alice registered 29 days ago (trend[0]), Newbie today
+      (trend[-1] and new_today).
+    * POS:          Tea x2 (S1) + x3 (S2) = 5.
+    * WoL:          Seat 001 = 8/10 successes -> 80.0%.
+    * reservation:  Bob today (upcoming).
+    """
+    now = datetime.now(UTC)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    zone = Zone(
+        name="Z",
+        rate_per_minute_paise=20,
+        rate_per_hour_paise=1200,
+        pricing_model="PER_MINUTE",
+        block_minutes=15,
+    )
+    db.add(zone)
+    await db.flush()
+    seat = Seat(name="Seat 001", zone_id=zone.id, status=SeatStatus.OFFLINE.value)
+    seat.wol_attempts = 10
+    seat.wol_successes = 8
+    db.add(seat)
+    await db.flush()
+    tea = MenuItem(
+        name="Tea", category="Beverages", price_paise=2500, is_available=True
+    )
+    db.add(tea)
+    await db.flush()
+
+    alice = Member(
+        name="Alice",
+        phone="+9779800000999",
+        tier=MemberTier.BRONZE.value,
+        wallet_balance_paise=0,
+        created_at=today_start - timedelta(days=29),
+    )
+    newbie = Member(
+        name="Newbie",
+        phone="+9779800000888",
+        tier=MemberTier.BRONZE.value,
+        wallet_balance_paise=0,
+        created_at=now.replace(hour=9, minute=0, second=0, microsecond=0),
+    )
+    db.add_all([alice, newbie])
+    await db.flush()
+
+    s1 = GamingSession(
+        seat_id=seat.id,
+        member_id=None,
+        status=SessionStatus.COMPLETED,
+        started_at=now.replace(hour=10, minute=0, second=0, microsecond=0),
+        ended_at=now.replace(hour=11, minute=0, second=0, microsecond=0),
+        total_paused_seconds=0,
+        locked_rate_paise=20,
+        locked_pricing_model="PER_MINUTE",
+        payment_method=PaymentMethod.CASH,
+    )
+    s2 = GamingSession(
+        seat_id=seat.id,
+        member_id=None,
+        status=SessionStatus.COMPLETED,
+        started_at=now.replace(hour=12, minute=0, second=0, microsecond=0),
+        ended_at=now.replace(hour=12, minute=30, second=0, microsecond=0),
+        total_paused_seconds=0,
+        locked_rate_paise=20,
+        locked_pricing_model="PER_MINUTE",
+        payment_method=PaymentMethod.CASH,
+    )
+    s3 = GamingSession(
+        seat_id=seat.id,
+        member_id=alice.id,
+        status=SessionStatus.COMPLETED,
+        started_at=(today_start - timedelta(days=30)) + timedelta(hours=10),
+        ended_at=(today_start - timedelta(days=30)) + timedelta(hours=11),
+        total_paused_seconds=0,
+        locked_rate_paise=20,
+        locked_pricing_model="PER_MINUTE",
+        payment_method=PaymentMethod.WALLET,
+    )
+    db.add_all([s1, s2, s3])
+    await db.flush()
+
+    db.add_all(
+        [
+            Invoice(
+                session_id=s1.id,
+                member_id=None,
+                total_paise=5000,
+                payment_method=PaymentMethod.CASH,
+                created_at=s1.ended_at,
+            ),
+            Invoice(
+                session_id=s2.id,
+                member_id=None,
+                total_paise=3000,
+                payment_method=PaymentMethod.CASH,
+                created_at=s2.ended_at,
+            ),
+            Invoice(
+                session_id=s3.id,
+                member_id=alice.id,
+                total_paise=2000,
+                payment_method=PaymentMethod.WALLET,
+                created_at=s3.ended_at,
+            ),
+            SessionPOSItem(
+                session_id=s1.id,
+                menu_item_id=tea.id,
+                quantity=2,
+                unit_price_paise=tea.price_paise,
+            ),
+            SessionPOSItem(
+                session_id=s2.id,
+                menu_item_id=tea.id,
+                quantity=3,
+                unit_price_paise=tea.price_paise,
+            ),
+            Reservation(
+                seat_id=seat.id,
+                customer_name="Bob",
+                reserved_from=now + timedelta(hours=2),
+                reserved_until=now + timedelta(hours=3),
+                status=ReservationStatus.CONFIRMED.value,
+                created_by_staff_id="seed",
+            ),
+        ]
+    )
+    await db.flush()
+
+
 async def seed_perf(db) -> None:  # type: ignore[no-untyped-def]
     await seed_structural(db)
     await seed_year(db)
