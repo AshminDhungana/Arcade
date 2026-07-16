@@ -52,10 +52,10 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white"
             aria-label="Close modal"
           >
-            ×
+            <span className="text-xl leading-none" aria-hidden="true">×</span>
           </button>
         </header>
 
@@ -134,7 +134,7 @@ interface ActionButtonProps {
 }
 
 function ActionButton({ icon, label, variant, onClick, disabled, children }: ActionButtonProps) {
-  const base = 'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800';
+  const base = 'flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800';
   const styles = {
     primary: 'bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed',
     secondary: 'bg-slate-700 text-slate-200 hover:bg-slate-600 focus:ring-slate-400 disabled:bg-slate-700/50 disabled:cursor-not-allowed',
