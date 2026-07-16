@@ -1444,6 +1444,68 @@ All event endpoints require the `enable_tournaments` feature flag (503 when off)
 | PATCH | /api/events/{id}/match | Admin | Record a match result (advances the bracket) |
 | GET | /api/events/{id}/summary | Admin | Event summary: participants, matches, prize pool, entry-fee revenue, champion |
 
+**Response shapes**
+
+```json
+// EventResponse — list item and nested in EventSummaryResponse.event
+{
+  "id": "evt_001",
+  "name": "Spring Cup",
+  "game_title": "Tekken 8",
+  "event_date": "2026-08-01T18:00:00Z",
+  "entry_fee_paise": 5000,
+  "prize_pool_paise": 20000,
+  "bracket_type": "SINGLE_ELIMINATION",
+  "status": "UPCOMING"
+}
+```
+
+```json
+// EventMatchResponse — item in EventSummaryResponse.matches
+{
+  "id": "match_001",
+  "event_id": "evt_001",
+  "bracket_group": "WINNERS",
+  "round": 1,
+  "slot_a_id": "part_001",
+  "slot_b_id": "part_002",
+  "winner_id": null,
+  "status": "PENDING",
+  "next_match_id": "match_003",
+  "next_loser_match_id": null
+}
+```
+
+```json
+// EventParticipantResponse — item in EventSummaryResponse.participants
+{
+  "id": "part_001",
+  "event_id": "evt_001",
+  "member_id": null,
+  "name": "Walk-in",
+  "seat_id": null,
+  "bracket_position": 1,
+  "eliminated": false
+}
+```
+
+```json
+// EventSummaryResponse — GET /api/events/{id}/summary
+{
+  "event": { "<EventResponse>" },
+  "participant_count": 16,
+  "participants": [ { "<EventParticipantResponse>" } ],
+  "match_count": 15,
+  "completed_match_count": 15,
+  "prize_pool_paise": 20000,
+  "entry_fee_paise": 5000,
+  "entry_fee_revenue_paise": 80000,
+  "champion_participant_id": "part_001",
+  "is_complete": true,
+  "matches": [ { "<EventMatchResponse>" } ]
+}
+```
+
 ### Create event
 `POST /api/events`
 ```json
