@@ -6,7 +6,15 @@ import { SeatStatus } from '@/types/seat';
 import type { Seat } from '@/types/seat';
 import type { ReactNode } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import type { Member } from '@/types/members';
+
+const ALL_FLAGS = {
+  enable_members: false, enable_packages: false, enable_pos: false,
+  enable_inventory: false, enable_reservations: false, enable_vouchers: false,
+  enable_tournaments: false, enable_expense_tracking: false,
+  enable_health_monitoring: false, require_member_for_session: false,
+};
 
 const MEMBER: Member = {
   id: 'm1',
@@ -108,5 +116,17 @@ describe('SeatActionModal', () => {
       { seat_id: 'seat-1', member_id: 'm1' },
       expect.any(Object),
     );
+  });
+
+  it('allows starting a session without a member when flag is off', () => {
+    useFeatureFlagStore.getState().setFlags({ ...ALL_FLAGS, require_member_for_session: false });
+    render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+    expect(screen.getByRole('button', { name: /start session/i })).toBeEnabled();
+  });
+
+  it('disables Start Session without a member when flag is on', () => {
+    useFeatureFlagStore.getState().setFlags({ ...ALL_FLAGS, require_member_for_session: true });
+    render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+    expect(screen.getByRole('button', { name: /start session/i })).toBeDisabled();
   });
 });

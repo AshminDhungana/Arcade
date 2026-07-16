@@ -6,6 +6,7 @@ import { MemberSearch } from './MemberSearch';
 import { useStartSession } from '@/api/sessions';
 import { generateEnrollCode, regenerateOverridePin } from '@/api/seats';
 import { toast } from '@/store/toastStore';
+import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import type { Member } from '@/types/members';
 
 interface SeatActionModalProps {
@@ -19,6 +20,7 @@ interface SeatActionModalProps {
 export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
   const [member, setMember] = useState<Member | null>(null);
   const startSession = useStartSession();
+  const memberRequired = useFeatureFlagStore((s) => s.flags.require_member_for_session);
 
   const handleStartSession = () => {
     startSession.mutate(
@@ -88,7 +90,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
                 label="Start Session"
                 variant="primary"
                 onClick={handleStartSession}
-                disabled={!member || startSession.isPending}
+                disabled={(!member && memberRequired) || startSession.isPending}
               >
                 {startSession.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               </ActionButton>
