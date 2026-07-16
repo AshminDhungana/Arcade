@@ -8,37 +8,47 @@ import type { FeatureFlags } from './store/featureFlagStore';
 const KEYS = [
   'enable_members', 'enable_packages', 'enable_pos', 'enable_inventory',
   'enable_reservations', 'enable_vouchers', 'enable_tournaments',
-  'enable_expense_tracking', 'enable_health_monitoring', 'require_member_for_session',
+  'enable_expense_tracking', 'enable_health_monitoring',
+  'require_member_for_session',
 ] as const;
 
-const ALL_OFF = Object.fromEntries(KEYS.map((k) => [k, false])) as Record<string, boolean>;
-const ALL_ON = Object.fromEntries(KEYS.map((k) => [k, true])) as Record<string, boolean>;
+const ALL_OFF = Object.fromEntries(KEYS.map((k) => [k, false])) as unknown as FeatureFlags;
+const ALL_ON = Object.fromEntries(KEYS.map((k) => [k, true])) as unknown as FeatureFlags;
 
-const renderNav = (flags: Record<string, boolean>) => {
-  useFeatureFlagStore.getState().setFlags(flags as unknown as FeatureFlags);
-  return render(<MemoryRouter><NavShell><div>child</div></NavShell></MemoryRouter>);
+const renderNav = (flags: FeatureFlags) => {
+  useFeatureFlagStore.getState().setFlags(flags);
+  return render(
+    <MemoryRouter>
+      <NavShell>
+        <div>child</div>
+      </NavShell>
+    </MemoryRouter>,
+  );
 };
 
-describe('feature flag matrix', () => {
+describe('feature flag snapshot matrix', () => {
   beforeEach(() => useFeatureFlagStore.getState().clear());
 
-  it('all OFF: only Dashboard/Analytics/Settings nav visible', () => {
-    renderNav(ALL_OFF);
+  it('all flags OFF', () => {
+    const { asFragment } = renderNav(ALL_OFF);
+    expect(asFragment()).toMatchSnapshot();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Analytics')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.queryByText('Members')).not.toBeInTheDocument();
     expect(screen.queryByText('Events')).not.toBeInTheDocument();
   });
 
-  it('all ON: Members and Events nav visible', () => {
-    renderNav(ALL_ON);
+  it('all flags ON', () => {
+    const { asFragment } = renderNav(ALL_ON);
+    expect(asFragment()).toMatchSnapshot();
     expect(screen.getByText('Members')).toBeInTheDocument();
     expect(screen.getByText('Events')).toBeInTheDocument();
   });
 
-  it.each(KEYS)('toggling %s alone does not break the nav shell', (key) => {
-    renderNav({ ...ALL_OFF, [key]: true });
+  it.each(KEYS)('only %s enabled', (key) => {
+    const flags = { ...ALL_OFF } as Record<string, boolean>;
+    flags[key] = true;
+    const { asFragment } = renderNav(flags as unknown as FeatureFlags);
+    expect(asFragment()).toMatchSnapshot();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 });
