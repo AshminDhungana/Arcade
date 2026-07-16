@@ -152,3 +152,15 @@ session timer. Act fast so the customer isn't over-billed, and so the seat is fr
 > If the screen is merely frozen but the game is still running, a **screenshot**
 > (`GET /api/seats/{id}/screenshot`, Cashier+) can confirm what the customer sees — but a
 > wedged agent returns `503` (offline) or `504` (no response within 3 s).
+
+---
+
+## Feature Flags (Settings → Feature Flags)
+
+### Require Print Before Release
+When ON, a checkout does not free the seat or show the agent overlay until the receipt prints. Recovery paths for a failed print:
+- **Reprint** (thermal) — succeeds → seat released.
+- **Print the PDF receipt and click "Mark printed"** — counts as printed.
+- **Force close with your own PIN + a reason** — releases the seat, logs `CHECKOUT_FORCED_UNPRINTED`, leaves the invoice as `FAILED`.
+
+Turn this OFF immediately if the printer dies and you need checkouts to proceed without printing.

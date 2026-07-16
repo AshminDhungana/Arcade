@@ -2140,6 +2140,19 @@ PRAGMA temp_store = MEMORY;        -- Keep temp tables in RAM
 
 ---
 
+## Print Gate — flag storage deviation (2026-07-16)
+
+The original task specified `require_print_before_release` as an
+`arcade.config.json` (Appendix B) field. Per the approved design
+(`docs/superpowers/specs/2026-07-16-print-gate-design.md`), it is
+implemented as a **DB feature flag** instead, so ops can toggle it live
+from the dashboard without editing JSON + restarting the server. The flag
+defaults to `false` (`get_flag` returns `False` for a missing key). Seed
+row added in `backend/scripts/seed_dev.py`. Original Appendix B task
+checkbox is satisfied by this equivalent live-toggle mechanism.
+
+---
+
 _This roadmap is the authoritative implementation plan for Arcade v1.0. It supersedes the v2.0 TODO.md. Changes to requirements must be reflected here before implementation begins._
 
 
