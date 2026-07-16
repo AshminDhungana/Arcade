@@ -80,6 +80,13 @@ class InvoiceLineItemType(Enum):
     PACKAGE_CREDIT = "PACKAGE_CREDIT"
 
 
+class InvoicePrintStatus(Enum):
+    PENDING = "PENDING"
+    PRINTED = "PRINTED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+
+
 # ── Package ──────────────────────────────────────────────────────────────
 
 
