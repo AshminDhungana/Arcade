@@ -10,6 +10,19 @@ const EVENTS = [
     entry_fee_paise: 5000, prize_pool_paise: 20000, bracket_type: 'SINGLE_ELIMINATION', status: 'UPCOMING' },
 ];
 
+const SUMMARY = {
+  event: EVENTS[0],
+  participant_count: 2,
+  participants: [
+    { id: 'pA', event_id: 'e1', member_id: null, name: 'Alice', seat_id: null, bracket_position: 0, eliminated: false },
+    { id: 'pB', event_id: 'e1', member_id: null, name: 'Bob', seat_id: null, bracket_position: 1, eliminated: true },
+  ],
+  match_count: 1, completed_match_count: 1,
+  prize_pool_paise: 20000, entry_fee_paise: 5000, entry_fee_revenue_paise: 10000,
+  champion_participant_id: 'pA', is_complete: true,
+  matches: [{ id: 'm1', event_id: 'e1', bracket_group: 'WINNERS', round: 1, slot_a_id: 'pA', slot_b_id: 'pB', winner_id: 'pA', status: 'COMPLETED', next_match_id: null, next_loser_match_id: null }],
+};
+
 function makeWrapper() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return ({ children }: { children: ReactNode }) =>
@@ -48,5 +61,18 @@ describe('EventsPage', () => {
     fireEvent.change(screen.getByLabelText(/entry fee/i), { target: { value: '10' } });
     fireEvent.click(screen.getByRole('button', { name: /create/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/events', expect.objectContaining({ method: 'POST' })));
+  });
+
+  it('renders the summary panel with prize pool and champion for a selected event', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      const body = url.includes('/summary') ? SUMMARY : EVENTS;
+      return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }));
+    render(<EventsPage />, { wrapper: makeWrapper() });
+    await waitFor(() => expect(screen.getByText('FIFA Cup')).toBeInTheDocument());
+    fireEvent.click(screen.getByLabelText(/open event fifa cup/i));
+    await waitFor(() => expect(screen.getByText('Summary')).toBeInTheDocument());
+    expect(screen.getByText('Rs. 200.00')).toBeInTheDocument(); // prize pool KPI
+    expect(screen.getByText('Alice')).toBeInTheDocument(); // champion
   });
 });

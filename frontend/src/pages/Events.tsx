@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Plus } from 'lucide-react';
 import { useEvents } from '@/api/events';
 import { EventList } from '@/components/events/EventList';
+import { EventDetail } from '@/components/events/EventDetail';
 import { CreateEventModal } from '@/components/events/CreateEventModal';
 
 export function EventsPage() {
@@ -13,10 +14,9 @@ export function EventsPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   if (selectedEventId) {
-    // Detail view is wired in Task 5; placeholder until then.
     return (
       <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
-        <Button variant="secondary" onClick={() => setSelectedEventId(null)}>← Back to events</Button>
+        <EventDetail eventId={selectedEventId} onBack={() => setSelectedEventId(null)} />
       </main>
     );
   }
