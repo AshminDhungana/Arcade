@@ -37,6 +37,18 @@ test.describe('SessionDrawer', () => {
   }
 
   for (const width of VIEWPORTS) {
+    test(`invoice table scrolls, no overflow at ${width}px`, async ({ authenticatedPage }) => {
+      await authenticatedPage.setViewportSize({ width, height: 800 });
+      await authenticatedPage.getByRole('button', { name: /PC-03/i }).click();
+      await authenticatedPage.getByRole('tab', { name: /checkout/i }).click();
+      await authenticatedPage.getByRole('button', { name: /confirm payment/i }).click();
+      await expect(authenticatedPage.getByText(/checked out successfully/i)).toBeVisible();
+      const wrapper = authenticatedPage.getByRole('table').locator('xpath=..');
+      await expect(wrapper).toHaveCSS('overflow-x', 'auto');
+    });
+  }
+
+  for (const width of VIEWPORTS) {
     test(`seat action modal controls >= 44px at ${width}px`, async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ width, height: 800 });
       await authenticatedPage.getByRole('button', { name: /PC-01/i }).click();

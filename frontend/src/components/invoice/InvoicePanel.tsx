@@ -40,7 +40,7 @@ export function InvoicePanel({ invoice, sessionDurationSeconds }: InvoicePanelPr
 
       {/* Line Items Table */}
       {hasLineItems ? (
-        <div className="overflow-hidden rounded-lg border border-slate-700/50 bg-slate-800/20">
+        <div className="overflow-x-auto rounded-lg border border-slate-700/50 bg-slate-800/20">
           <table className="min-w-full divide-y divide-slate-700/50">
             <thead className="bg-slate-800/50">
               <tr>
