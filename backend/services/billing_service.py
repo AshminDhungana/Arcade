@@ -24,6 +24,7 @@ from backend.models import GamingSession, Invoice, SeatStatus, SessionStatus
 from backend.models._enums import (
     AuditAction,
     InvoiceLineItemType,
+    InvoicePrintStatus,
     PaymentMethod,
     PricingModel,
 )
@@ -192,14 +193,13 @@ async def _print_receipt(
     seat_name: str,
     duration_seconds: int,
 ) -> None:
-    """Trigger receipt printing asynchronously (non-blocking).
+    """Trigger receipt printing asynchronously (non-blocking) and track status.
 
-    Reads printer config, builds InvoiceResponse, and dispatches to
-    the print service.  Failures are logged as warnings but never
-    raised.
+    Reads printer config and dispatches to the print service, which persists
+    ``print_status`` and enqueues a retry job on failure.
     """
     from backend.core.config import get_config
-    from backend.services.print_service import print_receipt
+    from backend.services.print_service import enqueue_and_track_print
 
     try:
         config = get_config()
@@ -207,10 +207,11 @@ async def _print_receipt(
         # Config not available (e.g. CI) — skip printing gracefully
         return
 
-    await print_receipt(
-        invoice=invoice,
-        cafe_name=config.cafe_name,
-        config=config,
+    await enqueue_and_track_print(
+        invoice.id,
+        invoice,
+        config.cafe_name,
+        config,
         duration_seconds=duration_seconds,
         seat_name=seat_name,
     )
@@ -462,6 +463,7 @@ async def checkout_session(
         pos_total_paise=invoice.pos_total_paise,
         total_paise=invoice.total_paise,
         payment_method=invoice.payment_method,
+        print_status=InvoicePrintStatus.PENDING,
         created_at=_ensure_utc(invoice.created_at),
         line_items=[],
     )

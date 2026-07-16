@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import tempfile
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
@@ -22,10 +23,12 @@ from backend.services.billing_service import (
 
 
 @pytest.fixture(autouse=True)
-def _mock_print_receipt():
-    """Mock print_receipt so the async background task is a no-op."""
-    with patch("backend.services.print_service.print_receipt", new_callable=AsyncMock):
-        yield
+def _mock_print_enqueue():
+    """Mock enqueue_and_track_print so the async background task is a no-op."""
+    with patch(
+        "backend.services.print_service.enqueue_and_track_print", new_callable=AsyncMock
+    ) as m:
+        yield m
 
 
 @pytest.fixture
@@ -211,3 +214,17 @@ async def test_checkout_already_completed_raises_409(db: AsyncSession) -> None:
     with pytest.raises(HTTPException) as exc_info:
         await checkout_session(db, sess.id, PaymentMethod.CASH)
     assert exc_info.value.status_code == 409
+
+
+async def test_checkout_enqueues_tracked_print(
+    db: AsyncSession, _mock_print_enqueue: AsyncMock
+) -> None:
+    """Checkout dispatches a tracked print with the invoice id as first arg."""
+    session = await _create_active_session(db, duration_minutes=30)
+    result = await checkout_session(db, session[0].id, PaymentMethod.CASH)
+    # The background task is scheduled via asyncio.create_task; give the loop
+    # a chance to run it so the mock is awaited before we assert.
+    await asyncio.sleep(0)
+    _mock_print_enqueue.assert_awaited_once()
+    args, _kwargs = _mock_print_enqueue.call_args
+    assert args[0] == result.id  # invoice_id is the first positional arg
