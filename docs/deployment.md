@@ -25,6 +25,39 @@ Restrict the file via ACL by removing inherited permissions and granting only th
 3. Click **Add** → **Select a principal** → enter your username → **Full control**.
 4. Confirm with **OK** on all dialogs.
 
+## Feature Flags
+
+Feature flags live in the `AppSettings` table and are toggled from the dashboard
+**Settings → Feature Flags** tab (admin). They can also be flipped via
+`PATCH /api/settings` with a `Bearer` admin token, e.g.:
+
+```bash
+curl -X PATCH http://localhost:8000/api/settings \
+  -H "Authorization: Bearer <admin-jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"enable_tournaments": "true"}'
+```
+
+Unknown / missing flags default to **off**. Defaults below are seeded by
+`backend/scripts/seed_dev.py`.
+
+| Flag                      | Default | Scope                                | Recommended setting                          |
+| ------------------------- | ------- | ------------------------------------ | -------------------------------------------- |
+| `enable_members`          | `true`  | Dashboard / Members page            | **ON** — core membership feature             |
+| `enable_packages`         | `true`  | Members / Packages & pricing        | **ON** unless you do not sell time packages  |
+| `enable_pos`             | `true`  | POS sales & billing                 | **ON** — core revenue feature                |
+| `enable_inventory`        | `false` | POS / Inventory tracking            | ON only if you track stock                  |
+| `enable_reservations`     | `true`  | Reservations                        | **ON** if you take seat bookings             |
+| `enable_vouchers`         | `false` | Vouchers & promotions               | ON to enable voucher batch generation        |
+| `enable_tournaments`      | `false` | Events / Tournaments (Phase 6)      | ON to run in-cafe tournaments               |
+| `enable_expense_tracking` | `false` | Expense tracking                    | OFF in v1.0 (no UI/endpoint yet)             |
+| `enable_health_monitoring`| `true`  | Agent health dashboard              | **ON** if agents report health metrics       |
+| `enable_tuya`             | `false` | Tuya smart-plug power control (HW)  | ON only with paired Tuya plugs (see below)   |
+
+> `require_member_for_session` is a related config-style flag (default `false`):
+> when ON, starting a session requires attaching a member. It is not part of the
+> 10 UI feature flags above.
+
 ## Tuya Smart-Plug Pairing
 
 Console seats can be powered on/off remotely through a Tuya smart plug (local LAN, no cloud at
