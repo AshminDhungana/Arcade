@@ -20,7 +20,7 @@ describe('Table', () => {
     );
 
     const tableWrapper = screen.getByRole('table').parentElement;
-    expect(tableWrapper).toHaveClass('overflow-hidden');
+    expect(tableWrapper).toHaveClass('overflow-x-auto');
     expect(tableWrapper).toHaveClass('rounded-lg');
     expect(tableWrapper).toHaveClass('border-slate-700/50');
   });
