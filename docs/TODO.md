@@ -1287,7 +1287,7 @@ Owner-facing analytics dashboard with Recharts visualizations, tournament/event 
   - [x] **Verification (2026-07-16):** Frontend `npx vitest run` → **185 passed / 57 files**; `npm run build` (tsc strict + vite) clean; `npm run lint` (ESLint) clean. Feature-flag gated via `enable_tournaments` (NavShell entry + `/events` route — reuse of the backend-only flag, no new `enable_events`). Subagent-driven plan executed (`docs/superpowers/plans/2026-07-16-events-page.md`); final whole-branch review: READY-WITH-FOLLOWUPS. **Pre-GA follow-ups (non-blocking):** form required-field validation + error states; `CreateEventModal` silently defaults empty `event_date` to "now"; `EventList` card omits `event_date` display. **Not yet done:** live visual eyeball at 375px in a real browser (responsive layout verified by construction + the automated page test asserting `grid-cols-1` is present).
 
 - [x] **Task: Feature flag UI finalisation** â€” audit all pages for flag compliance; test all 10 flags (AC-08)
-- [ ] **Task: Mobile responsiveness pass** â€” test at 375px, 390px, 412px, 768px; fix any overflow or tap target issues (AC-05)
+- [x] **Task: Mobile responsiveness pass** â€” tested at 375px, 390px, 412px, 768px via Playwright (no horizontal overflow, ≥44px tap targets on every route); NavShell collapses to a hamburger drawer below `md`; systemic fixes: `Button`/`Modal`/`Tabs`/`Table`/`SessionDrawer`/`SeatActionModal`/`Login`/`POSPanel`/`InvoicePanel` (AC-05). Manual real-device check still required — see "Manual mobile test" below.
 
 ### Testing Requirements (Phase 6)
 
