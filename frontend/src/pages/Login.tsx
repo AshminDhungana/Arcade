@@ -96,7 +96,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4">
-      <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-8 shadow-lg">
+      <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-lg sm:p-8">
         {/* Header */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/20">
@@ -150,7 +150,7 @@ export default function Login() {
                 onFocus={() => {
                   setError(null);
                 }}
-                className="w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="min-h-11 w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Enter your staff ID"
                 required
               />
@@ -176,7 +176,7 @@ export default function Login() {
                 onFocus={() => {
                   setError(null);
                 }}
-                className="w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="min-h-11 w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Enter your PIN"
                 required
                 minLength={4}
@@ -185,7 +185,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowPin((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-600 hover:text-slate-300"
                 aria-label={showPin ? 'Hide password' : 'Show password'}
               >
                 {showPin ? (
@@ -201,7 +201,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={isSubmitting || lockoutSeconds !== null}
-            className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-11 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? 'Signing in...' : 'Sign In'}
           </button>
