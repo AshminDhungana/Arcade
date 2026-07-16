@@ -11,6 +11,7 @@ import { toast } from '@/store/toastStore';
 import type { Member, Package, WalletTransaction } from '@/types/members';
 import type { SessionResponse } from '@/types/session';
 import type { MemberTab } from './Members';
+import { useFeatureFlagStore } from '@/store/featureFlagStore';
 
 interface MemberDetailDrawerProps {
   open: boolean;
@@ -64,6 +65,8 @@ export function MemberDetailDrawer({
   isPurchasePending,
 }: MemberDetailDrawerProps) {
   const [topupAmount, setTopupAmount] = useState('');
+  const packagesEnabled = useFeatureFlagStore((s) => s.flags.enable_packages);
+  const visibleTabs = TABS.filter((t) => t.id !== 'packages' || packagesEnabled);
 
   const handleTopupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +211,7 @@ export function MemberDetailDrawer({
   );
 
   const renderTabContent = () => {
+    if (activeTab === 'packages' && !packagesEnabled) return renderSessionsTab();
     switch (activeTab) {
       case 'sessions':
         return renderSessionsTab();
@@ -229,7 +233,7 @@ export function MemberDetailDrawer({
       title={title}
       children={
         <div className="max-h-[60vh] overflow-y-auto">
-          <Tabs tabs={TABS} active={activeTab} onChange={(id) => onTabChange(id as MemberTab)} />
+          <Tabs tabs={visibleTabs} active={activeTab} onChange={(id) => onTabChange(id as MemberTab)} />
           <div className="mt-4">{renderTabContent()}</div>
         </div>
       }
