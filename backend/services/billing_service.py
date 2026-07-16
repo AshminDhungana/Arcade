@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import get_config
 from backend.core.feature_flags import get_flag
+from backend.core.security import verify_pin
 from backend.core.ws_manager import AgentOfflineError
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, Invoice, SeatStatus, SessionStatus
@@ -599,4 +600,56 @@ async def checkout_session(
 
     # 12. Return Invoice (with the refreshed print_status).
     await db.refresh(invoice)
+    return invoice
+
+
+async def force_close_unprinted(
+    db: AsyncSession,
+    session_id: str,
+    pin: str,
+    override_reason: str,
+    staff: Staff,
+) -> Invoice:
+    """Force-release a held (unprinted) checkout after re-verifying the PIN.
+
+    Preconditions (raise HTTPException):
+      * PIN must verify against ``staff.pin_hash`` (403)
+      * session must exist (404)
+      * session.status == COMPLETED and seat still IN_USE (409)
+
+    Releases the seat via the shared helper and audits
+    CHECKOUT_FORCED_UNPRINTED. The invoice stays FAILED (intentionally unprinted).
+    """
+    if not verify_pin(pin, staff.pin_hash):
+        raise HTTPException(status_code=403, detail="Invalid PIN")
+
+    session = await session_repo.get_by_id(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.status != SessionStatus.COMPLETED:
+        raise HTTPException(
+            status_code=409, detail="Session is not in a held checkout state"
+        )
+    seat = await seat_repo.get_by_id(db, session.seat_id)
+    if seat is None or seat.status != SeatStatus.IN_USE:
+        raise HTTPException(
+            status_code=409, detail="Seat is not held (already released)"
+        )
+
+    invoices = await invoice_repo.get_by_session(db, session.id)
+    invoice = None
+    if invoices:
+        invoice = sorted(invoices, key=lambda i: i.created_at)[-1]
+    if invoice is None:
+        invoice = Invoice(
+            session_id=session.id,
+            payment_method=PaymentMethod.CASH,
+            print_status=InvoicePrintStatus.FAILED,
+        )
+        db.add(invoice)
+        await db.flush()
+
+    await _release_held_seat(
+        db, session, invoice, staff=staff, override_reason=override_reason
+    )
     return invoice

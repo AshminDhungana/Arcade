@@ -8,6 +8,7 @@ Routes::
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -18,9 +19,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import require_cashier
 from backend.core.config import get_config
 from backend.core.database import get_db
+from backend.models._enums import InvoicePrintStatus
 from backend.models.staff import Staff
-from backend.repositories import invoice_repo
+from backend.repositories import invoice_repo, print_job_repo
 from backend.schemas.invoice import InvoiceResponse
+from backend.services import billing_service
+from backend.services.print_service import (
+    _build_invoice_response,
+    enqueue_and_track_print,
+)
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
@@ -76,6 +83,98 @@ _HTML_TPL = """<!DOCTYPE html>
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/unprinted",
+    response_model=Sequence[InvoiceResponse],
+)
+async def list_unprinted_invoices(
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+) -> Sequence[InvoiceResponse]:
+    """List invoices that failed/skipped printing (cashier+)."""
+    invoices = await invoice_repo.list_by_print_status(
+        db, [InvoicePrintStatus.FAILED, InvoicePrintStatus.SKIPPED]
+    )
+    return [_build_invoice_response(inv) for inv in invoices]
+
+
+@router.post(
+    "/{invoice_id}/mark-printed",
+    response_model=InvoiceResponse,
+)
+async def mark_invoice_printed(
+    invoice_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+) -> InvoiceResponse:
+    """Mark a receipt as printed (PDF printed by cashier). Satisfies the gate."""
+    invoice = await invoice_repo.get_by_id(db, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if invoice.print_status == InvoicePrintStatus.PRINTED:
+        # Idempotent: still release a held seat if the flag was toggled on later.
+        await billing_service._maybe_release_held_seat(db, invoice, staff=staff)
+        return _build_invoice_response(invoice)
+    if invoice.print_status not in (
+        InvoicePrintStatus.PENDING,
+        InvoicePrintStatus.FAILED,
+        InvoicePrintStatus.SKIPPED,
+    ):
+        raise HTTPException(
+            status_code=409, detail="Invoice is not in a markable state"
+        )
+    invoice.print_status = InvoicePrintStatus.PRINTED
+    existing = await print_job_repo.get_by_invoice(db, invoice_id)
+    if existing is not None:
+        await print_job_repo.delete(db, existing)
+    await db.flush()
+    await billing_service._maybe_release_held_seat(db, invoice, staff=staff)
+    return _build_invoice_response(invoice)
+
+
+@router.post(
+    "/{invoice_id}/reprint",
+    response_model=InvoiceResponse,
+)
+async def reprint_invoice(
+    invoice_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+) -> InvoiceResponse:
+    """Re-run the thermal print for a FAILED/SKIPPED invoice."""
+    invoice = await invoice_repo.get_by_id(db, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if invoice.print_status not in (
+        InvoicePrintStatus.FAILED,
+        InvoicePrintStatus.SKIPPED,
+    ):
+        raise HTTPException(
+            status_code=409, detail="Invoice is not in a reprintable state"
+        )
+    try:
+        config = get_config()
+    except RuntimeError:
+        raise HTTPException(
+            status_code=503, detail="Printer config unavailable"
+        ) from None
+    response = _build_invoice_response(invoice)
+    await enqueue_and_track_print(
+        invoice.id,
+        response,
+        config.cafe_name,
+        config,
+        duration_seconds=0,
+        seat_name="",
+    )
+    refreshed = await invoice_repo.get_by_id(db, invoice_id)
+    if refreshed is not None:
+        invoice.print_status = refreshed.print_status
+    await db.flush()
+    await billing_service._maybe_release_held_seat(db, invoice, staff=staff)
+    return _build_invoice_response(invoice)
 
 
 @router.get("/{invoice_id}")
