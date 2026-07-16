@@ -20,7 +20,10 @@ const SUMMARY = {
   match_count: 1, completed_match_count: 1,
   prize_pool_paise: 20000, entry_fee_paise: 5000, entry_fee_revenue_paise: 10000,
   champion_participant_id: 'pA', is_complete: true,
-  matches: [{ id: 'm1', event_id: 'e1', bracket_group: 'WINNERS', round: 1, slot_a_id: 'pA', slot_b_id: 'pB', winner_id: 'pA', status: 'COMPLETED', next_match_id: null, next_loser_match_id: null }],
+  matches: [
+    { id: 'm1', event_id: 'e1', bracket_group: 'WINNERS', round: 1, slot_a_id: 'pA', slot_b_id: 'pB', winner_id: 'pA', status: 'COMPLETED', next_match_id: null, next_loser_match_id: null },
+    { id: 'm2', event_id: 'e1', bracket_group: 'WINNERS', round: 2, slot_a_id: 'pA', slot_b_id: 'pB', winner_id: null, status: 'PENDING', next_match_id: null, next_loser_match_id: null },
+  ],
 };
 
 function makeWrapper() {
@@ -73,6 +76,28 @@ describe('EventsPage', () => {
     fireEvent.click(screen.getByLabelText(/open event fifa cup/i));
     await waitFor(() => expect(screen.getByText('Summary')).toBeInTheDocument());
     expect(screen.getByText('Rs. 200.00')).toBeInTheDocument(); // prize pool KPI
-    expect(screen.getByText('Alice')).toBeInTheDocument(); // champion
+    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0); // champion (rendered in both BracketView + EventSummaryPanel)
+  });
+
+  it('renders the bracket with the winner highlighted and records a result', async () => {
+    const fetchMock = vi.fn(async (url: string, opts?: RequestInit) => {
+      if (url === '/api/events/e1/match' && opts?.method === 'PATCH') {
+        return new Response(JSON.stringify({ id: 'm1' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      const body = url.includes('/summary') ? SUMMARY : EVENTS;
+      return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<EventsPage />, { wrapper: makeWrapper() });
+    await waitFor(() => expect(screen.getByText('FIFA Cup')).toBeInTheDocument());
+    fireEvent.click(screen.getByLabelText(/open event fifa cup/i));
+    await waitFor(() => expect(screen.getByText(/winners bracket/i)).toBeInTheDocument());
+    // Alice is the recorded winner of m1 -> highlighted
+    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
+    // Admin records m2 result by picking Bob
+    const recordBtn = screen.getByRole('button', { name: /record result/i });
+    fireEvent.click(recordBtn);
+    fireEvent.click(screen.getByRole('button', { name: /bob/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/events/e1/match', expect.objectContaining({ method: 'PATCH' })));
   });
 });

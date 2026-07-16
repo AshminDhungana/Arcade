@@ -4,6 +4,8 @@ import type {
 
 export interface ResolvedMatch {
   match: EventMatchResponse;
+  slotAId: string | null;   // raw participant id for slot A
+  slotBId: string | null;   // raw participant id for slot B
   slotAName: string | null;
   slotBName: string | null;
   isBye: boolean;       // exactly one slot filled
@@ -53,6 +55,8 @@ export function buildBracket(
     const filled = [m.slot_a_id, m.slot_b_id].filter(Boolean).length;
     const resolved: ResolvedMatch = {
       match: m,
+      slotAId: m.slot_a_id ?? null,
+      slotBId: m.slot_b_id ?? null,
       slotAName: nameOf(byId, m.slot_a_id),
       slotBName: nameOf(byId, m.slot_b_id),
       isBye: filled === 1,
