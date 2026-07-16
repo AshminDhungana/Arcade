@@ -15,6 +15,7 @@ const FLAG_LABELS: Record<string, string> = {
   enable_expense_tracking: 'Expense Tracking',
   enable_health_monitoring: 'Health Monitoring',
   require_member_for_session: 'Require Member for Session',
+  require_print_before_release: 'Require Print Before Release',
 };
 
 const FLAG_DESCRIPTIONS: Record<string, string> = {

@@ -228,6 +228,7 @@ class AuditAction(Enum):
     EVENT_CREATED = "EVENT_CREATED"
     EVENT_PARTICIPANT_REGISTERED = "EVENT_PARTICIPANT_REGISTERED"
     EVENT_MATCH_RECORDED = "EVENT_MATCH_RECORDED"
+    CHECKOUT_FORCED_UNPRINTED = "CHECKOUT_FORCED_UNPRINTED"
 
 
 # ── License ──────────────────────────────────────────────────────────────
