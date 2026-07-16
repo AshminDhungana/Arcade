@@ -1333,7 +1333,7 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 
 ### Epic 6.5.1: Print-Gated Session Closure (ENG-A) (NEW)
 
-- [ ] **Task: Add print-status tracking to `Invoice`**
+- [x] **Task: Add print-status tracking to `Invoice`**
   - [ ] New `Invoice.print_status` enum: `PENDING`, `PRINTED`, `FAILED`, `SKIPPED`
   - [ ] **Modifies Feature 3.1.5 (Print Service, `print_service.py`, `print_receipt()`):** currently only logs a `WARNING` on failure - change to persist `print_status` on the invoice so failure is queryable, not just logged
   - [ ] Add `print_jobs` table (outbox pattern): `invoice_id`, `attempts`, `next_retry_at`, `last_error`; background retry via APScheduler (same mechanism as Epic 5.4 backup job)
