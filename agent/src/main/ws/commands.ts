@@ -82,5 +82,22 @@ export function createCommandHandlers(
       // Clears the staff override flag
       // Handled by the WebSocket client state machine
     },
+
+    FORCE_OVERLAY_ON(payload) {
+      // Force-show the kiosk overlay regardless of session state
+      platform.showKioskOverlay({
+        cafeName: deps.getCafeName?.() || 'Arcade',
+        announcements: [],
+        callStaffEnabled: true,
+        sessionActive: !!payload.session_id,
+        remainingTime: undefined,
+        lowTimeWarning: false,
+      });
+    },
+
+    FORCE_OVERLAY_OFF(_payload) {
+      // Force-hide the kiosk overlay
+      platform.hideKioskOverlay();
+    },
   };
 }

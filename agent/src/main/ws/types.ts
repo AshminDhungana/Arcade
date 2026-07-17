@@ -54,6 +54,9 @@ export interface AgentConfig {
 
   /** Optional: health metrics interval in seconds (default 60). */
   health_interval_seconds?: number;
+
+  /** Optional: whether the kiosk overlay is currently forced ON by staff override. */
+  overlayForced?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +83,9 @@ export type ServerCommandType =
   | 'SHUTDOWN'
   | 'TAKE_SCREENSHOT'
   | 'LOW_TIME_WARNING'
-  | 'RESET_OVERRIDE';
+  | 'RESET_OVERRIDE'
+  | 'FORCE_OVERLAY_ON'
+  | 'FORCE_OVERLAY_OFF';
 
 /** Payload shapes for each server command. */
 export interface ServerCommandPayloads {
@@ -92,6 +97,8 @@ export interface ServerCommandPayloads {
   TAKE_SCREENSHOT: Record<string, never>;
   LOW_TIME_WARNING: { minutes_remaining: number };
   RESET_OVERRIDE: Record<string, never>;
+  FORCE_OVERLAY_ON: { session_id?: string; reason?: string };
+  FORCE_OVERLAY_OFF: { session_id?: string; reason?: string };
 }
 
 // ---------------------------------------------------------------------------
