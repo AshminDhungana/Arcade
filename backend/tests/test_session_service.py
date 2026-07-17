@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from backend.core.database import Base
 from backend.models import SeatStatus, SessionStatus
 from backend.models._enums import ShiftStatus
-from backend.repositories import seat_repo, shift_repo, staff_repo
+from backend.repositories import seat_repo, session_repo, shift_repo, staff_repo
 from backend.services.session_service import (
     get_session,
     list_active_sessions,
@@ -473,3 +473,79 @@ async def test_resume_session_clears_overlay_forced(
 
     # overlay_forced should be cleared to False after resume
     assert (await seat_service.get_seat(db, seat.id)).overlay_forced is False
+
+
+# -------------------------------------------------------------------
+# forced overlay accrual parity (Task 4 / Checkpoint 6.5-A)
+# -------------------------------------------------------------------
+
+
+async def test_forced_overlay_accrual_parity_with_pause_resume(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """force_overlay(on/off) accrues the same total_paused_seconds as pause/resume.
+
+    Two identical sessions are created. Session A goes through pause_session /
+    resume_session. Session B goes through force_overlay(show=True) then
+    force_overlay(show=False) with the 'overlay_pauses_billing' feature flag
+    enabled. Both paths use the same internal helpers (_begin_pause /
+    _accrue_pause), so their accumulated paused seconds must match.
+    """
+    from backend.services import remote_command_service as rcs
+
+    zone, seat = zone_and_seat
+
+    # -- Session A: manual pause/resume --
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        sess_a = await start_session(
+            db, seat_id=seat.id, member_id=None, staff=staff_member
+        )
+        await pause_session(db, session_id=sess_a.id, staff=staff_member)
+        mock_ws.reset_mock()
+        await resume_session(db, session_id=sess_a.id, staff=staff_member)
+
+    # -- Session B: forced overlay on/off --
+    # Need a fresh seat for session B (seat is already IN_USE from session A)
+    seat_b = await seat_repo.create(db, name="PC-02", zone_id=zone.id)
+
+    with (
+        patch.object(rcs.feature_flags, "get_flag", return_value=True),
+        patch(
+            "backend.services.remote_command_service.ws_manager.send_to_agent",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "backend.services.remote_command_service.seat_service.set_overlay_forced",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "backend.services.remote_command_service.audit_service.log",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "backend.services.remote_command_service.ws_manager.broadcast_to_dashboards",
+            new_callable=AsyncMock,
+        ),
+    ):
+        with patch("backend.services.session_service.ws_manager") as mock_ws:
+            mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+            mock_ws.send_to_agent = AsyncMock(return_value=None)
+            sess_b = await start_session(
+                db, seat_id=seat_b.id, member_id=None, staff=staff_member
+            )
+
+        # force_overlay ON -> begins pause
+        await rcs.force_overlay(db, seat_id=seat_b.id, show=True, staff=staff_member)
+        # force_overlay OFF -> accrues pause
+        await rcs.force_overlay(db, seat_id=seat_b.id, show=False, staff=staff_member)
+
+    # Both sessions should have identical total_paused_seconds (near-zero in tests)
+    # Fresh reads to get authoritative values; no `or 0` masking of None.
+    sess_a = await session_repo.get_by_id(db, sess_a.id)
+    sess_b = await session_repo.get_by_id(db, sess_b.id)
+    path_a = sess_a.total_paused_seconds
+    path_b = sess_b.total_paused_seconds
+    assert isinstance(path_a, int) and isinstance(path_b, int)
+    assert path_a == path_b
