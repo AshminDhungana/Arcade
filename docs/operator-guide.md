@@ -164,3 +164,23 @@ When ON, a checkout does not free the seat or show the agent overlay until the r
 - **Force close with your own PIN + a reason** — releases the seat, logs `CHECKOUT_FORCED_UNPRINTED`, leaves the invoice as `FAILED`.
 
 Turn this OFF immediately if the printer dies and you need checkouts to proceed without printing.
+
+### Shift-close unprinted-invoice gate
+
+When you close a shift, Arcade checks the shift's invoices for any that
+**failed or were skipped** at the printer (the same set shown in the
+**Unprinted Invoices** panel).
+
+- **Default (non-blocking):** the shift closes normally, but a
+  `SHIFT_CLOSE_UNPRINTED` entry is written to the audit trail recording how
+  many invoices and their IDs. Review the Unprinted Invoices panel and
+  reprint/mark-printed before end-of-day reconciliation.
+- **Blocking mode:** enable the `block_shift_close_unprinted` feature flag
+  (toggle live from **Settings**). With it on, `POST /api/shifts/close`
+  returns `409 UNPRINTED_INVOICES_BLOCK_SHIFT_CLOSE` and the shift stays
+  OPEN until every invoice in the shift is `PRINTED`. Use this at venues that
+  require a fully-reconciled drawer before close.
+
+The flag is stored in the database (not `arcade.config.json`), so it can be
+flipped instantly from the dashboard when a printer dies — the same
+deviation-from-Appendix-B pattern used by `require_print_before_release`.

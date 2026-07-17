@@ -1344,8 +1344,8 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
   - [x] On `FAILED`: surface a PIN-gated "Force close (unprinted)" action that completes the same checkout step anyway; **modifies** `checkout_session()` to accept an optional `override_reason`, and **modifies Feature 3.1.6 (Audit Log Service)** call list to add `CHECKOUT_FORCED_UNPRINTED`
   - [x] When flag is `false` (default): today's behaviour is unchanged, but any `FAILED`/`SKIPPED` invoice appears on a new dashboard "Unprinted Invoices" list until reprinted
 
-- [ ] **Task: Shift-close reconciliation gate**
-  - [ ] **Modifies Epic 5.1 (`ShiftService.close_shift()`):** warn (non-blocking by default; configurable to blocking) if unprinted invoices exist inside the shift window being closed
+- [x] **Task: Shift-close reconciliation gate**
+  - [x] **Modifies Epic 5.1 (`ShiftService.close_shift()`):** warn (non-blocking by default; configurable to blocking via new `block_shift_close_unprinted` DB flag) if `FAILED`/`SKIPPED` invoices exist for the shift; non-blocking path writes a `SHIFT_CLOSE_UNPRINTED` audit entry, blocking path raises `409 UNPRINTED_INVOICES_BLOCK_SHIFT_CLOSE`
 
 ### Epic 6.5.2: Manual Overlay Control (ENG-A + ENG-B) (NEW)
 
