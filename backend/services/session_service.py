@@ -92,6 +92,31 @@ def _session_to_response(session: GamingSession) -> SessionResponse:
     return SessionResponse.model_validate(session)
 
 
+def _begin_pause(session: GamingSession, now: datetime) -> None:
+    """Record pause start. No-op unless the session is ACTIVE.
+
+    Guards against double-pause: a session already PAUSED keeps its original
+    ``paused_at`` (e.g. a forced overlay on a manually-paused seat).
+    """
+    if session.status != SessionStatus.ACTIVE:
+        return
+    session.status = SessionStatus.PAUSED
+    session.paused_at = now
+
+
+def _accrue_pause(session: GamingSession, now: datetime) -> None:
+    """Add (now - paused_at) to total_paused_seconds; clear paused_at.
+
+    No-op if ``paused_at`` is already ``None`` (nothing to accrue).
+    """
+    paused_at = _ensure_tz(session.paused_at)
+    if paused_at is None:
+        return
+    duration = (now - paused_at).total_seconds()
+    session.total_paused_seconds = (session.total_paused_seconds or 0) + int(duration)
+    session.paused_at = None
+
+
 # ---------------------------------------------------------------------------
 #  Public API
 # ---------------------------------------------------------------------------
@@ -254,8 +279,7 @@ async def pause_session(
         raise InvalidSessionStateError("pause", "ACTIVE")
 
     # Update session
-    session.status = SessionStatus.PAUSED
-    session.paused_at = datetime.now(UTC)
+    _begin_pause(session, datetime.now(UTC))
     session = await session_repo.update(db, session)
 
     # Update seat
@@ -320,13 +344,7 @@ async def resume_session(
         raise InvalidSessionStateError("resume", "PAUSED")
 
     # Accumulate pause duration
-    paused_at = _ensure_tz(session.paused_at)
-    if paused_at:
-        pause_duration = (datetime.now(UTC) - paused_at).total_seconds()
-        session.total_paused_seconds = (session.total_paused_seconds or 0) + int(
-            pause_duration
-        )
-        session.paused_at = None
+    _accrue_pause(session, datetime.now(UTC))
 
     session.status = SessionStatus.ACTIVE
     session = await session_repo.update(db, session)
