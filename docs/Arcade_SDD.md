@@ -1313,14 +1313,16 @@ setInterval(async () => {
 
 ### 7.9 Remote Commands
 
-| Command           | Agent Action                                                                                                                       |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `HIDE_OVERLAY`    | Hide kiosk overlay using `platform.hideKioskOverlay()` — allows desktop access                                                     |
-| `SHOW_OVERLAY`    | Show kiosk overlay using `platform.showKioskOverlay()` — blocks desktop access                                                     |
-| `SHOW_MESSAGE`    | Show `<Announcement>` overlay on renderer with message text and duration (common UI)                                               |
-| `RESTART`         | Execute `platform.restartPC()` — `shutdown /r /t 10` on Windows, `sudo shutdown -r now` on macOS, `sudo systemctl reboot` on Linux |
-| `SHUTDOWN`        | Execute `platform.shutdownPC()` — similarly                                                                                        |
-| `TAKE_SCREENSHOT` | Capture screen via `desktopCapturer`, compress to JPEG 80% quality, scale to max 1280×720, return base64                           |
+| Command                | Agent Action                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `HIDE_OVERLAY`         | Hide kiosk overlay using `platform.hideKioskOverlay()` — allows desktop access                                                     |
+| `SHOW_OVERLAY`         | Show kiosk overlay using `platform.showKioskOverlay()` — blocks desktop access                                                     |
+| `FORCE_OVERLAY_ON`     | Force kiosk overlay ON using `platform.showKioskOverlay()` — blocks desktop access regardless of session state; sets `overlayForced = true` in agent config |
+| `FORCE_OVERLAY_OFF`    | Force kiosk overlay OFF using `platform.hideKioskOverlay()` — allows desktop access regardless of session state; sets `overlayForced = false` in agent config |
+| `SHOW_MESSAGE`         | Show `<Announcement>` overlay on renderer with message text and duration (common UI)                                               |
+| `RESTART`              | Execute `platform.restartPC()` — `shutdown /r /t 10` on Windows, `sudo shutdown -r now` on macOS, `sudo systemctl reboot` on Linux |
+| `SHUTDOWN`             | Execute `platform.shutdownPC()` — similarly                                                                                        |
+| `TAKE_SCREENSHOT`      | Capture screen via `desktopCapturer`, compress to JPEG 80% quality, scale to max 1280×720, return base64                           |
 
 ### 7.10 Screenshot Constraints (FR-AGENT-006a)
 
@@ -1469,21 +1471,23 @@ All WebSocket messages use a standard JSON envelope:
 
 | Event           | Payload                             | Trigger                              |
 | --------------- | ----------------------------------- | ------------------------------------ |
-| `seat_updated`  | Full seat object                    | Any seat status change               |
+| `seat_updated`  | Full seat object (includes `overlay_forced` boolean) | Any seat status change               |
 | `health_update` | `{ seat_id, cpu, ram, temp, disk }` | Agent health report received         |
 | `announcement`  | `{ message, duration_seconds }`     | Staff sends announcement             |
 | `alert`         | `{ type, seat_id, message }`        | Health threshold exceeded, low stock |
 
 **Server → Agent:**
 
-| Event             | Payload                                         |
-| ----------------- | ----------------------------------------------- |
-| `HIDE_OVERLAY`    | `{ session_id, started_at, duration_minutes? }` |
-| `SHOW_OVERLAY`    | `{ session_id }`                                |
-| `SHOW_MESSAGE`    | `{ text, duration_seconds }`                    |
-| `RESTART`         | `{ delay_seconds: 10 }`                         |
-| `SHUTDOWN`        | `{ delay_seconds: 10 }`                         |
-| `TAKE_SCREENSHOT` | `{}`                                            |
+| Event                | Payload                                         |
+| -------------------- | ----------------------------------------------- |
+| `HIDE_OVERLAY`       | `{ session_id, started_at, duration_minutes? }` |
+| `SHOW_OVERLAY`       | `{ session_id }`                                |
+| `FORCE_OVERLAY_ON`   | `{}`                                            |
+| `FORCE_OVERLAY_OFF`  | `{}`                                            |
+| `SHOW_MESSAGE`       | `{ text, duration_seconds }`                    |
+| `RESTART`            | `{ delay_seconds: 10 }`                         |
+| `SHUTDOWN`           | `{ delay_seconds: 10 }`                         |
+| `TAKE_SCREENSHOT`    | `{}`                                            |
 
 **Agent → Server:**
 

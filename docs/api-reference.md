@@ -33,6 +33,7 @@ Authorization: Bearer <jwt>
     "plug_id": null,
     "is_console": false,
     "notes": null,
+    "overlay_forced": false,
     "created_at": "2026-07-06T08:00:00+00:00",
     "updated_at": "2026-07-06T10:00:00+00:00",
     "wol_attempts": 3,
@@ -67,6 +68,7 @@ Authorization: Bearer <jwt>
   "plug_id": null,
   "is_console": false,
   "notes": null,
+  "overlay_forced": false,
   "created_at": "2026-07-06T08:00:00+00:00",
   "updated_at": "2026-07-06T10:00:00+00:00",
   "wol_attempts": 3,
@@ -112,6 +114,7 @@ Content-Type: application/json
   "plug_id": null,
   "is_console": false,
   "notes": "GPU fan replacement in progress",
+  "overlay_forced": false,
   "created_at": "2026-07-06T08:00:00+00:00",
   "updated_at": "2026-07-06T12:00:00+00:00",
   "wol_attempts": 3,
@@ -161,6 +164,7 @@ Authorization: Bearer <jwt>
   "plug_id": null,
   "is_console": false,
   "notes": null,
+  "overlay_forced": false,
   "created_at": "2026-07-06T08:00:00+00:00",
   "updated_at": "2026-07-06T10:00:00+00:00",
   "wol_attempts": 4,
@@ -195,8 +199,10 @@ Authorization: Bearer <jwt>
 | GET    | /api/seats/{id}/screenshot    | Cashier+  | —                    | 200 JPEG | Rate-limited 1 in-flight/seat (AC-18); 409 if busy, 504 on timeout, 503 offline |
 | POST   | /api/seats/{id}/restart       | Admin     | —                    | 204     | Sends `RESTART`; audits `SEAT_RESTARTED` (AC-06) |
 | POST   | /api/seats/{id}/shutdown      | Admin     | —                    | 204     | Sends `SHUTDOWN`; audits `SEAT_SHUTDOWN` |
-| POST   | /api/seats/{id}/power-on   | Admin     | —                    | 204     | Tuya smart-plug ON; feature-flagged `enable_tuya`; audits `TUYA_POWER_ON`; best-effort (failure logged, not fatal) |
-| POST   | /api/seats/{id}/power-off  | Admin     | —                    | 204     | Tuya smart-plug OFF; feature-flagged `enable_tuya`; audits `TUYA_POWER_OFF`; best-effort (failure logged, not fatal) |
+| POST   | /api/seats/{id}/power-on      | Admin     | —                    | 204     | Tuya smart-plug ON; feature-flagged `enable_tuya`; audits `TUYA_POWER_ON`; best-effort (failure logged, not fatal) |
+| POST   | /api/seats/{id}/power-off     | Admin     | —                    | 204     | Tuya smart-plug OFF; feature-flagged `enable_tuya`; audits `TUYA_POWER_OFF`; best-effort (failure logged, not fatal) |
+| POST   | /api/seats/{id}/overlay       | Admin     | `{force_on: boolean}` | 204     | Sends `FORCE_OVERLAY_ON` or `FORCE_OVERLAY_OFF`; audits `OVERLAY_FORCED_ON` / `OVERLAY_FORCED_OFF`; available for any seat status |
+| POST   | /api/seats/bulk/overlay       | Admin     | `{force_on: boolean, status_filter?: string[]}` | 200     | Bulk force overlay on/off for seats matching filter; defaults to `AVAILABLE` seats only; returns `{succeeded: string[], failed: {seat_id, detail}[]}` |
 
 **Contract note for ENG-B (agent):** `TAKE_SCREENSHOT` payload is extended to
 `{request_id}` and the agent MUST echo `request_id` back in its
@@ -210,6 +216,8 @@ unreachable, the call is a silent no-op (failure is logged at WARNING, never rai
 same service is also invoked automatically by `session_service.start_session()` (power ON)
 and `billing_service.checkout()` (power OFF) when the seat has a Tuya device bound. See
 `docs/deployment.md` for the one-time pairing procedure.
+
+**Force Overlay (admin-only, no feature flag):** `POST /api/seats/{id}/overlay` forces the kiosk overlay on/off for a single seat regardless of its status. `POST /api/seats/bulk/overlay` applies the same to multiple seats at once (default: only `AVAILABLE` seats). Both endpoints audit `OVERLAY_FORCED_ON` / `OVERLAY_FORCED_OFF` and set the `overlay_forced` flag on the seat (informational, non-sticky — cleared on session start/resume and on `STAFF_OVERRIDE`). The single-seat route is registered after the bulk route to avoid FastAPI path conflicts.
 
 ---
 
@@ -899,16 +907,18 @@ wss://<server-ip>:8000/ws/agent/seat_001?secret=<agent_secret>
 
 **Server -> Agent commands:**
 
-| Command         | Payload Fields               | Trigger                          |
-|-----------------|------------------------------|----------------------------------|
-| `HIDE_OVERLAY`  | `session_id`, `started_at`   | Session starts                   |
-| `SHOW_OVERLAY`  | `session_id`                   | Session ends or pauses          |
-| `SHOW_MESSAGE`  | `text`, `duration_seconds`   | Announcement sent                |
-| `RESTART`       | `delay_seconds?`             | Admin triggers restart           |
-| `SHUTDOWN`      | `delay_seconds?`             | Admin triggers shutdown          |
-| `TAKE_SCREENSHOT` | `{}`                        | Screenshot request               |
-| `LOW_TIME_WARNING` | `minutes_remaining`         | Package time <= 5 min            |
-| `RESET_OVERRIDE` | `{}`                         | Clear staff override             |
+| Command              | Payload Fields               | Trigger                          |
+|----------------------|------------------------------|----------------------------------|
+| `HIDE_OVERLAY`       | `session_id`, `started_at`   | Session starts                   |
+| `SHOW_OVERLAY`       | `session_id`                   | Session ends or pauses          |
+| `FORCE_OVERLAY_ON`   | `{}`                         | Admin forces overlay on          |
+| `FORCE_OVERLAY_OFF`  | `{}`                         | Admin forces overlay off         |
+| `SHOW_MESSAGE`       | `text`, `duration_seconds`   | Announcement sent                |
+| `RESTART`            | `delay_seconds?`             | Admin triggers restart           |
+| `SHUTDOWN`           | `delay_seconds?`             | Admin triggers shutdown          |
+| `TAKE_SCREENSHOT`    | `{}`                        | Screenshot request               |
+| `LOW_TIME_WARNING`   | `minutes_remaining`         | Package time <= 5 min            |
+| `RESET_OVERRIDE`     | `{}`                         | Clear staff override             |
 
 ---
 
