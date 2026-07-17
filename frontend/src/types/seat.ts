@@ -22,6 +22,7 @@ export interface Seat {
   plug_id: string | null;
   is_console: boolean;
   notes: string | null;
+  overlay_forced: boolean;  // NEW
   wol_attempts: number;
   wol_successes: number;
   wol_failures: number;

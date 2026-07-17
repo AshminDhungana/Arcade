@@ -37,6 +37,41 @@ export async function regenerateOverridePin(seatId: string): Promise<{ override_
   return res.json();
 }
 
+/** Force a seat's kiosk overlay ON/OFF.
+ *  POST /api/seats/{id}/overlay
+ *  Requires admin privilege (backend enforces). Returns 204 on success. */
+export async function forceOverlay(seatId: string, show: boolean): Promise<void> {
+  const res = await fetch(`${API_BASE}/seats/${seatId}/overlay`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ show }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to force overlay: ${res.status} ${res.statusText}`);
+  }
+}
+
+/** Bulk force overlay for all AVAILABLE seats (show=true) or all overlay_forced seats (show=false).
+ *  POST /api/seats/bulk/overlay
+ *  Requires admin privilege. Returns { succeeded: string[], failed: {seat_id, detail}[] }. */
+export async function bulkForceOverlay(show: boolean): Promise<{
+  succeeded: string[];
+  failed: { seat_id: string; detail: string }[];
+}> {
+  const res = await fetch(`${API_BASE}/seats/bulk/overlay`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ show }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to bulk force overlay: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as {
+    succeeded: string[];
+    failed: { seat_id: string; detail: string }[];
+  };
+}
+
 /** React Query hook for listing all seats.
  *  Invalidated automatically by `useWebSocket` on `seat_updated` events. */
 export function useSeats() {

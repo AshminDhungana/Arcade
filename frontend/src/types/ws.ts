@@ -41,6 +41,7 @@ export interface SeatUpdatedPayload {
   is_console?: boolean;
   current_session_id?: string;
   notes?: string;
+  overlay_forced?: boolean;  // NEW
   /** Agent-provided on REGISTER. */
   mac_address?: string;
   /** Agent-provided on REGISTER. */
