@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -16,7 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from backend.core.database import Base
-from backend.repositories import seat_repo
+from backend.models._enums import SessionStatus
+from backend.repositories import seat_repo, session_repo
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -67,6 +69,24 @@ def staff_member():
         role = StaffRole("CASHIER")
 
     return _MockStaff()
+
+
+@pytest.fixture
+async def active_session(db: AsyncSession, zone_and_seat):
+    """Create and return an ACTIVE gaming session on the seat."""
+    from backend.models._enums import PricingModel
+
+    _, seat = zone_and_seat
+    sess = await session_repo.create(
+        db,
+        seat_id=seat.id,
+        started_at=datetime.now(UTC),
+        locked_rate_paise=50,
+        locked_pricing_model=PricingModel.PER_MINUTE,
+    )
+    sess.status = SessionStatus.ACTIVE
+    await session_repo.update(db, sess)
+    return sess
 
 
 # ---------------------------------------------------------------------------
@@ -408,6 +428,76 @@ async def test_force_overlay_seat_not_found(db: AsyncSession, staff_member) -> N
     with pytest.raises(HTTPException) as exc_info:
         await rcs.force_overlay(db, "ghost-id", True, staff_member)
     assert exc_info.value.status_code == 404
+
+
+async def test_force_overlay_on_pauses_active_session(
+    db: AsyncSession, active_session, staff_member
+) -> None:
+    """force_overlay(show=True) + flag on -> session PAUSED, seat PAUSED,
+    payload has session_id."""
+    from backend.core import feature_flags
+    from backend.core.ws_manager import Msg
+    from backend.services import remote_command_service as rcs
+
+    sess = active_session
+    with (
+        patch.object(feature_flags, "get_flag", return_value=True),
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send,
+        patch.object(rcs.seat_service, "set_overlay_forced", new=AsyncMock()),
+        patch.object(rcs.audit_service, "log", new=AsyncMock()),
+        patch.object(rcs.ws_manager, "broadcast_to_dashboards", new=AsyncMock()),
+    ):
+        await rcs.force_overlay(db, sess.seat_id, True, staff_member)
+    refreshed = await session_repo.get_by_id(db, sess.id)
+    assert refreshed.status == SessionStatus.PAUSED
+    assert refreshed.paused_at is not None
+    assert mock_send.call_args.args[1]["type"] == Msg.FORCE_OVERLAY_ON
+    assert mock_send.call_args.args[1]["payload"]["session_id"] == sess.id
+
+
+async def test_force_overlay_off_resumes_and_accrues(
+    db: AsyncSession, active_session, staff_member
+) -> None:
+    """force_overlay(show=False) + flag on -> session ACTIVE again,
+    paused seconds accrued, seat IN_USE."""
+    from backend.core import feature_flags
+    from backend.services import remote_command_service as rcs
+
+    sess = active_session
+    with (
+        patch.object(feature_flags, "get_flag", return_value=True),
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()),
+        patch.object(rcs.seat_service, "set_overlay_forced", new=AsyncMock()),
+        patch.object(rcs.audit_service, "log", new=AsyncMock()),
+        patch.object(rcs.ws_manager, "broadcast_to_dashboards", new=AsyncMock()),
+    ):
+        await rcs.force_overlay(db, sess.seat_id, True, staff_member)
+        await rcs.force_overlay(db, sess.seat_id, False, staff_member)
+    refreshed = await session_repo.get_by_id(db, sess.id)
+    assert refreshed.status == SessionStatus.ACTIVE
+    assert refreshed.paused_at is None
+    assert refreshed.total_paused_seconds is not None
+    assert refreshed.total_paused_seconds >= 0
+
+
+async def test_force_overlay_ignores_session_when_flag_off(
+    db: AsyncSession, active_session, staff_member
+) -> None:
+    """flag off -> force_overlay never touches the session (pure lock)."""
+    from backend.core import feature_flags
+    from backend.services import remote_command_service as rcs
+
+    sess = active_session
+    with (
+        patch.object(feature_flags, "get_flag", return_value=False),
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()),
+        patch.object(rcs.seat_service, "set_overlay_forced", new=AsyncMock()),
+        patch.object(rcs.audit_service, "log", new=AsyncMock()),
+    ):
+        await rcs.force_overlay(db, sess.seat_id, True, staff_member)
+    refreshed = await session_repo.get_by_id(db, sess.id)
+    assert refreshed.status == SessionStatus.ACTIVE
+    assert refreshed.paused_at is None
 
 
 # ---------------------------------------------------------------------------

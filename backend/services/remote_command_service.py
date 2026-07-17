@@ -16,18 +16,23 @@ guards against a 2nd concurrent request per seat (which is rejected with
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core import feature_flags
 from backend.core.ws_manager import AgentOfflineError, Msg
 from backend.core.ws_manager import manager as ws_manager
-from backend.models._enums import AuditAction, SeatStatus
+from backend.models._enums import AuditAction, SeatStatus, SessionStatus
 from backend.models.seat import Seat
 from backend.models.staff import Staff
-from backend.repositories import seat_repo
-from backend.services import audit_service, seat_service
+from backend.repositories import seat_repo, session_repo
+from backend.services import audit_service, seat_service, session_service
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Errors (all HTTPException subclasses so FastAPI renders JSON via main.py)
@@ -91,6 +96,24 @@ async def _get_seat_or_404(db: AsyncSession, seat_id: str) -> Seat:
     if seat is None:
         raise SeatNotFoundError(seat_id)
     return seat
+
+
+async def _broadcast_seat_updated(seat: Seat, session_id: str | None) -> None:
+    """Broadcast a seat status change to all dashboards (best-effort)."""
+    try:
+        await ws_manager.broadcast_to_dashboards(
+            "seat_updated",
+            {
+                "id": seat.id,
+                "name": seat.name,
+                "status": seat.status.value,
+                "current_session_id": session_id,
+            },
+        )
+    except Exception:
+        logger.warning(
+            "Failed to broadcast seat_updated for %s", seat.id, exc_info=True
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -289,23 +312,69 @@ async def force_overlay(
     show: bool,
     staff: Staff | None = None,
 ) -> None:
-    """Send ``FORCE_OVERLAY_ON``/``OFF`` to the agent and flip ``overlay_forced``.
+    """Send ``FORCE_OVERLAY_ON``/``OFF`` to the agent, flip ``overlay_forced``, and
+    — when ``overlay_pauses_billing`` is enabled and a session is on the seat —
+    route the overlay through the pause-accounting path.
 
-    The send happens first: if the agent is offline (503) no DB column is
-    mutated. The broadcast is performed by ``seat_service.set_overlay_forced``.
+    The agent send happens first: if the agent is offline (503) no DB column is
+    mutated. Session/seat state changes are applied only after the send succeeds.
 
     Raises:
         HTTPException(404): If the seat does not exist.
         HTTPException(503): If the agent is offline.
     """
     seat = await _get_seat_or_404(db, seat_id)
+
+    # Read-only: find any in-progress session on this seat.
+    session = await session_repo.get_active_by_seat(db, seat_id)
+    pauses_billing = feature_flags.get_flag("overlay_pauses_billing")
+
+    begin_pause = (
+        show
+        and pauses_billing
+        and session is not None
+        and session.status == SessionStatus.ACTIVE
+    )
+    resume_pause = (
+        (not show)
+        and pauses_billing
+        and session is not None
+        and session.status == SessionStatus.PAUSED
+    )
+
+    # Send first so an offline agent aborts before any DB mutation.
     await _send_to_agent_or_503(
         seat_id,
         {
             "type": Msg.FORCE_OVERLAY_ON if show else Msg.FORCE_OVERLAY_OFF,
-            "payload": {},
+            "payload": (
+                {
+                    "session_id": session.id,
+                    "started_at": session.started_at.isoformat(),
+                }
+                if session is not None
+                else {}
+            ),
         },
     )
+
+    now = datetime.now(UTC)
+
+    if begin_pause and session is not None:
+        session_service._begin_pause(session, now)
+        await session_repo.update(db, session)
+        seat.status = SeatStatus.PAUSED
+        await seat_repo.update(db, seat)
+        await _broadcast_seat_updated(seat, session.id)
+
+    if resume_pause and session is not None:
+        session_service._accrue_pause(session, now)
+        session.status = SessionStatus.ACTIVE
+        await session_repo.update(db, session)
+        seat.status = SeatStatus.IN_USE
+        await seat_repo.update(db, seat)
+        await _broadcast_seat_updated(seat, session.id)
+
     await seat_service.set_overlay_forced(db, seat_id, show)
     await audit_service.log(
         db,
