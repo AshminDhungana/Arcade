@@ -1324,7 +1324,7 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 
 ### âš¡ CHECKPOINT 6.5-A
 
-- [ ] Failed or skipped print does not block seat release by default; when `require_print_before_release=true` it does, with a PIN-gated override
+- [x] Failed or skipped print does not block seat release by default; when `require_print_before_release=true` it does, with a PIN-gated override
 - [ ] Owner can force the overlay on/off for any seat from the dashboard regardless of session state; action is audit-logged
 - [ ] Forcing overlay on (manually or via time expiry) pauses billed time using the same accrual path as `pause_session()` - no drift between the two
 - [ ] A seat with an assigned time limit auto-shows the overlay at expiry (after a `LOW_TIME_WARNING`), and "Add time" resumes it correctly
@@ -1334,15 +1334,15 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 ### Epic 6.5.1: Print-Gated Session Closure (ENG-A) (NEW)
 
 - [x] **Task: Add print-status tracking to `Invoice`**
-  - [ ] New `Invoice.print_status` enum: `PENDING`, `PRINTED`, `FAILED`, `SKIPPED`
-  - [ ] **Modifies Feature 3.1.5 (Print Service, `print_service.py`, `print_receipt()`):** currently only logs a `WARNING` on failure - change to persist `print_status` on the invoice so failure is queryable, not just logged
-  - [ ] Add `print_jobs` table (outbox pattern): `invoice_id`, `attempts`, `next_retry_at`, `last_error`; background retry via APScheduler (same mechanism as Epic 5.4 backup job)
+  - [x] New `Invoice.print_status` enum: `PENDING`, `PRINTED`, `FAILED`, `SKIPPED`
+  - [x] **Modifies Feature 3.1.5 (Print Service, `print_service.py`, `print_receipt()`):** currently only logs a `WARNING` on failure - change to persist `print_status` on the invoice so failure is queryable, not just logged
+  - [x] Add `print_jobs` table (outbox pattern): `invoice_id`, `attempts`, `next_retry_at`, `last_error`; background retry via APScheduler (same mechanism as Epic 5.4 backup job)
 
-- [ ] **Task: Feature-flagged hard print gate for venues that require it**
-  - [ ] New config field `require_print_before_release` (default `false`) - **Modifies Appendix B (`arcade.config.json` schema)**
-  - [ ] **Modifies Feature 3.1.2 (Checkout Flow, `billing_service.checkout_session()`, step 15 "Send `SHOW_OVERLAY` to agent"):** when the flag is `true`, do not send `SHOW_OVERLAY` / free the seat until `print_status != PENDING`
-  - [ ] On `FAILED`: surface a PIN-gated "Force close (unprinted)" action that completes the same checkout step anyway; **modifies** `checkout_session()` to accept an optional `override_reason`, and **modifies Feature 3.1.6 (Audit Log Service)** call list to add `CHECKOUT_FORCED_UNPRINTED`
-  - [ ] When flag is `false` (default): today's behaviour is unchanged, but any `FAILED`/`SKIPPED` invoice appears on a new dashboard "Unprinted Invoices" list until reprinted
+- [x] **Task: Feature-flagged hard print gate for venues that require it**
+  - [x] New `require_print_before_release` **DB feature flag** (default `false`) — **deviation from the original Appendix B (`arcade.config.json`) field**; live-toggleable from the dashboard so ops can disable the gate instantly when a printer dies (see "Print Gate — flag storage deviation" note). Seed row in `backend/scripts/seed_dev.py`.
+  - [x] **Modifies Feature 3.1.2 (Checkout Flow, `billing_service.checkout_session()`, step 15 "Send `SHOW_OVERLAY` to agent"):** when the flag is `true`, do not send `SHOW_OVERLAY` / free the seat until `print_status != PENDING`
+  - [x] On `FAILED`: surface a PIN-gated "Force close (unprinted)" action that completes the same checkout step anyway; **modifies** `checkout_session()` to accept an optional `override_reason`, and **modifies Feature 3.1.6 (Audit Log Service)** call list to add `CHECKOUT_FORCED_UNPRINTED`
+  - [x] When flag is `false` (default): today's behaviour is unchanged, but any `FAILED`/`SKIPPED` invoice appears on a new dashboard "Unprinted Invoices" list until reprinted
 
 - [ ] **Task: Shift-close reconciliation gate**
   - [ ] **Modifies Epic 5.1 (`ShiftService.close_shift()`):** warn (non-blocking by default; configurable to blocking) if unprinted invoices exist inside the shift window being closed
@@ -1372,7 +1372,7 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 
 ### Testing Requirements (Phase 6.5)
 
-- [ ] `pytest backend/tests/test_print_service.py` - print status transitions, outbox retry/backoff, `require_print_before_release` gate blocks/allows correctly, `CHECKOUT_FORCED_UNPRINTED` audit entry
+- [x] Print-gate tests (split across files; no single `test_print_service.py`): `test_invoice_print_status.py` (status transitions), `test_print_job_repo.py` + `test_scheduler_print_release.py` (outbox retry/backoff + held-seat auto-release), `test_billing_service_checkout.py` (gate blocks/allows when `require_print_before_release` on), `test_invoice_router_print_gate.py` (unprinted list / mark-printed), `test_billing_service_force_close.py` (`CHECKOUT_FORCED_UNPRINTED` audit entry)
 - [ ] `pytest backend/tests/test_remote_commands.py` - extend with force-overlay show/hide, bulk action, audit entries
 - [ ] `pytest backend/tests/test_session_service.py` - extend with paused-time accrual parity between `pause_session()` and forced overlay; expiry sweep; extend-time resets `EXPIRED -> IN_USE`
 - [ ] Agent: `vitest` - `FORCE_OVERLAY_ON`/`OFF` handlers don't collide with `STAFF_OVERRIDE` suppression; `overlay:timer` push
