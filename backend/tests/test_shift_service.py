@@ -221,7 +221,7 @@ async def test_close_shift_warns_when_unprinted_and_flag_off(db: AsyncSession) -
 
 
 async def test_close_shift_no_warning_when_all_printed(db: AsyncSession) -> None:
-    """No unprinted invoices -> no SHIFT_CLOSE_UNPRINTED audit is written."""
+    """A PRINTED invoice is not unprinted -> no warning, clean close."""
     shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
     sess = await session_repo.create(
         db,
@@ -229,18 +229,22 @@ async def test_close_shift_no_warning_when_all_printed(db: AsyncSession) -> None
         locked_pricing_model=PricingModel.PER_MINUTE,
         shift_id=shift.id,
     )
-    await invoice_repo.create(
+    inv = await invoice_repo.create(
         db,
         session_id=sess.id,
         shift_id=shift.id,
         payment_method=PaymentMethod.CASH,
         total_paise=1000,
     )
+    inv.print_status = InvoicePrintStatus.PRINTED
+    await invoice_repo.update(db, inv)
 
-    await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
-
-    logs = await audit_repo.list(db, action=AuditAction.SHIFT_CLOSE_UNPRINTED.value)
-    assert len(logs) == 0
+    closed = await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
+    assert closed.status == ShiftStatus.CLOSED
+    warn_logs = await audit_repo.list(
+        db, action=AuditAction.SHIFT_CLOSE_UNPRINTED.value
+    )
+    assert warn_logs == []
 
 
 async def test_close_shift_blocks_when_unprinted_and_flag_on(db: AsyncSession) -> None:
@@ -266,3 +270,50 @@ async def test_close_shift_blocks_when_unprinted_and_flag_on(db: AsyncSession) -
     )
     assert closed_logs == []
     assert warn_logs == []
+
+
+async def test_close_shift_no_warning_when_no_invoices(db: AsyncSession) -> None:
+    """A shift with zero invoices closes with no warning."""
+    await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    closed = await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
+    assert closed.status == ShiftStatus.CLOSED
+    warn_logs = await audit_repo.list(
+        db, action=AuditAction.SHIFT_CLOSE_UNPRINTED.value
+    )
+    assert warn_logs == []
+
+
+async def test_close_shift_skipped_invoice_also_triggers(db: AsyncSession) -> None:
+    """SKIPPED counts as unprinted (same set as the unprinted panel)."""
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    sess = await session_repo.create(
+        db,
+        seat_id="seat-1",
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        shift_id=shift.id,
+    )
+    inv = await invoice_repo.create(
+        db,
+        session_id=sess.id,
+        shift_id=shift.id,
+        payment_method=PaymentMethod.CASH,
+        total_paise=1000,
+    )
+    inv.print_status = InvoicePrintStatus.SKIPPED
+    await invoice_repo.update(db, inv)
+
+    closed = await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
+    assert closed.status == ShiftStatus.CLOSED
+    logs = await audit_repo.list(db, action=AuditAction.SHIFT_CLOSE_UNPRINTED.value)
+    assert len(logs) == 1
+    assert "unprinted_count=1" in (logs[0].detail or "")
+
+
+async def test_close_shift_flag_off_by_default_blocks_nothing(db: AsyncSession) -> None:
+    """Without toggling the cache, the default (off) flag never blocks."""
+    # Deliberately do NOT call _enable_gate(); rely on the autouse fixture
+    # having left the cache empty (get_flag -> False).
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    await _make_failed_invoice(db, shift.id)
+    closed = await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
+    assert closed.status == ShiftStatus.CLOSED
