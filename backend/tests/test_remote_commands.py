@@ -372,11 +372,14 @@ async def test_force_overlay_off_sends_and_audits(
     _, seat = zone_and_seat
     with (
         patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send,
-        patch.object(rcs.seat_service, "set_overlay_forced", new=AsyncMock()),
+        patch.object(
+            rcs.seat_service, "set_overlay_forced", new=AsyncMock()
+        ) as mock_set,
         patch.object(rcs.audit_service, "log", new=AsyncMock()) as mock_audit,
     ):
         await rcs.force_overlay(db, seat.id, False, staff_member)
     assert mock_send.call_args.args[1]["type"] == Msg.FORCE_OVERLAY_OFF
+    mock_set.assert_awaited_once_with(db, seat.id, False)
     assert mock_audit.call_args.kwargs["action"] == AuditAction.OVERLAY_FORCED_OFF
 
 
