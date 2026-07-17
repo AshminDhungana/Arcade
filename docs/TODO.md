@@ -1326,7 +1326,7 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 
 - [x] Failed or skipped print does not block seat release by default; when `require_print_before_release=true` it does, with a PIN-gated override
 - [ ] Owner can force the overlay on/off for any seat from the dashboard regardless of session state; action is audit-logged
-- [ ] Forcing overlay on (manually or via time expiry) pauses billed time using the same accrual path as `pause_session()` - no drift between the two
+- [x] Forcing overlay on (manually or via time expiry) pauses billed time using the same accrual path as `pause_session()` - no drift between the two
 - [ ] A seat with an assigned time limit auto-shows the overlay at expiry (after a `LOW_TIME_WARNING`), and "Add time" resumes it correctly
 
 ---
@@ -1356,10 +1356,10 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 
 ### Epic 6.5.3: Overlay <-> Timer Coupling (ENG-A) (NEW)
 
-- [ ] **Task: Route forced overlay through the pause accounting path**
-  - [ ] **Modifies Feature 2.1.2 (Session Service, `pause_session()`):** extract the `total_paused_seconds` accrual into a reusable internal helper; call it from both `pause_session()` and the new `force_overlay(show=True, ...)` when a session is `ACTIVE` on that seat, so there is exactly one source of truth for paused-time math instead of two
-  - [ ] Make the behaviour config-driven, not hardcoded: new flag `overlay_pauses_billing` (default `true`) - some venues intentionally keep billing running while the overlay is up (an "Overtime"-style mode some existing cyber cafe platforms support), so this must be a setting, not an assumption
-- [ ] **Task: Close the documented HUD gap** - **Modifies Epic 5.5 known-gap note** ("server does not yet push a live `overlay:timer` during a session"): add a periodic `overlay:timer` push (every 10s, piggybacking on the existing `updateElapsed()` cadence in `ws/client.ts`) so the in-game HUD countdown actually ticks - this is required plumbing for Epic 6.5.4's expiry countdown too
+- [x] **Task: Route forced overlay through the pause accounting path**
+  - [x] **Modifies Feature 2.1.2 (Session Service, `pause_session()`):** extract the `total_paused_seconds` accrual into a reusable internal helper; call it from both `pause_session()` and the new `force_overlay(show=True, ...)` when a session is `ACTIVE` on that seat, so there is exactly one source of truth for paused-time math instead of two
+  - [x] Make the behaviour config-driven, not hardcoded: new flag `overlay_pauses_billing` (default `true`) - some venues intentionally keep billing running while the overlay is up (an "Overtime"-style mode some existing cyber cafe platforms support), so this must be a setting, not an assumption
+- [x] **Task: Close the documented HUD gap** - **Modifies Epic 5.5 known-gap note** ("server does not yet push a live `overlay:timer` during a session"): add a periodic `overlay:timer` push (every 10s, piggybacking on the existing `updateElapsed()` cadence in `ws/client.ts`) so the in-game HUD countdown actually ticks - this is required plumbing for Epic 6.5.4's expiry countdown too
 
 ### Epic 6.5.4: Assigned-Time Auto-Overlay & Extension (ENG-A + ENG-B) (NEW)
 

@@ -184,3 +184,10 @@ When you close a shift, Arcade checks the shift's invoices for any that
 The flag is stored in the database (not `arcade.config.json`), so it can be
 flipped instantly from the dashboard when a printer dies — the same
 deviation-from-Appendix-B pattern used by `require_print_before_release`.
+
+### Force Overlay vs Pause
+
+- **Pause** (staff action on an active session) holds the seat and stops billed time for that session only.
+- **Force Overlay** (owner/dashboard) shows the kiosk lock on any seat regardless of session state and is audit-logged. When the `overlay_pauses_billing` setting is ON (default), forcing the overlay on a seat with an active session also pauses that session's billed time using the exact same accounting as Pause — so there is no drift between the two. Turning `overlay_pauses_billing` OFF makes Force Overlay a pure lock (an "Overtime"-style mode) that never touches billing.
+
+Known limitation: turning the forced overlay OFF resumes any paused session on that seat, including one a staff member paused manually.
