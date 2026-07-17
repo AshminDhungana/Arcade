@@ -1,6 +1,7 @@
 import type { Seat } from '@/types/seat';
 import { SeatStatusBadge } from './SeatStatusBadge';
 import { ElapsedTimer } from './ElapsedTimer';
+import { Lock } from 'lucide-react';
 
 interface SeatCardProps {
   seat: Seat;
@@ -33,7 +34,18 @@ export function SeatCard({ seat, onClick }: SeatCardProps) {
     >
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-white">{seat.name}</h3>
-        <SeatStatusBadge status={seat.status} />
+        <div className="flex items-center gap-2">
+          <SeatStatusBadge status={seat.status} />
+          {seat.overlay_forced && (
+            <span
+              className="flex items-center gap-1 rounded-full bg-amber-900/50 px-2 py-0.5 text-xs font-medium text-amber-300 border border-amber-800"
+              aria-label="Force overlay active"
+            >
+              <Lock className="h-3 w-3" role="img" aria-label="Lock" />
+              Locked
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="mt-2 flex items-center justify-between text-sm text-slate-400">

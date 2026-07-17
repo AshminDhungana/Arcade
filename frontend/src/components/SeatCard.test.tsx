@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { SeatCard } from './SeatCard';
 import { SeatStatus } from '@/types/seat';
 import type { Seat } from '@/types/seat';
+import type { ReactNode } from 'react';
 
 const mockSeat: Seat = {
   id: 'seat-1',
@@ -16,9 +17,12 @@ const mockSeat: Seat = {
   wol_attempts: 0,
   wol_successes: 0,
   wol_failures: 0,
+  overlay_forced: false,  // base seat
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
+
+const makeWrapper = () => ({ children }: { children: ReactNode }) => <div>{children}</div>;
 
 describe('SeatCard', () => {
   it('renders seat name and status', () => {
@@ -43,5 +47,16 @@ describe('SeatCard', () => {
     const consoleSeat = { ...mockSeat, is_console: true };
     render(<SeatCard seat={consoleSeat} onClick={() => {}} />);
     expect(screen.getByText('Console')).toBeInTheDocument();
+  });
+
+  it('shows lock badge when overlay_forced is true', () => {
+    const forcedSeat = { ...mockSeat, overlay_forced: true };
+    render(<SeatCard seat={forcedSeat} onClick={vi.fn()} />, { wrapper: makeWrapper() });
+    expect(screen.getByRole('img', { name: /lock/i })).toBeInTheDocument();
+  });
+
+  it('does not show lock badge when overlay_forced is false', () => {
+    render(<SeatCard seat={mockSeat} onClick={vi.fn()} />, { wrapper: makeWrapper() });
+    expect(screen.queryByRole('img', { name: /lock/i })).not.toBeInTheDocument();
   });
 });
