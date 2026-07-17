@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.ws_manager import AgentOfflineError, Msg
 from backend.core.ws_manager import manager as ws_manager
-from backend.models._enums import AuditAction
+from backend.models._enums import AuditAction, SeatStatus
 from backend.models.seat import Seat
 from backend.models.staff import Staff
 from backend.repositories import seat_repo
@@ -317,3 +317,35 @@ async def force_overlay(
         staff_id=staff.id if staff else None,
         detail=f"overlay forced={'on' if show else 'off'}",
     )
+
+
+# ---------------------------------------------------------------------------
+# Public API — Task 4 (bulk force overlay)
+# ---------------------------------------------------------------------------
+
+
+async def bulk_force_overlay(
+    db: AsyncSession,
+    show: bool,
+    staff: Staff | None = None,
+) -> dict[str, object]:
+    """Force overlay on/off for many seats; returns a success/failure summary.
+
+    ``show=True`` targets AVAILABLE seats; ``show=False`` targets seats whose
+    ``overlay_forced`` is already true. An offline agent is recorded in
+    ``failed`` rather than aborting the whole batch.
+    """
+    seats = await seat_repo.list(db)
+    if show:
+        targets = [s for s in seats if s.status == SeatStatus.AVAILABLE]
+    else:
+        targets = [s for s in seats if s.overlay_forced]
+    succeeded: list[str] = []
+    failed: list[dict[str, str]] = []
+    for seat in targets:
+        try:
+            await force_overlay(db, seat.id, show, staff)
+            succeeded.append(seat.id)
+        except AgentOfflineHttpError:
+            failed.append({"seat_id": seat.id, "detail": "Agent offline"})
+    return {"succeeded": succeeded, "failed": failed}

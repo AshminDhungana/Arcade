@@ -64,9 +64,34 @@ class _OverlayBody(BaseModel):
     show: bool
 
 
+class _BulkOverlayFailure(BaseModel):
+    """One seat that could not be forced (e.g. agent offline)."""
+
+    seat_id: str
+    detail: str
+
+
+class _BulkOverlayResponse(BaseModel):
+    """Summary of a bulk force-overlay operation."""
+
+    succeeded: list[str]
+    failed: list[_BulkOverlayFailure]
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
+
+@router.post("/bulk/overlay", response_model=_BulkOverlayResponse)
+async def bulk_seat_overlay(
+    body: _OverlayBody,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> _BulkOverlayResponse:
+    """Force overlay on/off for all targeted seats (admin only)."""
+    result = await remote_command_service.bulk_force_overlay(db, body.show, staff)
+    return _BulkOverlayResponse(**result)
 
 
 @router.get("")

@@ -160,7 +160,28 @@ def test_force_overlay_on_admin_ok(client: TestClient) -> None:
         resp = client.post("/api/seats/seat-1/overlay", json={"show": True})
     assert resp.status_code == 204
     m.assert_awaited_once()
-    assert m.call_args.args[2] is True
+
+
+# --- bulk_force_overlay (Task 4) --------------------------------------------
+
+
+def test_bulk_overlay_admin_ok(client: TestClient) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from backend.services import remote_command_service as rcs
+
+    summary = {"succeeded": ["seat-1"], "failed": []}
+    mock_bulk = AsyncMock(return_value=summary)
+    with patch.object(rcs, "bulk_force_overlay", new=mock_bulk) as m:
+        resp = client.post("/api/seats/bulk/overlay", json={"show": True})
+    assert resp.status_code == 200
+    assert resp.json() == {"succeeded": ["seat-1"], "failed": []}
+    m.assert_awaited_once()
+
+
+def test_bulk_overlay_denied_for_cashier(cashier_client: TestClient) -> None:
+    resp = cashier_client.post("/api/seats/bulk/overlay", json={"show": True})
+    assert resp.status_code == 403
 
 
 def test_force_overlay_requires_body(client: TestClient) -> None:

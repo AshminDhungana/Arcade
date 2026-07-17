@@ -408,3 +408,43 @@ async def test_force_overlay_seat_not_found(db: AsyncSession, staff_member) -> N
     with pytest.raises(HTTPException) as exc_info:
         await rcs.force_overlay(db, "ghost-id", True, staff_member)
     assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# bulk_force_overlay (Task 4)
+# ---------------------------------------------------------------------------
+
+
+async def test_bulk_force_overlay_locks_only_available(
+    db: AsyncSession, zone_and_seat
+) -> None:
+    """bulk_force_overlay(show=True) targets only AVAILABLE seats."""
+    from backend.models._enums import SeatStatus
+    from backend.repositories import seat_repo
+    from backend.services import remote_command_service as rcs
+
+    _, avail = zone_and_seat
+    busy = await seat_repo.create(db, name="PC-02", zone_id=avail.zone_id)
+    busy.status = SeatStatus.IN_USE
+    db.add(busy)
+    await db.commit()
+
+    with patch.object(rcs, "force_overlay", new=AsyncMock()) as m:
+        result = await rcs.bulk_force_overlay(db, True, None)
+    assert result["succeeded"] == [avail.id]
+    assert result["failed"] == []
+    m.assert_awaited_once_with(db, avail.id, True, None)
+
+
+async def test_bulk_force_overlay_records_offline(
+    db: AsyncSession, zone_and_seat
+) -> None:
+    """An offline agent is recorded in `failed`, not raised."""
+    from backend.services import remote_command_service as rcs
+
+    _, avail = zone_and_seat
+    with patch.object(rcs, "force_overlay", new=AsyncMock()) as m:
+        m.side_effect = rcs.AgentOfflineHttpError(avail.id)
+        result = await rcs.bulk_force_overlay(db, True, None)
+    assert result["succeeded"] == []
+    assert result["failed"] == [{"seat_id": avail.id, "detail": "Agent offline"}]
