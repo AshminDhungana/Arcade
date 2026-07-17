@@ -7,7 +7,7 @@ Uses an in-memory async SQLite DB for repository calls.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -491,61 +491,64 @@ async def test_forced_overlay_accrual_parity_with_pause_resume(
     enabled. Both paths use the same internal helpers (_begin_pause /
     _accrue_pause), so their accumulated paused seconds must match.
     """
+    from backend.core.ws_manager import manager as ws_manager
     from backend.services import remote_command_service as rcs
 
     zone, seat = zone_and_seat
 
-    # -- Session A: manual pause/resume --
-    with patch("backend.services.session_service.ws_manager") as mock_ws:
-        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
-        mock_ws.send_to_agent = AsyncMock(return_value=None)
+    # Deterministic clock. Both pause paths must accrue a REAL, non-zero,
+    # identical duration; otherwise the parity assertion passes vacuously
+    # (total_paused_seconds defaults to 0, not None) and would NOT catch a
+    # bypassed accrual. Pin the clock around each begin/accrue pair.
+    clock = {"t": datetime(2026, 1, 1, tzinfo=UTC)}
+
+    def fake_now(tz=None):
+        return clock["t"]
+
+    # Single comprehensive with-block to avoid nested-patch conflicts on the
+    # shared ws_manager singleton (imported in both session_service and
+    # remote_command_service from backend.core.ws_manager).
+    # Patch the `datetime` CLASS in each module's namespace (they do
+    # `from datetime import UTC, datetime`), then assign `now` on the mock.
+    with (
+        patch("backend.services.session_service.datetime") as mock_dt_session,
+        patch("backend.services.remote_command_service.datetime") as mock_dt_rcs,
+        patch.object(ws_manager, "broadcast_to_dashboards", new=AsyncMock()),
+        patch.object(ws_manager, "send_to_agent", new=AsyncMock()),
+        patch.object(rcs.feature_flags, "get_flag", return_value=True),
+        patch.object(rcs.seat_service, "set_overlay_forced", new=AsyncMock()),
+        patch.object(rcs.audit_service, "log", new=AsyncMock()),
+    ):
+        mock_dt_session.now = staticmethod(fake_now)
+        mock_dt_session.UTC = UTC
+        mock_dt_rcs.now = staticmethod(fake_now)
+        mock_dt_rcs.UTC = UTC
+
+        # -- Session A: manual pause/resume --
         sess_a = await start_session(
             db, seat_id=seat.id, member_id=None, staff=staff_member
         )
+        clock["t"] = datetime(2026, 1, 1, tzinfo=UTC)  # begin @ base
         await pause_session(db, session_id=sess_a.id, staff=staff_member)
-        mock_ws.reset_mock()
+        clock["t"] += timedelta(seconds=100)  # accrue 100s
         await resume_session(db, session_id=sess_a.id, staff=staff_member)
 
-    # -- Session B: forced overlay on/off --
-    # Need a fresh seat for session B (seat is already IN_USE from session A)
-    seat_b = await seat_repo.create(db, name="PC-02", zone_id=zone.id)
+        # -- Session B: forced overlay on/off --
+        seat_b = await seat_repo.create(db, name="PC-02", zone_id=zone.id)
+        sess_b = await start_session(
+            db, seat_id=seat_b.id, member_id=None, staff=staff_member
+        )
 
-    with (
-        patch.object(rcs.feature_flags, "get_flag", return_value=True),
-        patch(
-            "backend.services.remote_command_service.ws_manager.send_to_agent",
-            new_callable=AsyncMock,
-        ),
-        patch(
-            "backend.services.remote_command_service.seat_service.set_overlay_forced",
-            new_callable=AsyncMock,
-        ),
-        patch(
-            "backend.services.remote_command_service.audit_service.log",
-            new_callable=AsyncMock,
-        ),
-        patch(
-            "backend.services.remote_command_service.ws_manager.broadcast_to_dashboards",
-            new_callable=AsyncMock,
-        ),
-    ):
-        with patch("backend.services.session_service.ws_manager") as mock_ws:
-            mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
-            mock_ws.send_to_agent = AsyncMock(return_value=None)
-            sess_b = await start_session(
-                db, seat_id=seat_b.id, member_id=None, staff=staff_member
-            )
-
-        # force_overlay ON -> begins pause
+        clock["t"] = datetime(2026, 1, 1, tzinfo=UTC)  # begin @ base
         await rcs.force_overlay(db, seat_id=seat_b.id, show=True, staff=staff_member)
-        # force_overlay OFF -> accrues pause
+        clock["t"] += timedelta(seconds=100)  # accrue 100s
         await rcs.force_overlay(db, seat_id=seat_b.id, show=False, staff=staff_member)
 
-    # Both sessions should have identical total_paused_seconds (near-zero in tests)
-    # Fresh reads to get authoritative values; no `or 0` masking of None.
+    # Fresh reads -> authoritative values; assert a REAL, identical accrual.
     sess_a = await session_repo.get_by_id(db, sess_a.id)
     sess_b = await session_repo.get_by_id(db, sess_b.id)
     path_a = sess_a.total_paused_seconds
     path_b = sess_b.total_paused_seconds
     assert isinstance(path_a, int) and isinstance(path_b, int)
     assert path_a == path_b
+    assert path_a > 0  # non-zero proves accrual actually ran on both paths

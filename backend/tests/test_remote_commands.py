@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -461,23 +461,40 @@ async def test_force_overlay_off_resumes_and_accrues(
     """force_overlay(show=False) + flag on -> session ACTIVE again,
     paused seconds accrued, seat IN_USE."""
     from backend.core import feature_flags
+    from backend.core.ws_manager import manager as ws_manager
     from backend.services import remote_command_service as rcs
 
     sess = active_session
+
+    # Deterministic clock so force-overlay-off accrues a REAL, non-zero
+    # duration (total_paused_seconds defaults to 0, so ">= 0" is vacuous).
+    clock = {"t": datetime(2026, 1, 1, tzinfo=UTC)}
+
+    def fake_now(tz=None):
+        return clock["t"]
+
+    # Patch the `datetime` CLASS in the module's namespace (it does
+    # `from datetime import UTC, datetime`), then assign `now` on the mock.
     with (
+        patch("backend.services.remote_command_service.datetime") as mock_dt_rcs,
         patch.object(feature_flags, "get_flag", return_value=True),
-        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()),
+        patch.object(ws_manager, "send_to_agent", new=AsyncMock()),
         patch.object(rcs.seat_service, "set_overlay_forced", new=AsyncMock()),
         patch.object(rcs.audit_service, "log", new=AsyncMock()),
-        patch.object(rcs.ws_manager, "broadcast_to_dashboards", new=AsyncMock()),
+        patch.object(ws_manager, "broadcast_to_dashboards", new=AsyncMock()),
     ):
+        mock_dt_rcs.now = staticmethod(fake_now)
+        mock_dt_rcs.UTC = UTC
+
+        clock["t"] = datetime(2026, 1, 1, tzinfo=UTC)  # begin @ base
         await rcs.force_overlay(db, sess.seat_id, True, staff_member)
+        clock["t"] += timedelta(seconds=100)  # accrue 100s
         await rcs.force_overlay(db, sess.seat_id, False, staff_member)
     refreshed = await session_repo.get_by_id(db, sess.id)
     assert refreshed.status == SessionStatus.ACTIVE
     assert refreshed.paused_at is None
-    assert refreshed.total_paused_seconds is not None
-    assert refreshed.total_paused_seconds >= 0
+    assert refreshed.total_paused_seconds == 100  # REAL accrual, not just >= 0
+    assert refreshed.total_paused_seconds > 0
 
 
 async def test_force_overlay_ignores_session_when_flag_off(
