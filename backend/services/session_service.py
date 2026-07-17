@@ -8,7 +8,7 @@ are handled in this module.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
@@ -89,6 +89,7 @@ def _session_to_response(session: GamingSession) -> SessionResponse:
     session.started_at = _ensure_tz(session.started_at)  # type: ignore[assignment]
     session.ended_at = _ensure_tz(session.ended_at)
     session.paused_at = _ensure_tz(session.paused_at)
+    session.assigned_end_at = _ensure_tz(session.assigned_end_at)
     return SessionResponse.model_validate(session)
 
 
@@ -129,6 +130,7 @@ async def start_session(
     member_id: str | None = None,
     staff: Staff | None = None,
     time_now: datetime | None = None,
+    assigned_minutes: int | None = None,
 ) -> SessionResponse:
     """Start a new session on an available seat.
 
@@ -189,6 +191,14 @@ async def start_session(
     if applicable_promo:
         promotion_id = applicable_promo.id
 
+    # 4d. Assigned-time limit (Epic 6.5.4)
+    assigned_end_at: datetime | None = None
+    if assigned_minutes and assigned_minutes > 0:
+        assigned_end_at = now + timedelta(minutes=assigned_minutes)
+        tz = assigned_end_at.tzinfo
+        if tz is None or tz.utcoffset(assigned_end_at) is None:
+            assigned_end_at = assigned_end_at.replace(tzinfo=UTC)
+
     # 5. Create session
     session = await session_repo.create(
         db,
@@ -201,6 +211,7 @@ async def start_session(
         promotion_id=promotion_id,
         discount_paise=0,  # calculated at checkout
         shift_id=shift_id,
+        assigned_end_at=assigned_end_at,
     )
 
     # 6. Update seat → IN_USE

@@ -475,6 +475,50 @@ async def test_resume_session_clears_overlay_forced(
     assert (await seat_service.get_seat(db, seat.id)).overlay_forced is False
 
 
+# ---------------------------------------------------------------------------
+# Task 6: start_session accepts assigned_minutes
+# ---------------------------------------------------------------------------
+
+
+async def test_start_session_with_assigned_minutes(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """start_session computes assigned_end_at when assigned_minutes > 0."""
+    _, seat = zone_and_seat
+    now = datetime.now(UTC)
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        result = await start_session(
+            db,
+            seat_id=seat.id,
+            member_id=None,
+            staff=staff_member,
+            time_now=now,
+            assigned_minutes=60,
+        )
+    assert result.assigned_end_at is not None
+    assert result.assigned_end_at == now + timedelta(minutes=60)
+
+
+async def test_start_session_without_assigned_minutes(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """start_session leaves assigned_end_at as None when assigned_minutes is None."""
+    _, seat = zone_and_seat
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        result = await start_session(
+            db,
+            seat_id=seat.id,
+            member_id=None,
+            staff=staff_member,
+            assigned_minutes=None,
+        )
+    assert result.assigned_end_at is None
+
+
 # -------------------------------------------------------------------
 # forced overlay accrual parity (Task 4 / Checkpoint 6.5-A)
 # -------------------------------------------------------------------
