@@ -14,14 +14,15 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.config import get_config
 from backend.core.feature_flags import get_flag
-from backend.core.ws_manager import AgentOfflineError
+from backend.core.ws_manager import AgentOfflineError, Msg
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, SeatStatus, SessionStatus
 from backend.models._enums import AuditAction
 from backend.repositories import package_repo, seat_repo, session_repo, shift_repo
 from backend.schemas.session import SessionResponse
-from backend.services import audit_service
+from backend.services import audit_service, remote_command_service
 from backend.services.billing_service import resolve_rate
 from backend.services.promotion_service import PromotionService
 
@@ -425,6 +426,68 @@ async def list_active_sessions(db: AsyncSession) -> list[SessionResponse]:
     """Return all sessions with ``ACTIVE`` or ``PAUSED`` status."""
     sessions = await session_repo.list_active(db)
     return [_session_to_response(s) for s in sessions]
+
+
+async def sweep_expired_sessions(db: AsyncSession) -> None:
+    """Enforce assigned-time limits (Epic 6.5.4).
+
+    For every ACTIVE session with an ``assigned_end_at``:
+      * if past the deadline, force the overlay on and mark the seat EXPIRED;
+      * else if inside the warning window and not yet warned, send the
+        existing ``LOW_TIME_WARNING`` once.
+    Sessions already PAUSED are skipped (expiry deferred until resumed).
+    """
+    now = datetime.now(UTC)
+    lead = timedelta(minutes=get_config().low_time_warning_minutes)
+    sessions = await session_repo.list_active_with_assigned_end(db)
+
+    for session in sessions:
+        if session.status != SessionStatus.ACTIVE:
+            continue
+        end = _ensure_tz(session.assigned_end_at)
+        if end is None:
+            continue
+        if end <= now:
+            # Expired: force overlay on (obeys overlay_pauses_billing), then
+            # mark the seat EXPIRED explicitly (force_overlay may set PAUSED).
+            await remote_command_service.force_overlay(db, session.seat_id, True, None)
+            seat = await seat_repo.get_by_id(db, session.seat_id)
+            if seat is not None:
+                seat.status = SeatStatus.EXPIRED
+                await seat_repo.update(db, seat)
+                try:
+                    await ws_manager.broadcast_to_dashboards(
+                        "seat_updated",
+                        {
+                            "id": seat.id,
+                            "name": seat.name,
+                            "status": seat.status.value,
+                            "current_session_id": session.id,
+                        },
+                    )
+                except Exception:
+                    logger.warning(
+                        "Failed to broadcast seat_updated for %s",
+                        seat.id,
+                        exc_info=True,
+                    )
+            continue
+        if not session.expiry_warned and end <= now + lead:
+            remaining = max(0, int((end - now).total_seconds() // 60))
+            try:
+                await ws_manager.send_to_agent(
+                    session.seat_id,
+                    {
+                        "type": Msg.LOW_TIME_WARNING,
+                        "payload": {"minutes_remaining": remaining},
+                    },
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to send LOW_TIME_WARNING to seat %s", session.seat_id
+                )
+            session.expiry_warned = True
+            await session_repo.update(db, session)
 
 
 async def recover_active_sessions(db: AsyncSession) -> None:
