@@ -3,7 +3,7 @@ from backend.schemas.seat import SeatResponse
 from backend.schemas.session import SessionResponse
 
 
-def test_session_response_has_assigned_end_at():
+def test_session_response_has_assigned_end_at() -> None:
     s = SessionResponse(
         id="s1",
         seat_id="seat1",
@@ -24,7 +24,7 @@ def test_session_response_has_assigned_end_at():
     assert s.assigned_end_at is None
 
 
-def test_seat_response_has_assigned_end_at():
+def test_seat_response_has_assigned_end_at() -> None:
     seat = SeatResponse(
         id="seat1",
         name="PC-01",
