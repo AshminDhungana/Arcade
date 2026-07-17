@@ -25,8 +25,8 @@ interface ElectronAPI {
   /** Main → Renderer: update the entire overlay content. */
   onOverlayContent: (callback: (data: OverlayData) => void) => void;
 
-  /** Main → Renderer: update the visible timer string. */
-  onTimerUpdate: (callback: (timeString: string) => void) => void;
+  /** Main → Renderer: update the visible timer (elapsed seconds since session start). */
+  onTimerUpdate: (callback: (timer: { elapsedSeconds: number }) => void) => void;
 
   /** Main → Renderer: show an announcement toast/banner. */
   onAnnouncement: (callback: (text: string, durationMs: number) => void) => void;
@@ -60,7 +60,7 @@ const api: ElectronAPI = {
   },
 
   onTimerUpdate: (callback) => {
-    ipcRenderer.on('overlay:timer', (_event, data) => callback(data.timeString));
+    ipcRenderer.on('overlay:timer', (_event, data) => callback(data));
   },
 
   onAnnouncement: (callback) => {

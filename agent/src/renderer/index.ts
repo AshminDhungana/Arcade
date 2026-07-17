@@ -10,11 +10,21 @@ import { createLowTimeModal, showModal, hideModal } from './components/low-time-
 import { createStaffOverrideDialog } from './components/staff-override-dialog.js';
 import type { OverlayData } from './preload.js';
 
+/** Format elapsed seconds as HH:MM:SS (hours can exceed 99). */
+function formatElapsed(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+}
+
 declare global {
   interface Window {
     electronAPI: {
       onOverlayContent: (callback: (data: OverlayData) => void) => void;
-      onTimerUpdate: (callback: (timeString: string) => void) => void;
+      onTimerUpdate: (callback: (timer: { elapsedSeconds: number }) => void) => void;
       onAnnouncement: (callback: (text: string, durationMs: number) => void) => void;
       onLowTimeWarning: (callback: (minutes: number) => void) => void;
       onSessionStatus: (callback: (active: boolean) => void) => void;
@@ -45,8 +55,8 @@ function initKiosk(): void {
     updateOverlay(overlay, data);
   });
 
-  window.electronAPI.onTimerUpdate((timeString) => {
-    overlay.setTimer(timeString);
+  window.electronAPI.onTimerUpdate((timer) => {
+    overlay.setTimer(formatElapsed(timer.elapsedSeconds));
   });
 
   window.electronAPI.onSessionStatus((active) => {

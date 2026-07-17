@@ -9,6 +9,16 @@
 
 import { createLowTimeModal, showModal, hideModal } from './components/low-time-warning.js';
 
+/** Format elapsed seconds as HH:MM:SS (hours can exceed 99). */
+function formatElapsed(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+}
+
 export function initHud(): void {
   const app = document.getElementById('app');
   if (!app) return;
@@ -41,8 +51,8 @@ export function initHud(): void {
     indicator.style.display = data.sessionActive ? 'block' : 'none';
   });
 
-  window.electronAPI.onTimerUpdate((timeString) => {
-    timer.textContent = timeString;
+  window.electronAPI.onTimerUpdate((tick) => {
+    timer.textContent = formatElapsed(tick.elapsedSeconds);
   });
 
   const announcementEl = document.createElement('div');
