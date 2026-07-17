@@ -19,6 +19,7 @@ from backend.models import SeatStatus, SessionStatus
 from backend.models._enums import ShiftStatus
 from backend.repositories import seat_repo, session_repo, shift_repo, staff_repo
 from backend.services.session_service import (
+    extend_session,
     get_session,
     list_active_sessions,
     pause_session,
@@ -596,3 +597,144 @@ async def test_forced_overlay_accrual_parity_with_pause_resume(
     assert isinstance(path_a, int) and isinstance(path_b, int)
     assert path_a == path_b
     assert path_a > 0  # non-zero proves accrual actually ran on both paths
+
+
+# ---------------------------------------------------------------------------
+# Task 8: extend_session
+# ---------------------------------------------------------------------------
+
+
+async def _start_with_limit(
+    db: AsyncSession,
+    zone_and_seat: tuple,
+    staff_member,
+    minutes: int,
+    time_now: datetime | None = None,
+):
+    """Helper: start a session with assigned_minutes, mocking WS manager."""
+    _, seat = zone_and_seat
+    now = time_now if time_now is not None else datetime.now(UTC)
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        return await start_session(
+            db,
+            seat_id=seat.id,
+            member_id=None,
+            staff=staff_member,
+            time_now=now,
+            assigned_minutes=minutes,
+        ), seat
+
+
+async def test_extend_in_use_pushes_deadline(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """IN_USE session: deadline is pushed, expiry_warned cleared, no force_overlay."""
+    session, seat = await _start_with_limit(db, zone_and_seat, staff_member, 30)
+
+    # Seat should be IN_USE
+    assert seat.status == SeatStatus.IN_USE
+
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        with patch(
+            "backend.services.session_service.remote_command_service.force_overlay"
+        ) as mock_force:
+            mock_force.return_value = None
+            result = await extend_session(
+                db, session_id=session.id, additional_minutes=30, staff=staff_member
+            )
+
+    # Deadline pushed by 30 minutes
+    assert result.assigned_end_at is not None
+    expected = session.assigned_end_at + timedelta(minutes=30)
+    assert abs((result.assigned_end_at - expected).total_seconds()) < 1
+
+    # force_overlay was NOT called
+    mock_force.assert_not_awaited()
+
+    # expiry_warned cleared on the persisted model (DB-only column, not in response)
+    refreshed_session = await session_repo.get_by_id(db, session.id)
+    assert refreshed_session.expiry_warned is False
+
+    # Seat stays IN_USE
+    refreshed_seat = await seat_repo.get_by_id(db, seat.id)
+    assert refreshed_seat.status == SeatStatus.IN_USE
+
+
+async def test_extend_expired_hides_overlay_and_reverts(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """EXPIRED seat: force_overlay called with show=False, seat reverts to IN_USE."""
+    from datetime import UTC, datetime, timedelta
+
+    from backend.services import remote_command_service as rcs
+
+    session, seat = await _start_with_limit(db, zone_and_seat, staff_member, 10)
+
+    # Manually expire: set session past deadline and seat to EXPIRED
+    now = datetime.now(UTC)
+    s = await session_repo.get_by_id(db, session.id)
+    s.assigned_end_at = now - timedelta(minutes=5)
+    s.expiry_warned = True
+    await session_repo.update(db, s)
+
+    seat_obj = await seat_repo.get_by_id(db, seat.id)
+    seat_obj.status = SeatStatus.EXPIRED
+    await seat_repo.update(db, seat_obj)
+
+    # Extend by 20 minutes
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        with patch.object(
+            rcs, "force_overlay", new=AsyncMock(return_value=None)
+        ) as mock_force:
+            result = await extend_session(
+                db, session_id=session.id, additional_minutes=20, staff=staff_member
+            )
+
+    # Deadline pushed from past
+    assert result.assigned_end_at is not None
+
+    # expiry_warned cleared on the persisted model (DB-only column, not in response)
+    refreshed_session = await session_repo.get_by_id(db, session.id)
+    assert refreshed_session.expiry_warned is False
+
+    # force_overlay called once with show=False
+    mock_force.assert_awaited_once_with(db, seat.id, False, staff_member)
+
+    # Seat reverted to IN_USE
+    refreshed_seat = await seat_repo.get_by_id(db, seat.id)
+    assert refreshed_seat.status == SeatStatus.IN_USE
+
+    # Broadcast was called for seat_updated
+    mock_ws.broadcast_to_dashboards.assert_awaited()
+
+
+async def test_extend_rejects_non_positive(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """additional_minutes <= 0 raises HTTP 422."""
+    session, _ = await _start_with_limit(db, zone_and_seat, staff_member, 30)
+
+    with pytest.raises(HTTPException) as exc:
+        await extend_session(
+            db, session_id=session.id, additional_minutes=0, staff=staff_member
+        )
+    assert exc.value.status_code == 422
+
+    with pytest.raises(HTTPException) as exc:
+        await extend_session(
+            db, session_id=session.id, additional_minutes=-5, staff=staff_member
+        )
+    assert exc.value.status_code == 422
+
+
+async def test_extend_unknown_session_404(db: AsyncSession, staff_member):
+    """Unknown session_id raises HTTP 404."""
+    with pytest.raises(HTTPException) as exc:
+        await extend_session(
+            db, session_id="non-existent-id", additional_minutes=30, staff=staff_member
+        )
+    assert exc.value.status_code == 404

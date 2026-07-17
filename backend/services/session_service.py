@@ -490,6 +490,84 @@ async def sweep_expired_sessions(db: AsyncSession) -> None:
             await session_repo.update(db, session)
 
 
+async def extend_session(
+    db: AsyncSession,
+    /,
+    session_id: str,
+    additional_minutes: int,
+    staff: Staff | None = None,
+) -> SessionResponse:
+    """Extend a session's assigned deadline by additional minutes.
+
+    If the session is currently EXPIRED (seat status EXPIRED), the overlay is
+    hidden via ``force_overlay(show=False)`` and the seat is reverted to
+    IN_USE. The session's ``expiry_warned`` flag is cleared. Audits
+    ``SESSION_EXTENDED``.
+
+    Args:
+        db: Database session.
+        session_id: UUID of the session to extend.
+        additional_minutes: Minutes to add to the deadline (must be > 0).
+        staff: Optional staff member for audit logging.
+
+    Returns:
+        SessionResponse: Updated session.
+
+    Raises:
+        HTTPException(422): If additional_minutes <= 0.
+        HTTPException(404): If session not found.
+    """
+    if additional_minutes <= 0:
+        raise HTTPException(status_code=422, detail="additional_minutes must be > 0")
+
+    session = await session_repo.get_by_id(db, session_id)
+    if session is None:
+        raise SessionNotFoundError(session_id)
+
+    now = datetime.now(UTC)
+    base = session.assigned_end_at or now
+    session.assigned_end_at = base + timedelta(minutes=additional_minutes)
+    session.expiry_warned = False
+    session = await session_repo.update(db, session)
+
+    seat = await seat_repo.get_by_id(db, session.seat_id)
+    if seat is not None and seat.status == SeatStatus.EXPIRED:
+        await remote_command_service.force_overlay(db, seat.id, False, staff)
+        seat.status = SeatStatus.IN_USE
+        await seat_repo.update(db, seat)
+        try:
+            await ws_manager.broadcast_to_dashboards(
+                "seat_updated",
+                {
+                    "id": seat.id,
+                    "name": seat.name,
+                    "status": seat.status.value,
+                    "current_session_id": session.id,
+                },
+            )
+        except Exception:
+            logger.warning(
+                "Failed to broadcast seat_updated for %s", seat.id, exc_info=True
+            )
+
+    new_deadline = (
+        session.assigned_end_at.isoformat() if session.assigned_end_at else "none"
+    )
+    await audit_service.log(
+        db,
+        action=AuditAction.SESSION_EXTENDED,
+        entity_type="session",
+        entity_id=session.id,
+        staff_id=staff.id if staff else None,
+        detail=(
+            f"extended by {additional_minutes} min; "
+            f"new assigned_end_at={new_deadline}"
+        ),
+    )
+
+    return _session_to_response(session)
+
+
 async def recover_active_sessions(db: AsyncSession) -> None:
     """Recover any sessions that were active during an unclean shutdown.
 
