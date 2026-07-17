@@ -500,6 +500,7 @@ export class AgentWebSocketClient {
           (Date.now() - new Date(this.sessionState.started_at).getTime()) / 1000,
         );
         this.store?.updateElapsed(this.sessionState.session_id, elapsed);
+        this.platform.updateTimer({ elapsedSeconds: elapsed });
       }
     }, 10_000);
   }
