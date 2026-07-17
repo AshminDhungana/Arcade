@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -122,5 +122,32 @@ async def post_checkout(
         session_id=session_id,
         payment_method=body.payment_method,
         staff=staff,
+    )
+    return InvoiceResponse.model_validate(invoice)
+
+
+class _ForceCloseBody(BaseModel):
+    """Request body for POST /sessions/{id}/force-close-unprinted."""
+
+    pin: str
+    override_reason: str
+
+
+@router.post(
+    "/{session_id}/force-close-unprinted",
+    response_model=InvoiceResponse,
+)
+async def force_close_unprinted_session(
+    session_id: str,
+    body: _ForceCloseBody,
+    staff: Annotated[Staff, Depends(require_cashier)],  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> InvoiceResponse:
+    """Force-release a held (unprinted) checkout via own-PIN re-auth (cashier+)."""
+    reason = (body.override_reason or "").strip()
+    if not reason:
+        raise HTTPException(status_code=422, detail="override_reason is required")
+    invoice = await billing_service.force_close_unprinted(
+        db, session_id, body.pin, reason, staff
     )
     return InvoiceResponse.model_validate(invoice)

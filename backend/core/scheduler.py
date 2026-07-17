@@ -62,20 +62,24 @@ async def _low_time_warning_job() -> None:
 
 
 async def _print_retry_job() -> None:
-    """Every minute, retry due print jobs from the outbox.
+    """Every minute, retry due print jobs and auto-release held seats.
 
-    Opens its own DB session (no request scope), mirroring ``_backup_job``.
-    Exceptions are logged and swallowed so a print failure never tears down
-    the scheduler loop.
+    Opens its own DB session (no request scope). Exceptions are logged and
+    swallowed so a print failure never tears down the scheduler loop.
     """
     from backend.core.database import AsyncSessionLocal
-    from backend.services import print_service
+    from backend.repositories import invoice_repo
+    from backend.services import billing_service, print_service
 
     try:
         async with AsyncSessionLocal() as db:
-            retried = await print_service.retry_due_print_jobs(db)
-            if retried:
-                logger.info("Retried %d print job(s).", retried)
+            printed = await print_service.retry_due_print_jobs(db)
+            if printed:
+                logger.info("Retried %d print job(s).", len(printed))
+                for invoice_id in printed:
+                    inv = await invoice_repo.get_by_id(db, invoice_id)
+                    if inv is not None:
+                        await billing_service._maybe_release_held_seat(db, inv)
             await db.commit()
     except Exception:  # noqa: BLE001 — keep the scheduler loop alive
         logger.exception("Print retry job failed.")

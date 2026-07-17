@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import Invoice
-from backend.models._enums import InvoiceLineItemType, PaymentMethod
+from backend.models._enums import InvoiceLineItemType, InvoicePrintStatus, PaymentMethod
 from backend.models.invoice_line_item import InvoiceLineItem
 
 
@@ -76,6 +76,20 @@ async def get_by_session(db: AsyncSession, session_id: str) -> Sequence[Invoice]
 async def list_by_shift(db: AsyncSession, shift_id: str) -> Sequence[Invoice]:
     """Return all invoices recorded against *shift_id*."""
     result = await db.execute(select(Invoice).where(Invoice.shift_id == shift_id))
+    return result.scalars().all()
+
+
+async def list_by_print_status(
+    db: AsyncSession, statuses: Sequence[InvoicePrintStatus]
+) -> Sequence[Invoice]:
+    """Return invoices whose print_status is in *statuses* (newest first)."""
+    if not statuses:
+        return []
+    result = await db.execute(
+        select(Invoice)
+        .where(Invoice.print_status.in_(statuses))
+        .order_by(Invoice.created_at.desc())
+    )
     return result.scalars().all()
 
 

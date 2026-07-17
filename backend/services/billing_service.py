@@ -18,6 +18,9 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException  # noqa: TCH001
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.config import get_config
+from backend.core.feature_flags import get_flag
+from backend.core.security import verify_pin
 from backend.core.ws_manager import AgentOfflineError
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, Invoice, SeatStatus, SessionStatus
@@ -30,6 +33,7 @@ from backend.models._enums import (
 )
 from backend.models.staff import Staff
 from backend.schemas.invoice import InvoiceResponse
+from backend.services.print_service import _build_invoice_response
 
 if TYPE_CHECKING:
     pass
@@ -217,11 +221,105 @@ async def _print_receipt(
     )
 
 
+async def _release_held_seat(
+    db: AsyncSession,
+    session: GamingSession,
+    invoice: Invoice,
+    *,
+    staff: Staff | None = None,
+    override_reason: str | None = None,
+) -> None:
+    """Free the seat and notify the agent: the single release point.
+
+    - seat -> AVAILABLE
+    - broadcast seat_updated to dashboards
+    - send SHOW_OVERLAY to the agent (AgentOfflineError swallowed)
+    - Tuya power-off (best-effort, never fatal)
+    - if override_reason: audit CHECKOUT_FORCED_UNPRINTED
+    """
+    seat = await seat_repo.get_by_id(db, session.seat_id)
+    if seat:
+        seat.status = SeatStatus.AVAILABLE
+        await seat_repo.update(db, seat)
+        try:
+            await ws_manager.broadcast_to_dashboards(
+                "seat_updated",
+                {
+                    "id": seat.id,
+                    "name": seat.name,
+                    "status": seat.status.value,
+                    "current_session_id": None,
+                },
+            )
+        except Exception:
+            logger.warning(
+                "Failed to broadcast seat_updated for %s", seat.id, exc_info=True
+            )
+
+    try:
+        await ws_manager.send_to_agent(session.seat_id, {"type": "SHOW_OVERLAY"})
+    except AgentOfflineError:
+        logger.warning(
+            "Agent offline for seat %s — SHOW_OVERLAY not sent", session.seat_id
+        )
+
+    try:
+        from backend.services import tuya_service
+
+        await tuya_service.power_off(db, session.seat_id)
+    except Exception:
+        logger.warning(
+            "Tuya power-off raised for seat %s", session.seat_id, exc_info=True
+        )
+
+    if override_reason:
+        await audit_service.log(
+            db,
+            action=AuditAction.CHECKOUT_FORCED_UNPRINTED,
+            entity_type="session",
+            entity_id=session.id,
+            staff_id=staff.id if staff else None,
+            detail=(
+                f"invoice_id={invoice.id}; "
+                f"print_status={invoice.print_status.value}; "
+                f"reason={override_reason}"
+            ),
+        )
+
+
+async def _maybe_release_held_seat(
+    db: AsyncSession,
+    invoice: Invoice,
+    *,
+    staff: Staff | None = None,
+) -> bool:
+    """Release a held seat when the gate is on and the invoice is now PRINTED.
+
+    Returns True if a release happened. No-op (False) when the gate is off,
+    the invoice is not PRINTED, or the seat is not actually held (a COMPLETED
+    session whose seat is still IN_USE). Used by mark-printed, reprint, and the
+    scheduler auto-release hook.
+    """
+    if not get_flag("require_print_before_release"):
+        return False
+    if invoice.print_status != InvoicePrintStatus.PRINTED:
+        return False
+    session = await session_repo.get_by_id(db, invoice.session_id)
+    if session is None or session.status != SessionStatus.COMPLETED:
+        return False
+    seat = await seat_repo.get_by_id(db, session.seat_id)
+    if seat is None or seat.status != SeatStatus.IN_USE:
+        return False
+    await _release_held_seat(db, session, invoice, staff=staff)
+    return True
+
+
 async def checkout_session(
     db: AsyncSession,
     session_id: str,
     payment_method: PaymentMethod,
     staff: Staff | None = None,
+    override_reason: str | None = None,
 ) -> Invoice:
     """Complete a gaming session and return the generated invoice.
 
@@ -232,12 +330,14 @@ async def checkout_session(
     4.  Compute total (POS items are stub; Feature 3.1.4).
     5.  Create Invoice in DB.
     6.  Update session -> COMPLETED, ended_at = now.
-    7.  Update seat -> AVAILABLE.
+    7.  If ``require_print_before_release`` is ON: hold the seat IN_USE, await
+        the first thermal print attempt, and release only when print_status
+        becomes PRINTED (all releases go through ``_release_held_seat``).
+        Otherwise release immediately and print fire-and-forget.
     8.  Broadcast seat_updated to dashboards.
     9.  Send SHOW_OVERLAY to agent.
-    10. Trigger receipt print (non-blocking).
-    11. Audit log entry: CHECKOUT.
-    12. Return Invoice.
+    10. Audit log entry: CHECKOUT.
+    11. Return Invoice (with refreshed print_status).
     """
     # 1. Load + validate session
     session_obj = await session_repo.get_by_id(db, session_id)
@@ -406,70 +506,89 @@ async def checkout_session(
     session_obj.ended_at = datetime.now(UTC)
     await session_repo.update(db, session_obj)
 
-    # 7. Update seat -> AVAILABLE
+    # 7. Load seat; decide gate hold vs. immediate release.
     seat = await seat_repo.get_by_id(db, session_obj.seat_id)
-    if seat:
-        seat.status = SeatStatus.AVAILABLE
-        await seat_repo.update(db, seat)
-
-        # 8. Broadcast seat_updated to dashboards
-        try:
-            await ws_manager.broadcast_to_dashboards(
-                "seat_updated",
-                {
-                    "id": seat.id,
-                    "name": seat.name,
-                    "status": seat.status.value,
-                    "current_session_id": None,
-                },
-            )
-        except Exception:
-            logger.warning(
-                "Failed to broadcast seat_updated for %s", seat.id, exc_info=True
-            )
-
-    # 9. Send SHOW_OVERLAY to agent
-    try:
-        await ws_manager.send_to_agent(session_obj.seat_id, {"type": "SHOW_OVERLAY"})
-    except AgentOfflineError:
-        logger.warning(
-            "Agent offline for seat %s — SHOW_OVERLAY not sent", session_obj.seat_id
-        )
-
-    # 9b. Console power-off (non-blocking; failure logged, never fatal)
-    try:
-        from backend.services import tuya_service
-
-        await tuya_service.power_off(db, session_obj.seat_id)
-    except Exception:
-        logger.warning(
-            "Tuya power-off raised for seat %s", session_obj.seat_id, exc_info=True
-        )
-
-    # 10. Trigger receipt print (non-blocking)
-    from backend.schemas.invoice import InvoiceResponse
-
+    gate_enabled = get_flag("require_print_before_release")
     seat_name = seat.name if seat else session_obj.seat_id
-    # SQLite strips timezone info on datetime reads; restore it explicitly
-    # so Pydantic's AwareDatetime is satisfied.
-    invoice_response = InvoiceResponse(
-        id=invoice.id,
-        session_id=invoice.session_id,
-        member_id=invoice.member_id,
-        shift_id=invoice.shift_id,
-        time_charge_paise=invoice.time_charge_paise,
-        package_credit_used_paise=invoice.package_credit_used_paise,
-        discount_paise=invoice.discount_paise,
-        pos_total_paise=invoice.pos_total_paise,
-        total_paise=invoice.total_paise,
-        payment_method=invoice.payment_method,
-        print_status=InvoicePrintStatus.PENDING,
-        created_at=_ensure_utc(invoice.created_at),
-        line_items=[],
-    )
-    asyncio.create_task(_print_receipt(invoice_response, seat_name, elapsed))
 
-    # 11. Audit log
+    # Build the receipt payload once (used by both gate-await and fire-and-forget).
+    invoice_response = _build_invoice_response(invoice)
+
+    if gate_enabled:
+        # Hold the seat until the first thermal attempt succeeds.
+        if seat:
+            seat.status = SeatStatus.IN_USE
+            await seat_repo.update(db, seat)
+            try:
+                await ws_manager.broadcast_to_dashboards(
+                    "seat_updated",
+                    {
+                        "id": seat.id,
+                        "name": seat.name,
+                        "status": seat.status.value,
+                        "current_session_id": session_obj.id,
+                    },
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to broadcast held seat_updated for %s",
+                    seat.id,
+                    exc_info=True,
+                )
+
+        # First attempt is awaited and bounded (~5s connect timeout inside escpos).
+        try:
+            config = get_config()
+        except RuntimeError:
+            config = None
+        if config is not None:
+            from backend.services.print_service import enqueue_and_track_print
+
+            await enqueue_and_track_print(
+                invoice.id,
+                invoice_response,
+                config.cafe_name,
+                config,
+                duration_seconds=elapsed,
+                seat_name=seat_name,
+            )
+        else:
+            logger.warning(
+                "Config unavailable; cannot run first print attempt for %s",
+                invoice.id,
+            )
+
+        # The print service committed print_status via its own session; read it back.
+        refreshed = await invoice_repo.get_by_id(db, invoice.id)
+        if refreshed is not None:
+            invoice.print_status = refreshed.print_status
+
+        if invoice.print_status == InvoicePrintStatus.PRINTED:
+            await _release_held_seat(db, session_obj, invoice, staff=staff)
+        # FAILED / SKIPPED / PENDING-without-config -> seat stays IN_USE (held).
+    else:
+        # Flag off: today's behaviour — release immediately, print fire-and-forget.
+        if seat:
+            seat.status = SeatStatus.AVAILABLE
+            await seat_repo.update(db, seat)
+            try:
+                await ws_manager.broadcast_to_dashboards(
+                    "seat_updated",
+                    {
+                        "id": seat.id,
+                        "name": seat.name,
+                        "status": seat.status.value,
+                        "current_session_id": None,
+                    },
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to broadcast seat_updated for %s", seat.id, exc_info=True
+                )
+        asyncio.create_task(_print_receipt(invoice_response, seat_name, elapsed))
+        await _release_held_seat(db, session_obj, invoice, staff=staff)
+
+    # 11. Audit CHECKOUT (always — the invoice was generated).
     await audit_service.log(
         db,
         action=AuditAction.CHECKOUT,
@@ -479,6 +598,58 @@ async def checkout_session(
         detail=f"total_paise={total_paise}",
     )
 
-    # 12. Return Invoice
+    # 12. Return Invoice (with the refreshed print_status).
     await db.refresh(invoice)
+    return invoice
+
+
+async def force_close_unprinted(
+    db: AsyncSession,
+    session_id: str,
+    pin: str,
+    override_reason: str,
+    staff: Staff,
+) -> Invoice:
+    """Force-release a held (unprinted) checkout after re-verifying the PIN.
+
+    Preconditions (raise HTTPException):
+      * PIN must verify against ``staff.pin_hash`` (403)
+      * session must exist (404)
+      * session.status == COMPLETED and seat still IN_USE (409)
+
+    Releases the seat via the shared helper and audits
+    CHECKOUT_FORCED_UNPRINTED. The invoice stays FAILED (intentionally unprinted).
+    """
+    if not verify_pin(pin, staff.pin_hash):
+        raise HTTPException(status_code=403, detail="Invalid PIN")
+
+    session = await session_repo.get_by_id(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.status != SessionStatus.COMPLETED:
+        raise HTTPException(
+            status_code=409, detail="Session is not in a held checkout state"
+        )
+    seat = await seat_repo.get_by_id(db, session.seat_id)
+    if seat is None or seat.status != SeatStatus.IN_USE:
+        raise HTTPException(
+            status_code=409, detail="Seat is not held (already released)"
+        )
+
+    invoices = await invoice_repo.get_by_session(db, session.id)
+    invoice = None
+    if invoices:
+        invoice = sorted(invoices, key=lambda i: i.created_at)[-1]
+    if invoice is None:
+        invoice = Invoice(
+            session_id=session.id,
+            payment_method=PaymentMethod.CASH,
+            print_status=InvoicePrintStatus.FAILED,
+        )
+        db.add(invoice)
+        await db.flush()
+
+    await _release_held_seat(
+        db, session, invoice, staff=staff, override_reason=override_reason
+    )
     return invoice

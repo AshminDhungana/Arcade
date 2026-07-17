@@ -390,7 +390,7 @@ class TestPrintStatusTracking:
         with patch.object(ps, "_get_printer", return_value=_DummyOKPrinter()):
             retried = await ps.retry_due_print_jobs(db)
         await db.commit()
-        assert retried == 1
+        assert retried == [inv.id]
         reloaded = await invoice_repo.get_by_id(db, inv.id)
         assert reloaded.print_status == InvoicePrintStatus.PRINTED
         assert await ps.print_job_repo.get_by_invoice(db, inv.id) is None

@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.core.database import Base
-from backend.models._enums import PaymentMethod, PricingModel
+from backend.models._enums import InvoicePrintStatus, PaymentMethod, PricingModel
 from backend.repositories import invoice_repo, session_repo
 
 
@@ -49,3 +49,28 @@ async def test_list_by_shift_filters_by_shift(db: AsyncSession) -> None:
 
 async def test_list_by_shift_empty(db: AsyncSession) -> None:
     assert await invoice_repo.list_by_shift(db, "shift-Z") == []
+
+
+async def test_list_by_print_status_filters(db: AsyncSession) -> None:
+    await invoice_repo.create(
+        db, session_id="s1", payment_method=PaymentMethod.CASH, total_paise=100
+    )
+    inv2 = await invoice_repo.create(
+        db, session_id="s2", payment_method=PaymentMethod.CASH, total_paise=200
+    )
+    inv3 = await invoice_repo.create(
+        db, session_id="s3", payment_method=PaymentMethod.CASH, total_paise=300
+    )
+    inv2.print_status = InvoicePrintStatus.FAILED
+    inv3.print_status = InvoicePrintStatus.SKIPPED
+    await invoice_repo.update(db, inv2)
+    await invoice_repo.update(db, inv3)
+
+    rows = await invoice_repo.list_by_print_status(
+        db, [InvoicePrintStatus.FAILED, InvoicePrintStatus.SKIPPED]
+    )
+    ids = {r.id for r in rows}
+    assert ids == {inv2.id, inv3.id}
+
+    none = await invoice_repo.list_by_print_status(db, [InvoicePrintStatus.PRINTED])
+    assert list(none) == []

@@ -37,4 +37,5 @@ export interface FeatureFlags {
   enable_expense_tracking: boolean;
   enable_health_monitoring: boolean;
   require_member_for_session: boolean;
+  require_print_before_release: boolean;
 }

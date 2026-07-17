@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 // Mock hooks
 vi.mock('@/api/sessions', () => ({
   useSession: vi.fn(),
+  useForceCloseUnprinted: vi.fn(),
 }));
 
 vi.mock('@/api/pos', () => ({
@@ -17,6 +18,8 @@ vi.mock('@/api/pos', () => ({
 
 vi.mock('@/api/invoices', () => ({
   useCheckout: vi.fn(),
+  useReprintInvoice: vi.fn(),
+  useMarkInvoicePrinted: vi.fn(),
   printInvoicePdf: vi.fn(),
 }));
 
@@ -24,9 +27,14 @@ vi.mock('@/store/authStore', () => ({
   useAuthStore: vi.fn((selector) => selector({ accessToken: 'test-token' })),
 }));
 
-import { useSession } from '@/api/sessions';
+vi.mock('@/store/featureFlagStore', () => ({
+  useFeatureFlagStore: vi.fn(() => ({ flags: { require_print_before_release: true } })),
+}));
+
+import { useSession, useForceCloseUnprinted } from '@/api/sessions';
 import { useSessionItems, useMenu } from '@/api/pos';
-import { useCheckout, printInvoicePdf } from '@/api/invoices';
+import { useCheckout, useReprintInvoice, useMarkInvoicePrinted, printInvoicePdf } from '@/api/invoices';
+import { useFeatureFlagStore } from '@/store/featureFlagStore';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -152,6 +160,21 @@ describe('CheckoutPanel', () => {
       isError: false,
       error: null,
     } as unknown as ReturnType<typeof useCheckout>);
+
+    vi.mocked(useForceCloseUnprinted).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useForceCloseUnprinted>);
+
+    vi.mocked(useReprintInvoice).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useReprintInvoice>);
+
+    vi.mocked(useMarkInvoicePrinted).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useMarkInvoicePrinted>);
   });
 
   it('renders loading state when queries are loading', () => {
@@ -227,5 +250,43 @@ describe('CheckoutPanel', () => {
     const closeBtn = screen.getByText('New Session');
     fireEvent.click(closeBtn);
     expect(mockClose).toHaveBeenCalled();
+  });
+
+  it('renders held state when checkout returns FAILED and the flag is on', () => {
+    const heldInvoice = {
+      id: 'inv_held_1',
+      session_id: 'sess_1',
+      member_id: 'member_1',
+      shift_id: 'shift_1',
+      time_charge_paise: 24000,
+      package_credit_used_paise: 0,
+      discount_paise: 3000,
+      pos_total_paise: 8000,
+      total_paise: 29000,
+      payment_method: 'CARD',
+      print_status: 'FAILED',
+      created_at: new Date().toISOString(),
+      line_items: [],
+    };
+    vi.mocked(useFeatureFlagStore).mockReturnValue({
+      flags: { require_print_before_release: true },
+    });
+    mockMutate.mockImplementationOnce((_variables, options) => {
+      if (options && options.onSuccess) {
+        options.onSuccess(heldInvoice);
+      }
+    });
+
+    render(<CheckoutPanel sessionId="sess_1" onClose={mockClose} />, {
+      wrapper: createWrapper(),
+    });
+
+    // Drive the checkout flow so the FAILED result moves the panel into the held state.
+    fireEvent.click(screen.getByText('Confirm Payment & Checkout'));
+
+    expect(screen.getByText(/checkout held/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /force close \(PIN\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reprint/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /PDF/i })).toBeInTheDocument();
   });
 });

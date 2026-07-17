@@ -428,14 +428,15 @@ async def mark_print_skipped(db: AsyncSession, invoice_id: str) -> None:
     await db.flush()
 
 
-async def retry_due_print_jobs(db: AsyncSession) -> int:
+async def retry_due_print_jobs(db: AsyncSession) -> list[str]:
     """Re-attempt all due print jobs. Flush-only; the caller commits.
 
-    Returns the number of jobs processed.
+    Returns the list of invoice IDs that were successfully printed this run
+    (so the scheduler can auto-release any held seats).
     """
     now = datetime.now(UTC)
     jobs = await print_job_repo.list_due(db, now)
-    retried = 0
+    printed: list[str] = []
     for job in jobs:
         inv = await invoice_repo.get_by_id(db, job.invoice_id)
         if inv is None:
@@ -447,6 +448,7 @@ async def retry_due_print_jobs(db: AsyncSession) -> int:
         if ok:
             inv.print_status = InvoicePrintStatus.PRINTED
             await print_job_repo.delete(db, job)
+            printed.append(inv.id)
         else:
             job.attempts += 1
             job.last_error = err
@@ -455,5 +457,4 @@ async def retry_due_print_jobs(db: AsyncSession) -> int:
             else:
                 job.next_retry_at = now + _next_retry_delay(job.attempts)
             await print_job_repo.update(db, job)
-        retried += 1
-    return retried
+    return printed

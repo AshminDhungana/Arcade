@@ -7,6 +7,7 @@ import tempfile
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -14,9 +15,10 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.core.database import Base
+from backend.core.feature_flags import _flag_cache
 from backend.models import SeatStatus, SessionStatus
-from backend.models._enums import PaymentMethod, PricingModel
-from backend.repositories import seat_repo, session_repo, zone_repo
+from backend.models._enums import InvoicePrintStatus, PaymentMethod, PricingModel
+from backend.repositories import invoice_repo, seat_repo, session_repo, zone_repo
 from backend.services.billing_service import (
     checkout_session,
 )
@@ -29,6 +31,13 @@ def _mock_print_enqueue():
         "backend.services.print_service.enqueue_and_track_print", new_callable=AsyncMock
     ) as m:
         yield m
+
+
+@pytest.fixture(autouse=True)
+def _clear_flag_cache():
+    """Isolate the feature-flag cache so gate tests don't leak state."""
+    yield
+    _flag_cache.clear()
 
 
 @pytest.fixture
@@ -228,3 +237,68 @@ async def test_checkout_enqueues_tracked_print(
     _mock_print_enqueue.assert_awaited_once()
     args, _kwargs = _mock_print_enqueue.call_args
     assert args[0] == result.id  # invoice_id is the first positional arg
+
+
+def _enable_flag(name: str) -> None:
+    _flag_cache[name] = True
+
+
+async def test_checkout_gate_on_releases_seat_on_printed(
+    db: AsyncSession,
+) -> None:
+    """Gate ON: seat releases (AVAILABLE) when first print succeeds."""
+    sess, seat, _ = await _create_active_session(db, duration_minutes=10)
+    _enable_flag("require_print_before_release")
+    config = SimpleNamespace(cafe_name="Test Cafe")
+
+    async def _fake_print(invoice_id, response, cafe_name, cfg, **kwargs):
+        inv = await invoice_repo.get_by_id(db, invoice_id)
+        inv.print_status = InvoicePrintStatus.PRINTED
+        await invoice_repo.update(db, inv)
+
+    with (
+        patch("backend.services.billing_service.get_config", return_value=config),
+        patch("backend.services.print_service.enqueue_and_track_print", _fake_print),
+    ):
+        invoice = await checkout_session(db, sess.id, PaymentMethod.CASH)
+
+    refreshed = await seat_repo.get_by_id(db, seat.id)
+    assert refreshed.status == SeatStatus.AVAILABLE
+    assert invoice.print_status == InvoicePrintStatus.PRINTED
+
+
+async def test_checkout_gate_on_holds_seat_on_failed(
+    db: AsyncSession,
+) -> None:
+    """Gate ON: seat stays IN_USE (held) when first print fails."""
+    sess, seat, _ = await _create_active_session(db, duration_minutes=10)
+    _enable_flag("require_print_before_release")
+    config = SimpleNamespace(cafe_name="Test Cafe")
+
+    async def _fake_print(invoice_id, response, cafe_name, cfg, **kwargs):
+        inv = await invoice_repo.get_by_id(db, invoice_id)
+        inv.print_status = InvoicePrintStatus.FAILED
+        await invoice_repo.update(db, inv)
+
+    with (
+        patch("backend.services.billing_service.get_config", return_value=config),
+        patch("backend.services.print_service.enqueue_and_track_print", _fake_print),
+    ):
+        invoice = await checkout_session(db, sess.id, PaymentMethod.CASH)
+
+    refreshed = await seat_repo.get_by_id(db, seat.id)
+    assert refreshed.status == SeatStatus.IN_USE  # held, not released
+    assert invoice.print_status == InvoicePrintStatus.FAILED
+
+
+async def test_checkout_accepts_override_reason_and_ignores_it(
+    db: AsyncSession,
+) -> None:
+    """override_reason is accepted on the signature but ignored by billing."""
+    sess, seat, _ = await _create_active_session(db, duration_minutes=10)
+    invoice = await checkout_session(
+        db, sess.id, PaymentMethod.CASH, override_reason="ignored-reason"
+    )
+    refreshed = await seat_repo.get_by_id(db, seat.id)
+    assert refreshed.status == SeatStatus.AVAILABLE
+    assert invoice is not None

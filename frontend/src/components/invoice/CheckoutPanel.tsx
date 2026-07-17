@@ -2,8 +2,16 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useSession } from '@/api/sessions';
 import { useSessionItems, useMenu } from '@/api/pos';
-import { useCheckout, printInvoicePdf } from '@/api/invoices';
+import {
+  useCheckout,
+  useReprintInvoice,
+  useMarkInvoicePrinted,
+  printInvoicePdf,
+} from '@/api/invoices';
+import { useForceCloseUnprinted } from '@/api/sessions';
 import { useAuthStore } from '@/store/authStore';
+import { useFeatureFlagStore } from '@/store/featureFlagStore';
+import { PinConfirmModal } from '@/components/PinConfirmModal';
 import { InvoicePanel } from './InvoicePanel';
 import type { Invoice, InvoiceLineItem, PaymentMethod } from '@/types/invoice';
 import {
@@ -23,7 +31,9 @@ interface CheckoutPanelProps {
 }
 
 export function CheckoutPanel({ sessionId, onClose }: CheckoutPanelProps) {
-  const [state, setState] = useState<'preview' | 'complete'>('preview');
+  const [state, setState] = useState<'preview' | 'complete' | 'held'>('preview');
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [forceOpen, setForceOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('CASH');
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +46,12 @@ export function CheckoutPanel({ sessionId, onClose }: CheckoutPanelProps) {
 
   // Mutations
   const checkoutMutation = useCheckout();
+  const requirePrintBeforeRelease = useFeatureFlagStore(
+    (s) => s.flags.require_print_before_release,
+  );
+  const reprint = useReprintInvoice();
+  const markPrinted = useMarkInvoicePrinted();
+  const forceClose = useForceCloseUnprinted();
 
   // Combined status
   const isLoading = sessionQuery.isLoading || sessionItemsQuery.isLoading || menuQuery.isLoading;
@@ -175,18 +191,22 @@ export function CheckoutPanel({ sessionId, onClose }: CheckoutPanelProps) {
     checkoutMutation.mutate(
       { sessionId, paymentMethod: selectedPaymentMethod },
       {
-        onSuccess: () => {
-          setState('complete');
+        onSuccess: (invoice: Invoice) => {
+          setInvoice(invoice);
+          if (invoice.print_status === 'FAILED' && requirePrintBeforeRelease) {
+            setState('held');
+          } else {
+            setState('complete');
+          }
         },
         onError: (err: Error) => {
           setError(err.message || 'An error occurred during checkout.');
         },
       }
     );
-  }, [checkoutMutation, sessionId, selectedPaymentMethod]);
+  }, [checkoutMutation, sessionId, selectedPaymentMethod, requirePrintBeforeRelease]);
 
   const handlePrint = useCallback(async () => {
-    const invoice = checkoutMutation.data;
     if (!invoice) return;
     setError(null);
     try {
@@ -195,7 +215,7 @@ export function CheckoutPanel({ sessionId, onClose }: CheckoutPanelProps) {
       const message = err instanceof Error ? err.message : 'Failed to open print page.';
       setError(message);
     }
-  }, [checkoutMutation.data, token]);
+  }, [invoice, token]);
 
   // Loading indicator
   if (isLoading) {
@@ -231,9 +251,72 @@ export function CheckoutPanel({ sessionId, onClose }: CheckoutPanelProps) {
 
 
 
+  // Render HELD state (gate on, printer failed)
+  if (state === 'held') {
+    if (!invoice) return null;
+    return (
+      <div className="flex h-full flex-col space-y-5">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <div className="p-2 rounded-full bg-amber-500/20 text-amber-400">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <div>
+            <h4 className="text-base font-bold text-slate-100">Checkout held — printer issue</h4>
+            <p className="text-xs text-slate-400 mt-0.5">
+              The seat is still occupied. Reprint, or print the PDF and mark it printed,
+              or force-close with your PIN.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-4 border-t border-slate-800">
+          <button
+            type="button"
+            onClick={async () => { await reprint.mutateAsync(invoice.id); setState('complete'); }}
+            className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-200 font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Printer className="h-5 w-5" /> Reprint
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              await printInvoicePdf(invoice.id, token);
+              await markPrinted.mutateAsync(invoice.id);
+              setState('complete');
+            }}
+            className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 text-slate-200 font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Printer className="h-5 w-5" /> PDF → Mark printed
+          </button>
+          <button
+            type="button"
+            onClick={() => setForceOpen(true)}
+            className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          >
+            Force close (PIN)
+          </button>
+        </div>
+
+        <PinConfirmModal
+          open={forceOpen}
+          title="Force close unprinted checkout"
+          confirmLabel="Force close"
+          isPending={forceClose.isPending}
+          onClose={() => setForceOpen(false)}
+          onConfirm={(pin, reason) => {
+            forceClose.mutate(
+              { sessionId: invoice.session_id, pin, reason },
+              { onSuccess: () => { setForceOpen(false); setState('complete'); } },
+            );
+          }}
+        />
+      </div>
+    );
+  }
+
+
   // Render COMPLETE state
   if (state === 'complete') {
-    const invoice = checkoutMutation.data;
     if (!invoice) return null;
 
     return (

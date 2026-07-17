@@ -12,8 +12,14 @@ from datetime import UTC, datetime
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.feature_flags import get_flag
 from backend.models import Shift
-from backend.models._enums import AuditAction, PaymentMethod, ShiftStatus
+from backend.models._enums import (
+    AuditAction,
+    InvoicePrintStatus,
+    PaymentMethod,
+    ShiftStatus,
+)
 from backend.repositories import invoice_repo, session_repo, shift_repo
 from backend.schemas.shift import ShiftReportResponse, ShiftResponse
 from backend.services import audit_service
@@ -63,6 +69,17 @@ async def open_shift(
     return _attach_utc(shift)
 
 
+# "Unprinted" === invoices that failed or were skipped at the printer. This
+# matches GET /api/invoices/unprinted so the shift-close gate and the
+# dashboard's Unprinted Invoices panel agree on what counts. PENDING is an
+# in-flight outbox retry state and is intentionally excluded.
+_UNPRINTED_STATUSES = (InvoicePrintStatus.FAILED, InvoicePrintStatus.SKIPPED)
+
+# New DB feature flag (seeded "false"): when on, close_shift BLOCKS instead of
+# warning when unprinted invoices exist for the shift.
+_BLOCK_SHIFT_CLOSE_FLAG = "block_shift_close_unprinted"
+
+
 async def get_current_shift(db: AsyncSession) -> Shift | None:
     """Return the currently OPEN shift, or ``None``."""
     shift = await shift_repo.get_open_shift(db)
@@ -74,13 +91,28 @@ async def close_shift(
 ) -> Shift:
     """Close the currently OPEN shift.
 
-    Rejects (409) if no shift is open. Sets ``closed_by_staff_id``,
-    ``counted_paise`` (closing cash), ``closed_at``, and ``status=CLOSED``,
-    then audits ``SHIFT_CLOSE``.
+    Rejects (409) if no shift is open. If invoices that failed/skipped printing
+    exist for this shift:
+      * when the ``block_shift_close_unprinted`` flag is ON -> raises 409 and
+        leaves the shift OPEN (blocking);
+      * otherwise (default) closes normally and writes a ``SHIFT_CLOSE_UNPRINTED``
+        audit warning so the discrepancy is traceable.
     """
     shift = await shift_repo.get_open_shift(db)
     if shift is None:
         raise HTTPException(status_code=409, detail="NO_OPEN_SHIFT")
+
+    unprinted = [
+        i
+        for i in await invoice_repo.list_by_shift(db, shift.id)
+        if i.print_status in _UNPRINTED_STATUSES
+    ]
+
+    if unprinted and get_flag(_BLOCK_SHIFT_CLOSE_FLAG):
+        raise HTTPException(
+            status_code=409,
+            detail=f"UNPRINTED_INVOICES_BLOCK_SHIFT_CLOSE:count={len(unprinted)}",
+        )
 
     shift.closed_by_staff_id = staff_id
     shift.counted_paise = closing_cash_paise
@@ -96,6 +128,20 @@ async def close_shift(
         staff_id=staff_id,
         detail=f"counted_paise={closing_cash_paise}",
     )
+
+    if unprinted:
+        await audit_service.log(
+            db,
+            action=AuditAction.SHIFT_CLOSE_UNPRINTED,
+            entity_type="shift",
+            entity_id=shift.id,
+            staff_id=staff_id,
+            detail=(
+                f"unprinted_count={len(unprinted)};"
+                f"invoice_ids={','.join(i.id for i in unprinted)}"
+            ),
+        )
+
     return _attach_utc(shift)
 
 

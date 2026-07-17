@@ -18,6 +18,7 @@ export const FLAG_KEYS: (keyof FeatureFlags)[] = [
   'enable_expense_tracking',
   'enable_health_monitoring',
   'require_member_for_session',
+  'require_print_before_release',
 ];
 
 /** Fetch all settings from the backend and extract feature flags. */
