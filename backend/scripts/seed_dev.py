@@ -218,6 +218,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, str] = {
     "enable_tuya": "false",
     "require_print_before_release": "false",
     "block_shift_close_unprinted": "false",
+    # NEW (Phase 6.5.3)
+    "overlay_pauses_billing": "true",
+    # NEW (Phase 6.5.4; seed now so Appendix D defaults hold)
+    "enable_assigned_time_limit": "false",
 }
 
 
