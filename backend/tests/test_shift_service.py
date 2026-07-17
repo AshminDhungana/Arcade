@@ -241,3 +241,28 @@ async def test_close_shift_no_warning_when_all_printed(db: AsyncSession) -> None
 
     logs = await audit_repo.list(db, action=AuditAction.SHIFT_CLOSE_UNPRINTED.value)
     assert len(logs) == 0
+
+
+async def test_close_shift_blocks_when_unprinted_and_flag_on(db: AsyncSession) -> None:
+    """Flag on + unprinted invoice -> 409 and shift stays OPEN."""
+    _enable_gate()
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    await _make_failed_invoice(db, shift.id)
+
+    with pytest.raises(HTTPException) as exc:
+        await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
+    assert exc.value.status_code == 409
+    assert "UNPRINTED_INVOICES_BLOCK_SHIFT_CLOSE" in exc.value.detail
+
+    # Shift was NOT closed.
+    still_open = await shift_repo.get_open_shift(db)
+    assert still_open is not None
+    assert still_open.id == shift.id
+
+    # No close (and no warning) audit was written.
+    closed_logs = await audit_repo.list(db, action=AuditAction.SHIFT_CLOSE.value)
+    warn_logs = await audit_repo.list(
+        db, action=AuditAction.SHIFT_CLOSE_UNPRINTED.value
+    )
+    assert closed_logs == []
+    assert warn_logs == []
