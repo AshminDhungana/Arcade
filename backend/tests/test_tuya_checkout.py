@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from backend.models import PricingModel
 from backend.models._enums import (
+    InvoicePrintStatus,
     PaymentMethod,
     SeatStatus,
     SessionStatus,
@@ -45,7 +47,13 @@ def _fake_invoice() -> SimpleNamespace:
         pos_total_paise=0,
         total_paise=0,
         payment_method=PaymentMethod.CASH,
-        created_at=None,
+        # checkout_session now builds an InvoiceResponse from the created invoice,
+        # which reads several fields (_build_invoice_response). The fixture must
+        # mirror the real invoice_repo.create result (tz-aware created_at via
+        # flush/refresh, default PENDING print_status, populated line_items list).
+        print_status=InvoicePrintStatus.PENDING,
+        created_at=datetime.now(UTC),
+        line_items=[],
     )
 
 
