@@ -34,11 +34,11 @@ describe('WindowsPlatformService routing', () => {
     // @ts-expect-error flip session flag
     svc.sessionActive = true;
 
-    svc.updateTimer('00:05:00');
+    svc.updateTimer({ elapsedSeconds: 300 });
     svc.sendAnnouncement('Hi', 1000);
     svc.showLowTimeWarning(5);
 
-    expect(hud.sent['overlay:timer']).toBeTruthy();
+    expect(hud.sent['overlay:timer'][0]).toEqual({ elapsedSeconds: 300 });
     expect(kiosk.sent['overlay:timer']).toBeUndefined();
     expect(hud.sent['overlay:announcement']).toBeTruthy();
     expect(hud.sent['overlay:low-time']).toBeTruthy();
