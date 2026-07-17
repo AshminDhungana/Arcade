@@ -151,3 +151,18 @@ async def test_get_shift_report_not_found(db: AsyncSession) -> None:
     with pytest.raises(HTTPException) as exc:
         await get_shift_report(db, shift_id="missing")
     assert exc.value.status_code == 404
+
+
+def test_shift_close_unprinted_audit_action_defined() -> None:
+    """The new audit action exists with the expected stored value."""
+    from backend.models._enums import AuditAction
+
+    assert AuditAction.SHIFT_CLOSE_UNPRINTED.value == "SHIFT_CLOSE_UNPRINTED"
+
+
+def test_block_shift_close_flag_seeded_false() -> None:
+    """The new gate flag ships default-off (non-blocking) in the seed set."""
+    from backend.scripts.seed_dev import DEFAULT_FEATURE_FLAGS
+
+    assert "block_shift_close_unprinted" in DEFAULT_FEATURE_FLAGS
+    assert DEFAULT_FEATURE_FLAGS["block_shift_close_unprinted"] == "false"

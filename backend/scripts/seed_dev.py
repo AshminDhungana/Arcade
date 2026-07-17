@@ -204,25 +204,28 @@ async def seed_members(db) -> None:  # type: ignore[no-untyped-def]
     await db.flush()
 
 
+DEFAULT_FEATURE_FLAGS: dict[str, str] = {
+    "enable_members": "true",
+    "enable_packages": "true",
+    "enable_pos": "true",
+    "enable_inventory": "false",
+    "enable_reservations": "true",
+    "enable_vouchers": "false",
+    "enable_tournaments": "false",
+    "enable_expense_tracking": "false",
+    "enable_health_monitoring": "true",
+    "require_member_for_session": "false",
+    "enable_tuya": "false",
+    "require_print_before_release": "false",
+    "block_shift_close_unprinted": "false",
+}
+
+
 async def seed_feature_flags(db) -> None:  # type: ignore[no-untyped-def]
     """Seed default feature flag values (Appendix D)."""
     from datetime import UTC, datetime
 
-    flags = {
-        "enable_members": "true",
-        "enable_packages": "true",
-        "enable_pos": "true",
-        "enable_inventory": "false",
-        "enable_reservations": "true",
-        "enable_vouchers": "false",
-        "enable_tournaments": "false",
-        "enable_expense_tracking": "false",
-        "enable_health_monitoring": "true",
-        "require_member_for_session": "false",
-        "enable_tuya": "false",
-        "require_print_before_release": "false",
-    }
-    for key, value in flags.items():
+    for key, value in DEFAULT_FEATURE_FLAGS.items():
         db.add(AppSettings(key=key, value=value, updated_at=datetime.now(UTC)))
     await db.flush()
 
