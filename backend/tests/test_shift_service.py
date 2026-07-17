@@ -10,14 +10,53 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.core.database import Base
-from backend.models._enums import PaymentMethod, PricingModel, ShiftStatus
-from backend.repositories import invoice_repo, session_repo, shift_repo
+from backend.core.feature_flags import _flag_cache
+from backend.models._enums import (
+    AuditAction,
+    InvoicePrintStatus,
+    PaymentMethod,
+    PricingModel,
+    ShiftStatus,
+)
+from backend.repositories import audit_repo, invoice_repo, session_repo, shift_repo
 from backend.services.shift_service import (
     close_shift,
     get_current_shift,
     get_shift_report,
     open_shift,
 )
+
+
+@pytest.fixture(autouse=True)
+async def _reset_gate_flag() -> AsyncGenerator[None]:
+    """Isolate the in-memory flag cache between tests."""
+    _flag_cache.pop("block_shift_close_unprinted", None)
+    yield
+    _flag_cache.pop("block_shift_close_unprinted", None)
+
+
+def _enable_gate() -> None:
+    _flag_cache["block_shift_close_unprinted"] = True
+
+
+async def _make_failed_invoice(db, shift_id: str):
+    """Create a session + a FAILED invoice stamped to *shift_id*."""
+    sess = await session_repo.create(
+        db,
+        seat_id="seat-1",
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        shift_id=shift_id,
+    )
+    inv = await invoice_repo.create(
+        db,
+        session_id=sess.id,
+        shift_id=shift_id,
+        payment_method=PaymentMethod.CASH,
+        total_paise=1000,
+    )
+    inv.print_status = InvoicePrintStatus.FAILED
+    await invoice_repo.update(db, inv)
+    return inv
 
 
 @pytest.fixture
@@ -166,3 +205,39 @@ def test_block_shift_close_flag_seeded_false() -> None:
 
     assert "block_shift_close_unprinted" in DEFAULT_FEATURE_FLAGS
     assert DEFAULT_FEATURE_FLAGS["block_shift_close_unprinted"] == "false"
+
+
+async def test_close_shift_warns_when_unprinted_and_flag_off(db: AsyncSession) -> None:
+    """Default (flag off): shift still closes, but a warning audit is logged."""
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    await _make_failed_invoice(db, shift.id)
+
+    closed = await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
+
+    assert closed.status == ShiftStatus.CLOSED
+    logs = await audit_repo.list(db, action=AuditAction.SHIFT_CLOSE_UNPRINTED.value)
+    assert len(logs) == 1
+    assert "unprinted_count=1" in (logs[0].detail or "")
+
+
+async def test_close_shift_no_warning_when_all_printed(db: AsyncSession) -> None:
+    """No unprinted invoices -> no SHIFT_CLOSE_UNPRINTED audit is written."""
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    sess = await session_repo.create(
+        db,
+        seat_id="seat-1",
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        shift_id=shift.id,
+    )
+    await invoice_repo.create(
+        db,
+        session_id=sess.id,
+        shift_id=shift.id,
+        payment_method=PaymentMethod.CASH,
+        total_paise=1000,
+    )
+
+    await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
+
+    logs = await audit_repo.list(db, action=AuditAction.SHIFT_CLOSE_UNPRINTED.value)
+    assert len(logs) == 0
