@@ -296,3 +296,39 @@ async def test_shutdown_seat_not_found(db: AsyncSession, staff_member) -> None:
     with pytest.raises(HTTPException) as exc_info:
         await rcs.shutdown_seat(db, "ghost-id", staff_member)
     assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# set_overlay_forced
+# ---------------------------------------------------------------------------
+
+
+async def test_set_overlay_forced_sets_and_broadcasts(
+    db: AsyncSession, zone_and_seat
+) -> None:
+    """set_overlay_forced flips the flag, commits, and broadcasts seat_updated."""
+    from backend.services import seat_service
+
+    _, seat = zone_and_seat
+    resp = await seat_service.set_overlay_forced(db, seat.id, True)
+    assert resp.overlay_forced is True
+
+    # Re-read from DB to confirm persistence.
+    refreshed = await seat_service.get_seat(db, seat.id)
+    assert refreshed.overlay_forced is True
+
+    resp_off = await seat_service.set_overlay_forced(db, seat.id, False)
+    assert resp_off.overlay_forced is False
+
+
+async def test_set_overlay_forced_missing_seat_404(
+    db: AsyncSession,
+) -> None:
+    """set_overlay_forced raises 404 for an unknown seat."""
+    from fastapi import HTTPException
+
+    from backend.services import seat_service
+
+    with pytest.raises(HTTPException) as exc_info:
+        await seat_service.set_overlay_forced(db, "ghost-id", True)
+    assert exc_info.value.status_code == 404

@@ -57,6 +57,25 @@ async def _broadcast_seat_update(seat: Seat) -> None:
     await ws_manager.broadcast_to_dashboards("seat_updated", payload)
 
 
+async def set_overlay_forced(
+    db: AsyncSession, seat_id: str, value: bool
+) -> SeatResponse:
+    """Set a seat's ``overlay_forced`` flag and broadcast the change.
+
+    Used by the force-overlay command and by the self-correcting clears on
+    session start (HIDE_OVERLAY) and staff override.
+    """
+    seat = await seat_repo.get_by_id(db, seat_id)
+    if seat is None:
+        raise SeatNotFoundError(seat_id)
+    seat.overlay_forced = value
+    db.add(seat)
+    await db.commit()
+    await db.refresh(seat)
+    await _broadcast_seat_update(seat)
+    return _seat_to_response(seat)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
