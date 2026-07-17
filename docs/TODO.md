@@ -1325,7 +1325,7 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 ### âš¡ CHECKPOINT 6.5-A
 
 - [x] Failed or skipped print does not block seat release by default; when `require_print_before_release=true` it does, with a PIN-gated override
-- [ ] Owner can force the overlay on/off for any seat from the dashboard regardless of session state; action is audit-logged
+- [x] Owner can force the overlay on/off for any seat from the dashboard regardless of session state; action is audit-logged
 - [x] Forcing overlay on (manually or via time expiry) pauses billed time using the same accrual path as `pause_session()` - no drift between the two
 - [ ] A seat with an assigned time limit auto-shows the overlay at expiry (after a `LOW_TIME_WARNING`), and "Add time" resumes it correctly
 
@@ -1349,10 +1349,10 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 
 ### Epic 6.5.2: Manual Overlay Control (ENG-A + ENG-B) (NEW)
 
-- [ ] **Task: New WS command types** - **Modifies Appendix A (Integration Points Reference table):** add `FORCE_OVERLAY_ON`, `FORCE_OVERLAY_OFF` rows; add an `overlay_forced` field to the `seat_updated` broadcast payload
-- [ ] **Task: Backend** - **Modifies Epic 5.3 (`RemoteCommandService`):** add `force_overlay(seat_id, show: bool, db, staff)`; audit `OVERLAY_FORCED_ON` / `OVERLAY_FORCED_OFF`; new routes `POST /api/seats/{id}/overlay`, `POST /api/seats/bulk/overlay` (Admin)
-- [ ] **Task: Agent** - **Modifies Feature 2.2.1 (`IPlatformService`)** to expose the existing `showKioskOverlay()`/`hideKioskOverlay()` to a new command, and **Modifies Feature 2.2.2 (Agent WebSocket Client message handlers)**: add `FORCE_OVERLAY_ON -> platform.showKioskOverlay()`, `FORCE_OVERLAY_OFF -> platform.hideKioskOverlay()`. Track `overlayForced` as a separate flag from `override_active` so this doesn't collide with the existing `STAFF_OVERRIDE` suppression logic in the same feature ("while `override_active`: suppress `SHOW_OVERLAY` commands")
-- [ ] **Task: Frontend** - **Modifies Feature 2.3.2 (`SeatCard` seat-modal actions list** - currently "Start Session, Pause/Resume, Checkout, Set Maintenance, WoL, View Health"): add "Force Overlay On/Off"; add a dashboard-header bulk "Lock all idle seats" button (Admin only)
+- [x] **Task: New WS command types** - **Modifies Appendix A (Integration Points Reference table):** add `FORCE_OVERLAY_ON`, `FORCE_OVERLAY_OFF` rows; add an `overlay_forced` field to the `seat_updated` broadcast payload
+- [x] **Task: Backend** - **Modifies Epic 5.3 (`RemoteCommandService`):** add `force_overlay(seat_id, show: bool, db, staff)`; audit `OVERLAY_FORCED_ON` / `OVERLAY_FORCED_OFF`; new routes `POST /api/seats/{id}/overlay`, `POST /api/seats/bulk/overlay` (Admin)
+- [x] **Task: Agent** - **Modifies Feature 2.2.1 (`IPlatformService`)** to expose the existing `showKioskOverlay()`/`hideKioskOverlay()` to a new command, and **Modifies Feature 2.2.2 (Agent WebSocket Client message handlers)**: add `FORCE_OVERLAY_ON -> platform.showKioskOverlay()`, `FORCE_OVERLAY_OFF -> platform.hideKioskOverlay()`. Track `overlayForced` as a separate flag from `override_active` so this doesn't collide with the existing `STAFF_OVERRIDE` suppression logic in the same feature ("while `override_active`: suppress `SHOW_OVERLAY` commands")
+- [x] **Task: Frontend** - **Modifies Feature 2.3.2 (`SeatCard` seat-modal actions list** - currently "Start Session, Pause/Resume, Checkout, Set Maintenance, WoL, View Health"): add "Force Overlay On/Off"; add a dashboard-header bulk "Lock all idle seats" button (Admin only)
 
 ### Epic 6.5.3: Overlay <-> Timer Coupling (ENG-A) (NEW)
 
@@ -1373,9 +1373,9 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 ### Testing Requirements (Phase 6.5)
 
 - [x] Print-gate tests (split across files; no single `test_print_service.py`): `test_invoice_print_status.py` (status transitions), `test_print_job_repo.py` + `test_scheduler_print_release.py` (outbox retry/backoff + held-seat auto-release), `test_billing_service_checkout.py` (gate blocks/allows when `require_print_before_release` on), `test_invoice_router_print_gate.py` (unprinted list / mark-printed), `test_billing_service_force_close.py` (`CHECKOUT_FORCED_UNPRINTED` audit entry)
-- [ ] `pytest backend/tests/test_remote_commands.py` - extend with force-overlay show/hide, bulk action, audit entries
+- [x] `pytest backend/tests/test_remote_commands.py` - extend with force-overlay show/hide, bulk action, audit entries
 - [ ] `pytest backend/tests/test_session_service.py` - extend with paused-time accrual parity between `pause_session()` and forced overlay; expiry sweep; extend-time resets `EXPIRED -> IN_USE`
-- [ ] Agent: `vitest` - `FORCE_OVERLAY_ON`/`OFF` handlers don't collide with `STAFF_OVERRIDE` suppression; `overlay:timer` push
+- [x] Agent: `vitest` - `FORCE_OVERLAY_ON`/`OFF` handlers don't collide with `STAFF_OVERRIDE` suppression; `overlay:timer` push
 - [ ] Frontend: `SeatCard` renders `EXPIRED` status; Force Overlay + Add Time actions call the correct endpoints
 - [ ] **End-to-end (manual):** set a 2-minute assigned limit, confirm `LOW_TIME_WARNING` at 1 minute remaining, overlay auto-shows at 0, "Add time" resumes correctly with continuous billed-time accounting across the pause
 
