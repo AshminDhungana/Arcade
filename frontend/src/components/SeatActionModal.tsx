@@ -1,10 +1,10 @@
 import type { Seat } from '@/types/seat';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Loader2, Pause, Play, Power, Settings, ShoppingCart, Heart, User, X } from 'lucide-react';
+import { Loader2, Pause, Play, Power, Settings, ShoppingCart, Heart, User, X, Lock, Unlock } from 'lucide-react';
 import { MemberSearch } from './MemberSearch';
 import { useStartSession } from '@/api/sessions';
-import { generateEnrollCode, regenerateOverridePin } from '@/api/seats';
+import { generateEnrollCode, regenerateOverridePin, forceOverlay } from '@/api/seats';
 import { toast } from '@/store/toastStore';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import type { Member } from '@/types/members';
@@ -19,6 +19,7 @@ interface SeatActionModalProps {
  *  For AVAILABLE seats, shows MemberSearch to pick a member before starting a session. */
 export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
   const [member, setMember] = useState<Member | null>(null);
+  const [forceOverlayLoading, setForceOverlayLoading] = useState<'on' | 'off' | null>(null);
   const startSession = useStartSession();
   const memberRequired = useFeatureFlagStore((s) => s.flags.require_member_for_session);
 
@@ -35,6 +36,30 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
         },
       },
     );
+  };
+
+  const handleForceOverlayOn = async () => {
+    setForceOverlayLoading('on');
+    try {
+      await forceOverlay(seat.id, true);
+      toast.success('Force overlay ON');
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setForceOverlayLoading(null);
+    }
+  };
+
+  const handleForceOverlayOff = async () => {
+    setForceOverlayLoading('off');
+    try {
+      await forceOverlay(seat.id, false);
+      toast.success('Force overlay OFF');
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setForceOverlayLoading(null);
+    }
   };
 
   return (
@@ -118,6 +143,25 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
               toast.success(`New override PIN for ${seat.name}: ${override_pin} (shown once)`);
             } catch (e) { toast.error((e as Error).message); }
           }} />
+          {/* Force Overlay buttons — available for all statuses */}
+          <ActionButton
+            icon={<Lock className="h-5 w-5" />}
+            label="Force Overlay On"
+            variant="secondary"
+            onClick={handleForceOverlayOn}
+            disabled={forceOverlayLoading === 'on'}
+          >
+            {forceOverlayLoading === 'on' && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+          </ActionButton>
+          <ActionButton
+            icon={<Unlock className="h-5 w-5" />}
+            label="Force Overlay Off"
+            variant="secondary"
+            onClick={handleForceOverlayOff}
+            disabled={forceOverlayLoading === 'off'}
+          >
+            {forceOverlayLoading === 'off' && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+          </ActionButton>
         </nav>
       </div>
     </div>

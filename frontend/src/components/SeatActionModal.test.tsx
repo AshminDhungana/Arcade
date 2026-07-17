@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SeatActionModal } from './SeatActionModal';
 import { SeatStatus } from '@/types/seat';
@@ -41,6 +41,14 @@ vi.mock('@/components/MemberSearch', () => ({
     <button type="button" onClick={() => onSelect(MEMBER)}>pick member</button>
   ),
 }));
+
+vi.mock('@/api/seats', () => ({
+  forceOverlay: vi.fn().mockResolvedValue(undefined),
+  generateEnrollCode: vi.fn().mockResolvedValue({ code: 'TEST123', expires_at: '2024-01-01T00:00:00Z' }),
+  regenerateOverridePin: vi.fn().mockResolvedValue({ override_pin: '123456' }),
+}));
+
+const { forceOverlay } = await import('@/api/seats');
 
 const mockSeat: Seat = {
   id: 'seat-1',
@@ -128,5 +136,33 @@ describe('SeatActionModal', () => {
     useFeatureFlagStore.getState().setFlags({ ...ALL_FLAGS, require_member_for_session: true });
     render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
     expect(screen.getByRole('button', { name: /start session/i })).toBeDisabled();
+  });
+
+  it('shows Force Overlay On/Off buttons for all seat statuses', () => {
+    render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+    expect(screen.getByRole('button', { name: /force overlay on/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /force overlay off/i })).toBeInTheDocument();
+  });
+
+  it('calls forceOverlay(seatId, true) when Force Overlay On is clicked', async () => {
+    render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+    fireEvent.click(screen.getByRole('button', { name: /force overlay on/i }));
+    await waitFor(() => expect(forceOverlay).toHaveBeenCalledWith('seat-1', true));
+  });
+
+  it('calls forceOverlay(seatId, false) when Force Overlay Off is clicked', async () => {
+    render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+    fireEvent.click(screen.getByRole('button', { name: /force overlay off/i }));
+    await waitFor(() => expect(forceOverlay).toHaveBeenCalledWith('seat-1', false));
+  });
+
+  it('disables Force Overlay buttons while request is pending', async () => {
+    let resolveFn: (v: unknown) => void;
+    forceOverlay.mockImplementation(() => new Promise((resolve) => { resolveFn = resolve; }));
+    render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+    fireEvent.click(screen.getByRole('button', { name: /force overlay on/i }));
+    expect(screen.getByRole('button', { name: /force overlay on/i })).toBeDisabled();
+    resolveFn!(undefined);
+    await waitFor(() => expect(screen.getByRole('button', { name: /force overlay on/i })).toBeEnabled());
   });
 });
