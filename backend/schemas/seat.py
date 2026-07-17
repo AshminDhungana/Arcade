@@ -40,3 +40,4 @@ class SeatResponse(SeatBase, BaseResponseSchema):
     wol_successes: int = 0
     wol_failures: int = 0
     overlay_forced: bool = False
+    assigned_end_at: AwareDatetime | None = None

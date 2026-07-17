@@ -39,5 +39,6 @@ class SessionResponse(SessionBase, BaseResponseSchema):
     ended_at: AwareDatetime | None = None
     paused_at: AwareDatetime | None = None
     total_paused_seconds: int = 0
+    assigned_end_at: AwareDatetime | None = None
     created_at: AwareDatetime
     updated_at: AwareDatetime
