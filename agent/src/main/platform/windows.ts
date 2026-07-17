@@ -155,10 +155,10 @@ export class WindowsPlatformService implements IPlatformService {
     );
   }
 
-  updateTimer(timeString: string): void {
+  updateTimer(timer: { elapsedSeconds: number }): void {
     const win = this.sessionActive ? this.hudWindow : this.kioskWindow;
     if (win && !win.isDestroyed()) {
-      win.webContents.send('overlay:timer', { timeString });
+      win.webContents.send('overlay:timer', { elapsedSeconds: timer.elapsedSeconds });
     }
   }
 

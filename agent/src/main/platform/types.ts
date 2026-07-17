@@ -99,12 +99,16 @@ export interface IPlatformService {
 
   /**
    * Update the visible timer display on the active overlay (HUD during a
-   * session, kiosk when idle).
+   * session, kiosk when idle) with the elapsed session time in seconds.
+   *
+   * `elapsedSeconds` is wall-clock seconds since session start (agent-local;
+   * survives LAN drops). Epic 6.5.4 will extend this to include
+   * `assignedEndAt`/`remainingSeconds` without changing this call site.
    *
    * Must be called after `showKioskOverlay`/`showHud`. No-op if the relevant
    * window is not visible.
    */
-  updateTimer(timeString: string): void;
+  updateTimer(timer: { elapsedSeconds: number }): void;
 
   /**
    * Announce a message on the active overlay for a given duration (milliseconds).
