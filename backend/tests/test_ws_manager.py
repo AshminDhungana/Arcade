@@ -511,6 +511,44 @@ class TestAgentHandlers:
 # --- Screenshot response correlation ---------------------------------
 
 
+# ---------------------------------------------------------------------------
+# self-correcting overlay_forced clearing (Task 5)
+# ---------------------------------------------------------------------------
+
+
+class TestOverlayForcedClearing:
+    async def test_handle_staff_override_clears_overlay_forced(
+        self, seeded_seat
+    ) -> None:
+        """_handle_staff_override clears overlay_forced when STAFF_OVERRIDE received."""
+        from backend.core.database import AsyncSessionLocal
+        from backend.services import seat_service
+
+        seat_id, secret = seeded_seat
+        # Pre-set overlay_forced to True
+        async with AsyncSessionLocal() as db:
+            await seat_service.set_overlay_forced(db, seat_id, True)
+            assert (await seat_service.get_seat(db, seat_id)).overlay_forced is True
+
+        mgr = WebSocketManager()
+        ws = _fake_ws()
+        await mgr.connect_agent(seat_id, secret, ws)
+        dash = _fake_ws()
+        await mgr.connect_dashboard(dash)
+
+        # Send STAFF_OVERRIDE
+        await mgr.handle_agent_message(
+            seat_id,
+            {"type": "STAFF_OVERRIDE", "payload": {"staff_id": "s001"}},
+        )
+
+        # overlay_forced should be cleared
+        async with AsyncSessionLocal() as db:
+            assert (await seat_service.get_seat(db, seat_id)).overlay_forced is False
+
+        await mgr.close_all()
+
+
 async def test_wait_for_screenshot_resolves_on_result() -> None:
     """A registered waiter future resolves when resolve_screenshot is called."""
     mgr = WebSocketManager()

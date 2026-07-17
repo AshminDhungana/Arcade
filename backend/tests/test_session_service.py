@@ -311,13 +311,13 @@ async def test_resume_session_ok(db: AsyncSession, zone_and_seat, staff_member):
     with patch("backend.services.session_service.ws_manager") as mock_ws:
         mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
         mock_ws.send_to_agent = AsyncMock(return_value=None)
-        session = await start_session(
+        sess = await start_session(
             db, seat_id=seat.id, member_id=None, staff=staff_member
         )
-        await pause_session(db, session_id=session.id, staff=staff_member)
+        await pause_session(db, session_id=sess.id, staff=staff_member)
         mock_ws.reset_mock()
 
-        resumed = await resume_session(db, session_id=session.id, staff=staff_member)
+        resumed = await resume_session(db, session_id=sess.id, staff=staff_member)
 
     assert resumed.status == SessionStatus.ACTIVE
     assert resumed.total_paused_seconds >= 0
@@ -420,3 +420,56 @@ async def test_recover_active_sessions(db: AsyncSession, zone_and_seat, staff_me
 
     # Should broadcast for the active session
     mock_ws.broadcast_to_dashboards.assert_awaited()
+
+
+# -------------------------------------------------------------------
+# self-correcting overlay_forced clearing (Task 5)
+# -------------------------------------------------------------------
+
+
+async def test_start_session_clears_overlay_forced(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """start_session clears overlay_forced after sending HIDE_OVERLAY."""
+    from backend.services import seat_service
+
+    _, seat = zone_and_seat
+    # Pre-set overlay_forced to True (as if force-locked before session start)
+    await seat_service.set_overlay_forced(db, seat.id, True)
+    assert (await seat_service.get_seat(db, seat.id)).overlay_forced is True
+
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        await start_session(db, seat_id=seat.id, member_id=None, staff=staff_member)
+
+    # overlay_forced should be cleared to False
+    assert (await seat_service.get_seat(db, seat.id)).overlay_forced is False
+
+
+async def test_resume_session_clears_overlay_forced(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """resume_session clears overlay_forced after sending HIDE_OVERLAY."""
+    from backend.services import seat_service
+
+    _, seat = zone_and_seat
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        sess = await start_session(
+            db, seat_id=seat.id, member_id=None, staff=staff_member
+        )
+        await pause_session(db, session_id=sess.id, staff=staff_member)
+
+    # Force it back to True before resume
+    await seat_service.set_overlay_forced(db, seat.id, True)
+    assert (await seat_service.get_seat(db, seat.id)).overlay_forced is True
+
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        await resume_session(db, session_id=sess.id, staff=staff_member)
+
+    # overlay_forced should be cleared to False after resume
+    assert (await seat_service.get_seat(db, seat.id)).overlay_forced is False

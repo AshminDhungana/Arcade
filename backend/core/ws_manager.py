@@ -466,6 +466,21 @@ class WebSocketManager:
                 **payload,
             },
         )
+
+        # Self-correcting: clear overlay_forced when staff overrides with PIN
+        try:
+            from backend.core.database import AsyncSessionLocal
+            from backend.services import seat_service
+
+            async with AsyncSessionLocal() as db:
+                await seat_service.set_overlay_forced(db, seat_id, False)
+        except Exception:
+            logger.warning(
+                "Failed to clear overlay_forced for seat %s on STAFF_OVERRIDE",
+                seat_id,
+                exc_info=True,
+            )
+
         return {"type": "STAFF_OVERRIDE_ACK"}
 
     async def _handle_staff_alert(

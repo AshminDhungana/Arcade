@@ -220,6 +220,18 @@ async def start_session(
     except Exception:
         logger.warning("Tuya power-on raised for seat %s", seat_id, exc_info=True)
 
+    # Self-correcting: clear overlay_forced when session starts (HIDE_OVERLAY was sent)
+    try:
+        from backend.services import seat_service
+
+        await seat_service.set_overlay_forced(db, seat_id, False)
+    except Exception:
+        logger.warning(
+            "Failed to clear overlay_forced for seat %s on session start",
+            seat_id,
+            exc_info=True,
+        )
+
     return _session_to_response(session)
 
 
@@ -356,6 +368,18 @@ async def resume_session(
         staff_id=staff.id if staff else None,
         detail="resumed",
     )
+
+    # Self-correcting: clear overlay_forced when session resumes (HIDE_OVERLAY was sent)
+    try:
+        from backend.services import seat_service
+
+        await seat_service.set_overlay_forced(db, session.seat_id, False)
+    except Exception:
+        logger.warning(
+            "Failed to clear overlay_forced for seat %s on session resume",
+            session.seat_id,
+            exc_info=True,
+        )
 
     return _session_to_response(session)
 
