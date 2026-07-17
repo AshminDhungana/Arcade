@@ -29,6 +29,8 @@ class Seat(Base):
     plug_id: Mapped[str | None] = mapped_column(String(255))
     is_console: Mapped[bool] = mapped_column(default=False)
     notes: Mapped[str | None] = mapped_column(String(1000))
+    # --- Force-overlay lock (non-sticky / informational) ---
+    overlay_forced: Mapped[bool] = mapped_column(default=False, nullable=False)
     # --- Self-provisioning (Phase 11) ---
     agent_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     enroll_code_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)

@@ -39,3 +39,4 @@ class SeatResponse(SeatBase, BaseResponseSchema):
     wol_attempts: int = 0
     wol_successes: int = 0
     wol_failures: int = 0
+    overlay_forced: bool = False
