@@ -146,3 +146,28 @@ def test_restart_404_unknown_seat(client: TestClient) -> None:
         m.side_effect = HTTPException(status_code=404, detail="not found")
         resp = client.post("/api/seats/ghost/restart")
     assert resp.status_code == 404
+
+
+# --- force_overlay (Task 3) --------------------------------------------------
+
+
+def test_force_overlay_on_admin_ok(client: TestClient) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from backend.services import remote_command_service as rcs
+
+    with patch.object(rcs, "force_overlay", new=AsyncMock()) as m:
+        resp = client.post("/api/seats/seat-1/overlay", json={"show": True})
+    assert resp.status_code == 204
+    m.assert_awaited_once()
+    assert m.call_args.args[2] is True
+
+
+def test_force_overlay_requires_body(client: TestClient) -> None:
+    resp = client.post("/api/seats/seat-1/overlay", json={})
+    assert resp.status_code == 422
+
+
+def test_force_overlay_denied_for_cashier(cashier_client: TestClient) -> None:
+    resp = cashier_client.post("/api/seats/seat-1/overlay", json={"show": True})
+    assert resp.status_code == 403

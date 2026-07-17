@@ -27,7 +27,7 @@ from backend.models._enums import AuditAction
 from backend.models.seat import Seat
 from backend.models.staff import Staff
 from backend.repositories import seat_repo
-from backend.services import audit_service
+from backend.services import audit_service, seat_service
 
 # ---------------------------------------------------------------------------
 # Errors (all HTTPException subclasses so FastAPI renders JSON via main.py)
@@ -275,4 +275,45 @@ async def shutdown_seat(
         entity_id=seat.id,
         staff_id=staff.id if staff else None,
         detail=f"seat {seat.name}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Public API — Task 3
+# ---------------------------------------------------------------------------
+
+
+async def force_overlay(
+    db: AsyncSession,
+    seat_id: str,
+    show: bool,
+    staff: Staff | None = None,
+) -> None:
+    """Send ``FORCE_OVERLAY_ON``/``OFF`` to the agent and flip ``overlay_forced``.
+
+    The send happens first: if the agent is offline (503) no DB column is
+    mutated. The broadcast is performed by ``seat_service.set_overlay_forced``.
+
+    Raises:
+        HTTPException(404): If the seat does not exist.
+        HTTPException(503): If the agent is offline.
+    """
+    seat = await _get_seat_or_404(db, seat_id)
+    await _send_to_agent_or_503(
+        seat_id,
+        {
+            "type": Msg.FORCE_OVERLAY_ON if show else Msg.FORCE_OVERLAY_OFF,
+            "payload": {},
+        },
+    )
+    await seat_service.set_overlay_forced(db, seat_id, show)
+    await audit_service.log(
+        db,
+        action=(
+            AuditAction.OVERLAY_FORCED_ON if show else AuditAction.OVERLAY_FORCED_OFF
+        ),
+        entity_type="seat",
+        entity_id=seat.id,
+        staff_id=staff.id if staff else None,
+        detail=f"overlay forced={'on' if show else 'off'}",
     )

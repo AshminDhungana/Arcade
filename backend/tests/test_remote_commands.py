@@ -332,3 +332,76 @@ async def test_set_overlay_forced_missing_seat_404(
     with pytest.raises(HTTPException) as exc_info:
         await seat_service.set_overlay_forced(db, "ghost-id", True)
     assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# force_overlay (Task 3)
+# ---------------------------------------------------------------------------
+
+
+async def test_force_overlay_on_sends_and_audits(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """force_overlay(show=True) sends FORCE_OVERLAY_ON, sets flag, audits."""
+    from backend.core.ws_manager import Msg
+    from backend.models._enums import AuditAction
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+    with (
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send,
+        patch.object(
+            rcs.seat_service, "set_overlay_forced", new=AsyncMock()
+        ) as mock_set,
+        patch.object(rcs.audit_service, "log", new=AsyncMock()) as mock_audit,
+    ):
+        await rcs.force_overlay(db, seat.id, True, staff_member)
+    assert mock_send.call_args.args[1]["type"] == Msg.FORCE_OVERLAY_ON
+    mock_set.assert_awaited_once_with(db, seat.id, True)
+    assert mock_audit.call_args.kwargs["action"] == AuditAction.OVERLAY_FORCED_ON
+
+
+async def test_force_overlay_off_sends_and_audits(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """force_overlay(show=False) sends FORCE_OVERLAY_OFF and audits OFF."""
+    from backend.core.ws_manager import Msg
+    from backend.models._enums import AuditAction
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+    with (
+        patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send,
+        patch.object(rcs.seat_service, "set_overlay_forced", new=AsyncMock()),
+        patch.object(rcs.audit_service, "log", new=AsyncMock()) as mock_audit,
+    ):
+        await rcs.force_overlay(db, seat.id, False, staff_member)
+    assert mock_send.call_args.args[1]["type"] == Msg.FORCE_OVERLAY_OFF
+    assert mock_audit.call_args.kwargs["action"] == AuditAction.OVERLAY_FORCED_OFF
+
+
+async def test_force_overlay_offline_503(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """force_overlay raises 503 when the agent is offline (no DB mutation)."""
+    from fastapi import HTTPException
+
+    from backend.services import remote_command_service as rcs
+
+    _, seat = zone_and_seat
+    with patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send:
+        mock_send.side_effect = rcs.AgentOfflineError(seat.id)
+        with pytest.raises(HTTPException) as exc_info:
+            await rcs.force_overlay(db, seat.id, True, staff_member)
+    assert exc_info.value.status_code == 503
+
+
+async def test_force_overlay_seat_not_found(db: AsyncSession, staff_member) -> None:
+    """force_overlay raises 404 for an unknown seat."""
+    from fastapi import HTTPException
+
+    from backend.services import remote_command_service as rcs
+
+    with pytest.raises(HTTPException) as exc_info:
+        await rcs.force_overlay(db, "ghost-id", True, staff_member)
+    assert exc_info.value.status_code == 404

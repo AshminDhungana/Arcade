@@ -58,6 +58,12 @@ class _MessageBody(BaseModel):
     message: str = Field(..., max_length=1000)
 
 
+class _OverlayBody(BaseModel):
+    """Request body for POST /seats/{id}/overlay."""
+
+    show: bool
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -166,6 +172,17 @@ async def shutdown_seat(
 ) -> None:
     """Send ``SHUTDOWN`` to the seat's agent (admin only)."""
     await remote_command_service.shutdown_seat(db, seat_id, staff)
+
+
+@router.post("/{seat_id}/overlay", status_code=status.HTTP_204_NO_CONTENT)
+async def force_seat_overlay(
+    seat_id: str,
+    body: _OverlayBody,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> None:
+    """Force a seat's kiosk overlay on/off (admin only)."""
+    await remote_command_service.force_overlay(db, seat_id, body.show, staff)
 
 
 @router.post(
