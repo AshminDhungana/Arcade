@@ -91,6 +91,17 @@ async def list_active(db: AsyncSession) -> Sequence[GamingSession]:
     return result.scalars().all()
 
 
+async def list_active_with_assigned_end(db: AsyncSession) -> Sequence[GamingSession]:
+    """ACTIVE/PAUSED sessions that carry an assigned_end_at (Epic 6.5.4 sweep)."""
+    result = await db.execute(
+        select(GamingSession).where(
+            GamingSession.status.in_([SessionStatus.ACTIVE, SessionStatus.PAUSED]),
+            GamingSession.assigned_end_at.is_not(None),
+        )
+    )
+    return result.scalars().all()
+
+
 async def list_by_shift(db: AsyncSession, shift_id: str) -> Sequence[GamingSession]:
     result = await db.execute(
         select(GamingSession).where(GamingSession.shift_id == shift_id)

@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.security import hash_pin
-from backend.models import Seat, SeatStatus
+from backend.models import GamingSession, Seat, SeatStatus, SessionStatus
 
 
 async def create(
@@ -66,6 +66,22 @@ async def delete_by_id(db: AsyncSession, seat_id: str) -> bool:
 async def list_with_mac(db: AsyncSession) -> Sequence[Seat]:
     result = await db.execute(select(Seat).where(Seat.mac_address.isnot(None)))
     return result.scalars().all()
+
+
+async def assigned_end_at_by_seat(
+    db: AsyncSession, seat_ids: Sequence[str]
+) -> dict[str, datetime]:
+    """Map seat_id -> assigned_end_at for the active session on each seat (6.5.4)."""
+    if not seat_ids:
+        return {}
+    result = await db.execute(
+        select(GamingSession.seat_id, GamingSession.assigned_end_at).where(
+            GamingSession.seat_id.in_(seat_ids),
+            GamingSession.status.in_([SessionStatus.ACTIVE, SessionStatus.PAUSED]),
+            GamingSession.assigned_end_at.is_not(None),
+        )
+    )
+    return {row.seat_id: row.assigned_end_at for row in result.all()}
 
 
 async def update_status(
