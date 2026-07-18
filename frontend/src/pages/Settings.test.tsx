@@ -19,12 +19,14 @@ const mockState = {
   createStaffFn: vi.fn(),
   deactivateStaffFn: vi.fn(),
   reactivateStaffFn: vi.fn(),
+  changeStaffPinFn: vi.fn(),
 };
 
 const isPendingRefs = {
   createStaff: { current: false },
   deactivateStaff: { current: false },
   reactivateStaff: { current: false },
+  changeStaff: { current: false },
 };
 
 vi.mock('@/api/settings', () => ({
@@ -50,6 +52,12 @@ vi.mock('@/api/settings', () => ({
     mutateAsync: mockState.reactivateStaffFn,
     get isPending() {
       return isPendingRefs.reactivateStaff.current;
+    },
+  }),
+  useChangeStaffPin: () => ({
+    mutateAsync: mockState.changeStaffPinFn,
+    get isPending() {
+      return isPendingRefs.changeStaff.current;
     },
   }),
   useToggleFlag: () => ({
