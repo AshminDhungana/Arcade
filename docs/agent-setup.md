@@ -235,8 +235,38 @@ Security** after each fresh install. Notarization is a v2 concern.
 
 ### Linux
 
-- systemd service or `.desktop` file in `~/.config/autostart/`
-- Enable via Dashboard or `platform.enableAutoStart()`.
+- **Recommended session:** **X11** for client (gaming) PCs. Kiosk lockdown is
+  reliable on X11; see the Wayland note below.
+- **Auto-start:** `~/.config/autostart/arcade-agent.desktop` (XDG autostart).
+  Enable via Dashboard (**Settings → Agent → Auto-Start**) or
+  `platform.enableAutoStart()`. The agent writes:
+  ```
+  [Desktop Entry]
+  Type=Application
+  Name=Arcade Agent
+  Exec=<path to agent binary>
+  X-GNOME-Autostart-enabled=true
+  X-GNOME-Autostart-Delay=5
+  ```
+  Disable via Dashboard or `platform.disableAutoStart()` (deletes the file;
+  safe to run even if it is already absent).
+- **Power control:** `systemctl reboot` / `systemctl poweroff` (falls back to
+  `loginctl reboot` / `loginctl poweroff`). The launching user needs polkit
+  permission to power off / reboot the machine.
+- **Wayland (not recommended for v1.0):** On a native Wayland session, no
+  Electron app-level API can prevent the user from switching away — the
+  compositor owns window stacking. The agent applies `setKiosk` + a
+  `screen-saver` always-on-top hint and logs a warning, but the overlay is
+  **not** bypass-proof on Wayland. For true lockdown, run the agent under a
+  dedicated single-app Wayland compositor, e.g.:
+  ```
+  cage /opt/ArcadeAgent/arcade-agent --ozone-platform-hint=auto
+  ```
+  (`gnome-kiosk` and `ubuntu-frame` are alternatives.) This is the secure
+  deployment path; X11 is the simpler one.
+- **Screenshots:** Work natively on X11. On Wayland they go through the
+  PipeWire portal and require a user-granted screen-share prompt; if denied or
+  unavailable, the capture fails with a clear error (see Troubleshooting).
 
 ---
 
