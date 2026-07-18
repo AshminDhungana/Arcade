@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import secrets
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -250,7 +251,9 @@ class ActivationScreen(tk.Frame):
         if path:
             dest = Path("license.key")
             try:
-                Path(path).replace(dest)
+                # Copy (not move): the chosen file may live on another drive,
+                # and we must not delete the user's original license.key.
+                shutil.copy2(path, dest)
                 # Re-check and re-route
                 self.controller._check_and_route()
             except Exception as exc:

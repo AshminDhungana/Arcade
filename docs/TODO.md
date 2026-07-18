@@ -1463,7 +1463,7 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 - [ ] What is the default master key for the set as default currently. the key that unlock the kisko overlay if server is not connected.
 
-- Browse licence key error, unable to copy licence file. after selecting the license.
+- [x] **Browse licence key error** — `launcher.py` `_browse()` used `Path.replace()` (a cross-volume move) which threw `WinError 17` and deleted the user's original file. Switched to `shutil.copy2()` (copies across drives, keeps the source). Regression test added in `backend/tests/test_launcher.py`.
 
 - [ ] Improve launcher.py GUI, use logo from frontend\public, After launching the launcher.py the licence required ui is not looking good, research the web and imporve on it. use ui-ux-pro-max skill if required. task is to improve the launcher.py ui to make it look modern and professioanl.
 

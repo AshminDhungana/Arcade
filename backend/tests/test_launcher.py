@@ -26,8 +26,47 @@ except Exception:
     _TK_AVAILABLE = False
 
 
+def _missing_result() -> Any:
+    """Build a MISSING LicenseResult without importing the enum."""
+    from backend.licensing.verify import LicenseError
+
+    return type(
+        "LicenseResult",
+        (),
+        {"ok": False, "error": LicenseError.MISSING, "payload": None},
+    )()
+
+
 @pytest.mark.skipif(not _TK_AVAILABLE, reason="Tcl/Tk not available")
 class TestActivationScreen:
+    def test_browse_copies_license_file_and_keeps_original(
+        self, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+        import tkinter as tk
+
+        from launcher import ActivationScreen, LauncherApp
+
+        # Source lives in a different directory (e.g. Downloads / USB stick),
+        # the launcher CWD is elsewhere — the cross-drive scenario that used
+        # to crash with WinError 17 under Path.replace().
+        src = tmp_path / "incoming" / "license.key"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text("FAKE-ED25519-LICENSE")
+
+        monkeypatch.chdir(tmp_path)
+        root = tk.Tk()
+        app = LauncherApp(root)
+        app._check_and_route = MagicMock()  # type: ignore[assignment]
+        screen = ActivationScreen(root, app, _missing_result())  # type: ignore[arg-type]
+
+        with patch("launcher.filedialog.askopenfilename", return_value=str(src)):
+            screen._browse()
+
+        assert (tmp_path / "license.key").read_text() == "FAKE-ED25519-LICENSE"
+        assert (
+            src.exists()
+        ), "original license file must not be deleted (it is copied, not moved)"
+
     def test_shows_error_for_missing_license(self) -> None:
         import tkinter as tk
 
