@@ -1433,13 +1433,13 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 ### Epic 7.2: Linux Platform Implementation (ENG-B)
 
-- [ ] **Task: Implement `linux.ts`**
-  - [ ] `showKioskOverlay()` / `hideKioskOverlay()`: `win.setKiosk(true/false)`; on Wayland, add fallback: maximise + `setAlwaysOnTop(true, 'screen-saver')` (FR-AGENT-002b)
-  - [ ] `restartPC()`: `exec('systemctl reboot')`
-  - [ ] `shutdownPC()`: `exec('systemctl poweroff')`
-  - [ ] `captureScreenshot()`: `desktopCapturer` (X11 works natively; Wayland requires workaround â€” handle gracefully if unavailable)
-  - [ ] `enableAutoStart()`: write `~/.config/autostart/arcade-agent.desktop`
-  - [ ] `disableAutoStart()`: delete the `.desktop` file
+- [x] **Task: Implement `linux.ts`**
+  - [x] `showKioskOverlay()` / `hideKioskOverlay()`: `win.setKiosk(true/false)`; on Wayland, add fallback: maximise + `setAlwaysOnTop(true, 'screen-saver')` (FR-AGENT-002b)
+  - [x] `restartPC()`: `exec('systemctl reboot')`
+  - [x] `shutdownPC()`: `exec('systemctl poweroff')`
+  - [x] `captureScreenshot()`: `desktopCapturer` (X11 works natively; Wayland requires workaround â€” handle gracefully if unavailable)
+  - [x] `enableAutoStart()`: write `~/.config/autostart/arcade-agent.desktop`
+  - [x] `disableAutoStart()`: delete the `.desktop` file
 
 - [ ] **Task: Create Linux build configuration**
   - [ ] `electron-builder.yml`: `linux.target = ["AppImage", "deb"]`; `linux.category = "Utility"`
