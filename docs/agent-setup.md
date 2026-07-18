@@ -206,6 +206,33 @@ The agent can be configured to start automatically when the user logs in.
 - LaunchAgent plist at `~/Library/LaunchAgents/com.arcade.agent.plist`
 - Enable via Dashboard or `platform.enableAutoStart()`.
 
+#### Unsigned distribution (macOS)
+
+The v1.0 agent is distributed **unsigned** (no Apple Developer ID certificate).
+macOS Gatekeeper blocks unknown-developer apps on first launch. Use one bypass:
+
+1. **Right-click → Open** the app. The first "unidentified developer" dialog shows an
+   **Open** button; later launches are allowed.
+2. **Clear the quarantine flag** (recommended for kiosk / automated installs):
+
+   ```bash
+   sudo xattr -dr com.apple.quarantine "/Applications/Arcade Agent.app"
+   ```
+
+   (`-d` deletes the attribute, `-r` recurses into the bundle. Use `-c` to also clear
+   `com.apple.metadata` if needed.)
+
+3. **Allow per-identity** where you manage the machine:
+
+   ```bash
+   spctl --add "/Applications/Arcade Agent.app"
+   ```
+
+**Known limitation:** an unsigned app has no stable code identity, so macOS
+re-prompts for **Accessibility** and **Screen Recording** permissions after every
+binary change (rebuild, reinstall). Grant them in **System Settings → Privacy &
+Security** after each fresh install. Notarization is a v2 concern.
+
 ### Linux
 
 - systemd service or `.desktop` file in `~/.config/autostart/`
@@ -267,3 +294,9 @@ The agent can be configured to start automatically when the user logs in.
 - On Windows: no additional permission is needed.
 - On macOS: grant Screen Recording permission in System Preferences.
 - On Linux (Wayland): screenshots may not work. Consider X11 for client PCs.
+
+### "App is damaged" / "unidentified developer" on macOS
+
+The agent is unsigned. Clear the quarantine flag with
+`sudo xattr -dr com.apple.quarantine "/Applications/Arcade Agent.app"`,
+or run `spctl --add` for the app, or right-click → Open on first launch.
