@@ -1441,10 +1441,10 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
   - [x] `enableAutoStart()`: write `~/.config/autostart/arcade-agent.desktop`
   - [x] `disableAutoStart()`: delete the `.desktop` file
 
-- [ ] **Task: Create Linux build configuration**
-  - [ ] `electron-builder.yml`: `linux.target = ["AppImage", "deb"]`; `linux.category = "Utility"`
-  - [ ] Test build: `npm run build -- --linux`
-  - [ ] Create `docs/autostart/arcade-agent.service` (systemd) and `arcade-agent.desktop` (autostart)
+- [x] **Task: Create Linux build configuration**
+  - [x] `electron-builder.yml`: `linux.target = ["AppImage", "deb"]`; `linux.category = "Utility"`
+  - [x] Test build: `npm run build -- --linux`
+  - [x] Create `docs/autostart/arcade-agent.service` (systemd) and `arcade-agent.desktop` (autostart)
 
 ### Epic 7.3: Cross-Platform Kiosk Hardening Verification
 
