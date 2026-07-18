@@ -82,7 +82,7 @@ async def test_does_not_seed_when_table_non_empty(db: AsyncSession) -> None:
     # Pre-existing staff (e.g. dev seed or a previously
     # deleted/recreated admin).
     await staff_repo.create(
-        db, name="Existing", role="ADMIN", pin_hash=hash_pin("0000")
+        db, name="Existing", role=StaffRole.ADMIN, pin_hash=hash_pin("0000")
     )
     await db.commit()
 
