@@ -1,0 +1,15 @@
+# Arcade Agent — XDG autostart entry (reference template)
+#
+# The agent writes its own copy of this file at runtime when auto-start is
+# enabled from the Dashboard (Settings -> Agent -> Auto-Start). This file is the
+# canonical example to read or to pre-seed manually.
+#
+# Set Exec to the absolute path of the installed agent binary:
+#   .deb install : /opt/Arcade Agent/arcade-agent   (or /usr/bin/arcade-agent)
+#   AppImage     : /path/to/Arcade-Agent-*.AppImage
+[Desktop Entry]
+Type=Application
+Name=Arcade Agent
+Exec=/opt/arcade-agent/arcade-agent
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
