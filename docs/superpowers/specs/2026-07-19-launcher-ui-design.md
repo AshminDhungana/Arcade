@@ -119,7 +119,8 @@ Centralizes every visual constant so the three screens stay consistent.
 - **Hardware ID** row: label "Your Hardware ID" + a **readonly `CTkEntry`** in
   monospace (`mono_font()`) + a **"Copy"** `CTkButton` (secondary) that writes the
   value to the clipboard (`root.clipboard_clear/clear` + `clipboard_append`; wrapped
-  in try/except, surfaced via `CTkMessagebox` on failure).
+  in try/except, surfaced via `CTkMessagebox` on failure). The value is written with
+  `root.clipboard_clear()` then `root.clipboard_append(value)`.
 - Helper line under the ID: "Share this ID with support to get your license."
 - **"Browse for license.key…"** — the single **primary (blue)** `CTkButton`.
 
