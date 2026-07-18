@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { useToggleFlag } from './settings';
+import { useToggleFlag, useChangeStaffPin } from './settings';
 import { useFeatureFlags } from './featureFlags';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
 
@@ -76,5 +76,43 @@ describe('useToggleFlag', () => {
           (c[1] as RequestInit | undefined)?.method === 'PATCH',
       ),
     ).toBe(true);
+  });
+});
+
+describe('useChangeStaffPin', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'admin', name: 'Administrator', role: 'ADMIN', is_active: true }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it('PATCHes the new pin and invalidates the staff list', async () => {
+    const invalidate = vi.fn();
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    qc.invalidateQueries = invalidate as never;
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    );
+
+    const { result } = renderHook(() => useChangeStaffPin(), { wrapper });
+    await result.current.mutateAsync({ id: 'admin', pin: 'newpin123' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/staff/admin/pin'),
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ pin: 'newpin123' }) }),
+    );
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['staff'] }));
   });
 });

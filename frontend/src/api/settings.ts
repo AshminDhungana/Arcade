@@ -250,6 +250,20 @@ export async function reactivateStaff(
   return (await res.json()) as Staff;
 }
 
+export async function changeStaffPin(
+  id: string,
+  pin: string,
+  token: string | null,
+): Promise<Staff> {
+  const res = await fetch(`${API_BASE}/staff/${id}/pin`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({ pin }),
+  });
+  if (!res.ok) throw new Error(`Failed to change PIN: ${res.status}`);
+  return (await res.json()) as Staff;
+}
+
 // ---------- Menu items ----------
 export async function listMenuItems(token: string | null): Promise<MenuItem[]> {
   const res = await fetch(`${API_BASE}/menu-items`, { headers: authHeaders(token) });
@@ -442,6 +456,15 @@ export function useReactivateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => reactivateStaff(id, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['staff'] }),
+  });
+}
+
+export function useChangeStaffPin() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, pin }: { id: string; pin: string }) => changeStaffPin(id, pin, token),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['staff'] }),
   });
 }
