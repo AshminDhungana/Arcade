@@ -19,6 +19,7 @@ export const FLAG_KEYS: (keyof FeatureFlags)[] = [
   'enable_health_monitoring',
   'require_member_for_session',
   'require_print_before_release',
+  'enable_assigned_time_limit',
 ];
 
 /** Fetch all settings from the backend and extract feature flags. */

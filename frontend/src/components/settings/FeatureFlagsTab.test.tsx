@@ -55,6 +55,7 @@ describe('FeatureFlagsTab', () => {
         enable_health_monitoring: false,
         require_member_for_session: false,
         require_print_before_release: false,
+        enable_assigned_time_limit: false,
       },
     });
     mutateFn = vi.fn();
@@ -97,7 +98,7 @@ describe('FeatureFlagsTab', () => {
     render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
 
     const switches = screen.getAllByRole('switch');
-    expect(switches).toHaveLength(11);
+    expect(switches).toHaveLength(12);
 
     switches.forEach((sw) => {
       expect(sw).not.toBeChecked();
@@ -169,5 +170,10 @@ describe('FeatureFlagsTab', () => {
     render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
 
     expect(screen.getByText(/saving/i)).toBeInTheDocument();
+  });
+
+  it('lists the assigned-time-limit flag', () => {
+    render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
+    expect(screen.getByText('Assigned Time Limit')).toBeInTheDocument();
   });
 });

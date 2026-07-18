@@ -38,4 +38,5 @@ export interface FeatureFlags {
   enable_health_monitoring: boolean;
   require_member_for_session: boolean;
   require_print_before_release: boolean;
+  enable_assigned_time_limit: boolean;
 }

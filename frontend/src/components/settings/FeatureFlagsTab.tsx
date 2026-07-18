@@ -16,6 +16,7 @@ const FLAG_LABELS: Record<string, string> = {
   enable_health_monitoring: 'Health Monitoring',
   require_member_for_session: 'Require Member for Session',
   require_print_before_release: 'Require Print Before Release',
+  enable_assigned_time_limit: 'Assigned Time Limit',
 };
 
 const FLAG_DESCRIPTIONS: Record<string, string> = {
@@ -29,6 +30,8 @@ const FLAG_DESCRIPTIONS: Record<string, string> = {
   enable_expense_tracking: 'Enable expense tracking and reports',
   enable_health_monitoring: 'Enable agent health monitoring',
   require_member_for_session: 'Require a member to start a session',
+  enable_assigned_time_limit:
+    'Allow capping a session with a time limit that auto-locks the seat at expiry',
 };
 
 export function FeatureFlagsTab() {
