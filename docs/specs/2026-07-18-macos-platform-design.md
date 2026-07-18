@@ -140,7 +140,7 @@ const sources = await desktopCapturer.getSources({
   types: ['screen'], thumbnailSize: { width: 1280, height: 720 },
 });
 if (!sources?.length || !sources[0].thumbnail) {
-  log.warn('Screenshot failed: no screen sources — Screen Recording permission likely not granted (TCC).');
+  console.warn('[macOS] Screenshot failed: no screen sources — Screen Recording permission likely not granted (TCC).');
   throw new Error('Screenshot capture unavailable: Screen Recording permission not granted');
 }
 // sharp resize -> 1280x720 jpeg q80 -> Buffer (fallback to raw PNG on sharp error)
