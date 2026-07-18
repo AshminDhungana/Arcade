@@ -24,6 +24,8 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from backend.core.bootstrap import ensure_default_staff
+from backend.core.config import Settings
 from backend.core.database import Base
 from backend.core.security import (
     create_access_token,
@@ -33,6 +35,7 @@ from backend.core.security import (
 )
 from backend.models import Staff
 from backend.models._enums import StaffRole
+from backend.repositories import staff_repo
 from backend.services import auth_service, staff_service
 
 # ---------------------------------------------------------------------------
@@ -95,6 +98,54 @@ async def _create_staff(
 # ---------------------------------------------------------------------------
 # Test class: auth_service.login
 # ---------------------------------------------------------------------------
+
+
+class TestDefaultAdminBootstrap:
+    """Ties ensure_default_staff (Task 1) to login + token revocation.
+
+    This is the acceptance test for the default-admin feature: the seeded
+    admin must be loginable, and a PIN change must invalidate its token.
+    """
+
+    async def test_bootstrap_admin_logs_in_then_pin_change_invalidates_token(
+        self, db: AsyncSession
+    ) -> None:
+        settings = Settings(
+            admin_staff_id="admin",
+            admin_pin_hash=hash_pin("admin"),
+            cashier_staff_id="cashier",
+            cashier_pin_hash=hash_pin("cashier"),
+        )
+        await ensure_default_staff(db, settings=settings)
+        await db.commit()
+
+        # Seeded admin/cashier exist with the expected ids.
+        admin = await staff_repo.get_by_id(db, "admin")
+        cashier = await staff_repo.get_by_id(db, "cashier")
+        assert admin is not None and cashier is not None
+
+        # Login with default admin/admin succeeds.
+        token_resp = await auth_service.login(db, "admin", "admin", "127.0.0.1")
+        assert token_resp.access_token
+
+        # Capture the token_version baked into the issued token.
+        payload = decode_access_token(token_resp.access_token)
+        issued_version = payload["token_version"]
+
+        # Change the PIN via the existing service (bumps token_version).
+        old_version = admin.token_version
+        await staff_service.StaffService.update_pin(
+            db, staff_id="admin", new_pin="newpin123"
+        )
+        await db.commit()
+
+        reloaded = await staff_repo.get_by_id(db, "admin")
+        assert reloaded.token_version == old_version + 1
+        assert verify_pin("newpin123", reloaded.pin_hash) is True
+
+        # Old token is now stale: its baked version != the current staff row.
+        assert payload["token_version"] == issued_version
+        assert reloaded.token_version != issued_version
 
 
 class TestAuthServiceLogin:
