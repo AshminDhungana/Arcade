@@ -21,6 +21,7 @@ The approved spec (`docs/superpowers/specs/2026-07-19-launcher-ui-design.md`) co
 - Cross-platform: no Windows-only APIs; use generic font families (`monospace` for the Hardware ID, system default otherwise) so Linux/macOS builds don't break.
 - Preserve FR-SYS-008 (license routing), FR-SYS-010 (close-confirm), FR-LIC-014 (`_write_license_status`).
 - Behavior-preserving: `_browse`, `_seed_default_staff`, `_finish`, and the `subprocess.Popen` server lifecycle must stay byte-for-byte equivalent in logic.
+- UI/UX (ui-ux-pro-max): one primary CTA per screen (blue Browse / blue Finish / emerald Start); all clickable controls get `cursor="hand2"`; muted captions use the `MUTED_TEXT` (light, dark) tuple so light-mode contrast stays >=4.5:1; error states show a bold headline + detail + recovery path (not a red wall of text); logs show an empty-state message before the server starts; an optional `fonts/` folder with a `.ttf` upgrades the wordmark/headings to a gaming display face with a safe system fallback.
 
 ---
 
@@ -41,7 +42,7 @@ The approved spec (`docs/superpowers/specs/2026-07-19-launcher-ui-design.md`) co
 - Create: `tests/launcher/test_theme.py`
 
 **Interfaces:**
-- Produces: `BRAND_LOGO_PATH` (Path), color constants `BLUE, BLUE_HOVER, EMERALD, EMERALD_HOVER, RED, RED_HOVER, S700, S800, S900, TEXT, MUTED` (str), `RADIUS` (int), `BTN_HEIGHT` (int), font factories `heading_font/title_font/body_font/mono_font/wordmark_font(size=...) -> ctk.CTkFont`, `load_logo(size=64) -> Optional[ctk.CTkImage]`, `brand_header(parent, *, subtitle: str) -> ctk.CTkFrame`.
+- Produces: `BRAND_LOGO_PATH` (Path), color constants `BLUE, BLUE_HOVER, EMERALD, EMERALD_HOVER, RED, RED_HOVER, S700, S800, S900, TEXT, MUTED` (str), `MUTED_TEXT` (list `[light, dark]`), `RADIUS` (int), `BTN_HEIGHT` (int), `BRAND_FONT` (Optional[str]); font factories `heading_font/title_font/body_font/mono_font/wordmark_font(size=...) -> ctk.CTkFont`, `load_logo(size=64) -> Optional[ctk.CTkImage]`, `brand_header(parent, *, subtitle: str) -> ctk.CTkFrame`.
 - Consumes: nothing (leaf module).
 
 - [ ] **Step 1: Write `tests/launcher/conftest.py`**
@@ -63,10 +64,16 @@ if str(ROOT) not in sys.path:
 Centralizes colors, fonts, and the logo so all launcher screens stay
 consistent with the Arcade web app's blue/slate design system
 (see frontend/src/index.css and components/ui/Button.tsx).
+
+UI/UX follows the ui-ux-pro-max guidance: a single primary CTA per screen,
+visible pointer/focus affordances, >=4.5:1 text contrast (the light-mode
+muted tone is darkened for this), and error/empty states with clear
+recovery microcopy.
 """
 from __future__ import annotations
 
 from pathlib import Path
+from tkinter import font as tkfont
 from typing import Optional
 
 import customtkinter as ctk
@@ -81,7 +88,7 @@ S900 = "#0F172A"   # surface-900  window/frame bg (dark)
 S800 = "#1E293B"   # surface-800  raised surfaces (dark)
 S700 = "#334155"   # surface-700  borders / secondary (dark)
 TEXT = "#F8FAFC"   # text-50
-MUTED = "#94A3B8"  # text-muted
+MUTED = "#94A3B8"  # text-muted  (dark mode)
 # Light-mode surfaces / text
 L_BG = "#F1F5F9"    # slate-100  window bg (light)
 L_FRAME = "#FFFFFF"
@@ -99,21 +106,53 @@ S700_HOVER = "#475569"    # slate-600
 RADIUS = 8
 BTN_HEIGHT = 44
 
-# ── Fonts (system default; monospace is generic for cross-platform) ───────
+# Text colors as (light, dark) tuples so contrast holds in both themes.
+# MUTED is lightened in dark mode but DARKENED in light mode: #94A3B8 on
+# near-white only reaches ~2.6:1, so the light variant uses slate-500.
+MUTED_TEXT = ["#64748B", MUTED]
+
+# ── Optional bundled display font (gaming/esports brand energy) ───────────
+def _resolve_brand_font() -> Optional[str]:
+    """Register a bundled .ttf (e.g. Chakra Petch / Russo One) if present.
+
+    Drop a font into a `fonts/` folder beside launcher.py. Returns the
+    registered family name, or None to use the system default. Never raises
+    (cross-platform safe; a missing/unreadable file is simply skipped).
+    """
+    fonts_dir = _LAUNCHER_DIR / "fonts"
+    if not fonts_dir.is_dir():
+        return None
+    for ttf in sorted(fonts_dir.glob("*.ttf")):
+        try:
+            tkfont.Font(file=str(ttf))
+            return ttf.stem
+        except Exception:
+            continue
+    return None
+
+BRAND_FONT = _resolve_brand_font()
+
+def _font(size: int, *, bold: bool = False) -> ctk.CTkFont:
+    kwargs: dict = {"size": size, "weight": "bold" if bold else "normal"}
+    if BRAND_FONT:
+        kwargs["family"] = BRAND_FONT
+    return ctk.CTkFont(**kwargs)
+
+# ── Fonts ─────────────────────────────────────────────────────────────────
 def heading_font(size: int = 14) -> ctk.CTkFont:
-    return ctk.CTkFont(size=size, weight="bold")
+    return _font(size, bold=True)
 
 def title_font(size: int = 22) -> ctk.CTkFont:
-    return ctk.CTkFont(size=size, weight="bold")
+    return _font(size, bold=True)
 
 def body_font(size: int = 12) -> ctk.CTkFont:
-    return ctk.CTkFont(size=size)
+    return _font(size)
 
 def mono_font(size: int = 12) -> ctk.CTkFont:
     return ctk.CTkFont(family="monospace", size=size)
 
 def wordmark_font(size: int = 18) -> ctk.CTkFont:
-    return ctk.CTkFont(size=size, weight="bold")
+    return _font(size, bold=True)
 
 # ── Logo ──────────────────────────────────────────────────────────────────
 def load_logo(size: int = 64) -> Optional[ctk.CTkImage]:
@@ -145,7 +184,7 @@ def brand_header(parent: ctk.CTkBaseClass, *, subtitle: str) -> ctk.CTkFrame:
     ctk.CTkLabel(frame, text="ARCADE", font=wordmark_font(18), text_color=BLUE).grid(
         row=0, column=1, sticky="w", pady=(6, 0)
     )
-    ctk.CTkLabel(frame, text=subtitle, font=body_font(11), text_color=MUTED).grid(
+    ctk.CTkLabel(frame, text=subtitle, font=body_font(11), text_color=MUTED_TEXT).grid(
         row=1, column=1, sticky="w"
     )
     ctk.CTkFrame(frame, height=2, fg_color=BLUE).grid(
@@ -189,6 +228,10 @@ def test_constants_defined():
     assert launcher_theme.TEXT == "#F8FAFC"
     assert launcher_theme.RADIUS == 8
     assert launcher_theme.BTN_HEIGHT == 44
+    # Light-mode muted tone is darkened for >=4.5:1 contrast on near-white.
+    assert launcher_theme.MUTED_TEXT == ["#64748B", "#94A3B8"]
+    # No bundled fonts/ dir in this repo -> system default font.
+    assert launcher_theme.BRAND_FONT is None
 
 def test_load_logo_present_when_asset_exists():
     if not launcher_theme.BRAND_LOGO_PATH.is_file():
@@ -510,7 +553,7 @@ git commit -m "refactor(launcher): switch root to CustomTkinter (System theme)"
 - Modify: `launcher.py` (`ActivationScreen` class)
 
 **Interfaces:**
-- Consumes: `brand_header`, `S800, S900, TEXT, MUTED, RED, BLUE, BLUE_HOVER, S700, S700_HOVER, RADIUS, BTN_HEIGHT, body_font, title_font, mono_font` from `launcher_theme`; `get_hardware_id`, `LicenseError`, `_LICENSE_ERROR_MESSAGES` (module-level, unchanged), `filedialog`, `messagebox` from `tkinter`.
+- Consumes: `brand_header`, `S800, S900, TEXT, MUTED_TEXT, RED, BLUE, BLUE_HOVER, S700, S700_HOVER, RADIUS, BTN_HEIGHT, body_font, heading_font, title_font, mono_font` from `launcher_theme`; `get_hardware_id`, `LicenseError`, `_LICENSE_ERROR_MESSAGES` (module-level, unchanged), `filedialog`, `messagebox` from `tkinter`.
 - Produces: new `ActivationScreen(ctk.CTkFrame)` with `_build`, `_copy`, `_browse`. Logic of `_browse` is preserved verbatim.
 
 - [ ] **Step 1: Replace the `ActivationScreen` class**
@@ -598,6 +641,15 @@ _new_string:_
 class ActivationScreen(ctk.CTkFrame):
     """Shown when the license check fails."""
 
+    # Short, bold headline per license failure; the full message stays in the
+    # card body. Gives the error clear hierarchy + a recovery-focused tone.
+    _ERROR_HEADLINES = {
+        LicenseError.MISSING: "No license found",
+        LicenseError.INVALID_SIGNATURE: "License file is invalid",
+        LicenseError.HARDWARE_MISMATCH: "License is for a different machine",
+        LicenseError.TRIAL_EXPIRED: "Trial period has ended",
+    }
+
     def __init__(
         self, parent: tk.Widget, controller: LauncherApp, result: LicenseResult
     ) -> None:
@@ -617,7 +669,8 @@ class ActivationScreen(ctk.CTkFrame):
             text_color=["#0F172A", TEXT],
         ).pack(pady=(18, 6))
 
-        # Error card (rounded frame with a red border — not a wall of red text)
+        # Error card: bold headline + detail + recovery path (not a wall of
+        # red text). The red border carries the alert; text stays readable.
         card = ctk.CTkFrame(
             self,
             fg_color=["#FFFFFF", S800],
@@ -627,7 +680,14 @@ class ActivationScreen(ctk.CTkFrame):
         )
         card.pack(fill="x", padx=24, pady=10)
         error = self.result.error or LicenseError.MISSING
+        headline = self._ERROR_HEADLINES.get(error, "License required")
         msg = _LICENSE_ERROR_MESSAGES.get(error, str(error))
+        ctk.CTkLabel(
+            card,
+            text=headline,
+            font=heading_font(14),
+            text_color=RED,
+        ).pack(anchor="w", padx=14, pady=(14, 2))
         ctk.CTkLabel(
             card,
             text=msg,
@@ -635,14 +695,22 @@ class ActivationScreen(ctk.CTkFrame):
             justify="left",
             font=body_font(12),
             text_color=["#0F172A", TEXT],
-        ).pack(padx=14, pady=14, anchor="w")
+        ).pack(anchor="w", padx=14, pady=(0, 4))
+        ctk.CTkLabel(
+            card,
+            text="Browse for your license.key below, or contact support with the Hardware ID.",
+            wraplength=560,
+            justify="left",
+            font=body_font(11),
+            text_color=MUTED_TEXT,
+        ).pack(anchor="w", padx=14, pady=(0, 14))
 
         # Hardware ID (copyable, monospace)
         ctk.CTkLabel(
             self,
             text="Your Hardware ID",
             font=body_font(12),
-            text_color=MUTED,
+            text_color=MUTED_TEXT,
         ).pack(anchor="w", padx=24, pady=(14, 4))
 
         hwid_row = ctk.CTkFrame(self, fg_color="transparent")
@@ -664,6 +732,7 @@ class ActivationScreen(ctk.CTkFrame):
             fg_color=S700,
             hover_color=S700_HOVER,
             text_color=TEXT,
+            cursor="hand2",
             command=self._copy,
         ).pack(side="left")
 
@@ -671,7 +740,7 @@ class ActivationScreen(ctk.CTkFrame):
             self,
             text="Share this ID with support to get your license.",
             font=body_font(11),
-            text_color=MUTED,
+            text_color=MUTED_TEXT,
         ).pack(anchor="w", padx=24, pady=(6, 0))
 
         ctk.CTkButton(
@@ -680,6 +749,7 @@ class ActivationScreen(ctk.CTkFrame):
             height=BTN_HEIGHT,
             fg_color=BLUE,
             hover_color=BLUE_HOVER,
+            cursor="hand2",
             command=self._browse,
         ).pack(pady=24)
 
@@ -917,7 +987,13 @@ class SetupWizard(ctk.CTkFrame):
         self._port_var = tk.StringVar(value="8000")
         self._add_field(scroll, "Cafe Name:", self._cafe_name_var, placeholder="Arcade")
         self._add_field(scroll, "Server IP:", self._host_var, placeholder="0.0.0.0")
-        self._add_field(scroll, "Port:", self._port_var, placeholder="8000")
+        self._add_field(
+            scroll,
+            "Port:",
+            self._port_var,
+            placeholder="8000",
+            helper="The port agents and the dashboard connect to. Keep 8000 unless it conflicts.",
+        )
 
         # ── Staff ──
         ctk.CTkLabel(
@@ -937,7 +1013,13 @@ class SetupWizard(ctk.CTkFrame):
             scroll, text="Seats", font=heading_font(14), text_color=BLUE
         ).pack(anchor="w", padx=8, pady=(12, 6))
         self._seat_count_var = tk.StringVar(value="8")
-        self._add_field(scroll, "Number of Seats:", self._seat_count_var, placeholder="8")
+        self._add_field(
+            scroll,
+            "Number of Seats:",
+            self._seat_count_var,
+            placeholder="8",
+            helper="One agent secret is generated per seat.",
+        )
 
         ctk.CTkButton(
             self,
@@ -945,6 +1027,7 @@ class SetupWizard(ctk.CTkFrame):
             height=BTN_HEIGHT,
             fg_color=BLUE,
             hover_color=BLUE_HOVER,
+            cursor="hand2",
             command=self._finish,
         ).pack(pady=16)
 
@@ -956,6 +1039,7 @@ class SetupWizard(ctk.CTkFrame):
         *,
         placeholder: str = "",
         show: str | None = None,
+        helper: str = "",
     ) -> None:
         ctk.CTkLabel(
             parent, text=label, font=body_font(12), text_color=["#0F172A", TEXT]
@@ -970,7 +1054,16 @@ class SetupWizard(ctk.CTkFrame):
         )
         if show:
             entry.configure(show=show)
-        entry.pack(fill="x", padx=8, pady=(0, 4))
+        entry.pack(fill="x", padx=8, pady=(0, 2))
+        if helper:
+            ctk.CTkLabel(
+                parent,
+                text=helper,
+                font=body_font(11),
+                text_color=MUTED_TEXT,
+                wraplength=520,
+                justify="left",
+            ).pack(anchor="w", padx=8, pady=(0, 8))
 
     def _seed_default_staff(self) -> None:
         """Best-effort: create the default admin + cashier in the DB.
@@ -1064,7 +1157,7 @@ git commit -m "feat(launcher): modernize SetupWizard with scrollable themed form
 - Modify: `launcher.py` (`MainScreen` class)
 
 **Interfaces:**
-- Consumes: `brand_header`, `S900, TEXT, MUTED, EMERALD, EMERALD_HOVER, RED, RED_HOVER, S700, S700_HOVER, BTN_HEIGHT, body_font, mono_font` from `launcher_theme`; `webbrowser`, `json`, `subprocess`, `sys`, `threading`.
+- Consumes: `brand_header`, `S900, TEXT, MUTED_TEXT, EMERALD, EMERALD_HOVER, RED, RED_HOVER, S700, S700_HOVER, BTN_HEIGHT, body_font, mono_font` from `launcher_theme`; `webbrowser`, `json`, `subprocess`, `sys`, `threading`.
 - Produces: new `MainScreen(ctk.CTkFrame)` with `_build`, `_append_log`, `_start_server`, `_stream_logs`, `_stop_server`, `_open_dashboard`. Server lifecycle logic preserved verbatim; status dot becomes a colored **pill**, logs use `CTkTextbox`.
 
 - [ ] **Step 1: Replace the `MainScreen` class**
@@ -1222,6 +1315,7 @@ class MainScreen(ctk.CTkFrame):
         self._log_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._status_var = tk.StringVar(value="Stopped")
+        self._log_started = False
         self._build()
 
     def _build(self) -> None:
@@ -1251,6 +1345,7 @@ class MainScreen(ctk.CTkFrame):
             height=BTN_HEIGHT,
             fg_color=EMERALD,
             hover_color=EMERALD_HOVER,
+            cursor="hand2",
             command=self._start_server,
         ).pack(side="left", padx=6)
         ctk.CTkButton(
@@ -1259,6 +1354,7 @@ class MainScreen(ctk.CTkFrame):
             height=BTN_HEIGHT,
             fg_color=RED,
             hover_color=RED_HOVER,
+            cursor="hand2",
             command=self._stop_server,
         ).pack(side="left", padx=6)
         ctk.CTkButton(
@@ -1268,16 +1364,20 @@ class MainScreen(ctk.CTkFrame):
             fg_color=S700,
             hover_color=S700_HOVER,
             text_color=TEXT,
+            cursor="hand2",
             command=self._open_dashboard,
         ).pack(side="left", padx=6)
 
         # Logs
         ctk.CTkLabel(
-            self, text="Server Logs:", font=body_font(12), text_color=MUTED
+            self, text="Server Logs:", font=body_font(12), text_color=MUTED_TEXT
         ).pack(anchor="w", padx=20, pady=(8, 2))
         self._log_text = ctk.CTkTextbox(
             self, height=200, state="disabled", wrap="word", font=mono_font(11)
         )
+        # Empty state: guides the user before the server produces output.
+        self._log_text.insert("0.0", "Server logs will appear here once you start the server.")
+        self._log_text.configure(state="disabled")
         self._log_text.pack(fill="both", expand=True, padx=20, pady=(0, 12))
 
     # ------------------------------------------------------------------
@@ -1286,6 +1386,10 @@ class MainScreen(ctk.CTkFrame):
 
     def _append_log(self, line: str) -> None:
         self._log_text.configure(state="normal")
+        if not self._log_started:
+            # Clear the empty-state placeholder on the first real log line.
+            self._log_text.delete("0.0", "end")
+            self._log_started = True
         self._log_text.insert("end", line)
         self._log_text.see("end")
         self._log_text.configure(state="disabled")
@@ -1402,13 +1506,14 @@ Expected: compile clean; `test_constants_defined` + `test_load_logo_missing_retu
 
 Run: `python launcher.py`
 
-Verify against the spec's QA checklist:
+Verify against the spec's QA checklist, plus these UX additions:
 - [ ] Window opens at 720×600, follows OS light/dark (toggle Windows theme, relaunch).
-- [ ] **ActivationScreen**: ARCADE logo header visible; error shown in a rounded card with a red border (not red text wall); "Copy" copies the Hardware ID; "Browse for license.key…" (blue) opens the file dialog and re-routes on a valid key.
-- [ ] **SetupWizard**: header present; Server / Staff / Seats groups; placeholders + blue focus border; PIN fields masked; scroll works if needed; "Finish" (blue) writes `arcade.config.json` and seeds staff.
-- [ ] **MainScreen**: status pill is red "Stopped" then turns emerald "Running at http://…" on Start; Stop turns it red; Open Dashboard opens the browser; logs stream into the textbox.
-- [ ] Light and dark modes both readable (contrast OK).
+- [ ] **ActivationScreen**: ARCADE logo header visible; error card shows a **bold red headline + detail + recovery line** (not a red wall of text); "Copy" copies the Hardware ID and shows a confirmation; "Browse for license.key…" (blue, pointer cursor) opens the file dialog and re-routes on a valid key.
+- [ ] **SetupWizard**: header present; Server / Staff / Seats groups; placeholders + blue focus border; PIN fields masked; **helper text under Port and Seats**; scroll works if needed; "Finish" (blue, pointer cursor) writes `arcade.config.json` and seeds staff.
+- [ ] **MainScreen**: status pill is red "Stopped" then turns emerald "Running at http://…" on Start; Stop turns it red; Open Dashboard opens the browser; **logs show an empty-state message until the server starts, then stream**; all three buttons show a pointer cursor.
+- [ ] Light and dark modes both readable — **captions/secondary text must clear 4.5:1 in light mode** (slate-500 `#64748B`, not `#94A3B8`).
 - [ ] **Missing-logo fallback**: temporarily rename `frontend/public/icon_opc.png`, relaunch — launcher still opens with a text-only "ARCADE" header, then restore the file.
+- [ ] **Optional font**: drop a `.ttf` into a `fonts/` folder beside `launcher.py` and confirm the wordmark/headings switch to it (then remove it to keep the repo clean).
 
 - [ ] **Step 4: Commit (if any fixes were needed in Step 1/3)**
 

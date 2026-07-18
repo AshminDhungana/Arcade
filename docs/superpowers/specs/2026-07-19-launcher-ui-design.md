@@ -46,7 +46,8 @@ Source of truth: `frontend/src/index.css` (`@theme`) and `Button.tsx` variants.
 | `surface-800` | `#1E293B` | Dark-mode raised surfaces |
 | `surface-700` | `#334155` | Borders, secondary button (dark) |
 | `text-50` | `#F8FAFC` | Primary text (dark mode) |
-| `text-muted` | `#94A3B8` | Secondary text, captions |
+| `text-muted` | `#94A3B8` | Secondary text, captions (dark mode) |
+| `slate-500` | `#64748B` | Light-mode captions (darkened for >=4.5:1 contrast on near-white) |
 | `slate-100` | `#F1F5F9` | Light-mode window bg |
 | `slate-900` | `#0F172A` | Light-mode text |
 | radius | `8px` (`rounded-lg`) | `corner_radius=8` on widgets |
@@ -114,8 +115,11 @@ Centralizes every visual constant so the three screens stay consistent.
 - Branded header (`brand_header`).
 - Title "License Required" in calm `text-50`/`slate-900` (not huge red).
 - Error message rendered in a **rounded card** (`CTkFrame`, `corner_radius=8`) with a
-  **red left accent stripe** (`border_color=RED` / a thin red inner frame) and muted
-  body text. Copy is unchanged from `_LICENSE_ERROR_MESSAGES`.
+  **red border** (`border_color=RED`) carrying the alert. The card shows a **bold red
+  headline** (per `LicenseError`, e.g. "No license found") + the full detail message
+  from `_LICENSE_ERROR_MESSAGES` + a **recovery line** ("Browse for your license.key
+  below, or contact support…"). This gives the error clear hierarchy and a fix path
+  instead of a red wall of text.
 - **Hardware ID** row: label "Your Hardware ID" + a **readonly `CTkEntry`** in
   monospace (`mono_font()`) + a **"Copy"** `CTkButton` (secondary) that writes the
   value to the clipboard (`root.clipboard_clear/clear` + `clipboard_append`; wrapped
@@ -133,6 +137,9 @@ Centralizes every visual constant so the three screens stay consistent.
     Cashier PIN (PIN entries `show="*"`).
   - **Seats:** Number of Seats (default `8`).
 - `CTkEntry` widgets use `placeholder_text` for hints and blue focus ring.
+- **Helper text** under Port ("port agents/dashboard connect to") and Seats
+  ("one agent secret per seat") via a `helper=` param on the field factory
+  (progressive disclosure — don't overwhelm upfront).
 - **"Finish"** — primary (blue) `CTkButton`; calls the unchanged `_finish()`.
 
 ### 4.3 MainScreen
@@ -140,9 +147,12 @@ Centralizes every visual constant so the three screens stay consistent.
 - **Status pill:** `CTkLabel` with `fg_color` — emerald when running, red when
   stopped — plus the status text (e.g., "Running at http://0.0.0.0:8000" / "Stopped").
 - Buttons: **Start Server** (emerald), **Stop Server** (red),
-  **Open Dashboard** (blue/slate secondary).
+  **Open Dashboard** (blue/slate secondary). All buttons show a `cursor="hand2"`
+  pointer affordance.
 - **Logs:** `CTkTextbox` (disabled-by-default, appended via `_append_log`), replacing
-  `ScrolledText`. Streaming thread and stop-event logic unchanged.
+  `ScrolledText`. Shows an **empty-state message** ("Server logs will appear here
+  once you start the server.") until the first log line, then streams. Streaming
+  thread and stop-event logic unchanged.
 
 ### 4.4 Window
 - `720 × 600`, `minsize(720, 600)`, appearance mode **System**.
