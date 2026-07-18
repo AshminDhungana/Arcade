@@ -61,6 +61,23 @@ async def _low_time_warning_job() -> None:
         await low_time_service.emit_low_time_warnings(db)
 
 
+async def _expiry_sweep_job() -> None:
+    """Every minute, enforce assigned-time limits (Epic 6.5.4).
+
+    Opens its own DB session (no request scope), mirroring
+    ``_low_time_warning_job``. Gated by ``enable_assigned_time_limit``.
+    """
+    from backend.core.database import AsyncSessionLocal
+    from backend.core.feature_flags import get_flag
+    from backend.services import session_service
+
+    if not get_flag("enable_assigned_time_limit"):
+        return
+    async with AsyncSessionLocal() as db:
+        await session_service.sweep_expired_sessions(db)
+        await db.commit()
+
+
 async def _print_retry_job() -> None:
     """Every minute, retry due print jobs and auto-release held seats.
 
@@ -114,6 +131,14 @@ def init_scheduler() -> AsyncIOScheduler:
         "interval",
         minutes=1,
         id="low_time_warning",
+        max_instances=1,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        _expiry_sweep_job,
+        "interval",
+        minutes=1,
+        id="expiry_sweep",
         max_instances=1,
         replace_existing=True,
     )
