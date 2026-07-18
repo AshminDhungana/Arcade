@@ -191,3 +191,42 @@ deviation-from-Appendix-B pattern used by `require_print_before_release`.
 - **Force Overlay** (owner/dashboard) shows the kiosk lock on any seat regardless of session state and is audit-logged. When the `overlay_pauses_billing` setting is ON (default), forcing the overlay on a seat with an active session also pauses that session's billed time using the exact same accounting as Pause — so there is no drift between the two. Turning `overlay_pauses_billing` OFF makes Force Overlay a pure lock (an "Overtime"-style mode) that never touches billing.
 
 Known limitation: turning the forced overlay OFF resumes any paused session on that seat, including one a staff member paused manually.
+
+### Assigned Time Limit
+
+`enable_assigned_time_limit` (default **OFF**, toggled live from **Settings →
+Feature Flags**) turns on optional per-session time limits. It is an opt-in,
+per-venue switch — leave it OFF unless you sell fixed blocks of time, run
+parental/time controls, or want an automatic cut-off instead of relying on staff
+to end sessions.
+
+When the flag is ON, the **Start Session** modal shows an *Assign time limit*
+field. Enter a number of minutes (e.g. `120` for a 2-hour prepaid block). That
+value is ignored when the flag is OFF.
+
+What happens over the session's life:
+
+1. **Countdown.** The seat card shows the remaining time. While the seat is
+   `IN_USE` with a limit set, it is eligible for "Add time".
+2. **Low-time warning.** Once the session is within `low_time_warning_minutes`
+   (default **5**) of its deadline, a one-time `LOW_TIME_WARNING` is sent to the
+   agent, which shows a warning on the kiosk. (Because the lead is 5 minutes, a
+   *short* limit — e.g. 2 minutes — will warn almost immediately at start.
+   Lower `low_time_warning_minutes` if you want the warning closer to expiry.)
+3. **Expiry (0 remaining).** The expiry sweep automatically forces the overlay
+   on — exactly the owner "Force Overlay" action — and the seat becomes
+   `EXPIRED`. With `overlay_pauses_billing` ON (default), the session is paused
+   and billed time stops. The customer sees the locked kiosk.
+4. **Add time.** On an `EXPIRED` or `IN_USE` seat that has a limit, click
+   **"+ Add time"** and enter minutes. This hides the overlay, reverts the seat
+   to `IN_USE`, and resumes the **same** session — `started_at` is preserved, so
+   it is one continuous record, not a new session. The expired gap is accrued to
+   `total_paused_seconds` (paused, not billed), so billing stays continuous and
+   fair: the customer pays only for time before the limit and after "Add time",
+   never for the locked gap.
+5. **New deadline.** The deadline moves forward by the minutes added, and the
+   warning flag resets so the cycle can repeat.
+
+This is distinct from manual **Force Overlay** (an owner action on any seat):
+assigned-time expiry is *automatic* and marks the seat `EXPIRED`, whereas a
+manual force-overlay never sets `EXPIRED` and may be on a seat with no session.

@@ -227,6 +227,7 @@ and `billing_service.checkout()` (power OFF) when the seat has a Tuya device bou
 |--------------|-----------------------------------------------|
 | `AVAILABLE`  | Empty and ready for a session                 |
 | `IN_USE`     | Active session running                        |
+| `EXPIRED`    | Assigned time limit reached; overlay forced on, billing paused |
 | `PAUSED`     | Session paused, timer not running             |
 | `RESERVED`   | Reserved for a future booking                 |
 | `MAINTENANCE`| Out of service                                |
@@ -438,9 +439,14 @@ Content-Type: application/json
 
 {
   "seat_id": "seat_001",
-  "member_id": "member_001"
+  "member_id": "member_001",
+  "assigned_minutes": 120
 }
 ```
+
+Optional `assigned_minutes` (integer > 0) sets a per-session time limit. It is
+only accepted when the `enable_assigned_time_limit` feature flag is on; otherwise
+it is ignored. When set, the response includes `assigned_end_at` (below).
 
 **Response (201 Created):**
 ```json
@@ -461,7 +467,8 @@ Content-Type: application/json
   "paused_at": null,
   "total_paused_seconds": 0,
   "created_at": "2026-07-06T10:00:00+00:00",
-  "updated_at": "2026-07-06T10:00:00+00:00"
+  "updated_at": "2026-07-06T10:00:00+00:00",
+  "assigned_end_at": "2026-07-06T10:02:00+00:00"
 }
 ```
 
@@ -520,6 +527,35 @@ Get a single session by ID.
 GET /api/sessions/session_123
 Authorization: Bearer <jwt>
 ```
+
+---
+
+### `POST /api/sessions/{id}/extend`
+
+Push a session's assigned-time deadline forward. When the seat was `EXPIRED`
+because its assigned limit was reached, the overlay is hidden and the seat reverts
+to `IN_USE` automatically; the session stays the same continuous record
+(`started_at` is preserved) and the expired gap has already been accrued to
+`total_paused_seconds`.
+
+**Auth:** Bearer token (Cashier or Admin); requires the `enable_assigned_time_limit` feature flag.
+
+**Request:**
+```
+POST /api/sessions/session_123/extend
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "additional_minutes": 5
+}
+```
+
+`additional_minutes` must be an integer greater than 0 (HTTP 422 otherwise).
+
+**Response (200 OK):** the updated `SessionResponse` (same shape as
+`POST /api/sessions`), with `assigned_end_at` advanced by `additional_minutes`
+and `expiry_warned` reset to `false`.
 
 ---
 
@@ -685,6 +721,7 @@ Get details for a single invoice. Cashier role required.
   "pos_total_paise": 25000,
   "total_paise": 37000,
   "payment_method": "CASH",
+  "print_status": "PENDING",
   "created_at": "2026-07-06T12:00:00+00:00",
   "line_items": [
     {
@@ -699,6 +736,12 @@ Get details for a single invoice. Cashier role required.
   ]
 }
 ```
+
+`print_status` is one of `PENDING` (default, not yet printed), `PRINTED`,
+`FAILED`, or `SKIPPED`. `FAILED`/`SKIPPED` are the "unprinted" states that the
+`require_print_before_release` and `block_shift_close_unprinted` gates act on.
+Reprinting or `POST /api/invoices/{id}/mark-printed` moves it to `PRINTED`,
+which releases a held seat.
 
 ---
 

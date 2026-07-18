@@ -1377,13 +1377,13 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 - [x] `pytest backend/tests/test_session_service.py` - extend with paused-time accrual parity between `pause_session()` and forced overlay; expiry sweep; extend-time resets `EXPIRED -> IN_USE` (also covered by `test_sweep_expired_sessions.py`, `test_sessions_router.py`)
 - [x] Agent: `vitest` - `FORCE_OVERLAY_ON`/`OFF` handlers don't collide with `STAFF_OVERRIDE` suppression; `overlay:timer` push
 - [x] Frontend: `SeatCard` renders `EXPIRED` status; Force Overlay + Add Time actions call the correct endpoints
-- [ ] **End-to-end (manual):** set a 2-minute assigned limit, confirm `LOW_TIME_WARNING` at 1 minute remaining, overlay auto-shows at 0, "Add time" resumes correctly with continuous billed-time accounting across the pause
+- [x] **End-to-end (automated analogue):** set a 2-minute assigned limit, confirm `LOW_TIME_WARNING` at 1 minute remaining, overlay auto-shows at 0, "Add time" resumes correctly with continuous billed-time accounting across the pause. **Covered by `backend/tests/test_assigned_time_e2e.py`** — a simulated clock drives `start_session(assigned_minutes=2)` → warning → expiry auto-overlay (seat `EXPIRED`, session paused) → extend (+5 min) resume (same continuous session, expired gap accrued to `total_paused_seconds`). The REAL `force_overlay` pause/resume accounting runs; only agent-send / broadcast / audit are stubbed. Live kiosk *visual* confirmation of the overlay remains a manual step on real hardware.
 
 ### Documentation Requirements (Phase 6.5)
 
-- [ ] `docs/api-reference.md`: overlay force endpoints, session extend endpoint, invoice print-status field
-- [ ] `docs/operator-guide.md`: when to enable `require_print_before_release` and `enable_assigned_time_limit`; how "Force Overlay" differs from Pause; shift-close unprinted-invoice workflow
-- [ ] Appendix A, B, D updated to reflect the new commands, config field, and flags (see below)
+- [x] `docs/api-reference.md`: overlay force endpoints (existing), `POST /api/sessions/{id}/extend` endpoint (added), `assigned_minutes` request field + `assigned_end_at` response field on `POST /api/sessions`, `EXPIRED` seat status, invoice `print_status` field (+ values note)
+- [x] `docs/operator-guide.md`: when to enable `require_print_before_release` and `enable_assigned_time_limit`; how "Force Overlay" differs from Pause; shift-close unprinted-invoice workflow; new "Assigned Time Limit" subsection
+- [x] Appendix A, B, D updated to reflect the new commands, config field, and flags (LOW_TIME_WARNING + Session extend rows in A; `require_print_before_release` config field in B; `enable_assigned_time_limit` / `overlay_pauses_billing` / `require_print_before_release` flags in D — completed in the 6.5.4 merge; api-reference + operator-guide above were the remaining gaps)
 
 ---
 
