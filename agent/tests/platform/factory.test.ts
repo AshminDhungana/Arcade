@@ -72,4 +72,12 @@ describe('getPlatformService', () => {
     expect(service).toBeDefined();
     expect(service.constructor.name).toBe('WindowsPlatformService');
   });
+
+  it('returns a LinuxPlatformService on linux', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+
+    const service = await getPlatformService();
+    expect(service).toBeDefined();
+    expect(service.constructor.name).toBe('LinuxPlatformService');
+  });
 });

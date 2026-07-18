@@ -35,6 +35,11 @@ export async function getPlatformService(): Promise<IPlatformService> {
     return new WindowsPlatformService();
   }
 
+  if (platform === 'linux') {
+    const { LinuxPlatformService } = await import('./linux.js');
+    return new LinuxPlatformService();
+  }
+
   // Fallback guard — should be unreachable due to PLATFORM_MODULES check above.
   throw new Error(`Platform "${platform}" is not yet supported.`);
 }
