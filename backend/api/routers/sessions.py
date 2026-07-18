@@ -15,11 +15,12 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import require_cashier
 from backend.core.database import get_db
+from backend.core.feature_flags import require_feature
 from backend.models._enums import PaymentMethod
 from backend.models.staff import Staff
 from backend.schemas.invoice import InvoiceResponse
@@ -39,6 +40,7 @@ class _SessionStartBody(BaseModel):
 
     seat_id: str
     member_id: str | None = None
+    assigned_minutes: int | None = None
 
 
 class _CheckoutBody(BaseModel):
@@ -59,7 +61,32 @@ async def create_session(
     staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
 ) -> SessionResponse:
     """Start a new session on an available seat (cashier+)."""
-    return await session_service.start_session(db, body.seat_id, body.member_id, staff)
+    return await session_service.start_session(
+        db, body.seat_id, body.member_id, staff, assigned_minutes=body.assigned_minutes
+    )
+
+
+class _ExtendBody(BaseModel):
+    """Request body for POST /sessions/{id}/extend."""
+
+    additional_minutes: int = Field(..., gt=0)
+
+
+@router.post(
+    "/{session_id}/extend",
+    response_model=SessionResponse,
+    dependencies=[Depends(require_feature("enable_assigned_time_limit"))],
+)
+async def extend_session_route(
+    session_id: str,
+    body: _ExtendBody,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+) -> SessionResponse:
+    """Push a session's assigned end forward; reverts EXPIRED seats."""
+    return await session_service.extend_session(
+        db, session_id, body.additional_minutes, staff
+    )
 
 
 @router.patch("/{session_id}/pause", response_model=SessionResponse)
