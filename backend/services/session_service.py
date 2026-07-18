@@ -560,8 +560,7 @@ async def extend_session(
         entity_id=session.id,
         staff_id=staff.id if staff else None,
         detail=(
-            f"extended by {additional_minutes} min; "
-            f"new assigned_end_at={new_deadline}"
+            f"extended by {additional_minutes} min; new assigned_end_at={new_deadline}"
         ),
     )
 
