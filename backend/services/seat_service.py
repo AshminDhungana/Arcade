@@ -82,9 +82,16 @@ async def set_overlay_forced(
 
 
 async def list_seats(db: AsyncSession) -> Sequence[SeatResponse]:
-    """Return all seats with their current status."""
+    """Return all seats with their current status and active-session assigned_end_at."""
     seats = await seat_repo.list(db)
-    return [_seat_to_response(s) for s in seats]
+    seat_ids = [s.id for s in seats]
+    assigned = await seat_repo.assigned_end_at_by_seat(db, seat_ids)
+    responses = []
+    for seat in seats:
+        resp = _seat_to_response(seat)
+        resp.assigned_end_at = _ensure_tz(assigned.get(seat.id))
+        responses.append(resp)
+    return responses
 
 
 async def get_seat(db: AsyncSession, seat_id: str) -> SeatResponse:
@@ -92,7 +99,10 @@ async def get_seat(db: AsyncSession, seat_id: str) -> SeatResponse:
     seat = await seat_repo.get_by_id(db, seat_id)
     if seat is None:
         raise SeatNotFoundError(seat_id)
-    return _seat_to_response(seat)
+    resp = _seat_to_response(seat)
+    assigned = await seat_repo.assigned_end_at_by_seat(db, [seat.id])
+    resp.assigned_end_at = _ensure_tz(assigned.get(seat.id))
+    return resp
 
 
 async def set_maintenance(

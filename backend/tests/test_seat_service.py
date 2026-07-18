@@ -7,6 +7,7 @@ Uses an in-memory async SQLite DB for repository calls.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -14,7 +15,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.core.database import Base
-from backend.models import SeatStatus, Staff
+from backend.models import GamingSession, PricingModel, SeatStatus, SessionStatus, Staff
 from backend.repositories import seat_repo, staff_repo
 from backend.schemas.seat import SeatResponse
 from backend.services.seat_service import (
@@ -200,3 +201,76 @@ async def test_update_mac_address_not_found(db: AsyncSession) -> None:
         with pytest.raises(HTTPException) as exc_info:
             await update_mac_address(db, "ghost-id", "aa:bb:cc:dd:ee:ff")
     assert exc_info.value.status_code == 404
+
+
+# -------------------------------------------------------------------
+# assigned_end_at enrichment (Epic 6.5.4)
+# -------------------------------------------------------------------
+
+
+async def test_list_seats_includes_assigned_end_at(
+    db: AsyncSession, zone_and_seat
+) -> None:
+    """list_seats surfaces the active session's assigned_end_at."""
+    _, seat = zone_and_seat
+    now = datetime.now(UTC)
+    session = GamingSession(
+        seat_id=seat.id,
+        status=SessionStatus.ACTIVE,
+        started_at=now,
+        locked_rate_paise=0,
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        assigned_end_at=now + timedelta(minutes=45),
+    )
+    db.add(session)
+    await db.commit()
+
+    seats = await list_seats(db)
+    match = next(s for s in seats if s.id == seat.id)
+    assert match.assigned_end_at == session.assigned_end_at
+
+
+async def test_get_seat_includes_assigned_end_at(
+    db: AsyncSession, zone_and_seat
+) -> None:
+    """get_seat surfaces the active session's assigned_end_at."""
+    _, seat = zone_and_seat
+    now = datetime.now(UTC)
+    session = GamingSession(
+        seat_id=seat.id,
+        status=SessionStatus.ACTIVE,
+        started_at=now,
+        locked_rate_paise=0,
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        assigned_end_at=now + timedelta(minutes=20),
+    )
+    db.add(session)
+    await db.commit()
+
+    result = await get_seat(db, seat.id)
+    assert result.assigned_end_at == session.assigned_end_at
+
+
+async def test_seat_without_assigned_session_returns_none(
+    db: AsyncSession, zone_and_seat
+) -> None:
+    """A seat whose active session has no assigned_end_at yields None."""
+    _, seat = zone_and_seat
+    now = datetime.now(UTC)
+    session = GamingSession(
+        seat_id=seat.id,
+        status=SessionStatus.ACTIVE,
+        started_at=now,
+        locked_rate_paise=0,
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        assigned_end_at=None,
+    )
+    db.add(session)
+    await db.commit()
+
+    seats = await list_seats(db)
+    match = next(s for s in seats if s.id == seat.id)
+    assert match.assigned_end_at is None
+
+    result = await get_seat(db, seat.id)
+    assert result.assigned_end_at is None
