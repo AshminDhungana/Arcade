@@ -1,7 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SeatGrid } from './SeatGrid';
 import { SeatStatus } from '@/types/seat';
+import type { ReactNode } from 'react';
+
+const makeWrapper = () => {
+  const qc = new QueryClient();
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  );
+};
 
 // Mock the API hook
 vi.mock('@/api/seats', () => ({
@@ -18,14 +27,14 @@ vi.mock('@/api/seats', () => ({
 
 describe('SeatGrid', () => {
   it('renders all seats from the query', () => {
-    render(<SeatGrid />);
+    render(<SeatGrid />, { wrapper: makeWrapper() });
     expect(screen.getByRole('list')).toBeInTheDocument();
     expect(screen.getByText('PC-01')).toBeInTheDocument();
     expect(screen.getByText('PC-02')).toBeInTheDocument();
   });
 
   it('is accessible with aria-label', () => {
-    render(<SeatGrid />);
+    render(<SeatGrid />, { wrapper: makeWrapper() });
     expect(screen.getByLabelText('Seat grid')).toBeInTheDocument();
   });
 });
