@@ -1429,7 +1429,7 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 - [ ] **Task: Create macOS build configuration**
   - [x] `electron-builder.yml`: `mac.target = ["dmg", "zip"]`; set `appId`, `bundleId`
   - [x] Document unsigned distribution workaround (Gatekeeper bypass for unsigned `.dmg`)
-  - [ ] Test build on macOS: `npm run build -- --mac` — _pending: requires a real Mac / macos-latest runner (not available in dev env); trigger `.github/workflows/build-agent-mac.yml` via workflow_dispatch_
+  - [ ] Test build on macOS: `npm run build -- --mac` — _pending verification: switched `mac.target` from `universal` to per-arch `x64` + `arm64` (universal lipo fails on the Apple Silicon runner because only the arm64 `sharp` binary is installed). Re-verify by triggering `.github/workflows/build-agent-mac.yml` via `workflow_dispatch` on this branch; expect `arcade-agent-macos` artifact with 2 dmgs + 2 zips_
 
 ### Epic 7.2: Linux Platform Implementation (ENG-B)
 
