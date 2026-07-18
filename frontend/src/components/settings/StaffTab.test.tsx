@@ -30,6 +30,7 @@ const mockState = {
   createStaffFn: vi.fn(),
   deactivateStaffFn: vi.fn(),
   reactivateStaffFn: vi.fn(),
+  changeStaffPinFn: vi.fn(),
 };
 
 // Hoisted isPending refs
@@ -37,6 +38,7 @@ const isPendingRefs = {
   createStaff: { current: false },
   deactivateStaff: { current: false },
   reactivateStaff: { current: false },
+  changePin: { current: false },
 };
 
 vi.mock('@/api/settings', () => ({
@@ -62,6 +64,12 @@ vi.mock('@/api/settings', () => ({
     mutateAsync: mockState.reactivateStaffFn,
     get isPending() {
       return isPendingRefs.reactivateStaff.current;
+    },
+  }),
+  useChangeStaffPin: () => ({
+    mutateAsync: mockState.changeStaffPinFn,
+    get isPending() {
+      return isPendingRefs.changePin.current;
     },
   }),
 }));
@@ -92,9 +100,11 @@ describe('StaffTab', () => {
     mockState.createStaffFn = vi.fn();
     mockState.deactivateStaffFn = vi.fn();
     mockState.reactivateStaffFn = vi.fn();
+    mockState.changeStaffPinFn = vi.fn();
     isPendingRefs.createStaff.current = false;
     isPendingRefs.deactivateStaff.current = false;
     isPendingRefs.reactivateStaff.current = false;
+    isPendingRefs.changePin.current = false;
     vi.clearAllMocks();
   });
 
@@ -297,5 +307,146 @@ describe('StaffTab', () => {
     render(<StaffTab />, { wrapper: makeWrapper() });
 
     expect(screen.getByText(/no staff yet/i)).toBeInTheDocument();
+  });
+
+  it('changes PIN for an active staff member via modal', async () => {
+    let resolveChangePin: (v: void) => void;
+    const changePinPromise = new Promise<void>((resolve) => {
+      resolveChangePin = resolve;
+    });
+
+    mockState.staff = [STAFF_ADMIN, STAFF_CASHIER];
+    mockState.changeStaffPinFn = vi.fn().mockReturnValue(changePinPromise);
+
+    const { rerender } = render(<StaffTab />, { wrapper: makeWrapper() });
+
+    // Click "Change PIN" button for Admin User
+    const changePinBtn = screen.getByRole('button', { name: /change pin for admin user/i });
+    await act(async () => { await changePinBtn.click(); });
+
+    // Modal appears - fill in new PIN
+    const pinInput = screen.getByLabelText(/new pin \(min 4 digits\)/i);
+    await act(async () => {
+      fireEvent.change(pinInput, { target: { value: '5678' } });
+    });
+
+    // Click "Update PIN"
+    const updateBtn = screen.getByRole('button', { name: /update pin/i });
+    await act(async () => { await fireEvent.click(updateBtn); });
+
+    // Wait for mutation to be called
+    await waitFor(() => expect(mockState.changeStaffPinFn).toHaveBeenCalledWith({ id: 's1', pin: '5678' }));
+
+    // Resolve the mutation
+    resolveChangePin!();
+    isPendingRefs.changePin.current = false;
+
+    // Update list data to simulate query invalidation
+    mockState.staff = [STAFF_ADMIN, STAFF_CASHIER];
+
+    // Re-render
+    rerender(<StaffTab />);
+
+    // Assert success toast
+    const { toast } = await import('@/store/toastStore');
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('PIN updated for Admin User');
+    });
+  });
+
+  it('shows validation error for PIN less than 4 digits', async () => {
+    mockState.staff = [STAFF_ADMIN];
+
+    render(<StaffTab />, { wrapper: makeWrapper() });
+
+    // Click "Change PIN" button for Admin User
+    const changePinBtn = screen.getByRole('button', { name: /change pin for admin user/i });
+    await act(async () => { await changePinBtn.click(); });
+
+    // Modal appears - try to submit with PIN less than 4 digits
+    const pinInput = screen.getByLabelText(/new pin \(min 4 digits\)/i);
+    await act(async () => {
+      fireEvent.change(pinInput, { target: { value: '123' } });
+    });
+
+    const updateBtn = screen.getByRole('button', { name: /update pin/i });
+    await act(async () => { await fireEvent.click(updateBtn); });
+
+    // Should show validation error
+    await waitFor(() => {
+      expect(screen.getByText(/pin must be at least 4 digits/i)).toBeInTheDocument();
+    });
+
+    // Mutation should not be called
+    expect(mockState.changeStaffPinFn).not.toHaveBeenCalled();
+  });
+
+  it('shows validation error for non-numeric PIN', async () => {
+    mockState.staff = [STAFF_ADMIN];
+
+    render(<StaffTab />, { wrapper: makeWrapper() });
+
+    // Click "Change PIN" button for Admin User
+    const changePinBtn = screen.getByRole('button', { name: /change pin for admin user/i });
+    await act(async () => { await changePinBtn.click(); });
+
+    // Modal appears - try to submit with non-numeric PIN
+    const pinInput = screen.getByLabelText(/new pin \(min 4 digits\)/i);
+    await act(async () => {
+      fireEvent.change(pinInput, { target: { value: 'abcd' } });
+    });
+
+    const updateBtn = screen.getByRole('button', { name: /update pin/i });
+    await act(async () => { await fireEvent.click(updateBtn); });
+
+    // Should show validation error
+    await waitFor(() => {
+      expect(screen.getByText(/pin must be numeric/i)).toBeInTheDocument();
+    });
+
+    // Mutation should not be called
+    expect(mockState.changeStaffPinFn).not.toHaveBeenCalled();
+  });
+
+  it('shows error toast on 403 when changing PIN', async () => {
+    let resolveChangePin: (v: void) => void;
+    const changePinPromise = new Promise<void>((_, reject) => {
+      // We don't need resolve for error case
+      resolveChangePin = () => reject(new Error('403 Forbidden: Admin required'));
+    });
+
+    mockState.staff = [STAFF_ADMIN];
+    mockState.changeStaffPinFn = vi.fn().mockReturnValue(changePinPromise);
+
+    const { rerender } = render(<StaffTab />, { wrapper: makeWrapper() });
+
+    const changePinBtn = screen.getByRole('button', { name: /change pin for admin user/i });
+    await act(async () => { await changePinBtn.click(); });
+
+    const pinInput = screen.getByLabelText(/new pin \(min 4 digits\)/i);
+    await act(async () => {
+      fireEvent.change(pinInput, { target: { value: '5678' } });
+    });
+
+    const updateBtn = screen.getByRole('button', { name: /update pin/i });
+    await act(async () => { await fireEvent.click(updateBtn); });
+
+    await waitFor(() => expect(mockState.changeStaffPinFn).toHaveBeenCalled());
+
+    // Resolve with error
+    try {
+      resolveChangePin!();
+    } catch {
+      // expected
+    }
+    isPendingRefs.changePin.current = false;
+
+    mockState.staff = [STAFF_ADMIN];
+    rerender(<StaffTab />);
+
+    const { toast } = await import('@/store/toastStore');
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Admin required');
+    });
   });
 });

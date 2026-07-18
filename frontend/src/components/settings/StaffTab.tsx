@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Plus, Shield, User } from 'lucide-react';
+import { Plus, Shield, User, KeyRound } from 'lucide-react';
 import {
   useStaff,
   useCreateStaff,
   useDeactivateStaff,
   useReactivateStaff,
+  useChangeStaffPin,
 } from '@/api/settings';
 import { Button } from '@/components/ui/Button';
 import { Table, Th, Td } from '@/components/ui/Table';
@@ -166,6 +167,65 @@ function ConfirmationModal({
   );
 }
 
+function PinChangeModal({
+  open,
+  staff,
+  onClose,
+  onConfirm,
+  isLoading,
+}: {
+  open: boolean;
+  staff: Staff | null;
+  onClose: () => void;
+  onConfirm: (pin: string) => void;
+  isLoading: boolean;
+}) {
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pin) {
+      setError('PIN is required');
+    } else if (pin.length < 4) {
+      setError('PIN must be at least 4 digits');
+    } else if (pin.length > 20) {
+      setError('PIN must be at most 20 digits');
+    } else if (!/^\d+$/.test(pin)) {
+      setError('PIN must be numeric');
+    } else {
+      setError(null);
+      onConfirm(pin);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Change PIN — ${staff?.name ?? ''}`}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          name="newPin"
+          label="New PIN (min 4 digits)"
+          type="password"
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          error={error ?? null}
+          placeholder="1234"
+          minLength={4}
+          autoFocus
+        />
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="emerald" loading={isLoading}>
+            Update PIN
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function roleBadge(role: StaffRole) {
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_BADGE_VARIANTS[role]}`}>
@@ -194,11 +254,14 @@ export function StaffTab() {
   const [confirmAction, setConfirmAction] = useState<'deactivate' | 'reactivate' | null>(null);
   const [confirmStaffId, setConfirmStaffId] = useState<string | null>(null);
   const [confirmStaffName, setConfirmStaffName] = useState('');
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pinStaff, setPinStaff] = useState<Staff | null>(null);
 
   const { data: staff = [], isLoading, isError, refetch } = useStaff();
   const createStaff = useCreateStaff();
   const deactivateStaff = useDeactivateStaff();
   const reactivateStaff = useReactivateStaff();
+  const changePin = useChangeStaffPin();
 
   const handleSubmit = async (data: StaffFormData) => {
     try {
@@ -263,6 +326,29 @@ export function StaffTab() {
     setConfirmOpen(true);
   };
 
+  const openPinModal = (staff: Staff) => {
+    setPinStaff(staff);
+    setPinModalOpen(true);
+  };
+
+  const handleChangePin = async (pin: string) => {
+    if (!pinStaff) return;
+    try {
+      await changePin.mutateAsync({ id: pinStaff.id, pin });
+      toast.success(`PIN updated for ${pinStaff.name}`);
+      setPinModalOpen(false);
+      setPinStaff(null);
+      refetch();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to change PIN';
+      if (msg.includes('403') || msg.includes('401')) {
+        toast.error('Admin required');
+      } else {
+        toast.error(msg);
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -308,15 +394,26 @@ export function StaffTab() {
                   <Td className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       {s.is_active ? (
-                        <Button
-                          variant="secondary"
-                          aria-label={`Deactivate ${s.name}`}
-                          onClick={() => openConfirm('deactivate', s)}
-                          disabled={deactivateStaff.isPending}
-                        >
-                          <User className="h-4 w-4 mr-1" />
-                          Deactivate
-                        </Button>
+                        <>
+                          <Button
+                            variant="secondary"
+                            aria-label={`Change PIN for ${s.name}`}
+                            onClick={() => openPinModal(s)}
+                            disabled={changePin.isPending}
+                          >
+                            <KeyRound className="h-4 w-4 mr-1" />
+                            Change PIN
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            aria-label={`Deactivate ${s.name}`}
+                            onClick={() => openConfirm('deactivate', s)}
+                            disabled={deactivateStaff.isPending}
+                          >
+                            <User className="h-4 w-4 mr-1" />
+                            Deactivate
+                          </Button>
+                        </>
                       ) : (
                         <Button
                           variant="emerald"
@@ -366,6 +463,20 @@ export function StaffTab() {
           onConfirm={confirmAction === 'deactivate' ? handleDeactivate : handleReactivate}
           isLoading={confirmAction === 'deactivate' ? deactivateStaff.isPending : reactivateStaff.isPending}
           variant={confirmAction === 'deactivate' ? 'danger' : 'emerald'}
+        />
+      )}
+
+      {/* Change PIN Modal */}
+      {pinModalOpen && pinStaff && (
+        <PinChangeModal
+          open={pinModalOpen}
+          staff={pinStaff}
+          onClose={() => {
+            setPinModalOpen(false);
+            setPinStaff(null);
+          }}
+          onConfirm={handleChangePin}
+          isLoading={changePin.isPending}
         />
       )}
     </div>
