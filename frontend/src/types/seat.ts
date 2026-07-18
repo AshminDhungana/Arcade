@@ -8,6 +8,7 @@ export const SeatStatus = {
   OFFLINE: 'OFFLINE',
   BOOTING: 'BOOTING',
   UNREACHABLE: 'UNREACHABLE',
+  EXPIRED: 'EXPIRED',
 } as const;
 
 export type SeatStatus = (typeof SeatStatus)[keyof typeof SeatStatus];
@@ -22,7 +23,8 @@ export interface Seat {
   plug_id: string | null;
   is_console: boolean;
   notes: string | null;
-  overlay_forced: boolean;  // NEW
+  overlay_forced: boolean;
+  assigned_end_at: string | null;  // Epic 6.5.4: active session's assigned expiry; null when no limit set
   wol_attempts: number;
   wol_successes: number;
   wol_failures: number;
