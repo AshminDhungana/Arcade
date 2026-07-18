@@ -1,0 +1,33 @@
+name: Build Agent (macOS)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'agent/**'
+      - '.github/workflows/build-agent-mac.yml'
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: "agent/package-lock.json"
+      - run: npm ci
+      - run: npm run build -- --mac
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arcade-agent-macos
+          path: |
+            agent/dist/*.dmg
+            agent/dist/*.zip
+          if-no-files-found: error
