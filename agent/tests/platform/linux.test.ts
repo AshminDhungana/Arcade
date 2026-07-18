@@ -75,11 +75,11 @@ vi.mock('systeminformation', () => ({
   },
 }));
 
-const mockFs = {
+const mockFs = vi.hoisted(() => ({
   mkdir: vi.fn().mockResolvedValue(undefined),
   writeFile: vi.fn().mockResolvedValue(undefined),
   rm: vi.fn().mockResolvedValue(undefined),
-};
+}));
 
 vi.mock('node:fs', () => ({
   promises: mockFs,
