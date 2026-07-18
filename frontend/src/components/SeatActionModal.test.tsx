@@ -14,6 +14,7 @@ const ALL_FLAGS = {
   enable_inventory: false, enable_reservations: false, enable_vouchers: false,
   enable_tournaments: false, enable_expense_tracking: false,
   enable_health_monitoring: false, require_member_for_session: false,
+  enable_assigned_time_limit: false,
 };
 
 const MEMBER: Member = {
@@ -121,7 +122,7 @@ describe('SeatActionModal', () => {
     fireEvent.click(screen.getByText('pick member'));
     fireEvent.click(screen.getByText('Start Session'));
     expect(startSpy).toHaveBeenCalledWith(
-      { seat_id: 'seat-1', member_id: 'm1' },
+      expect.objectContaining({ seat_id: 'seat-1', member_id: 'm1' }),
       expect.any(Object),
     );
   });
@@ -164,5 +165,26 @@ describe('SeatActionModal', () => {
     expect(screen.getByRole('button', { name: /force overlay on/i })).toBeDisabled();
     resolveFn!(undefined);
     await waitFor(() => expect(screen.getByRole('button', { name: /force overlay on/i })).toBeEnabled());
+  });
+
+  it('hides assign-time field when flag off', () => {
+    useFeatureFlagStore.getState().setFlags({ ...ALL_FLAGS, enable_assigned_time_limit: false });
+    render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+    expect(screen.queryByLabelText(/assign time limit/i)).not.toBeInTheDocument();
+  });
+
+  it('shows assign-time field and forwards it when flag on', () => {
+    useFeatureFlagStore.getState().setFlags({ ...ALL_FLAGS, enable_assigned_time_limit: true });
+    lastMutate = vi.fn();
+    render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+
+    const input = screen.getByLabelText(/assign time limit/i) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '120' } });
+    fireEvent.click(screen.getByText('Start Session'));
+
+    expect(lastMutate).toHaveBeenCalledWith(
+      { seat_id: 'seat-1', member_id: null, assigned_minutes: 120 },
+      expect.any(Object),
+    );
   });
 });

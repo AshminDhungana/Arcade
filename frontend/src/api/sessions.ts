@@ -40,7 +40,7 @@ export function useSession(sessionId: string) {
 
 /** Start a new session on a seat. */
 export async function startSession(
-  body: { seat_id: string; member_id: string | null },
+  body: { seat_id: string; member_id: string | null; assigned_minutes?: number | null },
   token: string | null,
 ): Promise<SessionResponse> {
   const res = await fetch(`${API_BASE}/sessions`, {
@@ -59,7 +59,8 @@ export function useStartSession() {
   const token = useAuthStore((s) => s.accessToken);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { seat_id: string; member_id: string | null }) => startSession(body, token),
+    mutationFn: (body: { seat_id: string; member_id: string | null; assigned_minutes?: number | null }) =>
+      startSession(body, token),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
   });
 }

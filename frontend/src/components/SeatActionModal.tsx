@@ -19,13 +19,16 @@ interface SeatActionModalProps {
  *  For AVAILABLE seats, shows MemberSearch to pick a member before starting a session. */
 export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
   const [member, setMember] = useState<Member | null>(null);
+  const [assignedMinutes, setAssignedMinutes] = useState<string>('');
   const [forceOverlayLoading, setForceOverlayLoading] = useState<'on' | 'off' | null>(null);
   const startSession = useStartSession();
   const memberRequired = useFeatureFlagStore((s) => s.flags.require_member_for_session);
+  const assignedTimeEnabled = useFeatureFlagStore((s) => s.flags.enable_assigned_time_limit);
 
   const handleStartSession = () => {
+    const parsed = assignedMinutes.trim() === '' ? null : Number(assignedMinutes);
     startSession.mutate(
-      { seat_id: seat.id, member_id: member?.id ?? null },
+      { seat_id: seat.id, member_id: member?.id ?? null, assigned_minutes: parsed },
       {
         onSuccess: () => {
           toast.success('Session started');
@@ -109,6 +112,25 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
                     </button>
                   </div>
                 )}
+              {assignedTimeEnabled && (
+                <div className="col-span-2">
+                  <label
+                    className="block text-xs font-medium text-slate-400"
+                    htmlFor="assign-time-limit"
+                  >
+                    Assign time limit (minutes)
+                  </label>
+                  <input
+                    id="assign-time-limit"
+                    type="number"
+                    min={1}
+                    value={assignedMinutes}
+                    onChange={(e) => setAssignedMinutes(e.target.value)}
+                    placeholder="e.g. 120"
+                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-white"
+                  />
+                </div>
+              )}
               </div>
               <ActionButton
                 icon={<Play className="h-5 w-5" />}
