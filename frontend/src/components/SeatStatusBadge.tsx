@@ -10,6 +10,7 @@ const STATUS_BG: Record<SeatStatus, string> = {
   OFFLINE: 'bg-slate-500',
   BOOTING: 'bg-blue-400',
   UNREACHABLE: 'bg-red-500',
+  EXPIRED: 'bg-fuchsia-600',
 };
 
 /** Maps each SeatStatus to a human-readable label. */
@@ -22,6 +23,7 @@ const STATUS_LABEL: Record<SeatStatus, string> = {
   OFFLINE: 'Offline',
   BOOTING: 'Booting',
   UNREACHABLE: 'Unreachable',
+  EXPIRED: 'Expired',
 };
 
 interface SeatStatusBadgeProps {

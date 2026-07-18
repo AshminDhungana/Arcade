@@ -35,4 +35,15 @@ describe('SeatStatusBadge', () => {
     render(<SeatStatusBadge status={status} />);
     expect(screen.getByText(expectedLabel)).toBeInTheDocument();
   });
+
+  it('renders EXPIRED with label', () => {
+    render(<SeatStatusBadge status="EXPIRED" />);
+    expect(screen.getByText('Expired')).toBeInTheDocument();
+  });
+
+  it('EXPIRED uses a distinct colour class', () => {
+    const { container } = render(<SeatStatusBadge status="EXPIRED" />);
+    const dot = container.querySelector('span.h-2.w-2.rounded-full');
+    expect(dot?.className).toContain('bg-fuchsia-600');
+  });
 });
