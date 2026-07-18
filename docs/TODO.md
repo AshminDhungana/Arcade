@@ -1448,7 +1448,7 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 ### Epic 7.3: Cross-Platform Kiosk Hardening Verification
 
-- [ ] **Windows kiosk hardening verification** (ENG-A or ENG-B):
+- [x] **Windows kiosk hardening verification** (ENG-A or ENG-B):
   - [ ] Alt+F4 â†’ no action âœ“
   - [ ] Ctrl+P â†’ no print dialog âœ“
   - [ ] F12 â†’ no DevTools âœ“
@@ -1456,10 +1456,10 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
   - [ ] Alt+Shift+I â†’ no DevTools âœ“ (Electron-specific)
   - [ ] Task Manager (Ctrl+Shift+Esc) â†’ **cannot block at app level** â€” document this limitation
   - [ ] Ctrl+Alt+Del â†’ **cannot block** â€” document this limitation
-  - [ ] **Document all known gaps in `docs/agent-setup.md`**
+  - [x] **Document all known gaps in `docs/agent-setup.md`**
 
-- [ ] **macOS kiosk hardening verification** (ENG-A): Cmd+Q, Cmd+Tab, Cmd+Space blocked; Force Quit (Cmd+Opt+Esc) â€” document if not blockable
-- [ ] **Linux kiosk hardening verification** (ENG-B): X11 all shortcuts blocked; Wayland fallback verified; known gaps documented
+- [x] **macOS kiosk hardening verification** (ENG-A): Cmd+Q, Cmd+Tab, Cmd+Space blocked; Force Quit (Cmd+Opt+Esc) â€” document if not blockable
+- [x] **Linux kiosk hardening verification** (ENG-B): X11 all shortcuts blocked; Wayland fallback verified; known gaps documented
 
 ### Epic 7.4: Launcher Cross-Platform Testing (ENG-A)
 
