@@ -3,6 +3,7 @@
 Routes::
 
     POST  /api/sessions                → start a new session (cashier+)
+    POST  /api/sessions/{id}/extend      → push assigned deadline (cashier+, flag-gated)
     PATCH /api/sessions/{id}/pause       → pause a session (cashier+)
     PATCH /api/sessions/{id}/resume      → resume a session (cashier+)
     GET   /api/sessions/{id}            → get a single session (cashier+)
