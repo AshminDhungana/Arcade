@@ -65,6 +65,34 @@ export function useStartSession() {
   });
 }
 
+/** Push a session's assigned end forward (Epic 6.5.4). Reverts EXPIRED seats. */
+export async function extendSession(
+  sessionId: string,
+  additionalMinutes: number,
+  token: string | null,
+): Promise<SessionResponse> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/extend`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ additional_minutes: additionalMinutes }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to extend session: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as SessionResponse;
+}
+
+/** Hook to extend a session's assigned time limit. */
+export function useExtendSession() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ session_id, additional_minutes }: { session_id: string; additional_minutes: number }) =>
+      extendSession(session_id, additional_minutes, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
+  });
+}
+
 /** Force-close a held (unprinted) checkout via own-PIN re-auth. */
 export async function forceCloseUnprinted(
   sessionId: string,

@@ -1,6 +1,6 @@
 // frontend/src/api/sessions.test.ts
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { fetchSession } from './sessions';
+import { fetchSession, extendSession } from './sessions';
 
 const mockToken = 'test-jwt-token';
 
@@ -33,5 +33,36 @@ describe('fetchSession', () => {
     } as Response);
 
     await expect(fetchSession('sess_1', mockToken)).rejects.toThrow('Failed to fetch session: 404 Not Found');
+  });
+});
+
+describe('extendSession', () => {
+  it('POSTs additional_minutes to the extend endpoint with auth header', async () => {
+    const mockSession = { id: 'sess_1', seat_id: 'seat_1' };
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSession),
+    } as Response);
+
+    const result = await extendSession('sess_1', 30, mockToken);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/sessions/sess_1/extend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mockToken}` },
+      body: JSON.stringify({ additional_minutes: 30 }),
+    });
+    expect(result).toEqual(mockSession);
+  });
+
+  it('throws on non-ok response', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      statusText: 'Service Unavailable',
+    } as Response);
+
+    await expect(extendSession('sess_1', 30, mockToken)).rejects.toThrow(
+      'Failed to extend session: 503 Service Unavailable',
+    );
   });
 });
