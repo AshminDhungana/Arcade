@@ -17,11 +17,17 @@ from __future__ import annotations
 # ===========================================================================
 # EMERGENCY MASTER PIN  (per-cafe, seller-only — NEVER shown in any UI)
 # ---------------------------------------------------------------------------
-# The Arcade Agent's emergency unlock PIN is set per cafe at build time and
-# baked into agent/src/main/master-pin.ts as MASTER_PIN_HASH (Argon2id, same
-# params as the staff override PINs). It is the ONLY credential that works when
-# the agent cannot reach the server. Per spec D6/D7 it is accepted ONLY when the
-# server is unreachable; when connected, only the staff override PIN works.
+# The Arcade Agent's emergency unlock PIN is the ONLY credential that works when
+# the agent cannot reach the server (when connected, only the staff override
+# PIN works). It is resolved at enrollment from ARCADE_MASTER_PIN, defaulting to
+# '1928' (see agent/src/main/master-pin.ts + agent/.env.example), then hashed
+# with Argon2id and stored as `master_code_hash` in agent.config.json.
+#
+# `generate_master_pin_hash()` below reproduces the SAME Argon2id parameters the
+# agent uses at runtime (memory_cost=4096 KiB, time_cost=3, parallelism=1,
+# hash_len=32, Argon2id) so a pre-baked hash and a runtime-computed hash are
+# interchangeable. Use `--master-pin <PIN>` to print a hash for the seller's
+# secure records (the REMEMBRANCE row below).
 #
 # REMEMBRANCE — fill one row per cafe and keep in the seller's secure notes:
 #   Cafe: ____________   Master PIN: ____________   MASTER_PIN_HASH: ____________
@@ -51,6 +57,43 @@ def generate_keypair() -> tuple[str, str]:
     private_hex = signing_key.encode().hex()
     public_hex = signing_key.verify_key.encode().hex()
     return private_hex, public_hex
+
+
+# Argon2id parameters MUST match the agent runtime (agent/src/main/enroll.ts
+# MASTER_PIN_HASH_OPTIONS). @node-rs/argon2 defaults are memoryCost=4096,
+# timeCost=3, parallelism=1, hash_len=32, algorithm=Argon2id.
+_MASTER_PIN_ARGON2_PARAMS = {
+    "memory_cost": 4096,
+    "time_cost": 3,
+    "parallelism": 1,
+    "hash_len": 32,
+}
+
+
+def generate_master_pin_hash(pin: str) -> str:
+    """Hash a master PIN with Argon2id using the agent's runtime parameters.
+
+    The agent computes this same hash at enrollment; a hash produced here is
+    byte-for-byte compatible (verify() reads the params from the stored hash).
+    Requires `argon2-cffi` (pip install argon2-cffi).
+
+    Args:
+        pin: The plaintext master PIN (e.g. "1928").
+
+    Returns:
+        An Argon2id PHC hash string (e.g. "$argon2id$v=19$m=4096,t=3,p=1$...").
+    """
+    try:
+        from argon2 import PasswordHasher
+        from argon2.low_level import Type
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(
+            "argon2-cffi is required to generate a master PIN hash: "
+            "pip install argon2-cffi"
+        ) from exc
+
+    ph = PasswordHasher(type=Type.ID, **_MASTER_PIN_ARGON2_PARAMS)
+    return ph.hash(pin)
 
 
 def write_private_key(private_hex: str) -> None:
@@ -122,6 +165,22 @@ ARCADE_PUBLIC_KEY_HEX: str = "{public_hex}"
 
 def main() -> int:
     """Generate keypair, write files, show next steps."""
+    # --- Optional master PIN hash generation (--master-pin <PIN>) ---
+    master_pin: str | None = None
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--master-pin":
+            master_pin = args[i + 1] if i + 1 < len(args) else ""
+            i += 2 if i + 1 < len(args) else 1
+            continue
+        if a.startswith("--master-pin="):
+            master_pin = a.split("=", 1)[1]
+            i += 1
+            continue
+        i += 1
+
     print("=" * 70)
     print("Arcade Ed25519 Keypair Generator")
     print("=" * 70)
@@ -151,6 +210,21 @@ def main() -> int:
             f.write("tools/keygen/private_key.pem\\n")
             print("  Added private_key.pem to .gitignore")
 
+    # --- Emergency master PIN hash (optional) ---
+    if master_pin is not None:
+        print()
+        if master_pin == "":
+            print("Emergency master PIN: DISABLED (blank --master-pin).")
+        else:
+            try:
+                h = generate_master_pin_hash(master_pin)
+                print("Emergency master PIN hash (Argon2id, m=4096 t=3 p=1):")
+                print(f"  {h}")
+                print("This matches what the agent computes at enrollment for the")
+                print("same PIN. Record it in the seller's secure REMEMBRANCE notes.")
+            except ImportError as exc:
+                print(f"  SKIPPED: {exc}")
+
     print()
     print("Done!")
     print("Next steps:")
@@ -164,6 +238,7 @@ def main() -> int:
         "  python -m tools.keygen.generate_license "
         "--hardware-id <id> --cafe-name <name>"
     )
+    print("  python tools/keygen/generate_keys.py --master-pin 1928  # hash a PIN")
 
     return 0
 

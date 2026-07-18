@@ -1461,6 +1461,12 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 - [x] **macOS kiosk hardening verification** (ENG-A): Cmd+Q, Cmd+Tab, Cmd+Space blocked; Force Quit (Cmd+Opt+Esc) â€” document if not blockable
 - [x] **Linux kiosk hardening verification** (ENG-B): X11 all shortcuts blocked; Wayland fallback verified; known gaps documented
 
+- [ ] What is the default master key for the set as default currently. the key that unlock the kisko overlay if server is not connected.
+
+- Browse licence key error, unable to copy licence file. after selecting the license.
+
+- [ ] Improve launcher.py GUI, use logo from frontend\public, After launching the launcher.py the licence required ui is not looking good, research the web and imporve on it. use ui-ux-pro-max skill if required. task is to improve the launcher.py ui to make it look modern and professioanl.
+
 ### Epic 7.4: Launcher Cross-Platform Testing (ENG-A)
 
 - [ ] Test `launcher.py` on macOS: document `brew install python-tk@3.11` prerequisite
@@ -1795,7 +1801,7 @@ Package the system for customer distribution. Server as standalone executable (n
   - [ ] Agent calls `POST /api/agent/enroll` (public, code-gated, rate-limited) → receives `seat_id` + `agent_secret` + `cafe_name`
   - [ ] Agent writes its own `agent.config.json` on first run; reuses it on reboot (no re-enroll)
   - [ ] First-run setup window collects the code; `Ctrl+Shift+O` staff-override PIN doubles as the in-agent Settings gate
-  - [ ] Emergency **master PIN** injected at build (`agent/src/main/master-pin.ts`, `MASTER_PIN_HASH`) — accepted only when server unreachable; never shown in UI
+  - [x] Emergency **master PIN** — resolved from `ARCADE_MASTER_PIN` (default `1928`, see `agent/.env.example`), hashed with Argon2id (m=4096 t=3 p=1) at enrollment and stored as `master_code_hash`; accepted only when server unreachable; never shown in UI. Pre-baked hashes can be generated via `python tools/keygen/generate_keys.py --master-pin <PIN>` (params match the runtime).
   - [ ] Reference: `docs/superpowers/plans/2026-07-15-agent-self-provisioning.md`
 
 ### Epic 11.2: Keygen packaging (Optional)
