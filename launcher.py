@@ -10,6 +10,7 @@ main window is shown, then routes to one of three screens:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import secrets
 import shutil
@@ -46,8 +47,7 @@ _LICENSE_ERROR_MESSAGES: dict[LicenseError, str] = {
         " with your Hardware ID below to get this license reissued."
     ),
     LicenseError.TRIAL_EXPIRED: (
-        "Your trial period has ended.  Contact the seller to purchase a full"
-        " license."
+        "Your trial period has ended.  Contact the seller to purchase a full license."
     ),
 }
 
@@ -341,6 +341,38 @@ class SetupWizard(tk.Frame):
         # ── Finish ──
         tk.Button(self, text="Finish", command=self._finish).pack(pady=20)
 
+    def _seed_default_staff(self) -> None:
+        """Best-effort: create the default admin + cashier in the DB.
+
+        Runs in a background thread (DB + alembic can be slow) so the wizard UI
+        stays responsive. Any failure is non-fatal: the server's startup
+        self-heal (ensure_default_staff in main.py lifespan) covers it.
+        """
+        import logging
+        import threading
+
+        logger = logging.getLogger(__name__)
+
+        def _run() -> None:
+            from backend.core.bootstrap import ensure_default_staff
+            from backend.core.config import load_config
+            from backend.core.database import AsyncSessionLocal
+            from backend.core.startup import run_migrations
+
+            async def _bootstrap() -> None:
+                await run_migrations()
+                async with AsyncSessionLocal() as db:
+                    # Read the config we just wrote (not the lru-cached getter).
+                    await ensure_default_staff(db, settings=load_config())
+                    await db.commit()
+
+            try:
+                asyncio.run(_bootstrap())
+            except Exception as exc:  # noqa: BLE001 — best-effort, never block wizard
+                logger.warning("Default staff seed skipped: %s", exc)
+
+        threading.Thread(target=_run, daemon=True).start()
+
     def _finish(self) -> None:
         payload = self.license_result.payload or {}
 
@@ -361,7 +393,7 @@ class SetupWizard(tk.Frame):
             "cashier_pin_hash": hash_pin(self._cashier_pin_var.get() or "cashier"),
             "jwt_secret": secrets.token_hex(32),
             "agent_secrets": {
-                f"seat_{i+1}": secrets.token_hex(32) for i in range(seat_count)
+                f"seat_{i + 1}": secrets.token_hex(32) for i in range(seat_count)
             },
         }
 
@@ -372,6 +404,9 @@ class SetupWizard(tk.Frame):
 
         # Write license_status row (FR-LIC-014)
         _write_license_status(payload, self.license_result)
+
+        # Best-effort seed default admin + cashier into the DB now.
+        self._seed_default_staff()
 
         # Route
         self.controller._check_and_route()

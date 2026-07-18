@@ -201,6 +201,47 @@ class TestSetupWizard:
         assert row[2] == "TRIAL"
         root.destroy()
 
+    def test_finish_seeds_default_staff_best_effort(
+        self, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+        import tkinter as tk
+
+        from launcher import LauncherApp, SetupWizard
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("launcher._db_path", lambda: tmp_path / "arcade.db")
+
+        seeded: dict[str, bool] = {}
+
+        def fake_seed(self: Any) -> None:
+            seeded["called"] = True
+
+        # _seed_default_staff runs the DB work in a background thread; patch it
+        # so the test asserts it was invoked without touching a real DB.
+        monkeypatch.setattr(SetupWizard, "_seed_default_staff", fake_seed)
+
+        result = type(
+            "R",
+            (),
+            {
+                "ok": True,
+                "payload": {
+                    "cafe_name": "Test Cafe",
+                    "hardware_id": "c" * 32,
+                    "license_type": "PERPETUAL",
+                    "issue_date": "2026-01-01",
+                },
+            },
+        )()
+        root = tk.Tk()
+        app = LauncherApp(root)
+        wizard = SetupWizard(root, app, result)  # type: ignore[arg-type]
+        wizard._cafe_name_var.set("Test Cafe")
+        wizard._finish()
+
+        assert seeded.get("called") is True
+        root.destroy()
+
 
 @pytest.mark.skipif(not _TK_AVAILABLE, reason="Tcl/Tk not available")
 class TestMainScreen:
