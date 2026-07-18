@@ -270,6 +270,33 @@ Security** after each fresh install. Notarization is a v2 concern.
 
 ---
 
+## Kiosk Hardening & Known Limitations
+
+The Arcade Agent runs as a full-screen Electron kiosk overlay (`kiosk:true`, `closable:false`, `devTools:false`) that intercepts and discards common breakout shortcuts. The full, per-platform verification matrix — every shortcut tested and its expected result — lives in [`docs/agent-kiosk-verification.md`](./agent-kiosk-verification.md).
+
+The following vectors **cannot be blocked at the application level** and are documented as permanent limitations (not bugs):
+
+**Windows**
+- **Ctrl+Alt+Del** (Secure Attention Sequence) and **Ctrl+Shift+Esc** (Task Manager) — OS-level; no userspace app can intercept them.
+- **Win+D** (show desktop / taskbar) — no supported Electron fix (`electron#38020`, unresolved). For true taskbar suppression, replace `explorer.exe` as the shell via `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell` (requires deployment control of the device).
+- **Win+L** (lock) — locks the session; the kiosk overlay re-shows on unlock.
+- **Sticky Keys (Shift×5)** and **PrintScreen / Win+Shift+S** — OS-level accessibility/capture; disable Sticky Keys via Group Policy on managed machines.
+
+**macOS**
+- **Cmd+Option+Esc** (Force Quit) and **Ctrl+Cmd+Power** (power dialog) — OS-level, uninterceptable. (Cmd+Q, Cmd+Tab, Cmd+Space are handled by the agent / kiosk flag; see the matrix.)
+
+**Linux — X11**
+- **Alt+Tab** and compositor-specific exits — kiosk mode suppresses these inconsistently across window managers (`electron#3646`). Test per target DE (GNOME/KDE/XFCE/DWM); do not assume parity. X11 is the recommended session for client PCs.
+
+**Linux — Wayland**
+- No Electron-level API prevents switching away — `setAlwaysOnTop('screen-saver')` is non-functional on Wayland (`electron#50403`). For true lockdown, run the agent under a dedicated single-app Wayland compositor:
+  ```
+  cage /opt/ArcadeAgent/arcade-agent --ozone-platform-hint=auto
+  ```
+  (`gnome-kiosk` and `ubuntu-frame` are alternatives.) Screenshots require the PipeWire portal prompt.
+
+---
+
 ## Troubleshooting
 
 ### "agent.config.json not found"
