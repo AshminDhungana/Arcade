@@ -1327,7 +1327,7 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
 - [x] Failed or skipped print does not block seat release by default; when `require_print_before_release=true` it does, with a PIN-gated override
 - [x] Owner can force the overlay on/off for any seat from the dashboard regardless of session state; action is audit-logged
 - [x] Forcing overlay on (manually or via time expiry) pauses billed time using the same accrual path as `pause_session()` - no drift between the two
-- [ ] A seat with an assigned time limit auto-shows the overlay at expiry (after a `LOW_TIME_WARNING`), and "Add time" resumes it correctly
+- [x] A seat with an assigned time limit auto-shows the overlay at expiry (after a `LOW_TIME_WARNING`), and "Add time" resumes it correctly
 
 ---
 
@@ -1361,22 +1361,22 @@ Close five gaps identified in the 2026-07-15 feature audit against the live prod
   - [x] Make the behaviour config-driven, not hardcoded: new flag `overlay_pauses_billing` (default `true`) - some venues intentionally keep billing running while the overlay is up (an "Overtime"-style mode some existing cyber cafe platforms support), so this must be a setting, not an assumption
 - [x] **Task: Close the documented HUD gap** - **Modifies Epic 5.5 known-gap note** ("server does not yet push a live `overlay:timer` during a session"): add a periodic `overlay:timer` push (every 10s, piggybacking on the existing `updateElapsed()` cadence in `ws/client.ts`) so the in-game HUD countdown actually ticks - this is required plumbing for Epic 6.5.4's expiry countdown too
 
-### Epic 6.5.4: Assigned-Time Auto-Overlay & Extension (ENG-A + ENG-B) (NEW)
+### Epic 6.5.4: Assigned-Time Auto-Overlay & Extension (ENG-A + ENG-B) (MERGED to main, 2026-07-18)
 
-- [ ] **Task: Schema** - add nullable `Session.assigned_end_at`; **Modifies Feature 2.1.2 (`session_service.start_session()`):** accept an optional `assigned_minutes` param and compute `assigned_end_at = now + assigned_minutes`
-- [ ] **Task: New seat status** - **Modifies the seat status enum used by `SeatStatusBadge` (Feature 2.3.2)** - currently `AVAILABLE / IN_USE / PAUSED / RESERVED / MAINTENANCE / BOOTING / UNREACHABLE`: add `EXPIRED` with its own badge colour
-- [ ] **Task: Expiry sweep** - new `session_service.sweep_expired_sessions()`, scheduled via APScheduler on a short interval (same polling pattern already used in **Epic 5.2's reservation scheduled check**, not the once-nightly cron pattern from Epic 5.4): finds sessions where `assigned_end_at <= now AND status = ACTIVE`, sends the existing `LOW_TIME_WARNING` message (already in Appendix A) 5 minutes before expiry, and at expiry calls the Epic 6.5.2 `force_overlay(show=True)` and sets seat status `EXPIRED`
-- [ ] **Task: Extend endpoint** - `POST /api/sessions/{id}/extend` (`{additional_minutes}`, Cashier+): pushes `assigned_end_at` forward; if the seat is `EXPIRED` because of this mechanism (not a manual force or a pause), calls `force_overlay(show=False)` and reverts the seat to `IN_USE`; audit `SESSION_EXTENDED`
-- [ ] **Task: Feature flag + settings UI** - new flag `enable_assigned_time_limit` (default `false`) - **Modifies Appendix D (Feature Flag Defaults Reference)**; **Modifies Feature 4.x (`Settings.tsx`):** add an "Advanced" section (matches how this was originally described - rarely used, opt-in) exposing the per-session assigned-time toggle rather than a global always-on limit
-- [ ] **Task: Frontend** - **Modifies the Start Session flow inside Feature 2.3.2's seat-modal actions:** add an optional "Assign time limit" field, shown only when `enable_assigned_time_limit` is on; add a "+ Add time" button on `SeatCard` for `EXPIRED` or `IN_USE` seats that have an assigned limit set
+- [x] **Task: Schema** - add nullable `Session.assigned_end_at`; **Modifies Feature 2.1.2 (`session_service.start_session()`):** accept an optional `assigned_minutes` param and compute `assigned_end_at = now + assigned_minutes`
+- [x] **Task: New seat status** - **Modifies the seat status enum used by `SeatStatusBadge` (Feature 2.3.2)** - currently `AVAILABLE / IN_USE / PAUSED / RESERVED / MAINTENANCE / BOOTING / UNREACHABLE`: add `EXPIRED` with its own badge colour
+- [x] **Task: Expiry sweep** - new `session_service.sweep_expired_sessions()`, scheduled via APScheduler on a short interval (same polling pattern already used in **Epic 5.2's reservation scheduled check**, not the once-nightly cron pattern from Epic 5.4): finds sessions where `assigned_end_at <= now AND status = ACTIVE`, sends the existing `LOW_TIME_WARNING` message (already in Appendix A) 5 minutes before expiry, and at expiry calls the Epic 6.5.2 `force_overlay(show=True)` and sets seat status `EXPIRED`
+- [x] **Task: Extend endpoint** - `POST /api/sessions/{id}/extend` (`{additional_minutes}`, Cashier+): pushes `assigned_end_at` forward; if the seat is `EXPIRED` because of this mechanism (not a manual force or a pause), calls `force_overlay(show=False)` and reverts the seat to `IN_USE`; audit `SESSION_EXTENDED`
+- [x] **Task: Feature flag + settings UI** - new flag `enable_assigned_time_limit` (default `false`) - **Modifies Appendix D (Feature Flag Defaults Reference)**; **Modifies Feature 4.x (`Settings.tsx`):** add an "Advanced" section (matches how this was originally described - rarely used, opt-in) exposing the per-session assigned-time toggle rather than a global always-on limit
+- [x] **Task: Frontend** - **Modifies the Start Session flow inside Feature 2.3.2's seat-modal actions:** add an optional "Assign time limit" field, shown only when `enable_assigned_time_limit` is on; add a "+ Add time" button on `SeatCard` for `EXPIRED` or `IN_USE` seats that have an assigned limit set
 
 ### Testing Requirements (Phase 6.5)
 
 - [x] Print-gate tests (split across files; no single `test_print_service.py`): `test_invoice_print_status.py` (status transitions), `test_print_job_repo.py` + `test_scheduler_print_release.py` (outbox retry/backoff + held-seat auto-release), `test_billing_service_checkout.py` (gate blocks/allows when `require_print_before_release` on), `test_invoice_router_print_gate.py` (unprinted list / mark-printed), `test_billing_service_force_close.py` (`CHECKOUT_FORCED_UNPRINTED` audit entry)
 - [x] `pytest backend/tests/test_remote_commands.py` - extend with force-overlay show/hide, bulk action, audit entries
-- [ ] `pytest backend/tests/test_session_service.py` - extend with paused-time accrual parity between `pause_session()` and forced overlay; expiry sweep; extend-time resets `EXPIRED -> IN_USE`
+- [x] `pytest backend/tests/test_session_service.py` - extend with paused-time accrual parity between `pause_session()` and forced overlay; expiry sweep; extend-time resets `EXPIRED -> IN_USE` (also covered by `test_sweep_expired_sessions.py`, `test_sessions_router.py`)
 - [x] Agent: `vitest` - `FORCE_OVERLAY_ON`/`OFF` handlers don't collide with `STAFF_OVERRIDE` suppression; `overlay:timer` push
-- [ ] Frontend: `SeatCard` renders `EXPIRED` status; Force Overlay + Add Time actions call the correct endpoints
+- [x] Frontend: `SeatCard` renders `EXPIRED` status; Force Overlay + Add Time actions call the correct endpoints
 - [ ] **End-to-end (manual):** set a 2-minute assigned limit, confirm `LOW_TIME_WARNING` at 1 minute remaining, overlay auto-shows at 0, "Add time" resumes correctly with continuous billed-time accounting across the pause
 
 ### Documentation Requirements (Phase 6.5)
