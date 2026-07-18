@@ -80,10 +80,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     # 3. Run pending database migrations
     await run_migrations()
 
-    # 4. Load feature flags into in-memory cache
+    # 4. Load feature flags into in-memory cache, and seed default staff
+    #    (admin + cashier) on a fresh database so login works out of the box.
     async with AsyncSessionLocal() as db:
         await load_flags(db)
         await _seed_legacy_secrets(db)
+        from backend.core.bootstrap import ensure_default_staff
+
+        await ensure_default_staff(db)
+        await db.commit()
 
     # 5. Recover any sessions that were active during an unclean shutdown
     await recover_active_sessions()
