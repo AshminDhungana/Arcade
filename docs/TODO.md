@@ -1188,7 +1188,7 @@ Shift management (open/close, cash reconciliation), seat reservations, branded a
   - [x] Staff message popup: display `SHOW_MESSAGE` content for 30 seconds, then auto-dismiss
   - **HUD window (in-session):** added a transparent, click-through `BrowserWindow` (`showHud` / `hideHud` / `showLowTimeWarning` on `IPlatformService`) that overlays the live game during a session - ticker, low-time modal, staff popup, and Call Staff button route to the HUD while a session is active and to the kiosk when idle
   - **Verification:** Agent `npx vitest run` 79/79 passing; `tsc` (main + renderer) clean; `npm run lint` clean. Backend `pytest` 46 tests passing.
-  - **Known gaps (out of scope for v1.0):** HUD window is Windows-first (macOS/Linux factory throws - completed in Phase 7); server does not yet push a live `overlay:timer` during a session, so the HUD ticker is not yet counting down end-to-end (kiosk clock works); no runtime E2E test.
+  - **Known gaps (out of scope for v1.0):** HUD window is Windows-first (Linux factory throws - pending Epic 7.2; macOS implemented in Epic 7.1); server does not yet push a live `overlay:timer` during a session, so the HUD ticker is not yet counting down end-to-end (kiosk clock works); no runtime E2E test.
 
 ### Testing Requirements (Phase 5)
 
@@ -1414,18 +1414,22 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 ### Epic 7.1: macOS Platform Implementation (ENG-A)
 
-- [ ] **Task: Implement `macos.ts`**
-  - [ ] `showKioskOverlay()` / `hideKioskOverlay()`: `win.setKiosk(true/false)` (kiosk mode works on macOS)
-  - [ ] `restartPC()`: `exec('osascript -e \'tell application "Finder" to restart\'')` or `exec('sudo shutdown -r now')` â€” document sudo requirement
-  - [ ] `shutdownPC()`: `exec('sudo shutdown -h now')`
-  - [ ] `captureScreenshot()`: `desktopCapturer.getSources({types: ['screen']})` â€” **requires Screen Recording permission**; handle `undefined` source gracefully; log warning if permission not granted
-  - [ ] `enableAutoStart()` / `disableAutoStart()`: write/delete LaunchAgent plist at `~/Library/LaunchAgents/com.arcade.agent.plist`
-  - [ ] Intercept macOS-specific shortcuts: `Cmd+Q`, `Cmd+W`, `Cmd+H`, `Cmd+M` â†’ no-op in kiosk mode
+- [x] **Task: Implement `macos.ts`** ✅ _Complete (code written + tested; branch later removed â€” recover at `54256ca`)_
+  - [x] Full 14-method `IPlatformService` implemented in `agent/src/main/platform/macos.ts` (kiosk/HUD windows, IPC helpers, system info) â€” mirrors `windows.ts`
+  - [x] `showKioskOverlay()` / `hideKioskOverlay()`: `BrowserWindow` with `kiosk: true` (kiosk mode hides menu bar/Dock, blocks Cmd+Tab/Cmd+Space)
+  - [x] `restartPC()` / `shutdownPC()`: `exec('osascript -e \'tell application "System Events" to restart|shut down\'')` â€” no `sudo`, works in GUI session
+  - [x] `captureScreenshot()`: `desktopCapturer.getSources` + TCC handling â€” throws with Screen Recording permission message when no sources
+  - [x] `enableAutoStart()` / `disableAutoStart()`: write/delete LaunchAgent plist at `~/Library/LaunchAgents/com.arcade.agent.plist`
+  - [x] Hybrid shortcut hardening: `Menu.setApplicationMenu(null)` + `globalShortcut.registerAll` (Cmd+Q/W/H/M) + per-window `before-input-event`
+  - [x] Factory `darwin` branch wired into `getPlatformService()` (`agent/src/main/platform/index.ts`)
+  - **Verification:** `tsc -p tsconfig.main.json --noEmit` clean; `npm run lint` clean; `npx vitest run` 97/97 pass
+  - **Pending:** on-device macOS QA (kiosk non-dismissible, Cmd+Q/W/H/M no-ops, osascript restart/shutdown, screenshot after Screen Recording granted, LaunchAgent auto-load, HUD click-through) â€” cannot run in CI (no real Mac available)
+  - **Branch state:** committed as `51f578d` / `ed159dc` / `54256ca` on `feature/macos-platform`, then the branch was deleted; commits are orphaned but recoverable via `git branch feature/macos-platform 54256ca`
 
 - [ ] **Task: Create macOS build configuration**
-  - [ ] `electron-builder.yml`: `mac.target = ["dmg", "zip"]`; set `appId`, `bundleId`
-  - [ ] Document unsigned distribution workaround (Gatekeeper bypass for unsigned `.dmg`)
-  - [ ] Test build on macOS: `npm run build -- --mac`
+  - [x] `electron-builder.yml`: `mac.target = ["dmg", "zip"]`; set `appId`, `bundleId`
+  - [x] Document unsigned distribution workaround (Gatekeeper bypass for unsigned `.dmg`)
+  - [ ] Test build on macOS: `npm run build -- --mac` — _pending: requires a real Mac / macos-latest runner (not available in dev env); trigger `.github/workflows/build-agent-mac.yml` via workflow_dispatch_
 
 ### Epic 7.2: Linux Platform Implementation (ENG-B)
 
