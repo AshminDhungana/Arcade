@@ -1,0 +1,41 @@
+# Arcade Agent — systemd unit (reference)
+#
+# The agent is a GUI Electron kiosk and needs a display session.
+# Choose ONE mechanism below — do NOT enable both, or the kiosk launches twice.
+#
+# --- Primary: systemd USER service (recommended) ---
+# Install: ~/.config/systemd/user/arcade-agent.service
+# Enable : systemctl --user enable --now arcade-agent.service
+# Runs in the user's graphical login, so DISPLAY/WAYLAND_DISPLAY are present.
+#
+# [Unit]
+# Description=Arcade Agent (user)
+# After=graphical-session.target
+#
+# [Service]
+# ExecStart=/opt/arcade-agent/arcade-agent
+# Restart=on-failure
+#
+# [Install]
+# WantedBy=graphical-session.target
+#
+# --- Secondary: systemd SYSTEM service (requires auto-login + DISPLAY) ---
+# Install: /etc/systemd/system/arcade-agent.service
+# Enable : sudo systemctl enable --now arcade-agent.service
+# Has NO session by default; you must inject DISPLAY and use auto-login.
+#
+# [Unit]
+# Description=Arcade Agent (system)
+# After=graphical.target
+#
+# [Service]
+# Environment=DISPLAY=:0
+# ExecStart=/opt/arcade-agent/arcade-agent
+# Restart=on-failure
+#
+# [Install]
+# WantedBy=graphical.target
+#
+# Set ExecStart to the installed binary:
+#   .deb : /opt/Arcade Agent/arcade-agent  (or /usr/bin/arcade-agent)
+#   AppImage: /path/to/Arcade-Agent-*.AppImage
