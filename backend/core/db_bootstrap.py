@@ -83,10 +83,7 @@ def _sidecar_files(db: Path) -> list[Path]:
 
 def _clear_sidecars(db: Path) -> None:
     for sidecar in _sidecar_files(db):
-        try:
-            sidecar.unlink()
-        except FileNotFoundError:
-            pass
+        sidecar.unlink(missing_ok=True)
 
 
 def restore_latest_backup(backup_dir: str | Path) -> Path:
@@ -104,13 +101,17 @@ def restore_latest_backup(backup_dir: str | Path) -> Path:
     target_dir = db.parent
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    # Atomic copy: write to temp then replace
-    tmp = target_dir / f".{db.name}.tmp"
-    shutil.copy2(backup, tmp)
-    tmp.replace(db)
-
-    # Clear any stale WAL/SHM so a stale WAL can't replay over our fresh DB
+    # Clear any stale WAL/SHM BEFORE replacing the db, so a stale WAL
+    # cannot replay onto the freshly restored backup.
     _clear_sidecars(db)
+
+    # Atomic copy: write to temp then replace. Temp file is cleaned up on failure.
+    tmp = target_dir / f".{db.name}.tmp"
+    try:
+        shutil.copy2(backup, tmp)
+        tmp.replace(db)
+    finally:
+        tmp.unlink(missing_ok=True)
 
     _migrate_to_head()
     logger.info("Restored backup %s -> %s and migrated to head", backup.name, db)
@@ -123,8 +124,7 @@ def create_fresh_database() -> Path:
     :return: Path to the freshly created and migrated ``arcade.db``.
     """
     db = _db_path()
-    if db.exists():
-        db.unlink()
+    db.unlink(missing_ok=True)
     _clear_sidecars(db)
 
     db.parent.mkdir(parents=True, exist_ok=True)
