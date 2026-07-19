@@ -25,9 +25,14 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext
 from typing import Any
 
+import customtkinter as ctk
+
 from backend.core.security import hash_pin
 from backend.licensing.fingerprint import get_hardware_id
 from backend.licensing.verify import LicenseError, LicenseResult, check_license
+from launcher_theme import (
+    S900,
+)
 
 # ---------------------------------------------------------------------------
 # Error messages (SDD Section 16.7)
@@ -110,14 +115,15 @@ def _write_license_status(
 
 
 class LauncherApp:
-    """Tkinter application root.  Manages screen switching."""
+    """CustomTkinter application root.  Manages screen switching."""
 
-    def __init__(self, root: tk.Tk) -> None:
+    def __init__(self, root: ctk.CTk) -> None:
         self.root = root
         self.root.title("Arcade Launcher")
-        self.root.geometry("700x550")
-        self.root.configure(bg="#f5f5f5")
-        self.current_screen: tk.Frame | None = None
+        self.root.geometry("720x600")
+        self.root.minsize(720, 600)
+        self.root.configure(fg_color=["#F1F5F9", S900])
+        self.current_screen: ctk.CTkFrame | None = None
         self._main_screen: MainScreen | None = None
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -126,11 +132,11 @@ class LauncherApp:
     # ------------------------------------------------------------------
 
     def show_screen(
-        self, screen_class: type[tk.Frame], *args: Any, **kwargs: Any
+        self, screen_class: type[ctk.CTkFrame], *args: Any, **kwargs: Any
     ) -> None:
         if self.current_screen is not None:
             self.current_screen.destroy()
-        # MyPy sees screen_class as tk.Frame, whose second positional arg is
+        # MyPy sees screen_class as ctk.CTkFrame, whose second positional arg is
         # cnf: dict | None. Cast to Any so the custom subclass constructor
         # (which takes a controller as second arg) type-checks correctly.
         _cls: Any = screen_class
@@ -560,7 +566,9 @@ class MainScreen(tk.Frame):
 
 
 def main() -> None:
-    root = tk.Tk()
+    ctk.set_appearance_mode("System")
+    ctk.set_default_color_theme("blue")
+    root = ctk.CTk()
     app = LauncherApp(root)
     app._check_and_route()
     app.run()
