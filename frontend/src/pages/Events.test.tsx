@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { EventsPage } from './Events';
@@ -58,11 +59,11 @@ describe('EventsPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<EventsPage />, { wrapper: makeWrapper() });
     await waitFor(() => expect(screen.getByText('FIFA Cup')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /new event/i }));
+    await userEvent.click(screen.getByRole('button', { name: /new event/i }));
     fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Smash' } });
     fireEvent.change(screen.getByLabelText(/game/i), { target: { value: 'Smash' } });
     fireEvent.change(screen.getByLabelText(/entry fee/i), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: /create/i }));
+    await userEvent.click(screen.getByRole('button', { name: /create/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/events', expect.objectContaining({ method: 'POST' })));
   });
 
@@ -73,9 +74,9 @@ describe('EventsPage', () => {
     }));
     render(<EventsPage />, { wrapper: makeWrapper() });
     await waitFor(() => expect(screen.getByText('FIFA Cup')).toBeInTheDocument());
-    fireEvent.click(screen.getByLabelText(/open event fifa cup/i));
+    await userEvent.click(screen.getByLabelText(/open event fifa cup/i));
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Summary' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Summary' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Summary' }));
     await waitFor(() => expect(screen.getByText('Rs. 200.00')).toBeInTheDocument()); // prize pool KPI
     expect(screen.getByText('Alice')).toBeInTheDocument(); // champion (unique on the Summary tab)
   });
@@ -91,14 +92,14 @@ describe('EventsPage', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<EventsPage />, { wrapper: makeWrapper() });
     await waitFor(() => expect(screen.getByText('FIFA Cup')).toBeInTheDocument());
-    fireEvent.click(screen.getByLabelText(/open event fifa cup/i));
+    await userEvent.click(screen.getByLabelText(/open event fifa cup/i));
     await waitFor(() => expect(screen.getByText(/winners bracket/i)).toBeInTheDocument());
     // Alice is the recorded winner of m1 -> highlighted
     expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
     // Admin records m2 result by picking Bob
     const recordBtn = screen.getByRole('button', { name: /record result/i });
-    fireEvent.click(recordBtn);
-    fireEvent.click(screen.getByRole('button', { name: /bob/i }));
+    await userEvent.click(recordBtn);
+    await userEvent.click(screen.getByRole('button', { name: /bob/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/events/e1/match', expect.objectContaining({ method: 'PATCH' })));
   });
 });

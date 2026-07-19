@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SettingsPage from './Settings';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
@@ -118,12 +119,12 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Show the Members management surface')).toBeInTheDocument();
   });
 
-  it('switches to Staff tab when clicking the Staff tab button', () => {
+  it('switches to Staff tab when clicking the Staff tab button', async () => {
     renderWithProviders(<SettingsPage />);
 
     // Click the Staff tab
     const staffTab = screen.getByRole('tab', { name: 'Staff' });
-    fireEvent.click(staffTab);
+    await userEvent.click(staffTab);
 
     // Staff tab should be selected
     expect(screen.getByRole('tab', { name: 'Staff', selected: true })).toBeInTheDocument();

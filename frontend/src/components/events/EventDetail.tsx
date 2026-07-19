@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tabs } from '@/components/ui/Tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { useEventSummary } from '@/api/events';
@@ -10,7 +10,6 @@ import { RegisterParticipantModal } from './RegisterParticipantModal';
 
 export function EventDetail({ eventId, onBack }: { eventId: string; onBack: () => void }) {
   const { data: summary, isLoading, isError, error, refetch } = useEventSummary(eventId);
-  const [tab, setTab] = useState('bracket');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
   if (isLoading) {
@@ -25,12 +24,6 @@ export function EventDetail({ eventId, onBack }: { eventId: string; onBack: () =
   }
   if (!summary) return null;
 
-  const TABS = [
-    { id: 'bracket', label: 'Bracket' },
-    { id: 'summary', label: 'Summary' },
-    { id: 'participants', label: 'Participants' },
-  ];
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -41,13 +34,16 @@ export function EventDetail({ eventId, onBack }: { eventId: string; onBack: () =
         </div>
       </div>
 
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
-
-      {tab === 'bracket' && <BracketView summary={summary} eventId={eventId} />}
-      {tab === 'summary' && <EventSummaryPanel summary={summary} />}
-      {tab === 'participants' && (
-        <ParticipantsList summary={summary} onRegister={() => setIsRegisterOpen(true)} />
-      )}
+      <Tabs defaultValue="bracket">
+        <TabsList>
+          <TabsTrigger value="bracket">Bracket</TabsTrigger>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="participants">Participants</TabsTrigger>
+        </TabsList>
+        <TabsContent value="bracket"><BracketView summary={summary} eventId={eventId} /></TabsContent>
+        <TabsContent value="summary"><EventSummaryPanel summary={summary} /></TabsContent>
+        <TabsContent value="participants"><ParticipantsList summary={summary} onRegister={() => setIsRegisterOpen(true)} /></TabsContent>
+      </Tabs>
 
       <RegisterParticipantModal
         open={isRegisterOpen}

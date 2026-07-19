@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Wallet, CreditCard, Clock, ArrowUpRight } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Table, Th, Td } from '@/components/ui/Table';
-import { Tabs } from '@/components/ui/Tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -27,13 +27,6 @@ interface MemberDetailDrawerProps {
   isTopupPending: boolean;
   isPurchasePending: boolean;
 }
-
-const TABS: { id: MemberTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'sessions', label: 'Sessions', icon: <Clock className="h-4 w-4" /> },
-  { id: 'wallet', label: 'Wallet', icon: <Wallet className="h-4 w-4" /> },
-  { id: 'packages', label: 'Packages', icon: <CreditCard className="h-4 w-4" /> },
-  { id: 'topup', label: 'Top-up', icon: <ArrowUpRight className="h-4 w-4" /> },
-];
 
 const formatDate = (iso: string) => new Date(iso).toLocaleString('en-IN', {
   day: '2-digit', month: 'short', year: 'numeric',
@@ -66,7 +59,13 @@ export function MemberDetailDrawer({
 }: MemberDetailDrawerProps) {
   const [topupAmount, setTopupAmount] = useState('');
   const packagesEnabled = useFeatureFlagStore((s) => s.flags.enable_packages);
-  const visibleTabs = TABS.filter((t) => t.id !== 'packages' || packagesEnabled);
+  const allTabs: { id: MemberTab; label: string }[] = [
+    { id: 'sessions', label: 'Sessions' },
+    { id: 'wallet', label: 'Wallet' },
+    { id: 'packages', label: 'Packages' },
+    { id: 'topup', label: 'Top-up' },
+  ];
+  const visibleTabs = allTabs.filter((t) => t.id !== 'packages' || packagesEnabled);
 
   const handleTopupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,20 +209,6 @@ export function MemberDetailDrawer({
     </form>
   );
 
-  const renderTabContent = () => {
-    if (activeTab === 'packages' && !packagesEnabled) return renderSessionsTab();
-    switch (activeTab) {
-      case 'sessions':
-        return renderSessionsTab();
-      case 'wallet':
-        return renderWalletTab();
-      case 'packages':
-        return renderPackagesTab();
-      case 'topup':
-        return renderTopupTab();
-    }
-  };
-
   const title = `${member.name} · ${member.phone} · Wallet: ${formatPaise(member.wallet_balance_paise)}`;
 
   return (
@@ -233,8 +218,17 @@ export function MemberDetailDrawer({
       title={title}
       children={
         <div className="max-h-[60vh] overflow-y-auto">
-          <Tabs tabs={visibleTabs} active={activeTab} onChange={(id) => onTabChange(id as MemberTab)} />
-          <div className="mt-4">{renderTabContent()}</div>
+          <Tabs value={activeTab} onValueChange={(id) => onTabChange(id as MemberTab)} className="w-full">
+            <TabsList>
+              {visibleTabs.map((t) => (
+                <TabsTrigger key={t.id} value={t.id}>{t.label}</TabsTrigger>
+              ))}
+            </TabsList>
+            <TabsContent value="sessions">{renderSessionsTab()}</TabsContent>
+            <TabsContent value="wallet">{renderWalletTab()}</TabsContent>
+            <TabsContent value="packages">{renderPackagesTab()}</TabsContent>
+            <TabsContent value="topup">{renderTopupTab()}</TabsContent>
+          </Tabs>
         </div>
       }
     />

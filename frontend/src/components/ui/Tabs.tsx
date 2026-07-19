@@ -1,41 +1,45 @@
-import type { ReactNode } from 'react';
+import * as React from "react";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { cn } from "@/lib/utils";
 
-export interface TabItem {
-  id: string;
-  label: string;
-  icon?: ReactNode;
-}
+export const Tabs = TabsPrimitive.Root;
 
-interface TabsProps {
-  tabs: TabItem[];
-  active: string;
-  onChange: (id: string) => void;
-}
-
-export function Tabs({ tabs, active, onChange }: TabsProps) {
+export function TabsList({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.List>) {
   return (
-    <nav
-      className="flex gap-1 overflow-x-auto border-b border-slate-700 bg-slate-800/50 px-2"
-      role="tablist"
-      aria-label="Sections"
-    >
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          role="tab"
-          aria-selected={active === t.id}
-          type="button"
-          onClick={() => onChange(t.id)}
-          className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-            active === t.id
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          {t.icon}
-          {t.label}
-        </button>
-      ))}
-    </nav>
+    <TabsPrimitive.List
+      className={cn("flex gap-1 border-b border-border bg-card/50 px-2", className)}
+      {...props}
+    />
+  );
+}
+
+export function TabsTrigger({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  return (
+    <TabsPrimitive.Trigger
+      className={cn(
+        "inline-flex items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:text-primary",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function TabsContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  return (
+    <TabsPrimitive.Content
+      className={cn("mt-4 focus-visible:outline-none", className)}
+      {...props}
+    />
   );
 }
