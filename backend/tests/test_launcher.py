@@ -291,7 +291,6 @@ class TestDatabaseBootstrap:
         from launcher import LauncherApp, MainScreen
 
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr("launcher._db_path", lambda: tmp_path / "arcade.db")
         monkeypatch.setattr("backend.core.db_bootstrap.is_db_present", lambda: False)
         monkeypatch.setattr(
             "backend.core.db_bootstrap.find_latest_backup",
@@ -329,6 +328,61 @@ class TestDatabaseBootstrap:
         assert shown == [MainScreen]
         root.destroy()
 
+    def test_missing_db_cancel_quits(self, tmp_path: Any, monkeypatch: Any) -> None:
+        """Cancel on the missing-DB modal quits the launcher (no MainScreen)."""
+        import tkinter as tk
+
+        from launcher import LauncherApp
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("backend.core.db_bootstrap.is_db_present", lambda: False)
+        monkeypatch.setattr(
+            "backend.core.db_bootstrap.find_latest_backup",
+            lambda bd: tmp_path / "arcade_20260718_0300.db",
+        )
+        # Sentinels to ensure restore/create are NOT called on cancel
+        restore_called: dict[str, bool] = {"v": False}
+        create_called: dict[str, bool] = {"v": False}
+        monkeypatch.setattr(
+            "backend.core.db_bootstrap.restore_latest_backup",
+            lambda bd: restore_called.update(v=True),
+        )
+        monkeypatch.setattr(
+            "backend.core.db_bootstrap.create_fresh_database",
+            lambda: create_called.update(v=True),
+        )
+        monkeypatch.setattr(
+            "backend.core.db_bootstrap.ensure_schema_current", lambda: None
+        )
+        monkeypatch.setattr(
+            LauncherApp, "_ask_db_restore", lambda self, latest: "cancel"
+        )
+        monkeypatch.setattr(
+            "backend.core.config.load_config",
+            lambda: type("C", (), {"backup_dir": "./backups"})(),
+        )
+        monkeypatch.setattr(
+            "launcher.check_license",
+            lambda: type("R", (), {"ok": True, "payload": {}})(),
+        )
+        (tmp_path / "arcade.config.json").write_text("{}")
+
+        shown: list = []
+        monkeypatch.setattr(
+            LauncherApp,
+            "show_screen",
+            lambda self, cls, *a, **k: shown.append(cls),
+        )
+
+        root = tk.Tk()
+        app = LauncherApp(root)
+        app._check_and_route()
+        # Cancel path: root.destroy() called, show_screen NOT called
+        assert shown == []
+        assert restore_called["v"] is False
+        assert create_called["v"] is False
+        root.destroy()
+
     def test_present_db_routes_to_main_after_ensure_schema(
         self, tmp_path: Any, monkeypatch: Any
     ) -> None:
@@ -337,7 +391,6 @@ class TestDatabaseBootstrap:
         from launcher import LauncherApp, MainScreen
 
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr("launcher._db_path", lambda: tmp_path / "arcade.db")
         monkeypatch.setattr("backend.core.db_bootstrap.is_db_present", lambda: True)
         ensured: dict[str, bool] = {}
         monkeypatch.setattr(
