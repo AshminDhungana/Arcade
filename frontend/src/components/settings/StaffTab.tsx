@@ -89,14 +89,14 @@ function StaffFormModal({
         />
 
         <div>
-          <label htmlFor="role" className="mb-1 block text-sm font-medium text-slate-300">
+          <label htmlFor="role" className="mb-1 block text-sm font-medium text-foreground">
             Role
           </label>
           <select
             id="role"
             value={formData.role}
             onChange={(e) => handleChange('role', e.target.value as StaffRole)}
-            className="w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 px-3 pr-8 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-input bg-popover py-2.5 px-3 pr-8 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             aria-invalid={!!errors.role}
           >
             <option value="ADMIN">Admin</option>
@@ -154,7 +154,7 @@ function ConfirmationModal({
 }) {
   return (
     <Modal open={open} onClose={onClose} title={title}>
-      <p className="mb-4 text-slate-300">{message}</p>
+      <p className="mb-4 text-foreground">{message}</p>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose} disabled={isLoading}>
           Cancel
@@ -240,7 +240,7 @@ function activeBadge(isActive: boolean) {
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
         isActive
           ? 'bg-emerald-900/30 text-emerald-300'
-          : 'bg-slate-700 text-slate-400'
+          : 'bg-secondary text-muted-foreground'
       }`}
     >
       {isActive ? 'Active' : 'Inactive'}
@@ -353,9 +353,9 @@ export function StaffTab() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-white">Staff</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Staff</h1>
         </div>
-        <div className="flex h-64 items-center justify-center text-slate-400">Loading…</div>
+        <div className="flex h-64 items-center justify-center text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -363,7 +363,7 @@ export function StaffTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-white">Staff</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Staff</h1>
         <Button variant="emerald" onClick={() => setModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Staff
@@ -372,13 +372,13 @@ export function StaffTab() {
 
       {isError && <ErrorState message="Failed to load staff. Admin required." onRetry={refetch} />}
 
-      <section className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         {staff.length === 0 ? (
           <EmptyState message="No staff yet. Add one to get started." />
         ) : (
           <Table>
             <thead>
-              <tr className="border-b border-slate-700">
+              <tr className="border-b border-border">
                 <Th className="text-left">Name</Th>
                 <Th className="text-left">Role</Th>
                 <Th className="text-left">Status</Th>
@@ -387,7 +387,7 @@ export function StaffTab() {
             </thead>
             <tbody>
               {staff.map((s) => (
-                <tr key={s.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                <tr key={s.id} className="border-b border-border hover:bg-secondary">
                   <Td className="font-medium">{s.name}</Td>
                   <Td>{roleBadge(s.role)}</Td>
                   <Td>{activeBadge(s.is_active)}</Td>

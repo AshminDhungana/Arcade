@@ -149,7 +149,7 @@ function ScheduleFormModal({
         </div>
 
         <div>
-          <label htmlFor="day_of_week" className="mb-1 block text-sm font-medium text-slate-300">
+          <label htmlFor="day_of_week" className="mb-1 block text-sm font-medium text-foreground">
             Day of Week
           </label>
           <select
@@ -159,7 +159,7 @@ function ScheduleFormModal({
               const val = e.target.value;
               handleChange('day_of_week', val === 'all' ? null : Number(val));
             }}
-            className="w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 px-3 pr-8 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-input bg-popover py-2.5 px-3 pr-8 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             aria-invalid={!!errors.day_of_week}
           >
             <option value="all">All days</option>
@@ -286,9 +286,9 @@ export function SchedulesTab() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-white">Schedules</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Schedules</h1>
         </div>
-        <div className="flex h-64 items-center justify-center text-slate-400">Loading…</div>
+        <div className="flex h-64 items-center justify-center text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -296,7 +296,7 @@ export function SchedulesTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-white">Schedules</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Schedules</h1>
         <Button variant="emerald" onClick={() => openModal()}>
           <Plus className="h-4 w-4 mr-2" />
           Add Schedule
@@ -305,13 +305,13 @@ export function SchedulesTab() {
 
       {isError && <ErrorState message="Failed to load schedules. Admin required." onRetry={refetch} />}
 
-      <section className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         {schedules.length === 0 ? (
           <EmptyState message="No schedules configured. Add one to get started." />
         ) : (
           <Table>
             <thead>
-              <tr className="border-b border-slate-700">
+              <tr className="border-b border-border">
                 <Th className="text-left">Name</Th>
                 <Th className="text-left">Type</Th>
                 <Th className="text-left">Days</Th>
@@ -322,10 +322,10 @@ export function SchedulesTab() {
             </thead>
             <tbody>
               {schedules.map((schedule) => (
-                <tr key={schedule.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                <tr key={schedule.id} className="border-b border-border hover:bg-secondary">
                   <Td className="font-medium">{schedule.name}</Td>
                   <Td>{peakBadge(schedule.is_peak)}</Td>
-                  <Td className="text-slate-300">{dayOfWeekLabel(schedule.day_of_week)}</Td>
+                  <Td className="text-foreground">{dayOfWeekLabel(schedule.day_of_week)}</Td>
                   <Td className="font-mono tabular-nums">{schedule.start_time}–{schedule.end_time}</Td>
                   <Td className="text-right font-mono tabular-nums text-emerald-400">
                     {formatPaise(schedule.surcharge_paise)}
@@ -383,7 +383,7 @@ export function SchedulesTab() {
           }}
           title="Delete Schedule"
         >
-          <p className="mb-4 text-slate-300">
+          <p className="mb-4 text-foreground">
             Are you sure you want to delete this schedule? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-2">

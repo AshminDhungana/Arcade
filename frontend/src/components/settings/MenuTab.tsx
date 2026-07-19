@@ -203,7 +203,7 @@ function ConfirmationModal({
 }) {
   return (
     <Modal open={open} onClose={onClose} title={title}>
-      <p className="mb-4 text-slate-300">{message}</p>
+      <p className="mb-4 text-foreground">{message}</p>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose} disabled={isLoading}>
           Cancel
@@ -222,7 +222,7 @@ function availabilityBadge(isAvailable: boolean) {
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
         isAvailable
           ? 'bg-emerald-900/30 text-emerald-300'
-          : 'bg-slate-700 text-slate-400'
+          : 'bg-secondary text-muted-foreground'
       }`}
     >
       {isAvailable ? 'Available' : 'Unavailable'}
@@ -297,9 +297,9 @@ export function MenuTab() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-white">Menu</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Menu</h1>
         </div>
-        <div className="flex h-64 items-center justify-center text-slate-400">Loading…</div>
+        <div className="flex h-64 items-center justify-center text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -307,7 +307,7 @@ export function MenuTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-white">Menu</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Menu</h1>
         <Button variant="emerald" onClick={() => setAddOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Item
@@ -318,13 +318,13 @@ export function MenuTab() {
         <ErrorState message="Failed to load menu. Admin required." onRetry={refetch} />
       )}
 
-      <section className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         {items.length === 0 ? (
           <EmptyState message="No menu items yet. Add one to get started." />
         ) : (
           <Table>
             <thead>
-              <tr className="border-b border-slate-700">
+              <tr className="border-b border-border">
                 <Th className="text-left">Name</Th>
                 <Th className="text-left">Category</Th>
                 <Th className="text-right">Price</Th>
@@ -334,7 +334,7 @@ export function MenuTab() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                <tr key={item.id} className="border-b border-border hover:bg-secondary">
                   <Td className="font-medium">{item.name}</Td>
                   <Td>{item.category ?? '—'}</Td>
                   <Td className="text-right tabular-nums">{formatPaise(item.price_paise)}</Td>

@@ -140,14 +140,14 @@ function ZoneFormModal({
         />
 
         <div>
-          <label htmlFor="pricing_model" className="mb-1 block text-sm font-medium text-slate-300">
+          <label htmlFor="pricing_model" className="mb-1 block text-sm font-medium text-foreground">
             Pricing Model
           </label>
           <select
             id="pricing_model"
             value={formData.pricing_model}
             onChange={(e) => handleChange('pricing_model', e.target.value as PricingModel)}
-            className="w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 px-3 pr-8 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-input bg-popover py-2.5 px-3 pr-8 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             aria-invalid={!!errors.pricing_model}
           >
             <option value="PER_MINUTE">Per Minute</option>
@@ -361,21 +361,21 @@ export function PricingTab() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-white">Pricing</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Pricing</h1>
         </div>
-        <div className="flex h-64 items-center justify-center text-slate-400">Loading…</div>
+        <div className="flex h-64 items-center justify-center text-muted-foreground">Loading…</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-white">Pricing</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Pricing</h1>
 
       {/* Zones Section */}
-      <section className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Zones</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Zones</h2>
           <Button variant="emerald" onClick={() => openZoneModal()}>
             <Plus className="h-4 w-4 mr-2" />
             Add Zone
@@ -389,7 +389,7 @@ export function PricingTab() {
         ) : (
           <Table>
             <thead>
-              <tr className="border-b border-slate-700">
+              <tr className="border-b border-border">
                 <Th className="text-left">Name</Th>
                 <Th className="text-right">Rate / Min</Th>
                 <Th className="text-right">Rate / Hour</Th>
@@ -399,7 +399,7 @@ export function PricingTab() {
             </thead>
             <tbody>
               {zones.map((zone) => (
-                <tr key={zone.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                <tr key={zone.id} className="border-b border-border hover:bg-secondary">
                   <Td className="font-medium">{zone.name}</Td>
                   <Td className="text-right font-mono tabular-nums text-emerald-400">
                     {formatPaise(zone.rate_per_minute_paise)}
@@ -468,7 +468,7 @@ export function PricingTab() {
             }}
             title="Delete Zone"
           >
-            <p className="mb-4 text-slate-300">Are you sure you want to delete this zone? This action cannot be undone.</p>
+            <p className="mb-4 text-foreground">Are you sure you want to delete this zone? This action cannot be undone.</p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => { setConfirmDelete(false); setDeleteZoneId(null); }}>
                 Cancel
@@ -482,9 +482,9 @@ export function PricingTab() {
       </section>
 
       {/* Device Types Section */}
-      <section className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Device Types</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Device Types</h2>
           <Button variant="emerald" onClick={() => { setEditingDeviceType(null); setDeviceTypeModalOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
             Add Device Type
@@ -498,7 +498,7 @@ export function PricingTab() {
         ) : (
           <Table>
             <thead>
-              <tr className="border-b border-slate-700">
+              <tr className="border-b border-border">
                 <Th className="text-left">Name</Th>
                 <Th className="text-left">Description</Th>
                 <Th className="text-right">Actions</Th>
@@ -506,9 +506,9 @@ export function PricingTab() {
             </thead>
             <tbody>
               {deviceTypes.map((dt) => (
-                <tr key={dt.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                <tr key={dt.id} className="border-b border-border hover:bg-secondary">
                   <Td className="font-medium">{dt.name}</Td>
-                  <Td className="text-slate-400">{dt.description ?? '—'}</Td>
+                  <Td className="text-muted-foreground">{dt.description ?? '—'}</Td>
                   <Td className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
@@ -552,7 +552,7 @@ export function PricingTab() {
             onClose={() => setDeleteDeviceTypeId(null)}
             title="Delete Device Type"
           >
-            <p className="mb-4 text-slate-300">Are you sure you want to delete this device type? This action cannot be undone.</p>
+            <p className="mb-4 text-foreground">Are you sure you want to delete this device type? This action cannot be undone.</p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setDeleteDeviceTypeId(null)}>
                 Cancel

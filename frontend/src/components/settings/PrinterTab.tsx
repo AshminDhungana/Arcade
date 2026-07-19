@@ -52,26 +52,26 @@ export function PrinterTab() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold text-white">Printer</h1>
-        <div className="flex h-64 items-center justify-center text-slate-400">Loading…</div>
+        <h1 className="text-2xl font-semibold text-foreground">Printer</h1>
+        <div className="flex h-64 items-center justify-center text-muted-foreground">Loading…</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-white">Printer</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Printer</h1>
 
       {isError && (
         <ErrorState message="Failed to load printer settings. Admin required." onRetry={refetch} />
       )}
 
-      <section className="rounded-xl border border-slate-700 bg-slate-800 p-5">
+      <section className="rounded-xl border border-border bg-card p-5">
         <form onSubmit={handleSave} className="max-w-md space-y-4">
           <div>
             <label
               htmlFor="printer_type"
-              className="mb-1 block text-sm font-medium text-slate-300"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Connection type
             </label>
@@ -79,7 +79,7 @@ export function PrinterTab() {
               id="printer_type"
               value={form.type}
               onChange={(e) => handleChange('type', e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 px-3 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-input bg-popover py-2.5 px-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             >
               <option value="">Select…</option>
               <option value="usb">USB</option>
