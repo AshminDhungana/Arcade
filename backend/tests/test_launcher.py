@@ -279,3 +279,91 @@ class TestMainScreen:
             screen._stop_server()
             mock_proc.terminate.assert_called_once()
         root.destroy()
+
+
+@pytest.mark.skipif(not _TK_AVAILABLE, reason="Tcl/Tk not available")
+class TestDatabaseBootstrap:
+    def test_missing_db_routes_to_main_after_restore_choice(
+        self, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+        import tkinter as tk
+
+        from launcher import LauncherApp, MainScreen
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("launcher._db_path", lambda: tmp_path / "arcade.db")
+        monkeypatch.setattr("backend.core.db_bootstrap.is_db_present", lambda: False)
+        monkeypatch.setattr(
+            "backend.core.db_bootstrap.find_latest_backup",
+            lambda bd: tmp_path / "arcade_20260718_0300.db",
+        )
+        monkeypatch.setattr(
+            "backend.core.db_bootstrap.restore_latest_backup", lambda bd: None
+        )
+        monkeypatch.setattr(
+            "backend.core.db_bootstrap.ensure_schema_current", lambda: None
+        )
+        monkeypatch.setattr(
+            LauncherApp, "_ask_db_restore", lambda self, latest: "restore"
+        )
+        monkeypatch.setattr(
+            "backend.core.config.load_config",
+            lambda: type("C", (), {"backup_dir": "./backups"})(),
+        )
+        monkeypatch.setattr(
+            "launcher.check_license",
+            lambda: type("R", (), {"ok": True, "payload": {}})(),
+        )
+        (tmp_path / "arcade.config.json").write_text("{}")
+
+        shown: list = []
+        monkeypatch.setattr(
+            LauncherApp,
+            "show_screen",
+            lambda self, cls, *a, **k: shown.append(cls),
+        )
+
+        root = tk.Tk()
+        app = LauncherApp(root)
+        app._check_and_route()
+        assert shown == [MainScreen]
+        root.destroy()
+
+    def test_present_db_routes_to_main_after_ensure_schema(
+        self, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+        import tkinter as tk
+
+        from launcher import LauncherApp, MainScreen
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("launcher._db_path", lambda: tmp_path / "arcade.db")
+        monkeypatch.setattr("backend.core.db_bootstrap.is_db_present", lambda: True)
+        ensured: dict[str, bool] = {}
+        monkeypatch.setattr(
+            "backend.core.db_bootstrap.ensure_schema_current",
+            lambda: ensured.update(called=True),
+        )
+        monkeypatch.setattr(
+            "backend.core.config.load_config",
+            lambda: type("C", (), {"backup_dir": "./backups"})(),
+        )
+        monkeypatch.setattr(
+            "launcher.check_license",
+            lambda: type("R", (), {"ok": True, "payload": {}})(),
+        )
+        (tmp_path / "arcade.config.json").write_text("{}")
+
+        shown: list = []
+        monkeypatch.setattr(
+            LauncherApp,
+            "show_screen",
+            lambda self, cls, *a, **k: shown.append(cls),
+        )
+
+        root = tk.Tk()
+        app = LauncherApp(root)
+        app._check_and_route()
+        assert shown == [MainScreen]
+        assert ensured.get("called") is True
+        root.destroy()

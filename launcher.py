@@ -806,6 +806,127 @@ class LauncherApp:
             self._main_screen._stop_server()
         self.root.destroy()
 
+    def _ensure_database(self) -> None:
+        """Ensure a valid, migrated arcade.db exists before the server starts.
+
+        - Present DB -> ensure schema is current.
+        - Missing DB  -> ask the user to restore the latest backup or create new.
+        - Cancelled   -> quit the launcher (never boot a broken/absent DB).
+        """
+        from backend.core import db_bootstrap
+        from backend.core.config import load_config
+
+        if db_bootstrap.is_db_present():
+            db_bootstrap.ensure_schema_current()
+            return
+
+        backup_dir = load_config().backup_dir
+        latest = db_bootstrap.find_latest_backup(backup_dir)
+        choice = self._ask_db_restore(latest)
+        if choice == "restore" and latest is not None:
+            try:
+                db_bootstrap.restore_latest_backup(backup_dir)
+            except Exception as exc:  # noqa: BLE001
+                messagebox.showerror(
+                    "Restore failed",
+                    f"Could not restore the backup:\n{exc}\n\n"
+                    "A new empty database will be created instead.",
+                )
+                db_bootstrap.create_fresh_database()
+        elif choice == "create":
+            db_bootstrap.create_fresh_database()
+        else:
+            # User dismissed the dialog without choosing: do not start server.
+            self.root.destroy()
+
+    def _ask_db_restore(self, latest: Path | None) -> str:
+        """Blocking modal: 'restore latest backup' / 'create new' / 'cancel'.
+
+        Returns one of 'restore', 'create', or 'cancel'.
+        """
+        response: dict[str, str] = {"choice": "cancel"}
+
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title("Database Not Found")
+        dialog.geometry("520x340")
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+        dialog.grab_set()
+        _center_window(dialog, 520, 340)
+
+        ctk.CTkLabel(
+            dialog,
+            text="No database found",
+            font=heading_font(16),
+            text_color=[L_TEXT, TEXT],
+        ).pack(padx=24, pady=(24, 6))
+        ctk.CTkLabel(
+            dialog,
+            text=(
+                "Arcade could not find arcade.db. Restore the most recent "
+                "backup, or start with a new (empty) database."
+            ),
+            font=body_font(12),
+            text_color=MUTED_TEXT,
+            wraplength=460,
+            justify="left",
+        ).pack(padx=24, pady=(0, 12))
+
+        if latest is not None:
+            ctk.CTkLabel(
+                dialog,
+                text=f"Latest backup: {latest.name}",
+                font=mono_font(11),
+                text_color=[L_TEXT, TEXT],
+            ).pack(padx=24, pady=(0, 12))
+
+        def _choose(value: str) -> None:
+            response["choice"] = value
+            dialog.grab_release()
+            dialog.destroy()
+
+        restore_btn = ctk.CTkButton(
+            dialog,
+            text="Restore latest backup",
+            command=lambda: _choose("restore"),
+            state="normal" if latest is not None else "disabled",
+            font=heading_font(13),
+            height=BTN_HEIGHT,
+            corner_radius=RADIUS,
+            fg_color=BLUE,
+            hover_color=BLUE_HOVER,
+            text_color=TEXT,
+        )
+        restore_btn.pack(fill="x", padx=24, pady=(4, 10))
+        create_btn = ctk.CTkButton(
+            dialog,
+            text="Create new database",
+            command=lambda: _choose("create"),
+            font=heading_font(13),
+            height=BTN_HEIGHT,
+            corner_radius=RADIUS,
+            fg_color=EMERALD,
+            hover_color=EMERALD_HOVER,
+            text_color=TEXT,
+        )
+        create_btn.pack(fill="x", padx=24, pady=(0, 10))
+        cancel_btn = ctk.CTkButton(
+            dialog,
+            text="Cancel",
+            command=lambda: _choose("cancel"),
+            font=body_font(12),
+            height=BTN_HEIGHT,
+            corner_radius=RADIUS,
+            fg_color=[L_BORDER, S700],
+            hover_color=[L_BORDER, S700_HOVER],
+            text_color=[L_TEXT, TEXT],
+        )
+        cancel_btn.pack(fill="x", padx=24, pady=(0, 16))
+
+        dialog.protocol("WM_DELETE_WINDOW", lambda: _choose("cancel"))
+        self.root.wait_window(dialog)
+        return response["choice"]
+
     # ------------------------------------------------------------------
     # License routing (FR-SYS-008)
     # ------------------------------------------------------------------
@@ -814,6 +935,7 @@ class LauncherApp:
         result = check_license()
         if result.ok:
             if Path("arcade.config.json").exists():
+                self._ensure_database()
                 self.show_screen(MainScreen)
                 self._main_screen = self.current_screen
             else:
