@@ -23,7 +23,7 @@ import tkinter as tk
 import webbrowser
 from datetime import UTC, datetime
 from pathlib import Path
-from tkinter import filedialog, messagebox, scrolledtext
+from tkinter import filedialog, messagebox
 from typing import Any
 
 import customtkinter as ctk
@@ -76,6 +76,13 @@ _LICENSE_ERROR_MESSAGES: dict[LicenseError, str] = {
     LicenseError.TRIAL_EXPIRED: (
         "Your trial period has ended. Contact the seller to purchase a full license."
     ),
+}
+
+_ERROR_HEADLINES: dict[LicenseError, str] = {
+    LicenseError.MISSING: "No License Found",
+    LicenseError.INVALID_SIGNATURE: "License Invalid",
+    LicenseError.HARDWARE_MISMATCH: "Wrong Machine",
+    LicenseError.TRIAL_EXPIRED: "Trial Expired",
 }
 
 # ---------------------------------------------------------------------------
@@ -177,18 +184,41 @@ class ActivationScreen(_BaseScreen):
         header = brand_header(self, subtitle="License Activation Required")
         header.grid(row=0, column=0, padx=40, pady=(30, 10), sticky="ew")
 
-        # Error box
+        # Error card: bold headline + detail + recovery line
         error = self.result.error or LicenseError.MISSING
         msg = _LICENSE_ERROR_MESSAGES.get(error, str(error))
-        self.error_label = ctk.CTkLabel(
+        card = ctk.CTkFrame(
             self,
-            text=msg,
-            wraplength=560,
-            justify="center",
-            font=body_font(13),
-            text_color=RED,
+            fg_color=[L_FRAME, S800],
+            border_color=RED,
+            border_width=1,
+            corner_radius=RADIUS,
         )
-        self.error_label.grid(row=1, column=0, padx=40, pady=(0, 20), sticky="ew")
+        card.grid(row=1, column=0, padx=40, pady=(0, 20), sticky="ew")
+        card.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            card,
+            text=_ERROR_HEADLINES.get(error, "License Required"),
+            font=heading_font(15),
+            text_color=RED,
+            wraplength=540,
+        ).grid(row=0, column=0, padx=16, pady=(14, 4), sticky="ew")
+        self.error_label = ctk.CTkLabel(
+            card,
+            text=msg,
+            font=body_font(13),
+            text_color=[L_TEXT, TEXT],
+            wraplength=540,
+            justify="center",
+        )
+        self.error_label.grid(row=1, column=0, padx=16, pady=(0, 4), sticky="ew")
+        ctk.CTkLabel(
+            card,
+            text="Purchase a license or contact support with your Hardware ID below.",
+            font=body_font(11),
+            text_color=MUTED_TEXT,
+            wraplength=540,
+        ).grid(row=2, column=0, padx=16, pady=(0, 14), sticky="ew")
 
         # Hardware ID section
         hwid_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -197,8 +227,8 @@ class ActivationScreen(_BaseScreen):
 
         ctk.CTkLabel(
             hwid_frame,
-            text="Hardware ID (give this to support):",
-            font=heading_font(12),
+            text="Your Hardware ID:",
+            font=body_font(12),
             text_color=MUTED_TEXT,
         ).grid(row=0, column=0, sticky="w", pady=(0, 5))
 
@@ -259,7 +289,7 @@ class ActivationScreen(_BaseScreen):
     def _copy_hwid(self) -> None:
         self.clipboard_clear()
         self.clipboard_append(self.hwid_var.get())
-        self.controller.root.bell()
+        messagebox.showinfo("Copied", "Hardware ID copied to clipboard.")
 
     def _browse(self) -> None:
         path = filedialog.askopenfilename(
@@ -419,7 +449,7 @@ class SetupWizard(_BaseScreen):
             self.form,
             text=text,
             font=heading_font(14),
-            text_color=[L_TEXT, TEXT],
+            text_color=BLUE,
         ).grid(row=self.form.grid_size()[1], column=0, sticky="w", pady=(0, 8))
 
     def _labeled_entry(
@@ -517,6 +547,7 @@ class MainScreen(_BaseScreen):
         self._proc: subprocess.Popen[str] | None = None
         self._log_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
+        self._logs_started = False
         self._build()
 
     def _build(self) -> None:
@@ -530,23 +561,29 @@ class MainScreen(_BaseScreen):
         header = brand_header(self, subtitle="Server Control")
         header.grid(row=0, column=0, padx=40, pady=(30, 10), sticky="ew")
 
-        # Status row
+        # Status pill
         status_frame = ctk.CTkFrame(self, fg_color="transparent")
         status_frame.grid(row=1, column=0, padx=40, pady=(0, 10), sticky="ew")
         status_frame.grid_columnconfigure(1, weight=1)
 
-        self._dot = ctk.CTkCanvas(
-            status_frame, width=16, height=16, bg=L_BG, highlightthickness=0
-        )
-        self._dot.grid(row=0, column=0, padx=(0, 12))
-        self._dot_id = self._dot.create_oval(2, 2, 14, 14, fill=RED, outline="")
-
         self._status_var = ctk.StringVar(value="Stopped")
-        ctk.CTkLabel(
+        self._pill = ctk.CTkLabel(
             status_frame,
             textvariable=self._status_var,
-            font=heading_font(14),
-            text_color=[L_TEXT, TEXT],
+            font=heading_font(13),
+            text_color=TEXT,
+            height=28,
+            corner_radius=14,
+            fg_color=RED,
+            padx=14,
+        )
+        self._pill.grid(row=0, column=0, padx=(0, 12), sticky="w")
+
+        ctk.CTkLabel(
+            status_frame,
+            text="Server status",
+            font=body_font(12),
+            text_color=MUTED_TEXT,
         ).grid(row=0, column=1, sticky="w")
 
         # Buttons
@@ -588,8 +625,8 @@ class MainScreen(_BaseScreen):
             font=heading_font(13),
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=BLUE,
-            hover_color=BLUE_HOVER,
+            fg_color=S700,
+            hover_color=S700_HOVER,
             text_color=TEXT,
         )
         self._dashboard_btn.grid(row=0, column=2, padx=(6, 0), sticky="ew")
@@ -612,24 +649,30 @@ class MainScreen(_BaseScreen):
         log_frame.grid_rowconfigure(0, weight=1)
         log_frame.grid_columnconfigure(0, weight=1)
 
-        self._log_text = scrolledtext.ScrolledText(
+        self._log_text = ctk.CTkTextbox(
             log_frame,
-            height=15,
             state=tk.DISABLED,
-            wrap=tk.WORD,
-            font=("Consolas", 10),
-            bg=L_FRAME,
-            fg=L_TEXT,
-            bd=0,
-            highlightthickness=0,
+            wrap="word",
+            font=mono_font(11),
+            fg_color=[L_FRAME, S800],
+            text_color=[L_TEXT, TEXT],
+            border_width=0,
         )
         self._log_text.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        self._log_text.insert(
+            "0.0", "Server logs will appear here once you start the server."
+        )
 
     # ------------------------------------------------------------------
     # Server lifecycle
     # ------------------------------------------------------------------
 
     def _append_log(self, line: str) -> None:
+        if not self._logs_started:
+            self._log_text.configure(state=tk.NORMAL)
+            self._log_text.delete("0.0", tk.END)
+            self._log_text.configure(state=tk.DISABLED)
+            self._logs_started = True
         self._log_text.configure(state=tk.NORMAL)
         self._log_text.insert(tk.END, line)
         self._log_text.see(tk.END)
@@ -666,7 +709,7 @@ class MainScreen(_BaseScreen):
         )
 
         self._status_var.set(f"Running at http://{host}:{port}")
-        self._dot.itemconfig(self._dot_id, fill=EMERALD)
+        self._pill.configure(fg_color=EMERALD)
         self._start_btn.configure(state="disabled")
         self._stop_btn.configure(state="normal")
 
@@ -691,7 +734,7 @@ class MainScreen(_BaseScreen):
                 self._proc.kill()
                 self._proc.wait()
         self._status_var.set("Stopped")
-        self._dot.itemconfig(self._dot_id, fill=RED)
+        self._pill.configure(fg_color=RED)
         self._start_btn.configure(state="normal")
         self._stop_btn.configure(state="disabled")
 
