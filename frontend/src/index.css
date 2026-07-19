@@ -1,16 +1,83 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
-@theme {
-  --color-surface-950: #020617;
-  --color-surface-900: #0F172A;
-  --color-surface-800: #1E293B;
-  --color-surface-700: #334155;
-  --color-brand-500: #3B82F6;
-  --color-brand-600: #2563EB;
-  --color-success-500: #22C55E;
-  --color-danger-500: #EF4444;
-  --color-text-50: #F8FAFC;
-  --color-text-muted: #94A3B8;
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, monospace;
+@custom-variant dark (&:is(.dark *));
+
+:root,
+.dark {
+  --background: #020617;        /* surface-950 — page base */
+  --foreground: #f8fafc;        /* text-50 */
+  --card: #0f172a;              /* surface-900 — panels */
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;           /* surface-800 — overlays */
+  --popover-foreground: #f8fafc;
+  --primary: #0090fa;           /* brand mid */
+  --primary-foreground: #ffffff;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;  /* text-muted */
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
+  --destructive: #ef4444;       /* danger-500 */
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;           /* success-500 */
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;           /* amber-500 */
+  --warning-foreground: #ffffff;
+  --border: #334155;            /* surface-700 */
+  --input: #334155;
+  --ring: #0090fa;
+  --radius: 0.75rem;
+
+  /* Brand gradient (controller icon stops) */
+  --brand-gradient: linear-gradient(135deg, #0334f0, #0090fa 55%, #06a3fc);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Ambient brand backdrop for the login page */
+.bg-ambient {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(60rem 60rem at 88% -10%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 60%),
+    radial-gradient(42rem 42rem at 6% 112%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 55%);
+}
+
+/* Brand gradient utility */
+.bg-brand-gradient {
+  background-image: var(--brand-gradient);
+}
+
+@layer base {
+  html { font-family: var(--font-sans); }
+  body { background-color: var(--background); color: var(--foreground); }
 }
