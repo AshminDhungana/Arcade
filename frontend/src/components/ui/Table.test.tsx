@@ -22,7 +22,7 @@ describe('Table', () => {
     const tableWrapper = screen.getByRole('table').parentElement;
     expect(tableWrapper).toHaveClass('overflow-x-auto');
     expect(tableWrapper).toHaveClass('rounded-lg');
-    expect(tableWrapper).toHaveClass('border-slate-700/50');
+    expect(tableWrapper).toHaveClass('border-border');
   });
 
   it('renders Th with correct classes', () => {
@@ -37,14 +37,11 @@ describe('Table', () => {
     );
 
     const th = screen.getByRole('columnheader');
-    expect(th).toHaveClass('px-3');
-    expect(th).toHaveClass('py-2');
-    expect(th).toHaveClass('text-left');
-    expect(th).toHaveClass('text-xs');
-    expect(th).toHaveClass('font-semibold');
-    expect(th).toHaveClass('uppercase');
-    expect(th).toHaveClass('tracking-wider');
-    expect(th).toHaveClass('text-slate-400');
+    expect(th).toHaveClass('px-4');
+    expect(th).toHaveClass('py-3');
+    expect(th).toHaveClass('bg-secondary/60');
+    expect(th).toHaveClass('text-muted-foreground');
+    expect(th).toHaveClass('font-medium');
   });
 
   it('renders Td with correct classes', () => {
@@ -59,10 +56,9 @@ describe('Table', () => {
     );
 
     const td = screen.getByRole('cell');
-    expect(td).toHaveClass('px-3');
-    expect(td).toHaveClass('py-2');
-    expect(td).toHaveClass('text-sm');
-    expect(td).toHaveClass('text-slate-200');
+    expect(td).toHaveClass('px-4');
+    expect(td).toHaveClass('py-3');
+    expect(td).toHaveClass('text-foreground');
   });
 
   it('forwards additional className to Table, Th, and Td', () => {

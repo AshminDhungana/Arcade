@@ -83,7 +83,7 @@ describe('Toast system', () => {
     expect(screen.queryByText('Click to dismiss')).not.toBeInTheDocument();
   });
 
-  it('renders success toast with green styling and check icon', () => {
+  it('renders success toast with token styling and check icon', () => {
     render(<ToastViewport />);
 
     act(() => {
@@ -91,13 +91,15 @@ describe('Toast system', () => {
     });
 
     const toastElement = screen.getByText('Success message').closest('div');
-    expect(toastElement).toHaveClass('border-emerald-500/20');
-    expect(toastElement).toHaveClass('bg-emerald-900/90');
-    expect(toastElement).toHaveClass('text-emerald-200');
+    expect(toastElement).toHaveClass('border-border');
+    expect(toastElement).toHaveClass('bg-popover');
+    expect(toastElement).toHaveClass('text-foreground');
+    const icon = toastElement!.querySelector('svg');
+    expect(icon).toHaveClass('text-success');
     expect(toastElement!.querySelector('.lucide-circle-check-big')).toBeInTheDocument();
   });
 
-  it('renders error toast with red styling and alert icon', () => {
+  it('renders error toast with token styling and alert icon', () => {
     render(<ToastViewport />);
 
     act(() => {
@@ -105,9 +107,11 @@ describe('Toast system', () => {
     });
 
     const toastElement = screen.getByText('Error message').closest('div');
-    expect(toastElement).toHaveClass('border-red-800/50');
-    expect(toastElement).toHaveClass('bg-red-900/90');
-    expect(toastElement).toHaveClass('text-red-200');
+    expect(toastElement).toHaveClass('border-border');
+    expect(toastElement).toHaveClass('bg-popover');
+    expect(toastElement).toHaveClass('text-foreground');
+    const icon = toastElement!.querySelector('svg');
+    expect(icon).toHaveClass('text-destructive');
     expect(toastElement!.querySelector('.lucide-circle-alert')).toBeInTheDocument();
   });
 
