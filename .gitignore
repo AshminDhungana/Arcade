@@ -15,6 +15,7 @@ CLAUDE.md
 backend/venv
 docs/superpowers
 .superpowers
+.agents
 
 # Distribution / packaging
 .Python
