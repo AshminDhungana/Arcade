@@ -1,28 +1,40 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import * as React from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
 
-interface ModalProps { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; }
+export interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}
+
 export function Modal({ open, onClose, title, children, footer }: ModalProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    const prev = document.activeElement as HTMLElement | null;
-    ref.current?.querySelector<HTMLElement>('button, [href], input, select, textarea')?.focus();
-    return () => { document.removeEventListener('keydown', onKey); prev?.focus?.(); };
-  }, [open, onClose]);
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label={title}>
-      <div ref={ref} className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-xl">
-        <header className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white -mr-2"><X className="h-5 w-5" /></button>
-        </header>
-        <div>{children}</div>
-        {footer && <footer className="mt-6 flex justify-end gap-2">{footer}</footer>}
-      </div>
-    </div>
+    <Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          aria-label={title}
+          className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-6 shadow-2xl focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <Dialog.Title className="text-lg font-bold text-foreground">{title}</Dialog.Title>
+            <Dialog.Close asChild>
+              <button
+                type="button"
+                aria-label="Close"
+                className="-mr-2 flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <X className="size-5" />
+              </button>
+            </Dialog.Close>
+          </div>
+          <div>{children}</div>
+          {footer && <footer className="mt-6 flex justify-end gap-2">{footer}</footer>}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
