@@ -71,7 +71,7 @@ def _resolve_brand_font() -> str | None:
         try:
             tkfont.Font(file=str(ttf))
             return ttf.stem
-        except Exception:
+        except Exception:  # noqa: S112 — unreadable font is intentionally skipped (never block launch)
             continue
     return None
 

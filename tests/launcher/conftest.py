@@ -3,6 +3,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 # Ensure the project root (where launcher_theme.py lives) is on sys.path
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -34,7 +36,3 @@ def _has_display() -> bool:
     if sys.platform == "win32":
         return True  # Windows usually has a display in CI
     return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
-
-
-# Import pytest here to avoid circular import in pytest_configure
-import pytest

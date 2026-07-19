@@ -18,6 +18,7 @@ select = ["E", "F", "I", "UP", "B", "S"]
 "backend/tests/**" = ["S101", "S105", "S106", "S104", "S110"]
 "backend/tests/validation_tasks/**" = ["S101", "S106", "E501", "S311"]
 "launcher.py" = ["S104", "S603"]
+"tests/launcher/**" = ["S101", "S105", "S106", "S104", "S110"]
 # Runtime value comes from arcade.config.json, not hardcoded
 
 [tool.black]
