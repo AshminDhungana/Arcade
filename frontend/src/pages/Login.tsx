@@ -1,24 +1,24 @@
-import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { login, AuthError } from '@/api/auth';
-import { useAuthStore } from '@/store/authStore';
+import { useState, useRef, useCallback, useEffect, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { Lock, User, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { login, AuthError } from "@/api/auth";
+import { useAuthStore } from "@/store/authStore";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
 
-/**
- * Format a duration in seconds as "MM:SS" for the lockout countdown.
- */
 function formatCountdown(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 export default function Login() {
   const navigate = useNavigate();
   const storeLogin = useAuthStore((state) => state.login);
 
-  const [staffId, setStaffId] = useState('');
-  const [pin, setPin] = useState('');
+  const [staffId, setStaffId] = useState("");
+  const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,157 +54,112 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!staffId.trim() || !pin.trim()) return;
-
     setError(null);
     setIsSubmitting(true);
-
     try {
       const response = await login(staffId.trim(), pin.trim());
       storeLogin(response.access_token, response.staff);
       setFailureCount(0);
-      navigate('/', { replace: true });
+      navigate("/", { replace: true });
     } catch (err) {
       if (err instanceof AuthError) {
         if (err.status === 429 && err.retryAfter !== null) {
-          setError('Too many failed login attempts. Please try again later.');
+          setError("Too many failed login attempts. Please try again later.");
           startCountdown(err.retryAfter);
         } else if (err.status === 401) {
           const newCount = failureCount + 1;
           setFailureCount(newCount);
           if (newCount >= 5) {
-            setError('Account temporarily locked due to multiple failed attempts.');
+            setError("Account temporarily locked due to multiple failed attempts.");
           } else {
             setError(`Invalid staff ID or PIN. (${5 - newCount} attempts remaining)`);
           }
         } else {
-          setError(err.message || 'Authentication failed.');
+          setError(err.message || "Authentication failed.");
         }
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        setError("An unexpected error occurred. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Clean up countdown on unmount
   useEffect(() => {
-    return () => {
-      clearCountdown();
-    };
+    return () => clearCountdown();
   }, [clearCountdown]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4">
-      <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-lg sm:p-8">
-        {/* Header */}
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/20">
-            <Lock className="h-6 w-6 text-blue-400" />
+    <div className="bg-ambient flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="bg-brand-gradient mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg">
+            <img src="/arcade_icon.svg" alt="" className="h-8 w-8" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Arcade</h1>
-          <p className="mt-1 text-sm text-slate-400">Staff Sign In</p>
+          <h1 className="text-2xl font-bold text-foreground">Arcade</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Staff Sign In</p>
         </div>
 
-        {/* Lockout banner */}
         {lockoutSeconds !== null && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <div>
               <p className="font-medium">Account locked</p>
               <p className="mt-0.5">
-                Too many failed attempts. Retry after: {' '}
-                <span className="font-mono font-semibold">
-                  {formatCountdown(lockoutSeconds)}
-                </span>
+                Too many failed attempts. Retry after:{" "}
+                <span className="font-mono font-semibold">{formatCountdown(lockoutSeconds)}</span>
               </p>
             </div>
-          </div>
+          </Alert>
         )}
 
-        {/* Error banner */}
         {error !== null && lockoutSeconds === null && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <p>{error}</p>
-          </div>
+          </Alert>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Staff ID */}
-          <div>
-            <label
-              htmlFor="staffId"
-              className="mb-1 block text-sm font-medium text-slate-300"
-            >
-              Staff ID
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                id="staffId"
-                type="text"
-                autoComplete="off"
-                value={staffId}
-                onChange={(e) => setStaffId(e.target.value)}
-                onFocus={() => {
-                  setError(null);
-                }}
-                className="min-h-11 w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Enter your staff ID"
-                required
-              />
-            </div>
-          </div>
-
-          {/* PIN */}
-          <div>
-            <label
-              htmlFor="pin"
-              className="mb-1 block text-sm font-medium text-slate-300"
-            >
-              PIN
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                id="pin"
-                type={showPin ? 'text' : 'password'}
-                autoComplete="off"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                onFocus={() => {
-                  setError(null);
-                }}
-                className="min-h-11 w-full rounded-lg border border-slate-600 bg-slate-700 py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Enter your PIN"
-                required
-                minLength={4}
-                maxLength={20}
-              />
+          <Input
+            id="staffId"
+            label="Staff ID"
+            icon={<User className="size-4" />}
+            type="text"
+            autoComplete="off"
+            value={staffId}
+            onChange={(e) => setStaffId(e.target.value)}
+            onFocus={() => setError(null)}
+            placeholder="Enter your staff ID"
+            required
+          />
+          <Input
+            id="pin"
+            label="PIN"
+            icon={<Lock className="size-4" />}
+            type={showPin ? "text" : "password"}
+            autoComplete="off"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            onFocus={() => setError(null)}
+            placeholder="Enter your PIN"
+            required
+            minLength={4}
+            maxLength={20}
+            trailing={
               <button
                 type="button"
                 onClick={() => setShowPin((prev) => !prev)}
-                className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-600 hover:text-slate-300"
-                aria-label={showPin ? 'Hide password' : 'Show password'}
+                className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                aria-label={showPin ? "Hide password" : "Show password"}
               >
-                {showPin ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPin ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
-            </div>
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isSubmitting || lockoutSeconds !== null}
-            className="flex min-h-11 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSubmitting ? 'Signing in...' : 'Sign In'}
-          </button>
+            }
+          />
+          <Button type="submit" disabled={isSubmitting || lockoutSeconds !== null} loading={isSubmitting} className="w-full">
+            {isSubmitting ? "Signing in..." : "Sign In"}
+          </Button>
         </form>
       </div>
     </div>
