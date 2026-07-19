@@ -361,9 +361,18 @@ class TestDatabaseBootstrap:
             lambda self, cls, *a, **k: shown.append(cls),
         )
 
+        ask_called: dict[str, bool] = {}
+
+        def _fake_ask(self: Any, latest: Any) -> str:
+            ask_called["v"] = True
+            return "restore"
+
+        monkeypatch.setattr(LauncherApp, "_ask_db_restore", _fake_ask)
+
         root = tk.Tk()
         app = LauncherApp(root)
         app._check_and_route()
         assert shown == [MainScreen]
         assert ensured.get("called") is True
+        assert ask_called.get("v") is not True
         root.destroy()

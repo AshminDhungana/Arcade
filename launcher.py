@@ -806,19 +806,23 @@ class LauncherApp:
             self._main_screen._stop_server()
         self.root.destroy()
 
-    def _ensure_database(self) -> None:
+    def _ensure_database(self) -> bool:
         """Ensure a valid, migrated arcade.db exists before the server starts.
 
         - Present DB -> ensure schema is current.
         - Missing DB  -> ask the user to restore the latest backup or create new.
         - Cancelled   -> quit the launcher (never boot a broken/absent DB).
+
+        Returns ``True`` if the launcher should proceed to ``MainScreen``
+        (a DB was ensured), or ``False`` if the user cancelled and the root
+        was destroyed.
         """
         from backend.core import db_bootstrap
         from backend.core.config import load_config
 
         if db_bootstrap.is_db_present():
             db_bootstrap.ensure_schema_current()
-            return
+            return True
 
         backup_dir = load_config().backup_dir
         latest = db_bootstrap.find_latest_backup(backup_dir)
@@ -838,6 +842,8 @@ class LauncherApp:
         else:
             # User dismissed the dialog without choosing: do not start server.
             self.root.destroy()
+            return False
+        return True
 
     def _ask_db_restore(self, latest: Path | None) -> str:
         """Blocking modal: 'restore latest backup' / 'create new' / 'cancel'.
@@ -935,9 +941,9 @@ class LauncherApp:
         result = check_license()
         if result.ok:
             if Path("arcade.config.json").exists():
-                self._ensure_database()
-                self.show_screen(MainScreen)
-                self._main_screen = self.current_screen
+                if self._ensure_database():
+                    self.show_screen(MainScreen)
+                    self._main_screen = self.current_screen
             else:
                 self.show_screen(SetupWizard, result)
         else:
