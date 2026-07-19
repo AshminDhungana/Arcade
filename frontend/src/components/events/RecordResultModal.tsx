@@ -21,7 +21,7 @@ export function RecordResultModal({ eventId, rm, onClose }: { eventId: string; r
     <Modal open onClose={onClose} title="Record result"
       footer={<Button variant="secondary" onClick={onClose}>Cancel</Button>}>
       <div className="space-y-2">
-        <p className="text-sm text-slate-400">Select the winner of this match.</p>
+        <p className="text-sm text-muted-foreground">Select the winner of this match.</p>
         <Button className="w-full" disabled={!rm.slotAName} onClick={() => rm.slotAId && pick(rm.slotAId)}>
           {rm.slotAName ?? 'Player A'}
         </Button>

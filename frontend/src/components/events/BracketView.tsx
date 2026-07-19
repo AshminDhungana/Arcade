@@ -13,7 +13,7 @@ export function BracketView({ summary, eventId }: { summary: EventSummaryRespons
   const [recording, setRecording] = useState<ResolvedMatch | null>(null);
 
   if (summary.matches.length === 0) {
-    return <p className="text-sm text-slate-400">Bracket not generated yet — register at least 2 participants.</p>;
+    return <p className="text-sm text-muted-foreground">Bracket not generated yet — register at least 2 participants.</p>;
   }
 
   return (
@@ -29,11 +29,11 @@ export function BracketView({ summary, eventId }: { summary: EventSummaryRespons
       )}
       {view.groups.map((g) => (
         <section key={g.group} aria-label={g.title}>
-          <h3 className="mb-2 text-base font-medium text-white">{g.title}</h3>
+          <h3 className="mb-2 text-base font-medium text-foreground">{g.title}</h3>
           <div className="flex gap-4 overflow-x-auto pb-2">
             {g.columns.map((col) => (
               <div key={col.round} className="flex shrink-0 flex-col gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Round {col.round}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Round {col.round}</p>
                 {col.matches.map((rm) => (
                   <MatchCard key={rm.match.id} rm={rm} isAdmin={isAdmin} onRecord={setRecording} />
                 ))}

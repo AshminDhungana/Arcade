@@ -14,8 +14,8 @@ export function EventDetail({ eventId, onBack }: { eventId: string; onBack: () =
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center text-slate-400" role="status" aria-label="Loading event">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-700 border-t-blue-500" />
+      <div className="flex h-64 items-center justify-center text-muted-foreground" role="status" aria-label="Loading event">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
       </div>
     );
   }
@@ -29,8 +29,8 @@ export function EventDetail({ eventId, onBack }: { eventId: string; onBack: () =
       <div className="flex items-center justify-between">
         <div>
           <Button variant="secondary" onClick={onBack}>← Back to events</Button>
-          <h1 className="mt-2 text-2xl font-semibold text-white">{summary.event.name}</h1>
-          <p className="text-sm text-slate-400">{summary.event.game_title}</p>
+          <h1 className="mt-2 text-2xl font-semibold text-foreground">{summary.event.name}</h1>
+          <p className="text-sm text-muted-foreground">{summary.event.game_title}</p>
         </div>
       </div>
 

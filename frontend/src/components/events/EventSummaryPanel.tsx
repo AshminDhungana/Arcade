@@ -25,9 +25,9 @@ export function EventSummaryPanel({ summary }: { summary: EventSummaryResponse }
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
-          <div key={k.label} className="flex min-h-[96px] flex-col justify-between rounded-xl border border-slate-700 bg-slate-800 p-4 shadow-sm">
-            <span className="text-sm text-slate-400">{k.label}</span>
-            <p className="mt-2 text-2xl font-semibold tabular-nums text-white">{k.value}</p>
+          <div key={k.label} className="flex min-h-[96px] flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm">
+            <span className="text-sm text-muted-foreground">{k.label}</span>
+            <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{k.value}</p>
           </div>
         ))}
       </div>

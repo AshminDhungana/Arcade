@@ -23,8 +23,8 @@ export function EventsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center text-slate-400" role="status" aria-label="Loading events">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-700 border-t-blue-500" />
+      <div className="flex h-64 items-center justify-center text-muted-foreground" role="status" aria-label="Loading events">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
         <span className="ml-3">Loading events…</span>
       </div>
     );
@@ -34,7 +34,7 @@ export function EventsPage() {
     const isForbidden = (error as Error)?.message?.includes('403');
     return (
       <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
-        <h1 className="text-2xl font-semibold text-white">Events</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Events</h1>
         <ErrorState
           message={isForbidden ? 'Admin access required to view events.' : (error?.message ?? 'Failed to load events.')}
           onRetry={() => refetch()}
@@ -46,7 +46,7 @@ export function EventsPage() {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Events</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Events</h1>
         <Button variant="emerald" onClick={() => setIsCreateOpen(true)}>
           <Plus className="h-4 w-4" /> New Event
         </Button>

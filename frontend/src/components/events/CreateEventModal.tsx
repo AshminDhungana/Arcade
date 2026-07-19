@@ -42,12 +42,12 @@ export function CreateEventModal({ open, onClose }: { open: boolean; onClose: ()
         <Input name="event_date" label="Date & time" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
         <Input name="entry_fee" label="Entry fee (₹)" type="number" min={0} value={entryFee} onChange={(e) => setEntryFee(e.target.value)} />
         <Input name="prize_pool" label="Prize pool (₹)" type="number" min={0} value={prizePool} onChange={(e) => setPrizePool(e.target.value)} />
-        <label className="block text-sm font-medium text-slate-300">
+        <label className="block text-sm font-medium text-foreground">
           Bracket type
           <select
             value={bracket}
             onChange={(e) => setBracket(e.target.value as EventBracketType)}
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="mt-1 w-full rounded-lg border border-input bg-popover px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="SINGLE_ELIMINATION">Single elimination</option>
             <option value="DOUBLE_ELIMINATION">Double elimination</option>
