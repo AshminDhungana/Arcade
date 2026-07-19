@@ -22,8 +22,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-async def run_migrations() -> None:
-    """Run `` numeral upgrade head" programmatically.
+async def run_migrations(db_url: str | None = None) -> None:
+    """Run ``alembic upgrade head`` programmatically.
+
+    :param db_url: Optional SQLAlchemy URL to migrate. Defaults to the live
+        app engine URL. The launcher passes the resolved ``arcade.db`` path so
+        it migrates exactly the database it restored/created.
 
     The Alembic ``ini`` file is expected at ``backend/alembic.ini``
     (relative to the repo root).  This function is asynchronous so it
@@ -39,7 +43,7 @@ async def run_migrations() -> None:
     alembic_cfg.set_main_option("script_location", str(here.parent / "alembic"))
     # Use the same DB URL as the app engine to avoid path mismatches
     # (e.g., alembic.ini relative path vs. database.py absolute path).
-    alembic_cfg.set_main_option("sqlalchemy.url", str(async_engine.url))
+    alembic_cfg.set_main_option("sqlalchemy.url", db_url or str(async_engine.url))
     # alembic.command.upgrade is synchronous and loads env.py, which internally
     # calls ``asyncio.run()`` for the async SQLAlchemy engine.  Running it in a
     # thread avoids the "asyncio.run() cannot be called from a running event
