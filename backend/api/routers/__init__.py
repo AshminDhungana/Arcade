@@ -31,11 +31,15 @@ from backend.api.routers.settings import router as settings_router
 from backend.api.routers.shifts import router as shift_router
 from backend.api.routers.staff import router as staff_router
 from backend.api.routers.vouchers import router as voucher_router
-from backend.api.routers.ws import router as ws_router
 from backend.api.routers.zones import router as zone_router
 
 __all__ = ["routers"]
 
+# NOTE: `ws_router` is deliberately NOT in this list. WebSocket routes are
+# mounted at the root (``/ws/dashboard``, ``/ws/agent/{seat_id}``) per SDD
+# Section 9.2 and consumed by the frontend/agent without an ``/api`` prefix;
+# ``backend.main`` mounts it separately. Everything here is under ``/api``.
+#
 # Ordered roughly by business priority.
 # Placeholder comments keep the list stable so diffs are readable.
 # Phase 3: # routers.append(pos_router)
@@ -56,7 +60,6 @@ __all__ = ["routers"]
 routers: list[APIRouter] = [
     auth_router,
     backup_router,
-    ws_router,
     seat_router,
     session_router,
     pos_router,

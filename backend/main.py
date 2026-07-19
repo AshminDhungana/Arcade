@@ -38,6 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.routers import agent as agent_router
 from backend.api.routers import routers as api_routers
+from backend.api.routers import ws as ws_router
 from backend.core.config import get_config, load_config
 from backend.core.database import AsyncSessionLocal, async_engine
 from backend.core.feature_flags import load_flags
@@ -212,6 +213,13 @@ for _router in api_routers:
 
 # Public agent self-provisioning endpoint (no /api prefix needed; mounted here).
 app.include_router(agent_router.router, prefix="/api")
+
+# --- WebSocket routers --------------------------------------------------
+# Mounted at the ROOT (no /api prefix) at /ws/dashboard and
+# /ws/agent/{seat_id} per SDD Section 9.2. The frontend (useWebSocket.ts) and
+# agent (ws/client.ts) both connect to /ws/..., so this must NOT be swept into
+# the /api loop above. Registered before the static catch-all below.
+app.include_router(ws_router.router, prefix="")
 
 # --- Static files / SPA fallback ----------------------------------------
 # The catch-all mount at "/" is registered LAST (see end of file) so it does
