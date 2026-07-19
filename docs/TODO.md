@@ -1461,11 +1461,9 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 - [x] **macOS kiosk hardening verification** (ENG-A): Cmd+Q, Cmd+Tab, Cmd+Space blocked; Force Quit (Cmd+Opt+Esc) â€” document if not blockable
 - [x] **Linux kiosk hardening verification** (ENG-B): X11 all shortcuts blocked; Wayland fallback verified; known gaps documented
 
-- [ ] What is the default master key for the set as default currently. the key that unlock the kisko overlay if server is not connected.
+- [ ] While login in launcher.py when used admin admin , cant login , i think the password that is pin should be a number ? current we have default set for admin as password admin and for cashier as cashier. check and verify what is wrong.
 
-- [x] **Browse licence key error** — `launcher.py` `_browse()` used `Path.replace()` (a cross-volume move) which threw `WinError 17` and deleted the user's original file. Switched to `shutil.copy2()` (copies across drives, keeps the source). Regression test added in `backend/tests/test_launcher.py`.
-
-- [ ] Improve launcher.py GUI, use logo from frontend\public, After launching the launcher.py the licence required ui is not looking good, research the web and imporve on it. use ui-ux-pro-max skill if required. task is to improve the launcher.py ui to make it look modern and professioanl.
+- [ ] Use frontend\public\icon_opc.png as logo throughout the app, from the login page icone to the browser favicon.ico eveywhere where logo is necessary, when launching launcher py the logo displayed should be the same for the app, and for the agent as well. use library to generate different size of logo to use across, server, launcher, agent, and tool generate_licence as well.
 
 ### Epic 7.4: Launcher Cross-Platform Testing (ENG-A)
 
@@ -1801,7 +1799,7 @@ Package the system for customer distribution. Server as standalone executable (n
   - [ ] Agent calls `POST /api/agent/enroll` (public, code-gated, rate-limited) → receives `seat_id` + `agent_secret` + `cafe_name`
   - [ ] Agent writes its own `agent.config.json` on first run; reuses it on reboot (no re-enroll)
   - [ ] First-run setup window collects the code; `Ctrl+Shift+O` staff-override PIN doubles as the in-agent Settings gate
-  - [x] Emergency **master PIN** — resolved from `ARCADE_MASTER_PIN` (default `1928`, see `agent/.env.example`), hashed with Argon2id (m=4096 t=3 p=1) at enrollment and stored as `master_code_hash`; accepted only when server unreachable; never shown in UI. Pre-baked hashes can be generated via `python tools/keygen/generate_keys.py --master-pin <PIN>` (params match the runtime).
+  - [ ] Emergency **master PIN** injected at build (`agent/src/main/master-pin.ts`, `MASTER_PIN_HASH`) — accepted only when server unreachable; never shown in UI
   - [ ] Reference: `docs/superpowers/plans/2026-07-15-agent-self-provisioning.md`
 
 ### Epic 11.2: Keygen packaging (Optional)
