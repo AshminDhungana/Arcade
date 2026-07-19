@@ -85,7 +85,7 @@ export function MemberDetailDrawer({
     return (
       <Table>
         <thead>
-          <tr className="border-b border-slate-700">
+          <tr className="border-b border-border">
             <Th>Started</Th>
             <Th>Ended</Th>
             <Th>Duration</Th>
@@ -100,11 +100,11 @@ export function MemberDetailDrawer({
               ? Math.floor((ended.getTime() - started.getTime()) / 1000)
               : Math.floor((Date.now() - started.getTime()) / 1000);
             return (
-              <tr key={s.id} className="border-b border-slate-800">
+              <tr key={s.id} className="border-b border-border">
                 <Td className="whitespace-nowrap">{formatDate(s.started_at)}</Td>
                 <Td className="whitespace-nowrap">{s.ended_at ? formatDate(s.ended_at) : 'Active'}</Td>
                 <Td>{formatDuration(duration)}</Td>
-                <Td className="capitalize text-slate-400">{s.status.toLowerCase()}</Td>
+                <Td className="capitalize text-muted-foreground">{s.status.toLowerCase()}</Td>
               </tr>
             );
           })}
@@ -120,7 +120,7 @@ export function MemberDetailDrawer({
     return (
       <Table>
         <thead>
-          <tr className="border-b border-slate-700">
+          <tr className="border-b border-border">
             <Th>Type</Th>
             <Th className="text-right">Amount</Th>
             <Th className="text-right">Balance After</Th>
@@ -130,14 +130,14 @@ export function MemberDetailDrawer({
         </thead>
         <tbody>
           {walletTransactions.map((tx) => (
-            <tr key={tx.id} className="border-b border-slate-800">
+            <tr key={tx.id} className="border-b border-border">
               <Td className="font-medium capitalize">{tx.type.toLowerCase().replace(/_/g, ' ')}</Td>
               <Td className="text-right font-medium tabular-nums">
                 {renderSignedAmount(tx.amount_paise)}
               </Td>
               <Td className="text-right tabular-nums">{formatPaise(tx.balance_after_paise)}</Td>
-              <Td className="text-slate-400">{tx.payment_method}</Td>
-              <Td className="whitespace-nowrap text-slate-400">{formatDate(tx.created_at)}</Td>
+              <Td className="text-muted-foreground">{tx.payment_method}</Td>
+              <Td className="whitespace-nowrap text-muted-foreground">{formatDate(tx.created_at)}</Td>
             </tr>
           ))}
         </tbody>
@@ -152,7 +152,7 @@ export function MemberDetailDrawer({
     return (
       <Table>
         <thead>
-          <tr className="border-b border-slate-700">
+          <tr className="border-b border-border">
             <Th>Name</Th>
             <Th>Type</Th>
             <Th className="text-right">Price</Th>
@@ -163,14 +163,14 @@ export function MemberDetailDrawer({
         </thead>
         <tbody>
           {packages.filter((p) => p.is_active).map((pkg) => (
-            <tr key={pkg.id} className="border-b border-slate-800">
+            <tr key={pkg.id} className="border-b border-border">
               <Td className="font-medium">{pkg.name}</Td>
-              <Td className="text-xs text-slate-400 capitalize">{pkg.type.toLowerCase().replace('_', ' ')}</Td>
+              <Td className="text-xs text-muted-foreground capitalize">{pkg.type.toLowerCase().replace('_', ' ')}</Td>
               <Td className="text-right tabular-nums">{formatPaise(pkg.price_paise)}</Td>
-              <Td className="text-slate-400">
+              <Td className="text-muted-foreground">
                 {pkg.valid_days ? `${pkg.valid_days} days` : 'No expiry'}
               </Td>
-              <Td className="tabular-nums text-slate-400">{pkg.total_minutes}</Td>
+              <Td className="tabular-nums text-muted-foreground">{pkg.total_minutes}</Td>
               <Td className="text-right">
                 <Button
                   variant="secondary"

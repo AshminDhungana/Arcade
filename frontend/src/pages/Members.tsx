@@ -81,16 +81,16 @@ export function MembersPage() {
 
   const renderMemberTier = (tier: MemberTier) => {
     const colors: Record<MemberTier, string> = {
-      BRONZE: 'bg-amber-900/50 text-amber-300',
-      SILVER: 'bg-slate-200/20 text-slate-300',
-      GOLD: 'bg-yellow-900/50 text-yellow-300',
+      BRONZE: 'bg-warning/15 text-warning',
+      SILVER: 'bg-muted text-muted-foreground',
+      GOLD: 'bg-success/15 text-success',
     };
     return <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[tier]}`}>{tier}</span>;
   };
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center text-slate-400">
+      <div className="flex h-64 items-center justify-center text-muted-foreground">
         Loading…
       </div>
     );
@@ -103,82 +103,84 @@ export function MembersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div data-testid="members-header" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold text-white">Members</h1>
-        <div className="w-full sm:flex-1 sm:max-w-md">
-          <MemberSearch onSelect={handleMemberSelect} />
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-20 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl font-bold text-foreground">Members</h1>
+          <div className="flex w-full flex-1 flex-col gap-3 sm:max-w-2xl sm:flex-row sm:items-center">
+            <div className="w-full sm:flex-1 sm:max-w-md">
+              <MemberSearch onSelect={handleMemberSelect} />
+            </div>
+            <Button variant="emerald" className="w-full sm:w-auto" onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Member
+            </Button>
+          </div>
         </div>
-        <Button variant="emerald" className="w-full sm:w-auto" onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Member
-        </Button>
-      </div>
+      </header>
 
-      {/* Members Table */}
-      {members.length === 0 ? (
-        <EmptyState message="No members yet. Create one or search by name/phone." />
-      ) : (
-        <Table>
-          <thead>
-            <tr className="border-b border-slate-700">
-              <Th className="text-left">Name</Th>
-              <Th className="text-left">Phone</Th>
-              <Th className="text-right">Wallet</Th>
-              <Th className="text-left">Tier</Th>
-              <Th className="text-right">Actions</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((m) => (
-              <tr key={m.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                <Td className="font-medium">{m.name}</Td>
-                <Td className="text-slate-400 tabular-nums">{m.phone}</Td>
-                <Td className="text-right font-medium tabular-nums text-emerald-400">
-                  {formatPaise(m.wallet_balance_paise)}
-                </Td>
-                <Td>{renderMemberTier(m.tier)}</Td>
-                <Td className="text-right">
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleMemberSelect(m)}
-                  >
-                    Manage
-                  </Button>
-                </Td>
+      <main className="mx-auto w-full max-w-7xl space-y-6 p-6">
+        {members.length === 0 ? (
+          <EmptyState message="No members yet. Create one or search by name/phone." />
+        ) : (
+          <Table>
+            <thead>
+              <tr className="border-b border-border">
+                <Th className="text-left">Name</Th>
+                <Th className="text-left">Phone</Th>
+                <Th className="text-right">Wallet</Th>
+                <Th className="text-left">Tier</Th>
+                <Th className="text-right">Actions</Th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
-      )}
+            </thead>
+            <tbody>
+              {members.map((m) => (
+                <tr key={m.id} className="border-b border-border hover:bg-secondary/50">
+                  <Td className="font-medium">{m.name}</Td>
+                  <Td className="text-muted-foreground tabular-nums">{m.phone}</Td>
+                  <Td className="text-right font-medium tabular-nums text-success">
+                    {formatPaise(m.wallet_balance_paise)}
+                  </Td>
+                  <Td>{renderMemberTier(m.tier)}</Td>
+                  <Td className="text-right">
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleMemberSelect(m)}
+                    >
+                      Manage
+                    </Button>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
 
-      {/* Create Member Modal */}
-      <CreateMemberModal
-        open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateMember}
-        onSuccess={handleCreateSuccess}
-        isLoading={createMember.isPending}
-      />
-
-      {/* Member Detail Modal (Drawer) */}
-      {selectedMember && (
-        <MemberDetailDrawer
-          open={true}
-          onClose={() => setSelectedMember(null)}
-          member={selectedMember}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          packages={packages}
-          sessions={memberSessions.data ?? []}
-          walletTransactions={walletTransactions.data ?? []}
-          onTopup={handleTopup}
-          onPurchasePackage={handlePurchasePackage}
-          isTopupPending={topupWallet.isPending}
-          isPurchasePending={purchasePackage.isPending}
+        <CreateMemberModal
+          open={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSubmit={handleCreateMember}
+          onSuccess={handleCreateSuccess}
+          isLoading={createMember.isPending}
         />
-      )}
+
+        {selectedMember && (
+          <MemberDetailDrawer
+            open={true}
+            onClose={() => setSelectedMember(null)}
+            member={selectedMember}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            packages={packages}
+            sessions={memberSessions.data ?? []}
+            walletTransactions={walletTransactions.data ?? []}
+            onTopup={handleTopup}
+            onPurchasePackage={handlePurchasePackage}
+            isTopupPending={topupWallet.isPending}
+            isPurchasePending={purchasePackage.isPending}
+          />
+        )}
+      </main>
     </div>
   );
 }
