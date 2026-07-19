@@ -26,7 +26,7 @@ export function RevenueBarChart({ data }: { data: DailyRevenue[] }) {
         />
         <Tooltip
           contentStyle={tooltipStyle}
-          cursor={{ fill: 'rgba(148,163,184,0.1)' }}
+          cursor={{ fill: 'rgba(148,163,184,0.12)' }}
           formatter={(value) => [formatPaise(Number(value)), 'Revenue']}
         />
         <Bar dataKey="total_paise" fill={CHART.revenue} radius={[4, 4, 0, 0]} />

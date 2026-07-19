@@ -33,10 +33,10 @@ export function HealthAlerts({ alerts, seats }: { alerts: HealthAlert[]; seats: 
   const all = [...fromSummary, ...offline];
 
   return (
-    <section className="rounded-xl border border-slate-700 bg-slate-800 p-4" aria-label="Health alerts">
-      <h2 className="mb-3 text-base font-medium text-white">Health alerts</h2>
+    <section className="rounded-xl border border-border bg-card p-4" aria-label="Health alerts">
+      <h2 className="mb-3 text-base font-medium text-foreground">Health alerts</h2>
       {all.length === 0 ? (
-        <p className="text-sm text-slate-400">All seats healthy.</p>
+        <p className="text-sm text-muted-foreground">All seats healthy.</p>
       ) : (
         <div className="grid grid-cols-1 gap-3">
           {all.map((a) => (

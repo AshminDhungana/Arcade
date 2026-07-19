@@ -1,16 +1,18 @@
+// Chart theme — colours are the design-system tokens (see src/index.css).
+// Recharts renders SVG, so tokens are expressed as their hex values here.
 export const CHART = {
-  grid: '#334155', // slate-700
-  axis: '#94A3B8', // slate-400
-  revenue: '#3B82F6', // blue-500
-  pos: '#A78BFA', // violet-400
-  trend: '#22C55E', // green-500
+  grid: '#334155', // --border
+  axis: '#94a3b8', // --muted-foreground
+  revenue: '#0090fa', // --primary
+  pos: '#a78bfa', // violet-400 — distinct POS series
+  trend: '#22c55e', // --success
 } as const;
 
 export const tooltipStyle = {
-  backgroundColor: '#0F172A', // surface-900
-  border: '1px solid #334155',
+  backgroundColor: '#0f172a', // --card
+  border: '1px solid #334155', // --border
   borderRadius: 8,
-  color: '#F8FAFC',
+  color: '#f8fafc', // --foreground
   fontSize: 12,
 } as const;
 
