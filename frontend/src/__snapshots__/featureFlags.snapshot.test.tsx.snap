@@ -3,29 +3,43 @@
 exports[`feature flag snapshot matrix > all flags OFF 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -68,13 +82,13 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -101,13 +115,13 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -132,22 +146,36 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -171,7 +199,7 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -184,29 +212,43 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
 exports[`feature flag snapshot matrix > all flags ON 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -249,13 +291,13 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/members"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-users h-4 w-4"
+            class="lucide lucide-users size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -284,13 +326,13 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
           Members
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -317,13 +359,13 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/events"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-calendar-days h-4 w-4"
+            class="lucide lucide-calendar-days size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -372,13 +414,13 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
           Events
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -403,22 +445,36 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -442,7 +498,7 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -455,29 +511,43 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
 exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -520,13 +590,13 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -553,13 +623,13 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -584,22 +654,36 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -623,7 +707,7 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -636,29 +720,43 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
 exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -701,13 +799,13 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -734,13 +832,13 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -765,22 +863,36 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -804,7 +916,7 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -817,29 +929,43 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
 exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -882,13 +1008,13 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -915,13 +1041,13 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -946,22 +1072,36 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -985,7 +1125,7 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -998,29 +1138,43 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
 exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1063,13 +1217,13 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/members"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-users h-4 w-4"
+            class="lucide lucide-users size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1098,13 +1252,13 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
           Members
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1131,13 +1285,13 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1162,22 +1316,36 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -1201,7 +1369,7 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -1214,29 +1382,43 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
 exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1279,13 +1461,13 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1312,13 +1494,13 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1343,22 +1525,36 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -1382,7 +1578,7 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -1395,29 +1591,43 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
 exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1460,13 +1670,13 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1493,13 +1703,13 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1524,22 +1734,36 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -1563,7 +1787,7 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -1576,29 +1800,43 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
 exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1641,13 +1879,13 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1674,13 +1912,13 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1705,22 +1943,36 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -1744,7 +1996,7 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -1757,29 +2009,43 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
 exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1822,13 +2088,13 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1855,13 +2121,13 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/events"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-calendar-days h-4 w-4"
+            class="lucide lucide-calendar-days size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1910,13 +2176,13 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
           Events
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -1941,22 +2207,36 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -1980,7 +2260,7 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -1993,29 +2273,43 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
 exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2058,13 +2352,13 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2091,13 +2385,13 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2122,22 +2416,36 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -2161,7 +2469,7 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
@@ -2174,29 +2482,43 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
 exports[`feature flag snapshot matrix > only require_member_for_session enabled 1`] = `
 <DocumentFragment>
   <div
-    class="min-h-screen bg-slate-900 md:flex"
+    class="bg-background flex min-h-screen md:flex"
   >
     <aside
-      class="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3"
+      class="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex"
     >
-      <h1
-        class="px-3 py-2 text-lg font-bold text-white"
+      <div
+        class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-5"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <nav
         aria-label="Primary"
         class="flex flex-col gap-1"
       >
         <a
           aria-current="page"
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 bg-blue-600 text-white"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-sm"
           data-discover="true"
           href="/"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4"
+            class="lucide lucide-layout-dashboard size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2239,13 +2561,13 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
           Dashboard
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/analytics"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column h-4 w-4"
+            class="lucide lucide-chart-column size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2272,13 +2594,13 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
           Analytics
         </a>
         <a
-          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 text-slate-300 hover:bg-slate-700"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground"
           data-discover="true"
           href="/settings"
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings h-4 w-4"
+            class="lucide lucide-settings size-4"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2303,22 +2625,36 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       </nav>
     </aside>
     <div
-      class="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden"
     >
-      <h1
-        class="text-lg font-bold text-white"
+      <div
+        class="flex items-center gap-2"
       >
-        Arcade
-      </h1>
+        <div
+          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
+        >
+          <img
+            alt=""
+            aria-hidden="true"
+            class="h-4 w-4"
+            src="/arcade_icon.svg"
+          />
+        </div>
+        <h1
+          class="text-lg font-bold text-foreground"
+        >
+          Arcade
+        </h1>
+      </div>
       <button
         aria-expanded="false"
         aria-label="Open menu"
-        class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+        class="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         type="button"
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu h-5 w-5"
+          class="lucide lucide-menu size-5"
           fill="none"
           height="24"
           stroke="currentColor"
@@ -2342,7 +2678,7 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       </button>
     </div>
     <div
-      class="flex-1 min-w-0"
+      class="min-w-0 flex-1"
     >
       <div>
         child
