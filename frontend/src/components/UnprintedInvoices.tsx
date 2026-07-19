@@ -33,7 +33,7 @@ export function UnprintedInvoices() {
     );
   }
 
-  const rows = data ?? [];
+  const rows = Array.isArray(data) ? data : [];
 
   return (
     <Card className="border-warning/40 p-5">

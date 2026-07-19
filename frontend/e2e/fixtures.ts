@@ -86,6 +86,7 @@ export async function mockApi(page: Page): Promise<void> {
     if (url.pathname === '/api/menu') return route.fulfill({ json: [] });
     if (url.pathname === '/api/pos/menu') return route.fulfill({ json: [] });
     if (url.pathname.startsWith('/api/pos/items')) return route.fulfill({ json: [] });
+    if (url.pathname === '/api/invoices/unprinted') return route.fulfill({ json: [] });
     if (path.match(/\/api\/sessions\/[^/]+\/checkout$/) && method === 'POST') {
       return route.fulfill({
         json: {
