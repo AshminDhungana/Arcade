@@ -54,6 +54,11 @@ export function useFeatureFlags() {
   const query = useQuery({
     queryKey: ['featureFlags'],
     queryFn: () => fetchFeatureFlags(token),
+    // Only fetch once authenticated — /api/settings requires cashier+ auth,
+    // so calling this at app root (e.g. on the /login route) before a
+    // token exists would 401. Gating also makes the query re-run with the
+    // token once login populates the store (enabled: false -> true).
+    enabled: !!token,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 3,
