@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models._enums import PricingModel
@@ -25,7 +26,15 @@ class ZoneService:
         pricing_model: PricingModel,
         block_minutes: int | None = None,
     ) -> Zone:
-        """Create a new zone."""
+        """Create a new zone.
+
+        Raises HTTPException(409) if a zone with the same name already exists,
+        enforcing the unique-zone-name invariant (migration
+        l1a2b3c4d5e6_add_unique_zones_and_seat_zone).
+        """
+        existing = await zone_repo.get_by_name(db, name)
+        if existing is not None:
+            raise HTTPException(status_code=409, detail=f"Zone '{name}' already exists")
         return await zone_repo.create(
             db,
             name=name,
@@ -47,7 +56,15 @@ class ZoneService:
 
     @staticmethod
     async def update(db: AsyncSession, zone: Zone) -> Zone:
-        """Update a zone."""
+        """Update a zone.
+
+        Raises HTTPException(409) if the new name collides with another zone.
+        """
+        clash = await zone_repo.get_by_name(db, zone.name)
+        if clash is not None and clash.id != zone.id:
+            raise HTTPException(
+                status_code=409, detail=f"Zone '{zone.name}' already exists"
+            )
         return await zone_repo.update(db, zone)
 
     @staticmethod

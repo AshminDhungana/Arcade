@@ -84,6 +84,38 @@ async def assigned_end_at_by_seat(
     return {row.seat_id: row.assigned_end_at for row in result.all()}
 
 
+async def active_session_by_seat(
+    db: AsyncSession, seat_ids: Sequence[str]
+) -> dict[str, tuple[str, datetime]]:
+    """Map seat_id -> (session_id, started_at) for the active session on each seat.
+
+    "Active" means status ACTIVE/PAUSED with no ``ended_at``. When a seat has
+    more than one such session, the earliest ``started_at`` wins (the original
+    session). Used to surface the real session start time to the dashboard
+    timer, instead of a render-time placeholder.
+    """
+    if not seat_ids:
+        return {}
+    result = await db.execute(
+        select(
+            GamingSession.seat_id,
+            GamingSession.id,
+            GamingSession.started_at,
+        )
+        .where(
+            GamingSession.seat_id.in_(seat_ids),
+            GamingSession.status.in_([SessionStatus.ACTIVE, SessionStatus.PAUSED]),
+            GamingSession.ended_at.is_(None),
+        )
+        .order_by(GamingSession.seat_id, GamingSession.started_at)
+    )
+    out: dict[str, tuple[str, datetime]] = {}
+    for seat_id, session_id, started_at in result.all():
+        if seat_id not in out:
+            out[seat_id] = (session_id, started_at)
+    return out
+
+
 async def update_status(
     db: AsyncSession, seat_id: str, new_status: SeatStatus
 ) -> Seat | None:

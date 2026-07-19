@@ -328,4 +328,6 @@ tools/keygen/private_key.pem
 
 # Backup output from BackupService (nightly SQLite copies)
 backups/
-\nE:\Ongoing Projects\Arcade\tools\keygen\private_key.pem\ntools/keygen/private_key.pem\n
+
+# Vitest / Playwright run artifacts (frontend)
+frontend/test-results/

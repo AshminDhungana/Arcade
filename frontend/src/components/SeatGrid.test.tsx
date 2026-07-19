@@ -16,8 +16,8 @@ const makeWrapper = () => {
 vi.mock('@/api/seats', () => ({
   useSeats: () => ({
     data: [
-      { id: 's1', name: 'PC-01', zone_id: 'z1', mac_address: null, status: 'AVAILABLE', plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0, wol_failures: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
-      { id: 's2', name: 'PC-02', zone_id: 'z1', mac_address: null, status: SeatStatus.IN_USE, plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0, wol_failures: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
+      { id: 's1', name: 'PC-01', zone_id: 'z1', zone_name: 'Floor A', mac_address: null, status: 'AVAILABLE', plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0, wol_failures: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
+      { id: 's2', name: 'PC-02', zone_id: 'z1', zone_name: 'Floor A', mac_address: null, status: SeatStatus.IN_USE, plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0, wol_failures: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
     ],
     isLoading: false,
     isError: false,
@@ -26,15 +26,18 @@ vi.mock('@/api/seats', () => ({
 }));
 
 describe('SeatGrid', () => {
-  it('renders all seats from the query', () => {
+  it('groups seats by zone and renders them', () => {
     render(<SeatGrid />, { wrapper: makeWrapper() });
-    expect(screen.getByRole('list')).toBeInTheDocument();
+    // Both seats live in the same zone -> a single seat list.
+    const lists = screen.getAllByRole('list');
+    expect(lists).toHaveLength(1);
     expect(screen.getByText('PC-01')).toBeInTheDocument();
     expect(screen.getByText('PC-02')).toBeInTheDocument();
+    expect(screen.getByText('Floor A')).toBeInTheDocument();
   });
 
-  it('is accessible with aria-label', () => {
+  it('is accessible with a per-zone aria-label', () => {
     render(<SeatGrid />, { wrapper: makeWrapper() });
-    expect(screen.getByLabelText('Seat grid')).toBeInTheDocument();
+    expect(screen.getByLabelText('Zone Floor A')).toBeInTheDocument();
   });
 });

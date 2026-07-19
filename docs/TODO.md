@@ -1461,9 +1461,23 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 - [x] **macOS kiosk hardening verification** (ENG-A): Cmd+Q, Cmd+Tab, Cmd+Space blocked; Force Quit (Cmd+Opt+Esc) â€” document if not blockable
 - [x] **Linux kiosk hardening verification** (ENG-B): X11 all shortcuts blocked; Wayland fallback verified; known gaps documented
 
-- [ ] While login in launcher.py when used admin admin , cant login , i think the password that is pin should be a number ? current we have default set for admin as password admin and for cashier as cashier. check and verify what is wrong.
+- [ ] Improve the UI/UX of the agent, focusing mainly on the overlay page. Use the frontend as a design reference, and apply the `ui-ux-pro-max` skill for ideas and visual taste.
 
-- [ ] Use frontend\public\icon_opc.png as logo throughout the app, from the login page icone to the browser favicon.ico eveywhere where logo is necessary, when launching launcher py the logo displayed should be the same for the app, and for the agent as well. use library to generate different size of logo to use across, server, launcher, agent, and tool generate_licence as well.
+- [ ] Improve the kiosk overlay in the agent to look more professional, using the `/motion-dev` skill. It should be polished enough for use in international tournaments — search the web for design inspiration.
+
+- [ ] Use a dedicated address and port for the server (instead of the default) so it doesn't conflict with other programs the user may be running. Update `launcher.py` to display this new address/port (it currently shows `0.0.0.0:8000`), and update the agent to connect using the same updated address and port.
+
+- [ ] Make `launcher.py` run in the background, the same way the agent does.
+
+- [ ] Add a logout button to the server — one is currently missing.
+
+- [ ] Add a light/dark mode toggle button to the frontend.
+
+- [ ] Use the `gamepad-directional` icon from `lucide-react` consistently across the app: on the login screen, on the page shown after login, and as the browser tab favicon while the server is running. Apply the same icon in both the agent and the frontend, styled to look professional.
+
+- [ ] In `launcher.py`, the "Open Dashboard" button should be disabled (non-functional) until the server has actually been started.
+
+- [ ] Check whether the cashier and new-user roles have access to all zones by default. If not, define how an admin can grant them access.
 
 ### Epic 7.4: Launcher Cross-Platform Testing (ENG-A)
 

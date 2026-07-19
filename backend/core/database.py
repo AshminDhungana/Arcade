@@ -12,6 +12,7 @@ References:
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
@@ -24,7 +25,15 @@ from sqlalchemy.orm import DeclarativeBase
 # Async engine with aiosqlite driver
 # ---------------------------------------------------------------------------
 
-_DB_PATH = Path(__file__).resolve().parent.parent / "arcade.db"
+# The DB path is configurable via ARCADE_DB_PATH so the test suite can point
+# at an isolated database instead of dropping/creating the developer's
+# arcade.db. Defaults to backend/arcade.db when the variable is unset.
+_DB_PATH = Path(
+    os.environ.get(
+        "ARCADE_DB_PATH",
+        str(Path(__file__).resolve().parent.parent / "arcade.db"),
+    )
+)
 async_engine = create_async_engine(
     f"sqlite+aiosqlite:///{_DB_PATH}",
     echo=False,

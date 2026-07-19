@@ -39,6 +39,12 @@ async def get_by_id(db: AsyncSession, zone_id: str) -> Zone | None:
     return result.scalar_one_or_none()
 
 
+async def get_by_name(db: AsyncSession, name: str) -> Zone | None:
+    """Fetch a zone by its (otherwise-unique) name."""
+    result = await db.execute(select(Zone).where(Zone.name == name))
+    return result.scalar_one_or_none()
+
+
 async def list(db: AsyncSession) -> Sequence[Zone]:  # noqa: A001
     """Return all zones ordered by name."""
     result = await db.execute(select(Zone).order_by(Zone.name))

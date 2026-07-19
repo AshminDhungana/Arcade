@@ -102,9 +102,13 @@ export function SeatCard({ seat, onClick }: SeatCardProps) {
             </span>
           )}
           {isInUse && (
-            // Show live timer only when seat is IN_USE or PAUSED
-            // Note: startedAt comes from session data (not yet wired in this feature)
-            <ElapsedTimer startedAt={new Date().toISOString()} isRunning={seat.status === 'IN_USE'} />
+            // Show live timer only when seat is IN_USE or PAUSED.
+            // startedAt is the real active-session start from GET /api/seats
+            // (falls back to render time only if the backend omitted it).
+            <ElapsedTimer
+              startedAt={seat.current_session_started_at ?? new Date().toISOString()}
+              isRunning={seat.status === 'IN_USE'}
+            />
           )}
         </div>
       </div>

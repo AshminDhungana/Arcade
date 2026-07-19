@@ -3,11 +3,28 @@
 from __future__ import annotations
 
 import asyncio
+import atexit
 import json
+import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
+
+# ---------------------------------------------------------------------------
+# Isolate the test database from the developer's arcade.db.
+#
+# core.database builds its engine from ARCADE_DB_PATH at import time, so the
+# variable must be set BEFORE backend.core.database is first imported. database
+# is imported lazily inside fixtures, never at this module's top level, so
+# setting it here keeps the developer's arcade.db untouched while tests run
+# against a throwaway file (see B2).
+# ---------------------------------------------------------------------------
+_TEST_DB_DIR = tempfile.mkdtemp(prefix="arcade_test_")
+os.environ["ARCADE_DB_PATH"] = os.path.join(_TEST_DB_DIR, "arcade.db")
+atexit.register(lambda: shutil.rmtree(_TEST_DB_DIR, ignore_errors=True))
 
 # ---------------------------------------------------------------------------
 # Windows: force the selector event loop policy.

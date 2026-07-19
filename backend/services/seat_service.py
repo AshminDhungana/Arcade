@@ -17,7 +17,7 @@ from backend.core.ws_manager import manager as ws_manager
 from backend.models._enums import AuditAction, SeatStatus
 from backend.models.seat import Seat
 from backend.models.staff import Staff
-from backend.repositories import seat_repo
+from backend.repositories import seat_repo, zone_repo
 from backend.schemas.seat import SeatResponse
 from backend.services import audit_service
 
@@ -45,15 +45,26 @@ def _ensure_tz(dt: datetime | None) -> datetime | None:
     return dt
 
 
-def _seat_to_response(seat: Seat) -> SeatResponse:
+async def _seat_to_response(
+    db: AsyncSession,
+    seat: Seat,
+    zone_name_map: dict[str, str] | None = None,
+) -> SeatResponse:
     seat.created_at = _ensure_tz(seat.created_at)  # type: ignore[assignment]
     seat.updated_at = _ensure_tz(seat.updated_at)  # type: ignore[assignment]
-    return SeatResponse.model_validate(seat)
+    resp = SeatResponse.model_validate(seat)
+    if seat.zone_id is not None:
+        if zone_name_map is not None:
+            resp.zone_name = zone_name_map.get(seat.zone_id)
+        else:
+            zone = await zone_repo.get_by_id(db, seat.zone_id)
+            resp.zone_name = zone.name if zone is not None else None
+    return resp
 
 
-async def _broadcast_seat_update(seat: Seat) -> None:
+async def _broadcast_seat_update(db: AsyncSession, seat: Seat) -> None:
     """Broadcast a ``seat_updated`` event to all connected dashboards."""
-    payload = _seat_to_response(seat).model_dump(mode="json")
+    payload = (await _seat_to_response(db, seat)).model_dump(mode="json")
     await ws_manager.broadcast_to_dashboards("seat_updated", payload)
 
 
@@ -72,8 +83,8 @@ async def set_overlay_forced(
     db.add(seat)
     await db.commit()
     await db.refresh(seat)
-    await _broadcast_seat_update(seat)
-    return _seat_to_response(seat)
+    await _broadcast_seat_update(db, seat)
+    return await _seat_to_response(db, seat)
 
 
 # ---------------------------------------------------------------------------
@@ -86,10 +97,17 @@ async def list_seats(db: AsyncSession) -> Sequence[SeatResponse]:
     seats = await seat_repo.list(db)
     seat_ids = [s.id for s in seats]
     assigned = await seat_repo.assigned_end_at_by_seat(db, seat_ids)
+    active = await seat_repo.active_session_by_seat(db, seat_ids)
+    zones = await zone_repo.list(db)
+    zone_name_map = {z.id: z.name for z in zones}
     responses = []
     for seat in seats:
-        resp = _seat_to_response(seat)
+        resp = await _seat_to_response(db, seat, zone_name_map)
         resp.assigned_end_at = _ensure_tz(assigned.get(seat.id))
+        sess = active.get(seat.id)
+        if sess is not None:
+            resp.current_session_id = sess[0]
+            resp.current_session_started_at = _ensure_tz(sess[1])
         responses.append(resp)
     return responses
 
@@ -99,7 +117,7 @@ async def get_seat(db: AsyncSession, seat_id: str) -> SeatResponse:
     seat = await seat_repo.get_by_id(db, seat_id)
     if seat is None:
         raise SeatNotFoundError(seat_id)
-    resp = _seat_to_response(seat)
+    resp = await _seat_to_response(db, seat)
     assigned = await seat_repo.assigned_end_at_by_seat(db, [seat.id])
     resp.assigned_end_at = _ensure_tz(assigned.get(seat.id))
     return resp
@@ -141,9 +159,9 @@ async def set_maintenance(
         detail=note or "",
     )
 
-    await _broadcast_seat_update(updated)
+    await _broadcast_seat_update(db, updated)
 
-    return _seat_to_response(updated)
+    return await _seat_to_response(db, updated)
 
 
 async def clear_maintenance(
@@ -181,9 +199,9 @@ async def clear_maintenance(
         detail="",
     )
 
-    await _broadcast_seat_update(updated)
+    await _broadcast_seat_update(db, updated)
 
-    return _seat_to_response(updated)
+    return await _seat_to_response(db, updated)
 
 
 async def update_mac_address(
@@ -214,6 +232,6 @@ async def update_mac_address(
     seat.mac_address = mac
     updated = await seat_repo.update(db, seat)
 
-    await _broadcast_seat_update(updated)
+    await _broadcast_seat_update(db, updated)
 
-    return _seat_to_response(updated)
+    return await _seat_to_response(db, updated)
