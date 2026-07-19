@@ -1,15 +1,17 @@
-import { NavLink } from 'react-router-dom';
-import { useState } from 'react';
-import { LayoutDashboard, Users, BarChart3, Settings as SettingsIcon, CalendarDays, Menu, X } from 'lucide-react';
-import { useFeatureFlagStore } from '@/store/featureFlagStore';
-import type { ReactNode } from 'react';
+import { NavLink } from "react-router-dom";
+import { useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { LayoutDashboard, Users, BarChart3, Settings as SettingsIcon, CalendarDays, Menu, X } from "lucide-react";
+import { useFeatureFlagStore } from "@/store/featureFlagStore";
+import type { ReactNode } from "react";
+import { Sheet } from "@/components/ui/Sheet";
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, flag: null },
-  { to: '/members', label: 'Members', icon: Users, flag: 'enable_members' as const },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3, flag: null },
-  { to: '/events', label: 'Events', icon: CalendarDays, flag: 'enable_tournaments' as const },
-  { to: '/settings', label: 'Settings', icon: SettingsIcon, flag: null },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, flag: null },
+  { to: "/members", label: "Members", icon: Users, flag: "enable_members" as const },
+  { to: "/analytics", label: "Analytics", icon: BarChart3, flag: null },
+  { to: "/events", label: "Events", icon: CalendarDays, flag: "enable_tournaments" as const },
+  { to: "/settings", label: "Settings", icon: SettingsIcon, flag: null },
 ];
 
 export function NavShell({ children }: { children: ReactNode }) {
@@ -23,15 +25,17 @@ export function NavShell({ children }: { children: ReactNode }) {
         <NavLink
           key={n.to}
           to={n.to}
-          end={n.to === '/'}
+          end={n.to === "/"}
           onClick={() => setMenuOpen(false)}
           className={({ isActive }) =>
-            `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium min-h-11 ${
-              isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'
+            `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`
           }
         >
-          <n.icon className="h-4 w-4" />
+          <n.icon className="size-4" />
           {n.label}
         </NavLink>
       ))}
@@ -39,53 +43,57 @@ export function NavShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-slate-900 md:flex">
-      {/* Desktop sidebar (md and up) */}
-      <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col border-r border-slate-700 bg-slate-800 p-3">
-        <h1 className="px-3 py-2 text-lg font-bold text-white">Arcade</h1>
+    <div className="bg-background flex min-h-screen md:flex">
+      <aside className="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex">
+        <div className="mb-2 flex items-center gap-2 px-3 py-2">
+          <div className="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg">
+            <img src="/arcade_icon.svg" alt="" className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <h1 className="text-lg font-bold text-foreground">Arcade</h1>
+        </div>
         {navLinks}
       </aside>
 
-      {/* Mobile top bar (below md) */}
-      <div className="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3 sticky top-0 z-30 md:hidden">
-        <h1 className="text-lg font-bold text-white">Arcade</h1>
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
+        <div className="flex items-center gap-2">
+          <div className="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md">
+            <img src="/arcade_icon.svg" alt="" className="h-4 w-4" aria-hidden="true" />
+          </div>
+          <h1 className="text-lg font-bold text-foreground">Arcade</h1>
+        </div>
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
           aria-label="Open menu"
           aria-expanded={menuOpen}
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="size-5" />
         </button>
       </div>
 
-      {/* Mobile slide-in drawer */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setMenuOpen(false)}
-            aria-hidden="true"
-          />
-          <aside className="absolute left-0 top-0 flex h-full w-60 max-w-[80%] flex-col bg-slate-800 p-3">
-            <div className="flex items-center justify-between mb-2">
-              <h1 className="px-3 py-2 text-lg font-bold text-white">Arcade</h1>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 hover:bg-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <Dialog.Title className="sr-only">Arcade menu</Dialog.Title>
+        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <div className="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg">
+              <img src="/arcade_icon.svg" alt="" className="h-5 w-5" aria-hidden="true" />
             </div>
-            {navLinks}
-          </aside>
+            <h1 className="text-lg font-bold text-foreground">Arcade</h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="size-5" />
+          </button>
         </div>
-      )}
+        {navLinks}
+      </Sheet>
 
-      <div className="flex-1 min-w-0">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }
