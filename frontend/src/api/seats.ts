@@ -1,20 +1,31 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Seat } from '@/types/seat';
+import { useAuthStore } from '@/store/authStore';
 
 const API_BASE = '/api';
 
-/** Fetch all seats from the backend. */
+/** Build request headers, attaching the bearer token when one is available.
+ *  Mirrors the established pattern in members.ts / invoices.ts / sessions.ts. */
+function authHeaders(token: string | null): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+/** Fetch all seats from the backend (requires cashier+ auth). */
 export async function fetchSeats(): Promise<Seat[]> {
-  const res = await fetch(`${API_BASE}/seats`);
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${API_BASE}/seats`, { headers: authHeaders(token) });
   if (!res.ok) {
     throw new Error(`Failed to fetch seats: ${res.status} ${res.statusText}`);
   }
   return (await res.json()) as Seat[];
 }
 
-/** Fetch a single seat by ID. */
+/** Fetch a single seat by ID (requires cashier+ auth). */
 export async function fetchSeat(seatId: string): Promise<Seat> {
-  const res = await fetch(`${API_BASE}/seats/${seatId}`);
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${API_BASE}/seats/${seatId}`, { headers: authHeaders(token) });
   if (!res.ok) {
     throw new Error(`Failed to fetch seat: ${res.status} ${res.statusText}`);
   }
@@ -24,7 +35,11 @@ export async function fetchSeat(seatId: string): Promise<Seat> {
 /** Generate a one-time enroll code for a seat.
  *  The backend mints a short-lived code used by the agent to self-enroll. */
 export async function generateEnrollCode(seatId: string): Promise<{ code: string; expires_at: string }> {
-  const res = await fetch(`${API_BASE}/seats/${seatId}/enroll-code`, { method: 'POST' });
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${API_BASE}/seats/${seatId}/enroll-code`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
   if (!res.ok) throw new Error(`Failed to generate enroll code: ${res.status}`);
   return res.json();
 }
@@ -32,7 +47,11 @@ export async function generateEnrollCode(seatId: string): Promise<{ code: string
 /** Regenerate the override PIN for a seat.
  *  The backend mints a fresh 6-digit PIN and returns it once. */
 export async function regenerateOverridePin(seatId: string): Promise<{ override_pin: string }> {
-  const res = await fetch(`${API_BASE}/seats/${seatId}/override-pin`, { method: 'POST' });
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${API_BASE}/seats/${seatId}/override-pin`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
   if (!res.ok) throw new Error(`Failed to regenerate override PIN: ${res.status}`);
   return res.json();
 }
@@ -41,9 +60,10 @@ export async function regenerateOverridePin(seatId: string): Promise<{ override_
  *  POST /api/seats/{id}/overlay
  *  Requires admin privilege (backend enforces). Returns 204 on success. */
 export async function forceOverlay(seatId: string, show: boolean): Promise<void> {
+  const token = useAuthStore.getState().accessToken;
   const res = await fetch(`${API_BASE}/seats/${seatId}/overlay`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(token),
     body: JSON.stringify({ show }),
   });
   if (!res.ok) {
@@ -58,9 +78,10 @@ export async function bulkForceOverlay(show: boolean): Promise<{
   succeeded: string[];
   failed: { seat_id: string; detail: string }[];
 }> {
+  const token = useAuthStore.getState().accessToken;
   const res = await fetch(`${API_BASE}/seats/bulk/overlay`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(token),
     body: JSON.stringify({ show }),
   });
   if (!res.ok) {
