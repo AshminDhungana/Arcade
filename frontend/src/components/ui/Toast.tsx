@@ -10,14 +10,14 @@ export function ToastViewport() {
         <div
           key={t.id}
           onClick={() => remove(t.id)}
-          className={`flex cursor-pointer items-center gap-2 rounded-lg px-4 py-3 text-sm shadow-xl backdrop-blur-sm ${
-            t.type === 'success'
-              ? 'border border-emerald-500/20 bg-emerald-900/90 text-emerald-200'
-              : 'border border-red-800/50 bg-red-900/90 text-red-200'
-          }`}
+          className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-3 text-sm shadow-xl bg-popover text-foreground border-border backdrop-blur-sm"
         >
-          {t.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          {t.message}
+          {t.type === 'success' ? (
+            <CheckCircle className="h-4 w-4 text-success" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          )}
+          <span className="font-medium">{t.message}</span>
         </div>
       ))}
     </div>

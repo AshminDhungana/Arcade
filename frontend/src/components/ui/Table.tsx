@@ -2,14 +2,14 @@ import type { ReactNode, ThHTMLAttributes, TdHTMLAttributes } from 'react';
 
 export function Table({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`overflow-x-auto rounded-lg border border-slate-700/50 ${className}`}>
-      <table className="min-w-full divide-y divide-slate-700/50">{children}</table>
+    <div className={`overflow-x-auto rounded-lg border border-border ${className}`}>
+      <table className="w-full text-sm">{children}</table>
     </div>
   );
 }
 export const Th = (p: ThHTMLAttributes<HTMLTableCellElement>) => (
-  <th {...p} className={`px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 ${p.className ?? ''}`} />
+  <th {...p} className={`px-4 py-3 bg-secondary/60 text-muted-foreground font-medium ${p.className ?? ''}`} />
 );
 export const Td = (p: TdHTMLAttributes<HTMLTableCellElement>) => (
-  <td {...p} className={`px-3 py-2 text-sm text-slate-200 ${p.className ?? ''}`} />
+  <td {...p} className={`px-4 py-3 text-foreground ${p.className ?? ''}`} />
 );
