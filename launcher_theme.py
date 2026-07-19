@@ -4,7 +4,7 @@ Centralizes colors, fonts, and the logo so all launcher screens stay
 consistent with the Arcade web app's blue/slate design system
 (see frontend/src/index.css and components/ui/Button.tsx).
 
-UI/UX follows the ui-ux-pro-max guidance: a single primary CTA per screen,
+UI/UX follows the guidance: a single primary CTA per screen,
 visible pointer/focus affordances, >=4.5:1 text contrast (the light-mode
 muted tone is darkened for this), and error/empty states with clear
 recovery microcopy.
