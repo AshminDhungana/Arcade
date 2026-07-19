@@ -27,7 +27,7 @@
 - Test: `backend/tests/test_seat_migration.py`
 
 **Interfaces:**
-- Consumes: existing migration chain (current head `f4a3b2c1d0e9`); `backend/models/seat.py` column definitions.
+- Consumes: existing migration chain (current head `d6e7f8a9b0c1`); `backend/models/seat.py` column definitions.
 - Produces: a new head revision `f5a6b7c8d9e0` adding the four columns — required by Task 2's `create_fresh_database` / `restore_latest_backup` to produce a bootable DB.
 
 - [ ] **Step 1: Write the failing schema-guard test**
@@ -117,7 +117,7 @@ Expected: FAIL — `assert 'agent_secret' in cols` (and `test_no_model_columns_d
 """add_seat_selfprovisioning_columns
 
 Revision ID: f5a6b7c8d9e0
-Revises: f4a3b2c1d0e9
+Revises: d6e7f8a9b0c1
 Create Date: 2026-07-19
 
 """
@@ -129,7 +129,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "f5a6b7c8d9e0"
-down_revision: str | Sequence[str] | None = "f4a3b2c1d0e9"
+down_revision: str | Sequence[str] | None = "d6e7f8a9b0c1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -21,9 +21,9 @@ ever adds:
 - `enroll_code_expires_at` (`DATETIME`)
 - `override_code_hash` (`VARCHAR(255)`)
 
-The migration chain ends at `f4a3b2c1d0e9` (overlay_forced). Only `wol_attempts/
+The migration chain ends at `d6e7f8a9b0c1` (overlay_forced). Only `wol_attempts/
 wol_successes/wol_failures` (rev `a1bb8b056ad6`) and `overlay_forced`
-(rev `f4a3b2c1d0e9`) were migrated. Every `SELECT` against `Seat` includes the
+(rev `d6e7f8a9b0c1`) were migrated. Every `SELECT` against `Seat` includes the
 four drifted columns, so it fails even on a *present, migrated* database.
 
 **Why the launcher DB-bootstrap flow alone would not fix it:** restoring the
@@ -51,7 +51,7 @@ Two coordinated changes:
 
 ### 1. Root-cause fix — migrate the four drifted Seat columns
 
-New Alembic migration at the current head (`f4a3b2c1d0e9` → new revision id):
+New Alembic migration at the current head (`d6e7f8a9b0c1` → new revision id):
 add the four columns as `nullable` (purely additive, safe on a live DB).
 
 ```python
@@ -128,7 +128,7 @@ root). Bootstrap runs only after config exists, so config is always available.
   - `create_fresh_database` produces a DB at migration head whose `seats` table
     has the four new columns.
   - `ensure_schema_current` is a no-op on an already-current DB.
-- Verify the new migration applies on a DB already at `f4a3b2c1d0e9`.
+- Verify the new migration applies on a DB already at `d6e7f8a9b0c1`.
 - **Verification step (implementation):** confirm no other model columns are
   drifted (schema-vs-metadata check) so no other table triggers `no such
   column` after this fix.
