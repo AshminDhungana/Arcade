@@ -298,6 +298,8 @@ class ActivationScreen(_BaseScreen):
         if path:
             dest = Path("license.key")
             try:
+                # Copy (not move): the chosen file may live on another drive,
+                # and the user should keep their original license.key.
                 shutil.copy2(path, dest)
                 self.controller._check_and_route()
             except Exception as exc:  # noqa: BLE001
