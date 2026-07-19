@@ -1,6 +1,7 @@
 import { SeatStatus } from '@/types/seat';
 
-/** Maps each SeatStatus to its colour Tailwind class. */
+/** Maps each SeatStatus to its dot colour class.
+ *  Distinct per status for at-a-glance operator scanning of the seat grid. */
 const STATUS_BG: Record<SeatStatus, string> = {
   AVAILABLE: 'bg-emerald-500',
   IN_USE: 'bg-orange-500',
@@ -37,7 +38,7 @@ export function SeatStatusBadge({ status }: SeatStatusBadgeProps) {
   const label = STATUS_LABEL[status] ?? status;
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white bg-slate-700"
+      className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground"
       aria-label={`Seat status: ${status}`}
     >
       <span className={`inline-block h-2 w-2 rounded-full ${bg}`} />

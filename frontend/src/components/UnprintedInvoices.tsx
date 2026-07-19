@@ -9,6 +9,7 @@ import {
 import { useForceCloseUnprinted } from '@/api/sessions';
 import { useAuthStore } from '@/store/authStore';
 import { PinConfirmModal } from './PinConfirmModal';
+import { Card } from '@/components/ui/Card';
 import type { Invoice } from '@/types/invoice';
 
 function formatMoney(paise: number): string {
@@ -26,32 +27,32 @@ export function UnprintedInvoices() {
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-slate-700 bg-slate-800 p-5">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-      </section>
+      <Card className="p-5">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </Card>
     );
   }
 
   const rows = data ?? [];
 
   return (
-    <section className="rounded-xl border border-amber-600/40 bg-slate-800 p-5">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-amber-400">
+    <Card className="border-warning/40 p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-warning">
         Unprinted Invoices ({rows.length})
       </h2>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-slate-400">No unprinted invoices. 🎉</p>
+        <p className="text-sm text-muted-foreground">No unprinted invoices. 🎉</p>
       ) : (
         <ul className="space-y-3" role="list">
           {rows.map((inv) => (
             <li
               key={inv.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-700 bg-slate-900/50 p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background/50 p-3"
             >
               <div className="min-w-0">
-                <p className="font-mono text-sm text-slate-200">#{inv.id.slice(0, 8)}</p>
-                <p className="text-xs text-slate-400">
+                <p className="font-mono text-sm text-foreground">#{inv.id.slice(0, 8)}</p>
+                <p className="text-xs text-muted-foreground">
                   {formatMoney(inv.total_paise)} · {inv.print_status}
                 </p>
               </div>
@@ -67,7 +68,7 @@ export function UnprintedInvoices() {
                       setBusyId(null);
                     }
                   }}
-                  className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700 cursor-pointer flex items-center gap-1"
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-foreground hover:bg-secondary cursor-pointer flex items-center gap-1"
                 >
                   <Printer className="h-3.5 w-3.5" /> Reprint
                 </button>
@@ -83,14 +84,14 @@ export function UnprintedInvoices() {
                       setBusyId(null);
                     }
                   }}
-                  className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700 cursor-pointer flex items-center gap-1"
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-foreground hover:bg-secondary cursor-pointer flex items-center gap-1"
                 >
                   <Printer className="h-3.5 w-3.5" /> PDF → Mark
                 </button>
                 <button
                   type="button"
                   onClick={() => setForceTarget(inv)}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500 cursor-pointer"
+                  className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
                 >
                   Force close
                 </button>
@@ -117,6 +118,6 @@ export function UnprintedInvoices() {
           );
         }}
       />
-    </section>
+    </Card>
   );
 }

@@ -6,6 +6,7 @@ import { bulkForceOverlay } from '@/api/seats';
 import { toast } from '@/store/toastStore';
 import { Lock } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/Button';
 
 function ConnectionBadge({
   status,
@@ -13,9 +14,9 @@ function ConnectionBadge({
   status: 'connecting' | 'connected' | 'disconnected';
 }) {
   const styles = {
-    connected: 'bg-emerald-500',
-    connecting: 'bg-amber-500 animate-pulse',
-    disconnected: 'bg-red-500',
+    connected: 'bg-success/15 text-success',
+    connecting: 'bg-warning/15 text-warning',
+    disconnected: 'bg-destructive/15 text-destructive',
   };
 
   const labels = {
@@ -26,10 +27,12 @@ function ConnectionBadge({
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium text-white ${styles[status]}`}
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${styles[status]}`}
       aria-label="Connection status"
     >
-      <span className="h-2 w-2 rounded-full bg-white" />
+      <span
+        className={`h-2 w-2 rounded-full bg-current ${status === 'connecting' ? 'animate-pulse' : ''}`}
+      />
       {labels[status]}
     </div>
   );
@@ -60,31 +63,29 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-800 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Arcade Dashboard</h1>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-20 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-xl font-bold text-foreground">Arcade Dashboard</h1>
           <div className="flex items-center gap-3">
             {isAdmin && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 onClick={handleLockIdle}
                 disabled={isLocking}
-                className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                loading={isLocking}
                 aria-label="Lock all idle seats"
               >
-                <Lock className="h-4 w-4" aria-hidden="true" />
+                <Lock className="size-4" aria-hidden="true" />
                 <span>Lock all idle seats</span>
-              </button>
+              </Button>
             )}
             <ConnectionBadge status={status} />
           </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="p-6 space-y-6">
+      <main className="mx-auto w-full max-w-7xl space-y-6 p-6">
         <UnprintedInvoices />
         <SeatGrid />
       </main>
