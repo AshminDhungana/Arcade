@@ -1471,7 +1471,7 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 ## Server & Networking
 
-- [ ] Move the server off the default `0.0.0.0:8000` onto a dedicated address/port to avoid conflicts with other local programs. Update `launcher.py` to display the new address/port, and update the agent to connect using the same values.
+- [x] Move the server off the default `0.0.0.0:8000` onto a dedicated address/port to avoid conflicts with other local programs. Update `launcher.py` to display the new address/port, and update the agent to connect using the same values.
 - [ ] Add a logout button to the server (currently missing).
 
 ## Launcher (`launcher.py`)

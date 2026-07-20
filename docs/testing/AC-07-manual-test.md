@@ -17,7 +17,7 @@
 
 ## Step 1: Validate Pre-Test Environment
 
-1. [ ] Ensure the server is running: `uvicorn backend.main:app --host 0.0.0.0 --port 8000`
+1. [ ] Ensure the server is running: `uvicorn backend.main:app --host 0.0.0.0 --port 8741`
 2. [ ] Ensure the agent is connected: open the browser at `http://<server_ip>/dashboard`, verify the seat shows **ONLINE**
 3. [ ] Verify the agent's agent.config.json has the correct `server_url` pointing to `http://<server_ip>:8741`
 

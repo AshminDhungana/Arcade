@@ -40,7 +40,7 @@ pip install -r requirements.txt -r requirements-dev.txt
 make backend-dev
 
 # Option B: Direct
-python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8741
 ```
 
 **Dev endpoints:**
