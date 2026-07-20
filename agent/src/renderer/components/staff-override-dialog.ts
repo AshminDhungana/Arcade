@@ -5,6 +5,8 @@
  * `onOverride` callback with the entered PIN.
  */
 
+import { ARCADE_ICON_SVG } from '../icon.js';
+
 export interface StaffOverrideOptions {
   onOverride: (pin: string) => void;
   onCancel?: () => void;
@@ -19,7 +21,7 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
 
   modal.innerHTML = `
     <div class="modal-content">
-      <div class="modal-title">🔐 Staff Override</div>
+      <div class="modal-title"><span class="modal-icon">${ARCADE_ICON_SVG}</span><span>Staff Override</span></div>
       <div class="modal-body">
         <p>Enter staff override PIN:</p>
         <div class="pin-display" id="pin-display"></div>

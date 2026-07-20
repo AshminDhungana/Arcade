@@ -56,4 +56,15 @@ describe('createStaffOverrideDialog', () => {
     expect(onCancel).toHaveBeenCalled();
     document.body.innerHTML = '';
   });
+
+  it('renders the gamepad brand icon in the title (no emoji)', () => {
+    const onOverride = vi.fn();
+    const modal = createStaffOverrideDialog({ onOverride });
+    const svg = modal.querySelector('.modal-title svg');
+    expect(svg).not.toBeNull();
+    // Lucide gamepad-directional path must be present.
+    expect(svg?.innerHTML).toContain('M11.146 15.854');
+    // Old emoji must be gone.
+    expect(modal.querySelector('.modal-title')?.textContent).not.toContain('🔐');
+  });
 });

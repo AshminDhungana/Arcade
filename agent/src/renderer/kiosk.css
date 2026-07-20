@@ -149,6 +149,26 @@ body {
   font-size: 2vw;
   margin-bottom: 1.5rem;
   color: #ffc107;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.modal-title svg {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+.modal-title .modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-title .modal-icon svg {
+  width: 1.6em;
+  height: 1.6em;
 }
 
 .modal-body {
