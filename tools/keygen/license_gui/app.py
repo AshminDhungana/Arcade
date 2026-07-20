@@ -17,11 +17,12 @@ except ImportError:  # direct `python generate_license.py` run: no parent packag
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from generate_license import PRIVATE_KEY_PATH
     from license_helpers import resolve_logo_path
-    from theme import COLORS, SPACING, make_fonts
-    from views.keys import KeysView
-    from views.new_license import NewLicenseView
-    from views.recent import RecentView
-    from widgets import NavButton, StatusBar
+
+    from .theme import COLORS, SPACING, make_fonts
+    from .views.keys import KeysView
+    from .views.new_license import NewLicenseView
+    from .views.recent import RecentView
+    from .widgets import NavButton, StatusBar
 
 
 def _require_customtkinter():
