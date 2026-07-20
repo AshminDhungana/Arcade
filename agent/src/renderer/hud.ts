@@ -12,6 +12,9 @@ let callStaffTimerId: ReturnType<typeof setTimeout> | null = null;
 let urgentCountdownStop: (() => void) | null = null;
 let lowTimeModal: HTMLDivElement | null = null;
 
+const HOVER_ZONE = 0.12; // bottom-right hotzone size (fraction of viewport)
+let pendingLowTimeMinutes = 5;
+
 function setPhase(next: HudPhase, event: HudEvent): void {
   phase = nextHudPhase(phase, event);
   applyPhase();
@@ -23,7 +26,7 @@ function applyPhase(): void {
       showIntro();
       break;
     case 'AMBIENT':
-      hideAll();
+      hideTimerOnly();
       break;
     case 'URGENT':
       showUrgent();
@@ -38,6 +41,7 @@ function showIntro(): void {
   if (timerEl) {
     timerEl.style.display = 'block';
     reveal(timerEl);
+    timerEl.textContent = formatElapsed(0);
   }
   if (callBtn) {
     callBtn.style.display = 'block';
@@ -59,16 +63,19 @@ function hideAll(): void {
   if (lowTimeModal) { hideModal(lowTimeModal); lowTimeModal = null; }
 }
 
+function hideTimerOnly(): void {
+  if (timerEl) timerEl.style.display = 'none';
+  if (introTimerId) clearTimeout(introTimerId);
+}
+
 function showUrgent(): void {
   if (timerEl) {
     timerEl.style.display = 'block';
     reveal(timerEl);
-    // local countdown from server's remaining seconds (placeholder 300s)
-    urgentCountdownStop = countdown(300, (rem) => {
+    // local countdown from server's remaining seconds
+    urgentCountdownStop = countdown(pendingLowTimeMinutes * 60, (rem) => {
       timerEl!.textContent = formatMMSS(rem);
       pulseTimer(timerEl!);
-    }, () => {
-      setPhase('ENDED', 'session-end');
     });
   }
   if (callBtn) {
@@ -78,7 +85,7 @@ function showUrgent(): void {
   // low-time modal
   if (!lowTimeModal) {
     lowTimeModal = createLowTimeModal({
-      minutesRemaining: 5,
+      minutesRemaining: pendingLowTimeMinutes,
       onDismiss: () => { if (lowTimeModal) { hideModal(lowTimeModal); lowTimeModal = null; } },
     });
     document.body.appendChild(lowTimeModal);
@@ -92,9 +99,17 @@ function formatMMSS(total: number): string {
   return `${m}:${s}`;
 }
 
+function formatElapsed(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+}
+
 function initHud(): void {
   const app = document.getElementById('app')!;
-  app.style.pointerEvents = 'none'; // click-through except button
 
   timerEl = document.createElement('div');
   timerEl.className = 'hud-timer';
@@ -105,7 +120,6 @@ function initHud(): void {
   callBtn.className = 'call-staff-btn';
   callBtn.textContent = 'Call Staff';
   callBtn.style.display = 'none';
-  callBtn.style.pointerEvents = 'auto'; // button is clickable
   callBtn.addEventListener('click', () => window.electronAPI.callStaff());
   app.appendChild(callBtn);
 
@@ -114,11 +128,12 @@ function initHud(): void {
   // Session start → INTRO
   window.electronAPI.onTimerUpdate((tick: { elapsedSeconds: number }) => {
     if (phase === 'INTRO') {
-      timerEl!.textContent = formatMMSS(tick.elapsedSeconds);
+      timerEl!.textContent = formatElapsed(tick.elapsedSeconds);
     }
   });
 
   window.electronAPI.onLowTimeWarning((minutes: number) => {
+    pendingLowTimeMinutes = minutes;
     setPhase('URGENT', 'low-time');
   });
 
@@ -131,6 +146,7 @@ function initHud(): void {
     const el = document.createElement('div');
     el.className = 'announcement-banner';
     el.textContent = text;
+    el.style.pointerEvents = 'none';
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add('visible'));
     setTimeout(() => { el.classList.remove('visible'); el.remove(); }, durationMs);
@@ -139,7 +155,7 @@ function initHud(): void {
   // Corner hot-zone (bottom-right 64x64) → show Call Staff for 10s
   let hoverTimer: ReturnType<typeof setTimeout> | null = null;
   window.addEventListener('mousemove', (e) => {
-    if (e.clientX > innerWidth - 64 && e.clientY > innerHeight - 64) {
+    if (e.clientX > innerWidth * (1 - HOVER_ZONE) && e.clientY > innerHeight * (1 - HOVER_ZONE)) {
       if (callBtn && callBtn.style.display === 'none' && phase !== 'ENDED') {
         callBtn.style.display = 'block';
         reveal(callBtn, 80);
