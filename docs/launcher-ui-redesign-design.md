@@ -94,7 +94,7 @@ auto-selects the tuple element by appearance mode.
 | `text_disabled` | `#A8A8B2` | `#5B5B66` | disabled hints |
 | `text_on_accent` | `#FFFFFF` | `#FFFFFF` | text on indigo fills |
 | `accent` | `#6366F1` | `#818CF8` | non-text accents (indicators, focus ring, gradient strip, links) |
-| `accent_fill` | `#6366F1` | `#4F46E5` | **button/CTA fills** (white text) |
+| `accent_fill` | `#5E62F2` | `#4F46E5` | **button/CTA fills** (white text) |
 | `accent_fill_hover` | `#4F46E5` | `#4338CA` | button hover |
 | `success` | `#16A34A` | `#22C55E` | running/ok |
 | `warning` | `#D97706` | `#F59E0B` | busy/trial |
@@ -103,7 +103,7 @@ auto-selects the tuple element by appearance mode.
 
 > **Contrast rationale (WCAG AA):** `text_primary` on `bg_primary` ≈ 16:1 (light)
 > and ≈ 17:1 (dark). `text_secondary` on `bg_primary` ≈ 5.9:1 / 7.5:1 — both ≥ 4.5:1.
-> `text_on_accent` (white) on `accent_fill` `#6366F1` ≈ 4.6:1 (light, passes) and on
+> `text_on_accent` (white) on `accent_fill` `#5E62F2` ≈ 4.66:1 (light, passes) and on
 > `#4F46E5` ≈ 6.3:1 (dark, passes). The lighter dark `accent` (`#818CF8`) is used only
 > for *non-text-bearing* accents (active indicator, focus ring, gradient) where text
 > contrast does not apply. A dedicated `accent_fill` (darker in dark mode) guarantees

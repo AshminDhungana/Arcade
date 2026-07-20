@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Accent indigo `accent = (#6366F1, #818CF8)`; button fill `accent_fill = (#6366F1, #4F46E5)`; `accent_fill_hover = (#4F46E5, #4338CA)`; `text_on_accent = (#FFFFFF, #FFFFFF)`.
+- Accent indigo `accent = (#6366F1, #818CF8)`; button fill `accent_fill = (#5E62F2, #4F46E5)` (light darkened from `#6366F1` by ~0.2 so white CTA text clears WCAG AA 4.5:1 at 4.66:1; the brand `#6366F1` stays as `accent` for gradient/indicators/focus); `accent_fill_hover = (#4F46E5, #4338CA)`; `text_on_accent = (#FFFFFF, #FFFFFF)`.
 - Surfaces: `bg_primary = (#F8F9FC, #0E0E12)`, `bg_secondary = (#FFFFFF, #17171C)`, `bg_tertiary = (#F1F2F6, #202027)`.
 - Semantic: `success = (#16A34A, #22C55E)`, `warning = (#D97706, #F59E0B)`, `error = (#DC2626, #EF4444)`, `border = (#E6E7EC, #2A2A32)`, `text_primary/secondary/disabled` per spec §1.
 - `RADIUS = 10`; `SPACING = {xs:4, sm:8, md:12, lg:16, xl:24, xxl:32}`; `BTN_HEIGHT = 44`.
@@ -121,7 +121,7 @@ COLORS = {
     "text_disabled": ("#A8A8B2", "#5B5B66"),
     "text_on_accent": ("#FFFFFF", "#FFFFFF"),
     "accent": ("#6366F1", "#818CF8"),
-    "accent_fill": ("#6366F1", "#4F46E5"),
+    "accent_fill": ("#5E62F2", "#4F46E5"),
     "accent_fill_hover": ("#4F46E5", "#4338CA"),
     "success": ("#16A34A", "#22C55E"),
     "warning": ("#D97706", "#F59E0B"),
