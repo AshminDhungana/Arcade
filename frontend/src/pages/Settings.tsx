@@ -5,6 +5,7 @@ import { SchedulesTab } from '@/components/settings/SchedulesTab';
 import { StaffTab } from '@/components/settings/StaffTab';
 import { MenuTab } from '@/components/settings/MenuTab';
 import { PrinterTab } from '@/components/settings/PrinterTab';
+import { BroadcastTab } from '@/components/settings/BroadcastTab';
 
 export default function SettingsPage() {
   return (
@@ -21,6 +22,7 @@ export default function SettingsPage() {
             <TabsTrigger value="staff">Staff</TabsTrigger>
             <TabsTrigger value="menu">Menu</TabsTrigger>
             <TabsTrigger value="printer">Printer</TabsTrigger>
+            <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
           </TabsList>
           <TabsContent value="flags"><FeatureFlagsTab /></TabsContent>
           <TabsContent value="pricing"><PricingTab /></TabsContent>
@@ -28,6 +30,7 @@ export default function SettingsPage() {
           <TabsContent value="staff"><StaffTab /></TabsContent>
           <TabsContent value="menu"><MenuTab /></TabsContent>
           <TabsContent value="printer"><PrinterTab /></TabsContent>
+          <TabsContent value="broadcast"><BroadcastTab /></TabsContent>
         </Tabs>
       </main>
     </div>
