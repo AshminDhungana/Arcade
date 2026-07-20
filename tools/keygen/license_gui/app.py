@@ -62,11 +62,10 @@ class LicenseApp:
     # -- top bar ---------------------------------------------------------
     def _build_topbar(self) -> None:
         ctk = self.ctk
-        bar = ctk.CTkFrame(
-            self.root, fg_color=COLORS["bg_secondary"], corner_radius=0, height=64
-        )
+        bar = ctk.CTkFrame(self.root, fg_color=COLORS["bg_secondary"], corner_radius=0)
         bar.grid(row=0, column=0, sticky="ew")
         bar.grid_columnconfigure(1, weight=1)
+        bar.grid_rowconfigure(2, minsize=3)
 
         logo = resolve_logo_path()
         if logo:
