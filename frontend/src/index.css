@@ -69,6 +69,60 @@
     radial-gradient(42rem 42rem at 6% 112%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 55%);
 }
 
+/* ---- Neon-grid login backdrop (theme-aware via tokens) ---- */
+.neon-grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  background-color: var(--background);
+}
+.neon-grid__ambient {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(60rem 60rem at 88% -10%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 60%),
+    radial-gradient(42rem 42rem at 6% 112%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 55%);
+}
+.neon-grid__floor {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: -10%;
+  height: 70%;
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--primary) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--primary) 38%, transparent) 1px, transparent 1px);
+  background-size: 42px 42px;
+  transform: perspective(320px) rotateX(60deg) scale(1.8);
+  transform-origin: center 80%;
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 80%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 80%);
+}
+.neon-grid__glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 45%;
+  background: radial-gradient(ellipse 60% 100% at 50% 120%, color-mix(in oklab, var(--primary) 45%, transparent), transparent 70%);
+}
+.neon-grid__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.35) 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .neon-grid__floor {
+    animation: neon-grid-scroll 6s linear infinite;
+  }
+}
+@keyframes neon-grid-scroll {
+  from { background-position: 0 0; }
+  to { background-position: 0 42px; }
+}
+
 @layer base {
   html { font-family: var(--font-sans); }
   body { background-color: var(--background); color: var(--foreground); }
