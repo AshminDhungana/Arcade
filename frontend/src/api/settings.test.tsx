@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useToggleFlag, useChangeStaffPin } from './settings';
 import { useFeatureFlags } from './featureFlags';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
+import { useAuthStore } from '@/store/authStore';
 
 const BASE_FLAGS = {
   enable_members: false, enable_packages: false, enable_pos: false,
@@ -45,9 +46,20 @@ describe('useToggleFlag', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     useFeatureFlagStore.getState().setFlags({ ...BASE_FLAGS, enable_members: true });
+    // The feature-flags query is gated on an auth token (enabled: !!token),
+    // so it only fires and syncs the store when authenticated. Establish that
+    // precondition here, otherwise the invalidated refetch never runs and the
+    // store stays at its seed value.
+    useAuthStore.getState().login('test-token', {
+      id: 'admin',
+      name: 'Administrator',
+      role: 'ADMIN',
+      is_active: true,
+    });
   });
 
   afterEach(() => {
+    useAuthStore.getState().logout();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
