@@ -160,17 +160,6 @@ body {
   height: 1.6em;
 }
 
-.modal-title .modal-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-title .modal-icon svg {
-  width: 1.6em;
-  height: 1.6em;
-}
-
 .modal-body {
   font-size: 1.5vw;
   color: #e0e0e0;

@@ -29,9 +29,6 @@
   --input: #334155;
   --ring: #0090fa;
   --radius: 0.75rem;
-
-  /* Brand gradient (controller icon stops) */
-  --brand-gradient: linear-gradient(135deg, #0334f0, #0090fa 55%, #06a3fc);
 }
 
 @theme inline {
@@ -70,11 +67,6 @@
   background-image:
     radial-gradient(60rem 60rem at 88% -10%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 60%),
     radial-gradient(42rem 42rem at 6% 112%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 55%);
-}
-
-/* Brand gradient utility */
-.bg-brand-gradient {
-  background-image: var(--brand-gradient);
 }
 
 @layer base {
