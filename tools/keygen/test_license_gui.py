@@ -1,4 +1,9 @@
+from tools.keygen.license_gui import launch_gui
 from tools.keygen.license_gui.theme import COLORS
+
+
+def test_launch_gui_importable():
+    assert callable(launch_gui)
 
 
 def test_theme_tokens_are_light_dark_tuples():
