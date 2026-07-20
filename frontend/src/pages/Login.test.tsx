@@ -95,4 +95,34 @@ describe('Login', () => {
     expect(img?.className).toContain('rounded-2xl');
     expect(document.querySelector('.bg-brand-gradient')).toBeNull();
   });
+
+  it('renders the signature as a decorative, theme-aware svg', () => {
+    const { container } = renderWithRouter();
+    // Signature is the only svg that fills with currentColor (lucide icons use fill="none")
+    const sig = container.querySelector('svg[fill="currentColor"]');
+    expect(sig).not.toBeNull();
+    expect(sig?.getAttribute('aria-hidden')).toBe('true');
+    const classAttr = sig?.getAttribute('class') ?? '';
+    expect(classAttr).toContain('text-foreground');
+    expect(classAttr).toContain('bottom-4');
+    expect(classAttr).toContain('right-4');
+    expect(sig?.querySelectorAll('path').length).toBe(3);
+  });
+
+  it('toggles theme via the logo button and persists the choice', () => {
+    localStorage.clear();
+    const { container } = renderWithRouter();
+    const wrapper = container.querySelector('.login-root');
+    expect(wrapper).not.toBeNull();
+    expect(wrapper?.getAttribute('data-theme')).toBe('dark');
+
+    const toggle = screen.getByRole('button', { name: /switch to light theme/i });
+    fireEvent.click(toggle);
+
+    expect(wrapper?.getAttribute('data-theme')).toBe('light');
+    expect(localStorage.getItem('arcade-login-theme')).toBe('light');
+    expect(
+      screen.getByRole('button', { name: /switch to dark theme/i }),
+    ).toBeInTheDocument();
+  });
 });
