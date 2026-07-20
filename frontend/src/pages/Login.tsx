@@ -230,7 +230,7 @@ export default function Login() {
         </motion.div>
       </div>
 
-      <Signature className="pointer-events-none absolute bottom-4 right-4 z-10 h-7 w-auto text-foreground opacity-70 sm:h-8" />
+      <Signature className="pointer-events-none absolute bottom-4 right-4 z-10 h-8 w-auto text-foreground opacity-80 drop-shadow-sm sm:h-10" />
     </div>
   );
 }
