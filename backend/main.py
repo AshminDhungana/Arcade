@@ -31,8 +31,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -302,11 +301,29 @@ async def health() -> dict[str, Any]:
 
 # --- Static files / SPA fallback (registered LAST) ----------------------
 # frontend/dist/ may not exist if the frontend hasn't been built yet.
-# We catch the error and log a warning so the server starts regardless.
-# Registered after all explicit routes so the "/" catch-all does not shadow
-# endpoints like /health.
+# Registered after all explicit routes so this catch-all does not shadow
+# endpoints like /health or the /api and /ws routers.
+#
+# This is a real SPA history fallback: a request for a built asset (JS/CSS/
+# svg) is served directly; any other GET (e.g. a client-side route like
+# /login that was reloaded) falls back to index.html so the router can
+# handle it. Paths under /api and /ws are exempt so unknown API endpoints
+# still 404 as JSON rather than returning HTML.
 _frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
-try:
-    app.mount("/", StaticFiles(directory=_frontend_dist, html=True), name="spa")
-except RuntimeError as exc:
-    logger.warning("Static files not available: %s", exc)
+_index_html = _frontend_dist / "index.html"
+
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str) -> Response:  # noqa: ARG001
+    """Serve built SPA assets; fall back to index.html for client-side routes."""
+    if not _index_html.is_file():
+        raise HTTPException(status_code=404, detail="Frontend not built")
+    if full_path.startswith(("api/", "ws/")):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    dist_root = _frontend_dist.resolve()
+    candidate = (dist_root / full_path).resolve()
+    # Only serve files that actually live inside dist (blocks ../ traversal).
+    if candidate.is_file() and dist_root in candidate.parents:
+        return FileResponse(candidate)
+    return FileResponse(_index_html)
