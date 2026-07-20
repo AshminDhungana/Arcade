@@ -10,7 +10,7 @@ install: ## Install all dependencies
 	cd agent && npm install
 
 backend-dev: ## Start FastAPI dev server
-	$(PYTHON) -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+	$(PYTHON) -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8741
 
 frontend-dev: ## Start Vite dev server
 	cd frontend && npm run dev
