@@ -19,6 +19,8 @@ export interface HandlerDeps {
   seatId: string;
   /** Returns the cafe name fetched from the server (defaults to 'Arcade'). */
   getCafeName?: () => string;
+  /** Optional event/tournament banner from the server. */
+  getEventBanner?: () => string;
 }
 
 /**
@@ -50,6 +52,7 @@ export function createCommandHandlers(
         announcements: [],
         callStaffEnabled: true,
         sessionActive: false,
+        eventBanner: deps.getEventBanner?.() || '',
       });
     },
 
@@ -92,6 +95,7 @@ export function createCommandHandlers(
         sessionActive: !!payload.session_id,
         remainingTime: undefined,
         lowTimeWarning: false,
+        eventBanner: deps.getEventBanner?.() || '',
       });
     },
 

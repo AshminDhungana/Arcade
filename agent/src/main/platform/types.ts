@@ -22,6 +22,9 @@ export interface OverlayContent {
 
   /** Whether to flash the low-time warning indicator. */
   lowTimeWarning?: boolean;
+
+  /** Optional event/tournament banner shown on the kiosk when set by the server. */
+  eventBanner?: string;
 }
 
 /**

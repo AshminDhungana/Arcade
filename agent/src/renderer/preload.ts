@@ -18,6 +18,9 @@ export interface OverlayData {
   lowTimeWarning?: boolean;
   callStaffEnabled: boolean;
   announcements: string[];
+
+  /** Optional event/tournament banner shown on the kiosk when set by the server. */
+  eventBanner?: string;
 }
 
 /** The API exposed to the renderer process via `window.electronAPI`. */

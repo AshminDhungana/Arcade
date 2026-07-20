@@ -49,6 +49,7 @@ describe('Command Handlers', () => {
     handlers.SHOW_OVERLAY({ session_id: 'sess-123' });
     expect(mockPlatform.showKioskOverlay).toHaveBeenCalledWith({
       cafeName: 'Arcade', announcements: [], callStaffEnabled: true, sessionActive: false,
+      eventBanner: '',
     });
   });
 
@@ -83,3 +84,35 @@ describe('Command Handlers', () => {
     expect(mockPlatform.showKioskOverlay).not.toHaveBeenCalled();
   });
 });
+
+describe('event banner', () => {
+  it('SHOW_OVERLAY passes eventBanner from getEventBanner', () => {
+    const platform = fakePlatform();
+    const handlers = createCommandHandlers(platform, {
+      seatId: 'seat-1',
+      getCafeName: () => 'Arcade',
+      getEventBanner: () => 'Weekend Tournament',
+    });
+    handlers.SHOW_OVERLAY({ session_id: 's1', started_at: '2026-01-01T00:00:00Z' });
+    const content = platform.showKioskOverlay.mock.calls[0][0];
+    expect(content.eventBanner).toBe('Weekend Tournament');
+  });
+
+  it('omits banner when getEventBanner returns empty', () => {
+    const platform = fakePlatform();
+    const handlers = createCommandHandlers(platform, {
+      seatId: 'seat-1', getCafeName: () => 'Arcade', getEventBanner: () => '',
+    });
+    handlers.SHOW_OVERLAY({ session_id: 's1', started_at: '2026-01-01T00:00:00Z' });
+    const content = platform.showKioskOverlay.mock.calls[0][0];
+    expect(content.eventBanner).toBe('');
+  });
+});
+
+function fakePlatform() {
+  return {
+    showKioskOverlay: vi.fn(), hideKioskOverlay: vi.fn(), showHud: vi.fn(),
+    hideHud: vi.fn(), showLowTimeWarning: vi.fn(), sendAnnouncement: vi.fn(),
+    isKioskVisible: () => false,
+  } as any;
+}
