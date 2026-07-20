@@ -15,10 +15,17 @@ def prefers_reduced_motion() -> bool:
     system = platform.system()
     if system == "Windows":
         try:
-            from ctypes import windll  # type: ignore
+            from ctypes import byref, c_bool, windll  # type: ignore
 
-            # SPI_GETCLIENTAREAANIMATION = 0x1042; 0 => animations off
-            return windll.user32.SystemParametersInfoW(0x1042, 0, 0, 0) == 0
+            # SPI_GETCLIENTAREAANIMATION = 0x1042 is a BOOL *read*: pvParam
+            # must point to a BOOL that receives the value. Passing NULL (0)
+            # both misreads the setting and can fault. Default True so a
+            # failed/short read is treated as "animations on" (not reduced).
+            animations_on = c_bool(True)
+            ok = windll.user32.SystemParametersInfoW(0x1042, 0, byref(animations_on), 0)
+            if ok:
+                return not animations_on.value
+            raise OSError("SPI_GETCLIENTAREAANIMATION query failed")
         except Exception:
             try:
                 import winreg

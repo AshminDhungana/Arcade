@@ -923,6 +923,14 @@ class LauncherApp:
             new_screen = _cls(self.content, self, *args, **kwargs)
             new_screen.grid(row=0, column=0, sticky="nsew")
             self.current_screen = new_screen
+            # Capture the MainScreen reference here, inside swap(): with
+            # animations on, swap() runs asynchronously (~180ms after
+            # show_screen returns), so assigning _main_screen at the call
+            # site would race and leave it stale/None -> _on_close would fail
+            # to stop the server. Setting it here is correct on both paths.
+            self._main_screen = (
+                new_screen if isinstance(new_screen, MainScreen) else None
+            )
 
         screen_transition(self.root, swap, reduced=self._reduced_motion)
 
@@ -1083,8 +1091,10 @@ class LauncherApp:
         if result.ok:
             if Path("arcade.config.json").exists():
                 if self._ensure_database():
+                    # _main_screen is captured inside show_screen's swap(),
+                    # which runs after the screen is built (async when
+                    # animations are on).
                     self.show_screen(MainScreen)
-                    self._main_screen = self.current_screen  # type: ignore[assignment]
                     self.status.set("Database ready", "success")
             else:
                 self.show_screen(SetupWizard, result)
