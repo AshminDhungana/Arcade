@@ -125,6 +125,7 @@ function initKiosk(): void {
     sessionActive: false,
     callStaffEnabled: true,
     announcements: [],
+    eventBanner: '',
   };
   updateOverlay(overlay, initialData);
 }
@@ -137,6 +138,10 @@ function updateOverlay(overlay: KioskOverlay, data: OverlayData): void {
   // Branded cafe name/logo header (Task 9 — Epic 5.5)
   if (data.cafeName) {
     overlay.setCafeName(data.cafeName, data.cafeLogo);
+  }
+  // Event banner (server-controlled, optional)
+  if (data.eventBanner !== undefined) {
+    overlay.setEventBanner(data.eventBanner);
   }
   // Session status drives the indicator
   if (data.sessionActive) {
