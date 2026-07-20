@@ -1,6 +1,6 @@
 /**
  * Kiosk overlay UI component — plain DOM, no external lib.
- * Built for the Arcarde Agent electron renderer process.
+ * Built for the Arcade Agent electron renderer process.
  */
 
 export interface KioskOverlayState {
@@ -11,15 +11,21 @@ export interface KioskOverlayState {
 }
 
 /**
- * Encapsulates all kiosk overlay UI: live clock, session indicator,
- * timer display, and "Call Staff" button.
+ * Encapsulates all kiosk overlay UI: top bug (wordmark + status pill),
+ * hero cluster (brand, event banner, clock, timer, session indicator),
+ * and bottom status rail.
  */
 export class KioskOverlay {
   public readonly container: HTMLDivElement;
+  private readonly bugEl: HTMLDivElement;
+  private readonly statusPill: HTMLDivElement;
+  private readonly centerEl: HTMLDivElement;
   private readonly cafeBrandEl: HTMLDivElement;
   private readonly clockEl: HTMLDivElement;
   private readonly timerEl: HTMLDivElement;
   private readonly sessionIndicator: HTMLDivElement;
+  private readonly bannerEl: HTMLDivElement;
+  private readonly railEl: HTMLDivElement;
   private clockInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(parent: HTMLElement) {
@@ -27,22 +33,54 @@ export class KioskOverlay {
     this.container.className = 'kiosk-overlay';
     parent.appendChild(this.container);
 
+    // Top bug: product wordmark + OPEN/LIVE status pill
+    this.bugEl = document.createElement('div');
+    this.bugEl.className = 'kiosk-bug';
+    const wordmark = document.createElement('span');
+    wordmark.className = 'cafe-wordmark';
+    wordmark.textContent = 'ARCADE';
+    this.statusPill = document.createElement('div');
+    this.statusPill.className = 'status-pill';
+    this.statusPill.innerHTML = '<span class="dot"></span><span class="label">OPEN</span>';
+    this.bugEl.append(wordmark, this.statusPill);
+    this.container.appendChild(this.bugEl);
+
+    // Centered hero cluster
+    this.centerEl = document.createElement('div');
+    this.centerEl.className = 'kiosk-center';
+
     this.cafeBrandEl = document.createElement('div');
     this.cafeBrandEl.className = 'cafe-brand';
-    this.container.appendChild(this.cafeBrandEl);
+    this.centerEl.appendChild(this.cafeBrandEl);
+
+    this.bannerEl = document.createElement('div');
+    this.bannerEl.className = 'event-banner';
+    this.bannerEl.style.display = 'none';
+    this.centerEl.appendChild(this.bannerEl);
 
     this.clockEl = document.createElement('div');
     this.clockEl.className = 'clock';
-    this.container.appendChild(this.clockEl);
+    this.centerEl.appendChild(this.clockEl);
 
     this.timerEl = document.createElement('div');
     this.timerEl.className = 'timer-display';
-    this.container.appendChild(this.timerEl);
+    this.centerEl.appendChild(this.timerEl);
 
     this.sessionIndicator = document.createElement('div');
     this.sessionIndicator.className = 'session-indicator';
     this.sessionIndicator.textContent = '● Session in progress';
-    this.container.appendChild(this.sessionIndicator);
+    this.centerEl.appendChild(this.sessionIndicator);
+
+    this.container.appendChild(this.centerEl);
+
+    // Bottom rail: status
+    this.railEl = document.createElement('div');
+    this.railEl.className = 'kiosk-rail';
+    const railStatus = document.createElement('div');
+    railStatus.className = 'kiosk-status';
+    railStatus.innerHTML = '<span class="ok"></span><span>Online</span>';
+    this.railEl.appendChild(railStatus);
+    this.container.appendChild(this.railEl);
   }
 
   /** Start the live clock (updates every second). */
@@ -64,12 +102,17 @@ export class KioskOverlay {
     this.timerEl.textContent = timeString;
   }
 
-  /** Show or hide the "Session in progress" indicator. */
+  /** Show/hide the session indicator and drive the bug status pill. */
   setSessionActive(active: boolean): void {
+    const label = this.statusPill.querySelector('.label');
     if (active) {
       this.sessionIndicator.classList.add('active');
+      this.statusPill.classList.add('live');
+      if (label) label.textContent = 'LIVE';
     } else {
       this.sessionIndicator.classList.remove('active');
+      this.statusPill.classList.remove('live');
+      if (label) label.textContent = 'OPEN';
       this.timerEl.textContent = '';
     }
   }
@@ -87,6 +130,16 @@ export class KioskOverlay {
     const span = document.createElement('span');
     span.textContent = name;
     this.cafeBrandEl.appendChild(span);
+  }
+
+  /** Show the server-provided event banner, or hide it when empty/unset. */
+  setEventBanner(text?: string): void {
+    if (text && text.trim().length > 0) {
+      this.bannerEl.textContent = text;
+      this.bannerEl.style.display = '';
+    } else {
+      this.bannerEl.style.display = 'none';
+    }
   }
 
   /** Return whether clock is running. */

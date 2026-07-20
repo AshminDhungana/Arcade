@@ -80,3 +80,54 @@ describe('KioskOverlay branding', () => {
     expect(brand!.textContent).toContain('Neon Cafe');
   });
 });
+
+describe('KioskOverlay.setEventBanner', () => {
+  it('shows the banner with text', () => {
+    const root = document.createElement('div');
+    const overlay = new KioskOverlay(root);
+    overlay.setEventBanner('Weekend Tournament');
+    const banner = root.querySelector('.event-banner') as HTMLElement;
+    expect(banner).not.toBeNull();
+    expect(banner.textContent).toBe('Weekend Tournament');
+    expect(banner.style.display).not.toBe('none');
+  });
+
+  it('hides the banner when text is empty (default)', () => {
+    const root = document.createElement('div');
+    const overlay = new KioskOverlay(root);
+    overlay.setEventBanner('');
+    const banner = root.querySelector('.event-banner') as HTMLElement;
+    expect(banner.style.display).toBe('none');
+  });
+
+  it('hides the banner when called with no argument', () => {
+    const root = document.createElement('div');
+    const overlay = new KioskOverlay(root);
+    overlay.setEventBanner();
+    const banner = root.querySelector('.event-banner') as HTMLElement;
+    expect(banner.style.display).toBe('none');
+  });
+
+  it('builds the bug + center + rail layout', () => {
+    const root = document.createElement('div');
+    new KioskOverlay(root);
+    expect(root.querySelector('.kiosk-bug')).not.toBeNull();
+    expect(root.querySelector('.cafe-wordmark')).not.toBeNull();
+    expect(root.querySelector('.status-pill')).not.toBeNull();
+    expect(root.querySelector('.kiosk-center')).not.toBeNull();
+    expect(root.querySelector('.kiosk-rail')).not.toBeNull();
+    expect(root.querySelector('.kiosk-status')).not.toBeNull();
+  });
+
+  it('toggles the status pill between OPEN and LIVE', () => {
+    const root = document.createElement('div');
+    const overlay = new KioskOverlay(root);
+    const label = () => (root.querySelector('.status-pill .label') as HTMLElement).textContent;
+    expect(label()).toBe('OPEN');
+    overlay.setSessionActive(true);
+    expect(label()).toBe('LIVE');
+    expect(root.querySelector('.status-pill')!.classList.contains('live')).toBe(true);
+    overlay.setSessionActive(false);
+    expect(label()).toBe('OPEN');
+  });
+});

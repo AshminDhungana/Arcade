@@ -1461,23 +1461,32 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 - [x] **macOS kiosk hardening verification** (ENG-A): Cmd+Q, Cmd+Tab, Cmd+Space blocked; Force Quit (Cmd+Opt+Esc) â€” document if not blockable
 - [x] **Linux kiosk hardening verification** (ENG-B): X11 all shortcuts blocked; Wayland fallback verified; known gaps documented
 
-- [ ] Improve the UI/UX of the agent, focusing mainly on the overlay page. Use the frontend as a design reference, and apply the `ui-ux-pro-max` skill for ideas and visual taste.
+---
 
-- [ ] Improve the kiosk overlay in the agent to look more professional, using the `/motion-dev` skill. It should be polished enough for use in international tournaments — search the web for design inspiration.
+## UI/UX
+- [ ] Add a light/dark mode toggle to the frontend.
 
-- [ ] Use a dedicated address and port for the server (instead of the default) so it doesn't conflict with other programs the user may be running. Update `launcher.py` to display this new address/port (it currently shows `0.0.0.0:8000`), and update the agent to connect using the same updated address and port.
 
-- [ ] Make `launcher.py` run in the background, the same way the agent does.
+- [ ] Login screen icon and the browser tab icon, change it to lucid react gamepad-directional icon use /ui-ux-pro-max to improve the design and /motion-dev for imporvements. and also use the same icon eveywhere inside the frontend replace the old icon with it .
 
-- [ ] Add a logout button to the server — one is currently missing.
+## Server & Networking
 
-- [ ] Add a light/dark mode toggle button to the frontend.
+- [ ] Move the server off the default `0.0.0.0:8000` onto a dedicated address/port to avoid conflicts with other local programs. Update `launcher.py` to display the new address/port, and update the agent to connect using the same values.
+- [ ] Add a logout button to the server (currently missing).
 
-- [ ] In `launcher.py`, the "Open Dashboard" button should be disabled (non-functional) until the server has actually been started.
+## Launcher (`launcher.py`)
 
-- [ ] Check whether the cashier and new-user roles have access to all zones by default. If not, define how an admin can grant them access.
+- [ ] Run `launcher.py` in the background, the same way the agent does.
+- [ ] Disable the "Open Dashboard" button until the server has actually started.
 
-[ ] in ./tools/keygen/generate_license.py in dark mode the logo is not looking good, we need to invert the color of the logo to white for dark mode to look good.
+## Access Control
+
+- [ ] Audit whether cashier and new-user roles have zone access by default. If not, define how an admin can grant them zone access.
+
+## Bug Fixes
+
+- [ ] `tools/keygen/generate_license.py`: the logo doesn't render well in dark mode — invert it to white so it's visible.
+
 
 ### Epic 7.4: Launcher Cross-Platform Testing (ENG-A)
 

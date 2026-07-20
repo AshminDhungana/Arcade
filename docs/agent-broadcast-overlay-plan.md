@@ -345,15 +345,18 @@ git commit -m "feat(agent): add pure HUD state machine"
 
 ---
 
-### Task 4: Kiosk overlay — event banner + token classes (`kiosk-overlay.ts`)
+### Task 4: Kiosk overlay — broadcast layout + event banner (`kiosk-overlay.ts`)
 
 **Files:**
 - Modify: `agent/src/renderer/components/kiosk-overlay.ts`
 - Test: `agent/tests/renderer/components/kiosk-overlay.test.ts`
 
 **Interfaces:**
-- Consumes: CSS classes defined in `kiosk.css` (Task 5): `kiosk-overlay`, `cafe-brand`, `cafe-banner`, `clock`, `session-indicator`, `timer-display`, `event-banner`.
-- Produces: `setEventBanner(text?: string)` — shows the banner element when `text` is non-empty, hides it otherwise. Used by `index.ts` (Task 6 of the kiosk wiring) and verified by the banner test.
+- Consumes: CSS classes defined in `kiosk.css` (Task 5): `kiosk-overlay`, `kiosk-bug`, `cafe-wordmark`, `status-pill`, `kiosk-center`, `cafe-brand`, `cafe-logo`, `event-banner`, `clock`, `timer-display`, `session-indicator`, `kiosk-rail`, `kiosk-status`.
+- Produces: `setEventBanner(text?: string)` — shows the banner element when `text` is non-empty, hides it otherwise. Used by `index.ts` (Task 11). The Call Staff button stays appended by `index.ts` and is positioned by CSS (no `index.ts` change in this task).
+- `setSessionActive(active)` now also drives the `.status-pill` label (OPEN ⇄ LIVE) and its `.live` class.
+
+> **Scope note (plan gap closed):** The approved design's kiosk (spec §2 / mockup) shows a top "bug" (product wordmark + OPEN/LIVE pill) and a bottom status rail. The current component (`kiosk-overlay.ts`) builds only a centered column, so this task ADDS those elements (bug + center wrapper + rail). The existing `kiosk-overlay.test.ts` (queries `.clock` / `.session-indicator` / `.timer-display` / `.kiosk-overlay` / `.cafe-brand` via descendant selectors) stays fully compatible — all those elements still exist, now nested inside the layout.
 
 - [ ] **Step 1: Write the failing test (append to the existing test file)**
 
@@ -388,34 +391,174 @@ describe('KioskOverlay.setEventBanner', () => {
     const banner = root.querySelector('.event-banner') as HTMLElement;
     expect(banner.style.display).toBe('none');
   });
+
+  it('builds the bug + center + rail layout', () => {
+    const root = document.createElement('div');
+    new KioskOverlay(root);
+    expect(root.querySelector('.kiosk-bug')).not.toBeNull();
+    expect(root.querySelector('.cafe-wordmark')).not.toBeNull();
+    expect(root.querySelector('.status-pill')).not.toBeNull();
+    expect(root.querySelector('.kiosk-center')).not.toBeNull();
+    expect(root.querySelector('.kiosk-rail')).not.toBeNull();
+    expect(root.querySelector('.kiosk-status')).not.toBeNull();
+  });
+
+  it('toggles the status pill between OPEN and LIVE', () => {
+    const root = document.createElement('div');
+    const overlay = new KioskOverlay(root);
+    const label = () => (root.querySelector('.status-pill .label') as HTMLElement).textContent;
+    expect(label()).toBe('OPEN');
+    overlay.setSessionActive(true);
+    expect(label()).toBe('LIVE');
+    expect(root.querySelector('.status-pill')!.classList.contains('live')).toBe(true);
+    overlay.setSessionActive(false);
+    expect(label()).toBe('OPEN');
+  });
 });
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run agent/tests/renderer/components/kiosk-overlay.test.ts`
-Expected: FAIL — `banner` is null / `setEventBanner` not a function.
+Expected: FAIL — `banner` is null / `setEventBanner` not a function / layout elements missing.
 
-- [ ] **Step 3: Add the banner element + method to `kiosk-overlay.ts`**
-
-In the constructor (after `this.sessionIndicator` is appended), add:
+- [ ] **Step 3: Replace `kiosk-overlay.ts` with the broadcast-layout version below**
 
 ```ts
+/**
+ * Kiosk overlay UI component — plain DOM, no external lib.
+ * Built for the Arcade Agent electron renderer process.
+ */
+
+export interface KioskOverlayState {
+  cafeName: string;
+  sessionActive: boolean;
+  remainingTime: string;
+  callStaffEnabled: boolean;
+}
+
+/**
+ * Encapsulates all kiosk overlay UI: top bug (wordmark + status pill),
+ * hero cluster (brand, event banner, clock, timer, session indicator),
+ * and bottom status rail.
+ */
+export class KioskOverlay {
+  public readonly container: HTMLDivElement;
+  private readonly bugEl: HTMLDivElement;
+  private readonly statusPill: HTMLDivElement;
+  private readonly centerEl: HTMLDivElement;
+  private readonly cafeBrandEl: HTMLDivElement;
+  private readonly clockEl: HTMLDivElement;
+  private readonly timerEl: HTMLDivElement;
+  private readonly sessionIndicator: HTMLDivElement;
+  private readonly bannerEl: HTMLDivElement;
+  private readonly railEl: HTMLDivElement;
+  private clockInterval: ReturnType<typeof setInterval> | null = null;
+
+  constructor(parent: HTMLElement) {
+    this.container = document.createElement('div');
+    this.container.className = 'kiosk-overlay';
+    parent.appendChild(this.container);
+
+    // Top bug: product wordmark + OPEN/LIVE status pill
+    this.bugEl = document.createElement('div');
+    this.bugEl.className = 'kiosk-bug';
+    const wordmark = document.createElement('span');
+    wordmark.className = 'cafe-wordmark';
+    wordmark.textContent = 'ARCADE';
+    this.statusPill = document.createElement('div');
+    this.statusPill.className = 'status-pill';
+    this.statusPill.innerHTML = '<span class="dot"></span><span class="label">OPEN</span>';
+    this.bugEl.append(wordmark, this.statusPill);
+    this.container.appendChild(this.bugEl);
+
+    // Centered hero cluster
+    this.centerEl = document.createElement('div');
+    this.centerEl.className = 'kiosk-center';
+
+    this.cafeBrandEl = document.createElement('div');
+    this.cafeBrandEl.className = 'cafe-brand';
+    this.centerEl.appendChild(this.cafeBrandEl);
+
     this.bannerEl = document.createElement('div');
     this.bannerEl.className = 'event-banner';
     this.bannerEl.style.display = 'none';
-    this.container.appendChild(this.bannerEl);
-```
+    this.centerEl.appendChild(this.bannerEl);
 
-Add the field declaration near the other elements:
+    this.clockEl = document.createElement('div');
+    this.clockEl.className = 'clock';
+    this.centerEl.appendChild(this.clockEl);
 
-```ts
-  private readonly bannerEl: HTMLDivElement;
-```
+    this.timerEl = document.createElement('div');
+    this.timerEl.className = 'timer-display';
+    this.centerEl.appendChild(this.timerEl);
 
-Add the method (after `setCafeName`):
+    this.sessionIndicator = document.createElement('div');
+    this.sessionIndicator.className = 'session-indicator';
+    this.sessionIndicator.textContent = '● Session in progress';
+    this.centerEl.appendChild(this.sessionIndicator);
 
-```ts
+    this.container.appendChild(this.centerEl);
+
+    // Bottom rail: status
+    this.railEl = document.createElement('div');
+    this.railEl.className = 'kiosk-rail';
+    const railStatus = document.createElement('div');
+    railStatus.className = 'kiosk-status';
+    railStatus.innerHTML = '<span class="ok"></span><span>Online</span>';
+    this.railEl.appendChild(railStatus);
+    this.container.appendChild(this.railEl);
+  }
+
+  /** Start the live clock (updates every second). */
+  startClock(): void {
+    this.updateClock();
+    this.clockInterval = setInterval(() => this.updateClock(), 1000);
+  }
+
+  /** Stop the live clock. */
+  stopClock(): void {
+    if (this.clockInterval !== null) {
+      clearInterval(this.clockInterval);
+      this.clockInterval = null;
+    }
+  }
+
+  /** Update the visible timer string (e.g., "00:05:32"). */
+  setTimer(timeString = ''): void {
+    this.timerEl.textContent = timeString;
+  }
+
+  /** Show/hide the session indicator and drive the bug status pill. */
+  setSessionActive(active: boolean): void {
+    const label = this.statusPill.querySelector('.label');
+    if (active) {
+      this.sessionIndicator.classList.add('active');
+      this.statusPill.classList.add('live');
+      if (label) label.textContent = 'LIVE';
+    } else {
+      this.sessionIndicator.classList.remove('active');
+      this.statusPill.classList.remove('live');
+      if (label) label.textContent = 'OPEN';
+      this.timerEl.textContent = '';
+    }
+  }
+
+  /** Render the branded cafe name/logo header. */
+  setCafeName(name: string, logo?: string): void {
+    this.cafeBrandEl.replaceChildren();
+    if (logo) {
+      const img = document.createElement('img');
+      img.src = logo;
+      img.className = 'cafe-logo';
+      img.alt = name;
+      this.cafeBrandEl.appendChild(img);
+    }
+    const span = document.createElement('span');
+    span.textContent = name;
+    this.cafeBrandEl.appendChild(span);
+  }
+
   /** Show the server-provided event banner, or hide it when empty/unset. */
   setEventBanner(text?: string): void {
     if (text && text.trim().length > 0) {
@@ -425,20 +568,42 @@ Add the method (after `setCafeName`):
       this.bannerEl.style.display = 'none';
     }
   }
-```
 
-The rest of `KioskOverlay` (clock, timer, session indicator, `startClock`, `setTimer`, `setSessionActive`, `setCafeName`, `isClockRunning`, `destroy`) is unchanged.
+  /** Return whether clock is running. */
+  isClockRunning(): boolean {
+    return this.clockInterval !== null;
+  }
+
+  /** Tear down the component. */
+  destroy(): void {
+    this.stopClock();
+    if (this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container);
+    }
+  }
+
+  private updateClock(): void {
+    const now = new Date();
+    this.clockEl.textContent = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+  }
+}
+```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run agent/tests/renderer/components/kiosk-overlay.test.ts`
-Expected: PASS (existing + 3 new tests).
+Expected: PASS (existing 9 tests + the 5 new tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add agent/src/renderer/components/kiosk-overlay.ts agent/tests/renderer/components/kiosk-overlay.test.ts
-git commit -m "feat(agent): kiosk event banner (server-controlled, hidden by default)"
+git commit -m "feat(agent): kiosk broadcast layout + server-controlled event banner"
 ```
 
 ---
@@ -476,9 +641,16 @@ body {
 }
 
 .kiosk-overlay {
+  position: relative;
+  width: 100%; height: 100%;
+}
+
+/* Centered hero cluster (brand, banner, clock, timer, session indicator) */
+.kiosk-center {
+  position: absolute; inset: 0;
   display: flex; flex-direction: column;
-  align-items: center; gap: 1.5rem;
-  width: 100%; padding: 2rem;
+  align-items: center; justify-content: center;
+  gap: 1.25rem; text-align: center;
 }
 
 /* Top bug: gradient wordmark + status pill */
