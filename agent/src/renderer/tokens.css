@@ -78,3 +78,28 @@
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---- PIN pad (staff override) ---- */
+.pin-display {
+  font-family: var(--font-display); font-size: 2rem; letter-spacing: .4em;
+  color: var(--accent); margin: 1rem 0; min-height: 2.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem;
+  margin: 1rem auto; max-width: 300px;
+}
+.pin-pad button {
+  padding: 1rem; font-size: 1.4rem; font-family: var(--font-display);
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text-1);
+  border-radius: 8px; cursor: pointer; user-select: none;
+  transition: background .15s, border-color .15s;
+}
+.pin-pad button:hover { background: #1c2436; border-color: var(--accent); }
+.modal-icon { color: var(--accent); }
+
+/* ---- Low-time countdown numeral ---- */
+.low-time-countdown {
+  font-family: var(--font-display); font-weight: 600; font-size: 2.2rem;
+  color: var(--warn); font-variant-numeric: tabular-nums; margin-top: .5rem;
+}
