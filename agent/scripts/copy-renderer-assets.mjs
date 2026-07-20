@@ -13,7 +13,7 @@ fs.cpSync('src/renderer', 'dist/renderer', {
   filter: (s) => {
     // Allow directories through so traversal continues; copy only .html/.css.
     if (fs.statSync(s).isDirectory()) return true;
-    return s.endsWith('.html') || s.endsWith('.css');
+    return s.endsWith('.html') || s.endsWith('.css') || s.endsWith('.woff2');
   },
 });
 

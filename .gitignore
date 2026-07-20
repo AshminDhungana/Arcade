@@ -204,6 +204,10 @@ dist/
 public/
 .cache/
 
+# Agent renderer source fonts — intentionally tracked (overrides the generic `public/` ignore above)
+!agent/src/renderer/public/
+!agent/src/renderer/public/**
+
 # Storybook
 storybook-static/
 
