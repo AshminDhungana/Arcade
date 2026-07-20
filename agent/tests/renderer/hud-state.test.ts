@@ -18,6 +18,12 @@ describe('nextHudPhase', () => {
   it('low-time moves INTRO to URGENT', () => {
     expect(nextHudPhase('INTRO', 'low-time')).toBe('URGENT');
   });
+  it('low-time is a no-op from URGENT', () => {
+    expect(nextHudPhase('URGENT', 'low-time')).toBe('URGENT');
+  });
+  it('low-time is a no-op from ENDED', () => {
+    expect(nextHudPhase('ENDED', 'low-time')).toBe('ENDED');
+  });
   it('session-end moves any phase to ENDED', () => {
     const phases: HudPhase[] = ['INTRO', 'AMBIENT', 'URGENT', 'ENDED'];
     for (const p of phases) expect(nextHudPhase(p, 'session-end')).toBe('ENDED');

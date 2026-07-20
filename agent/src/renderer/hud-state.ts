@@ -12,7 +12,7 @@ export function nextHudPhase(phase: HudPhase, event: HudEvent): HudPhase {
     case 'intro-timeout':
       return phase === 'INTRO' ? 'AMBIENT' : phase;
     case 'low-time':
-      return 'URGENT';
+      return phase === 'INTRO' || phase === 'AMBIENT' ? 'URGENT' : phase;
     case 'session-end':
       return 'ENDED';
   }
