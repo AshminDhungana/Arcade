@@ -1,11 +1,12 @@
 """Arcade Launcher - Tkinter GUI for license activation and server management.
 
 Entry point for the Arcade server. Checks the Ed25519 license before the
-main window is shown, then routes to one of three screens:
+main window is shown, then routes to one of three screens wrapped in a
+persistent shell (topbar + content + footer status bar):
 
-* ActivationScreen — license missing/invalid/bound to another machine
-* SetupWizard — license valid but arcade.config.json missing
-* MainScreen — ready to start/stop the server
+* ActivationScreen - license missing/invalid/bound to another machine
+* SetupWizard      - license valid but arcade.config.json missing
+* MainScreen       - ready to start/stop the server
 """
 
 from __future__ import annotations
@@ -31,29 +32,23 @@ import customtkinter as ctk
 from backend.core.security import hash_pin
 from backend.licensing.fingerprint import get_hardware_id
 from backend.licensing.verify import LicenseError, LicenseResult, check_license
+from launcher_motion import animate_pill, prefers_reduced_motion, screen_transition
 from launcher_theme import (
-    BLUE,
-    BLUE_HOVER,
     BTN_HEIGHT,
-    EMERALD,
-    EMERALD_HOVER,
-    L_BG,
-    L_BORDER,
-    L_FRAME,
-    L_TEXT,
-    MUTED_TEXT,
+    COLORS,
+    GRADIENT_STRIP,
     RADIUS,
-    RED,
-    RED_HOVER,
-    S700,
-    S700_HOVER,
-    S800,
-    S900,
-    TEXT,
-    body_font,
-    brand_header,
-    heading_font,
-    mono_font,
+    SPACING,
+    load_logo,
+    make_fonts,
+)
+from launcher_widgets import (
+    Card,
+    LabeledField,
+    StatusBar,
+    StepIndicator,
+    screen_title,
+    show_toast,
 )
 
 # ---------------------------------------------------------------------------
@@ -85,11 +80,6 @@ _ERROR_HEADLINES: dict[LicenseError, str] = {
     LicenseError.TRIAL_EXPIRED: "Trial Expired",
 }
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
 _log = logging.getLogger(__name__)
 
 
@@ -119,10 +109,7 @@ def _write_license_status(
     )
     cur.execute("DELETE FROM license_status WHERE id = ?", ("current",))
     cur.execute(
-        """
-        INSERT INTO license_status
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
+        "INSERT INTO license_status VALUES (?, ?, ?, ?, ?, ?, ?)",
         (
             "current",
             payload["cafe_name"],
@@ -148,7 +135,7 @@ def _center_window(root: ctk.CTk, width: int, height: int) -> None:
 
 
 class _BaseScreen(ctk.CTkFrame):  # type: ignore[misc]
-    """Base screen with common styling."""
+    """Base screen: transparent so it blends with the shell's content area."""
 
     def __init__(
         self,
@@ -156,7 +143,7 @@ class _BaseScreen(ctk.CTkFrame):  # type: ignore[misc]
         controller: LauncherApp,
         **kwargs: Any,
     ) -> None:
-        super().__init__(parent, fg_color=[L_BG, S900], **kwargs)
+        super().__init__(parent, fg_color="transparent", **kwargs)
         self.controller = controller
         self.grid_columnconfigure(0, weight=1)
 
@@ -177,119 +164,124 @@ class ActivationScreen(_BaseScreen):
         self._build()
 
     def _build(self) -> None:
+        f = self.controller.fonts
         self.grid_rowconfigure(0, weight=1)
-        self.grid_rowconfigure(6, weight=1)
+        self.grid_rowconfigure(7, weight=1)
 
-        # Branded header
-        header = brand_header(self, subtitle="License Activation Required")
-        header.grid(row=0, column=0, padx=40, pady=(30, 10), sticky="ew")
+        screen_title(self, f, "License Activation Required").grid(
+            row=0,
+            column=0,
+            padx=SPACING["xl"],
+            pady=(SPACING["lg"], SPACING["md"]),
+            sticky="ew",
+        )
 
-        # Error card: bold headline + detail + recovery line
         error = self.result.error or LicenseError.MISSING
         msg = _LICENSE_ERROR_MESSAGES.get(error, str(error))
-        card = ctk.CTkFrame(
-            self,
-            fg_color=[L_FRAME, S800],
-            border_color=RED,
-            border_width=1,
-            corner_radius=RADIUS,
+        card = Card(self)
+        card.grid(
+            row=1, column=0, padx=SPACING["xl"], pady=(0, SPACING["md"]), sticky="ew"
         )
-        card.grid(row=1, column=0, padx=40, pady=(0, 20), sticky="ew")
         card.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
             card,
-            text=_ERROR_HEADLINES.get(error, "License Required"),
-            font=heading_font(15),
-            text_color=RED,
+            text="⚠ " + _ERROR_HEADLINES.get(error, "License Required"),
+            font=f["h2"],
+            text_color=COLORS["error"],
             wraplength=540,
-        ).grid(row=0, column=0, padx=16, pady=(14, 4), sticky="ew")
-        self.error_label = ctk.CTkLabel(
+        ).grid(
+            row=0,
+            column=0,
+            padx=SPACING["lg"],
+            pady=(SPACING["md"], SPACING["xs"]),
+            sticky="ew",
+        )
+        ctk.CTkLabel(
             card,
             text=msg,
-            font=body_font(13),
-            text_color=[L_TEXT, TEXT],
+            font=f["body"],
+            text_color=COLORS["text_primary"],
             wraplength=540,
             justify="center",
+        ).grid(
+            row=1, column=0, padx=SPACING["lg"], pady=(0, SPACING["xs"]), sticky="ew"
         )
-        self.error_label.grid(row=1, column=0, padx=16, pady=(0, 4), sticky="ew")
         ctk.CTkLabel(
             card,
             text="Purchase a license or contact support with your Hardware ID below.",
-            font=body_font(11),
-            text_color=MUTED_TEXT,
+            font=f["caption"],
+            text_color=COLORS["text_secondary"],
             wraplength=540,
-        ).grid(row=2, column=0, padx=16, pady=(0, 14), sticky="ew")
+        ).grid(
+            row=2, column=0, padx=SPACING["lg"], pady=(0, SPACING["md"]), sticky="ew"
+        )
 
-        # Hardware ID section
         hwid_frame = ctk.CTkFrame(self, fg_color="transparent")
-        hwid_frame.grid(row=2, column=0, padx=40, pady=(0, 10), sticky="ew")
+        hwid_frame.grid(
+            row=2, column=0, padx=SPACING["xl"], pady=(0, SPACING["sm"]), sticky="ew"
+        )
         hwid_frame.grid_columnconfigure(0, weight=1)
-
         ctk.CTkLabel(
             hwid_frame,
             text="Your Hardware ID:",
-            font=body_font(12),
-            text_color=MUTED_TEXT,
-        ).grid(row=0, column=0, sticky="w", pady=(0, 5))
-
+            font=f["body"],
+            text_color=COLORS["text_secondary"],
+        ).grid(row=0, column=0, sticky="w", pady=(0, SPACING["xs"]))
         self.hwid_var = tk.StringVar(value=get_hardware_id())
         hwid_entry = ctk.CTkEntry(
             hwid_frame,
             textvariable=self.hwid_var,
             state="readonly",
-            font=mono_font(13),
+            font=f["mono"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=[L_FRAME, S800],
-            border_color=[L_BORDER, S700],
-            text_color=[L_TEXT, TEXT],
+            fg_color=COLORS["bg_secondary"],
+            border_color=COLORS["border"],
+            text_color=COLORS["text_primary"],
         )
         hwid_entry.grid(row=1, column=0, sticky="ew")
-
-        # Copy button
         copy_btn = ctk.CTkButton(
             hwid_frame,
             text="Copy Hardware ID",
             command=self._copy_hwid,
-            font=heading_font(12),
+            font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=[L_BORDER, S700],
-            hover_color=[L_BORDER, S700_HOVER],
-            text_color=[L_TEXT, TEXT],
+            fg_color=COLORS["bg_tertiary"],
+            hover_color=COLORS["border"],
+            text_color=COLORS["text_primary"],
         )
-        copy_btn.grid(row=2, column=0, pady=(10, 0), sticky="ew")
+        copy_btn.grid(row=2, column=0, pady=(SPACING["sm"], 0), sticky="ew")
 
-        # Divider
-        ctk.CTkFrame(self, height=1, fg_color=[L_BORDER, S700]).grid(
-            row=3, column=0, padx=40, pady=20, sticky="ew"
+        ctk.CTkFrame(self, height=1, fg_color=COLORS["border"]).grid(
+            row=3, column=0, padx=SPACING["xl"], pady=SPACING["md"], sticky="ew"
         )
 
-        # License key browse button
         ctk.CTkLabel(
             self,
             text="Have a license.key file?",
-            font=heading_font(14),
-            text_color=[L_TEXT, TEXT],
-        ).grid(row=4, column=0, padx=40, pady=(0, 8))
-
+            font=f["h2"],
+            text_color=COLORS["text_primary"],
+        ).grid(row=4, column=0, padx=SPACING["xl"], pady=(0, SPACING["sm"]))
         browse_btn = ctk.CTkButton(
             self,
             text="Browse for license.key …",
             command=self._browse,
-            font=heading_font(13),
+            font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=BLUE,
-            hover_color=BLUE_HOVER,
-            text_color=TEXT,
+            fg_color=COLORS["accent_fill"],
+            hover_color=COLORS["accent_fill_hover"],
+            text_color=COLORS["text_on_accent"],
         )
-        browse_btn.grid(row=5, column=0, padx=40, pady=(0, 30), sticky="ew")
+        browse_btn.grid(
+            row=5, column=0, padx=SPACING["xl"], pady=(0, SPACING["lg"]), sticky="ew"
+        )
 
     def _copy_hwid(self) -> None:
         self.clipboard_clear()
         self.clipboard_append(self.hwid_var.get())
-        messagebox.showinfo("Copied", "Hardware ID copied to clipboard.")
+        show_toast(self.controller, "Hardware ID copied", kind="info")
 
     def _browse(self) -> None:
         path = filedialog.askopenfilename(
@@ -322,168 +314,186 @@ class SetupWizard(_BaseScreen):
     ) -> None:
         super().__init__(parent, controller)
         self.license_result = license_result
+        self._fields: list[LabeledField] = []
         self._build()
 
     def _build(self) -> None:
+        f = self.controller.fonts
         self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_rowconfigure(2, weight=0)
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=0)
 
-        # Header
-        header = brand_header(self, subtitle="First-Time Setup")
-        header.grid(row=0, column=0, padx=40, pady=(30, 10), sticky="ew")
+        screen_title(
+            self, f, "First-Time Setup", subtitle="Configure your Arcade server"
+        ).grid(
+            row=0,
+            column=0,
+            padx=SPACING["xl"],
+            pady=(SPACING["lg"], SPACING["sm"]),
+            sticky="ew",
+        )
 
-        # Scrollable form area
+        self.indicator = StepIndicator(self, f, ["Café", "Staff", "Seats"])
+        self.indicator.grid(
+            row=1, column=0, padx=SPACING["xl"], pady=(0, SPACING["md"]), sticky="ew"
+        )
+
         self.form = ctk.CTkScrollableFrame(
             self, fg_color="transparent", corner_radius=0
         )
-        self.form.grid(row=1, column=0, padx=40, pady=10, sticky="nsew")
+        self.form.grid(
+            row=2, column=0, padx=SPACING["xl"], pady=SPACING["sm"], sticky="nsew"
+        )
         self.form.grid_columnconfigure(0, weight=1)
 
-        row = 0
-
-        # ── Café / Server ──
-        self._section_header("Café & Server")
-        row += 1
-
         self._cafe_name_var = ctk.StringVar()
-        self._labeled_entry(
-            "Café Name", self._cafe_name_var, placeholder="My Arcade", row=row
-        )
-        row += 1
-
         self._host_var = ctk.StringVar(value="0.0.0.0")
-        self._labeled_entry("Server IP", self._host_var, placeholder="0.0.0.0", row=row)
-        row += 1
-
         self._port_var = ctk.StringVar(value="8000")
-        self._labeled_entry("Port", self._port_var, placeholder="8000", row=row)
-        row += 1
-
-        # Divider
-        ctk.CTkFrame(self.form, height=1, fg_color=[L_BORDER, S700]).grid(
-            row=row, column=0, sticky="ew", pady=16
-        )
-        row += 1
-
-        # ── Staff ──
-        self._section_header("Staff Accounts")
-        row += 1
-
-        ctk.CTkLabel(
-            self.form,
-            text="Create the default admin and cashier accounts. PINs are hashed.",
-            font=body_font(11),
-            text_color=MUTED_TEXT,
-            wraplength=560,
-            justify="left",
-        ).grid(row=row, column=0, sticky="w", pady=(0, 12))
-        row += 1
-
         self._admin_id_var = ctk.StringVar(value="admin")
-        self._labeled_entry("Admin Staff ID", self._admin_id_var, row=row)
-        row += 1
-
         self._admin_pin_var = ctk.StringVar()
-        self._labeled_entry(
-            "Admin PIN",
-            self._admin_pin_var,
-            show="●",
-            row=row,
-            placeholder="4–6 digits",
-        )
-        row += 1
-
         self._cashier_id_var = ctk.StringVar(value="cashier")
-        self._labeled_entry("Cashier Staff ID", self._cashier_id_var, row=row)
-        row += 1
-
         self._cashier_pin_var = ctk.StringVar()
-        self._labeled_entry(
-            "Cashier PIN",
-            self._cashier_pin_var,
-            show="●",
-            row=row,
-            placeholder="4–6 digits",
-        )
-        row += 1
-
-        # Divider
-        ctk.CTkFrame(self.form, height=1, fg_color=[L_BORDER, S700]).grid(
-            row=row, column=0, sticky="ew", pady=16
-        )
-        row += 1
-
-        # ── Seats ──
-        self._section_header("Seats")
-        row += 1
-
-        ctk.CTkLabel(
-            self.form,
-            text="Each seat gets a unique agent secret for secure WebSocket auth.",
-            font=body_font(11),
-            text_color=MUTED_TEXT,
-            wraplength=560,
-            justify="left",
-        ).grid(row=row, column=0, sticky="w", pady=(0, 12))
-        row += 1
-
         self._seat_count_var = ctk.StringVar(value="8")
-        self._labeled_entry("Number of Seats", self._seat_count_var, row=row)
-        row += 1
 
-        # Finish button (primary CTA)
-        finish_btn = ctk.CTkButton(
+        row = 0
+        row = self._section(
+            row,
+            "Café & Server",
+            0,
+            "Basic identity and network settings for this server.",
+            [
+                ("Café Name", self._cafe_name_var, {"placeholder": "My Arcade"}),
+                ("Server IP", self._host_var, {"placeholder": "0.0.0.0"}),
+                ("Port", self._port_var, {"placeholder": "8000"}),
+            ],
+        )
+        row = self._section(
+            row,
+            "Staff Accounts",
+            1,
+            "Create the default admin and cashier accounts. PINs are hashed.",
+            [
+                ("Admin Staff ID", self._admin_id_var, {}),
+                (
+                    "Admin PIN",
+                    self._admin_pin_var,
+                    {"show": "●", "placeholder": "4–6 digits"},
+                ),
+                ("Cashier Staff ID", self._cashier_id_var, {}),
+                (
+                    "Cashier PIN",
+                    self._cashier_pin_var,
+                    {"show": "●", "placeholder": "4–6 digits"},
+                ),
+            ],
+        )
+        row = self._section(
+            row,
+            "Seats",
+            2,
+            "Each seat gets a unique agent secret for secure WebSocket auth.",
+            [("Number of Seats", self._seat_count_var, {})],
+        )
+
+        ctk.CTkButton(
             self,
             text="Finish Setup",
             command=self._finish,
-            font=heading_font(14),
+            font=f["body_bold"],
             height=BTN_HEIGHT + 4,
             corner_radius=RADIUS,
-            fg_color=EMERALD,
-            hover_color=EMERALD_HOVER,
-            text_color=TEXT,
+            fg_color=COLORS["accent_fill"],
+            hover_color=COLORS["accent_fill_hover"],
+            text_color=COLORS["text_on_accent"],
+        ).grid(
+            row=3,
+            column=0,
+            padx=SPACING["xl"],
+            pady=(SPACING["sm"], SPACING["lg"]),
+            sticky="ew",
         )
-        finish_btn.grid(row=2, column=0, padx=40, pady=(10, 30), sticky="ew")
 
-    def _section_header(self, text: str) -> None:
-        ctk.CTkLabel(
-            self.form,
-            text=text,
-            font=heading_font(14),
-            text_color=BLUE,
-        ).grid(row=self.form.grid_size()[1], column=0, sticky="w", pady=(0, 8))
-
-    def _labeled_entry(
+    def _section(
         self,
-        label: str,
-        var: ctk.StringVar,
-        *,
-        show: str = "",
-        row: int | None = None,
-        placeholder: str = "",
-    ) -> None:
-        r = row if row is not None else self.form.grid_size()[1]
-        ctk.CTkLabel(
-            self.form, text=label, font=body_font(12), text_color=[L_TEXT, TEXT]
-        ).grid(row=r, column=0, sticky="w", pady=(0, 4))
-        entry = ctk.CTkEntry(
-            self.form,
-            textvariable=var,
-            show=show,
-            font=body_font(13),
-            height=BTN_HEIGHT,
-            corner_radius=RADIUS,
-            fg_color=[L_FRAME, S800],
-            border_color=[L_BORDER, S700],
-            text_color=[L_TEXT, TEXT],
-            placeholder_text=placeholder,
+        row: int,
+        title: str,
+        step_idx: int,
+        hint: str,
+        fields: list[tuple[str, ctk.StringVar, dict[str, Any]]],
+    ) -> int:
+        f = self.controller.fonts
+        card = Card(self.form)
+        card.grid(row=row, column=0, padx=0, pady=(0, SPACING["md"]), sticky="ew")
+        card.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(card, text=title, font=f["h2"], text_color=COLORS["accent"]).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=SPACING["lg"],
+            pady=(SPACING["md"], SPACING["xs"]),
         )
-        entry.grid(row=r + 1, column=0, sticky="ew", pady=(0, 12))
+        ctk.CTkLabel(
+            card,
+            text=hint,
+            font=f["caption"],
+            text_color=COLORS["text_secondary"],
+            wraplength=560,
+            justify="left",
+        ).grid(row=1, column=0, sticky="w", padx=SPACING["lg"], pady=(0, SPACING["sm"]))
+        r = 2
+        for label, var, opts in fields:
+            field = LabeledField(card, label, fonts=f, **opts)
+            field.entry.configure(textvariable=var)
+            field.grid(
+                row=r,
+                column=0,
+                padx=SPACING["lg"],
+                pady=(0, SPACING["sm"]),
+                sticky="ew",
+            )
+            field.entry.bind(
+                "<FocusIn>", lambda _e, i=step_idx: self.indicator.set_active(i)
+            )
+            self._fields.append(field)
+            r += 1
+        return row + 1
+
+    def _validate(self) -> bool:
+        ok = True
+        for var, label in [
+            (self._cafe_name_var, "Café Name"),
+            (self._admin_id_var, "Admin Staff ID"),
+            (self._cashier_id_var, "Cashier Staff ID"),
+            (self._seat_count_var, "Number of Seats"),
+        ]:
+            if not var.get().strip():
+                show_toast(self.controller, f"{label} is required", kind="error")
+                ok = False
+        for pin_var, who in [
+            (self._admin_pin_var, "Admin"),
+            (self._cashier_pin_var, "Cashier"),
+        ]:
+            pin = pin_var.get()
+            if pin and not (pin.isdigit() and 4 <= len(pin) <= 6):
+                show_toast(
+                    self.controller, f"{who} PIN must be 4–6 digits", kind="error"
+                )
+                ok = False
+        try:
+            if int(self._seat_count_var.get()) < 1:
+                raise ValueError
+        except ValueError:
+            show_toast(
+                self.controller,
+                "Number of Seats must be a positive integer",
+                kind="error",
+            )
+            ok = False
+        return ok
 
     def _seed_default_staff(self) -> None:
         """Best-effort: create the default admin + cashier in the DB."""
-        import threading
 
         def _run() -> None:
             from backend.core.bootstrap import ensure_default_staff
@@ -505,13 +515,13 @@ class SetupWizard(_BaseScreen):
         threading.Thread(target=_run, daemon=True).start()
 
     def _finish(self) -> None:
+        if not self._validate():
+            return
         payload = self.license_result.payload or {}
-
         try:
             seat_count = int(self._seat_count_var.get())
         except ValueError:
             seat_count = 8
-
         config: dict[str, Any] = {
             "cafe_name": self._cafe_name_var.get()
             or payload.get("cafe_name", "Arcade"),
@@ -526,11 +536,9 @@ class SetupWizard(_BaseScreen):
                 f"seat_{i + 1}": secrets.token_hex(32) for i in range(seat_count)
             },
         }
-
         Path("arcade.config.json").write_text(
             json.dumps(config, indent=2), encoding="utf-8"
         )
-
         _write_license_status(payload, self.license_result)
         self._seed_default_staff()
         self.controller._check_and_route()
@@ -553,114 +561,120 @@ class MainScreen(_BaseScreen):
         self._build()
 
     def _build(self) -> None:
+        f = self.controller.fonts
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=0)
         self.grid_rowconfigure(2, weight=0)
         self.grid_rowconfigure(3, weight=1)
-        self.grid_rowconfigure(4, weight=0)
 
-        # Header
-        header = brand_header(self, subtitle="Server Control")
-        header.grid(row=0, column=0, padx=40, pady=(30, 10), sticky="ew")
+        screen_title(self, f, "Server Control").grid(
+            row=0,
+            column=0,
+            padx=SPACING["xl"],
+            pady=(SPACING["lg"], SPACING["md"]),
+            sticky="ew",
+        )
 
-        # Status pill
         status_frame = ctk.CTkFrame(self, fg_color="transparent")
-        status_frame.grid(row=1, column=0, padx=40, pady=(0, 10), sticky="ew")
+        status_frame.grid(
+            row=1, column=0, padx=SPACING["xl"], pady=(0, SPACING["sm"]), sticky="ew"
+        )
         status_frame.grid_columnconfigure(1, weight=1)
-
-        self._status_var = ctk.StringVar(value="Stopped")
         self._pill = ctk.CTkLabel(
             status_frame,
-            textvariable=self._status_var,
-            font=heading_font(13),
-            text_color=TEXT,
+            text="■  Stopped",
+            font=f["body_bold"],
+            text_color=COLORS["text_on_accent"],
             height=28,
             corner_radius=14,
-            fg_color=RED,
+            fg_color=COLORS["error"],
             padx=14,
         )
-        self._pill.grid(row=0, column=0, padx=(0, 12), sticky="w")
-
+        self._pill.grid(row=0, column=0, padx=(0, SPACING["md"]), sticky="w")
         ctk.CTkLabel(
             status_frame,
             text="Server status",
-            font=body_font(12),
-            text_color=MUTED_TEXT,
+            font=f["body"],
+            text_color=COLORS["text_secondary"],
         ).grid(row=0, column=1, sticky="w")
 
-        # Buttons
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.grid(row=2, column=0, padx=40, pady=(0, 10), sticky="ew")
+        btn_frame.grid(
+            row=2, column=0, padx=SPACING["xl"], pady=(0, SPACING["sm"]), sticky="ew"
+        )
         btn_frame.grid_columnconfigure((0, 1, 2), weight=1)
-
         self._start_btn = ctk.CTkButton(
             btn_frame,
             text="Start Server",
             command=self._start_server,
-            font=heading_font(13),
+            font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=EMERALD,
-            hover_color=EMERALD_HOVER,
-            text_color=TEXT,
+            fg_color=COLORS["success"],
+            hover_color=COLORS["success"][1],
+            text_color=COLORS["text_on_accent"],
         )
-        self._start_btn.grid(row=0, column=0, padx=(0, 6), sticky="ew")
-
+        self._start_btn.grid(row=0, column=0, padx=(0, SPACING["xs"]), sticky="ew")
         self._stop_btn = ctk.CTkButton(
             btn_frame,
             text="Stop Server",
             command=self._stop_server,
-            font=heading_font(13),
+            font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=RED,
-            hover_color=RED_HOVER,
-            text_color=TEXT,
+            fg_color=COLORS["error"],
+            hover_color=COLORS["error"][1],
+            text_color=COLORS["text_on_accent"],
             state="disabled",
         )
-        self._stop_btn.grid(row=0, column=1, padx=6, sticky="ew")
-
+        self._stop_btn.grid(row=0, column=1, padx=SPACING["xs"], sticky="ew")
         self._dashboard_btn = ctk.CTkButton(
             btn_frame,
             text="Open Dashboard",
             command=self._open_dashboard,
-            font=heading_font(13),
+            font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=S700,
-            hover_color=S700_HOVER,
-            text_color=TEXT,
+            fg_color=COLORS["bg_tertiary"],
+            hover_color=COLORS["border"],
+            text_color=COLORS["text_primary"],
         )
-        self._dashboard_btn.grid(row=0, column=2, padx=(6, 0), sticky="ew")
+        self._dashboard_btn.grid(row=0, column=2, padx=(SPACING["xs"], 0), sticky="ew")
 
-        # Logs header
-        log_header = ctk.CTkFrame(self, fg_color="transparent")
-        log_header.grid(row=3, column=0, padx=40, pady=(10, 4), sticky="ew")
-        log_header.grid_columnconfigure(0, weight=1)
-
+        log_card = Card(self)
+        log_card.grid(
+            row=3,
+            column=0,
+            padx=SPACING["xl"],
+            pady=(SPACING["sm"], SPACING["lg"]),
+            sticky="nsew",
+        )
+        log_card.grid_rowconfigure(1, weight=1)
+        log_card.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
-            log_header,
+            log_card,
             text="Server Logs",
-            font=heading_font(13),
-            text_color=[L_TEXT, TEXT],
-        ).grid(row=0, column=0, sticky="w")
-
-        # Log area
-        log_frame = ctk.CTkFrame(self, fg_color=[L_FRAME, S800], corner_radius=RADIUS)
-        log_frame.grid(row=3, column=0, padx=40, pady=(0, 30), sticky="nsew")
-        log_frame.grid_rowconfigure(0, weight=1)
-        log_frame.grid_columnconfigure(0, weight=1)
-
+            font=f["h2"],
+            text_color=COLORS["text_primary"],
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=SPACING["lg"],
+            pady=(SPACING["md"], SPACING["xs"]),
+        )
         self._log_text = ctk.CTkTextbox(
-            log_frame,
+            log_card,
             state=tk.DISABLED,
             wrap="word",
-            font=mono_font(11),
-            fg_color=[L_FRAME, S800],
-            text_color=[L_TEXT, TEXT],
+            font=f["mono"],
+            fg_color=COLORS["bg_primary"],
+            text_color=COLORS["text_primary"],
             border_width=0,
         )
-        self._log_text.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        self._log_text.grid(
+            row=1, column=0, sticky="nsew", padx=SPACING["lg"], pady=(0, SPACING["lg"])
+        )
         self._log_text.insert(
             "0.0", "Server logs will appear here once you start the server."
         )
@@ -680,10 +694,18 @@ class MainScreen(_BaseScreen):
         self._log_text.see(tk.END)
         self._log_text.configure(state=tk.DISABLED)
 
+    def _set_status(self, glyph: str, text: str, color_token: str) -> None:
+        animate_pill(
+            self._pill,
+            COLORS[color_token],
+            glyph,
+            text,
+            reduced=self.controller._reduced_motion,
+        )
+
     def _start_server(self) -> None:
         if self._proc is not None and self._proc.poll() is None:
             return
-
         host = "0.0.0.0"
         port = 8000
         if Path("arcade.config.json").exists():
@@ -693,8 +715,7 @@ class MainScreen(_BaseScreen):
                 port = int(cfg.get("port", 8000))
             except (ValueError, KeyError, json.JSONDecodeError):
                 pass
-
-        self._proc = subprocess.Popen(
+        self._proc = subprocess.Popen(  # noqa: S603
             [
                 sys.executable,
                 "-m",
@@ -709,12 +730,10 @@ class MainScreen(_BaseScreen):
             stderr=subprocess.STDOUT,
             text=True,
         )
-
-        self._status_var.set(f"Running at http://{host}:{port}")
-        self._pill.configure(fg_color=EMERALD)
+        self._set_status("●", f"Running at http://{host}:{port}", "success")
         self._start_btn.configure(state="disabled")
         self._stop_btn.configure(state="normal")
-
+        show_toast(self.controller, "Server started", kind="success")
         self._stop_event.clear()
         self._log_thread = threading.Thread(target=self._stream_logs, daemon=True)
         self._log_thread.start()
@@ -735,10 +754,10 @@ class MainScreen(_BaseScreen):
             except subprocess.TimeoutExpired:
                 self._proc.kill()
                 self._proc.wait()
-        self._status_var.set("Stopped")
-        self._pill.configure(fg_color=RED)
+        self._set_status("■", "Stopped", "error")
         self._start_btn.configure(state="normal")
         self._stop_btn.configure(state="disabled")
+        show_toast(self.controller, "Server stopped", kind="error")
 
     def _open_dashboard(self) -> None:
         host = "localhost"
@@ -759,18 +778,136 @@ class MainScreen(_BaseScreen):
 
 
 class LauncherApp:
-    """CustomTkinter application root. Manages screen switching."""
+    """CustomTkinter application root. Manages the shell and screen switching."""
 
     def __init__(self, root: ctk.CTk) -> None:
         self.root = root
         self.root.title("Arcade Launcher")
-        self.root.geometry("720x600")
+        self.root.geometry("780x640")
         self.root.minsize(720, 600)
-        self.root.configure(fg_color=[L_BG, S900])
+        self.root.configure(fg_color=COLORS["bg_primary"])
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_rowconfigure(0, weight=0)
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_rowconfigure(2, weight=0)
+        self.fonts = make_fonts(ctk)
+        self._reduced_motion = prefers_reduced_motion()
         self.current_screen: ctk.CTkFrame | None = None
         self._main_screen: MainScreen | None = None
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
-        _center_window(self.root, 720, 600)
+        self._build_topbar()
+        self._build_content()
+        self._build_footer()
+        self._apply_appearance(self._load_appearance())
+        _center_window(self.root, 780, 640)
+
+    # ------------------------------------------------------------------
+    # Shell
+    # ------------------------------------------------------------------
+
+    def _build_topbar(self) -> None:
+        bar = ctk.CTkFrame(self.root, fg_color=COLORS["bg_secondary"], corner_radius=0)
+        bar.grid(row=0, column=0, sticky="ew")
+        bar.grid_columnconfigure(1, weight=1)
+        logo = load_logo(40)
+        if logo is not None:
+            ctk.CTkLabel(bar, image=logo, text="").grid(
+                row=0,
+                column=0,
+                rowspan=2,
+                padx=(SPACING["lg"], SPACING["sm"]),
+                pady=SPACING["md"],
+            )
+        ctk.CTkLabel(
+            bar, text="ARCADE", font=self.fonts["h1"], text_color=COLORS["accent"]
+        ).grid(row=0, column=1, sticky="w", pady=(SPACING["md"], 0))
+        ctk.CTkLabel(
+            bar,
+            text="Server Launcher",
+            font=self.fonts["caption"],
+            text_color=COLORS["text_secondary"],
+        ).grid(row=1, column=1, sticky="w")
+        self.appearance = ctk.CTkOptionMenu(
+            bar,
+            values=["System", "Dark", "Light"],
+            width=110,
+            command=self._on_appearance,
+            font=self.fonts["body"],
+            fg_color=COLORS["bg_tertiary"],
+            button_color=COLORS["accent_fill"],
+            button_hover_color=COLORS["accent_fill_hover"],
+            text_color=COLORS["text_primary"],
+        )
+        self.appearance.grid(
+            row=0,
+            column=2,
+            rowspan=2,
+            sticky="e",
+            padx=(0, SPACING["lg"]),
+            pady=SPACING["md"],
+        )
+        grad = self._gradient()
+        if grad is not None:
+            ctk.CTkLabel(bar, image=grad, text="").grid(
+                row=2, column=0, columnspan=3, sticky="ew"
+            )
+        else:
+            ctk.CTkFrame(bar, height=3, fg_color=COLORS["accent_fill"]).grid(
+                row=2, column=0, columnspan=3, sticky="ew"
+            )
+
+    def _gradient(self) -> Any:
+        if not GRADIENT_STRIP.is_file():
+            return None
+        try:
+            from PIL import Image
+
+            img = Image.open(GRADIENT_STRIP)
+            return ctk.CTkImage(light_image=img, dark_image=img, size=(900, 3))
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _build_content(self) -> None:
+        self.content = ctk.CTkFrame(
+            self.root, fg_color=COLORS["bg_primary"], corner_radius=0
+        )
+        self.content.grid(row=1, column=0, sticky="nsew")
+        self.content.grid_columnconfigure(0, weight=1)
+        self.content.grid_rowconfigure(0, weight=1)
+
+    def _build_footer(self) -> None:
+        self.status = StatusBar(self.root, self.fonts)
+        self.status.grid(row=2, column=0, sticky="ew")
+        self.status.set("Ready", "info")
+
+    # ------------------------------------------------------------------
+    # Appearance
+    # ------------------------------------------------------------------
+
+    def _load_appearance(self) -> str:
+        try:
+            data = json.loads(Path("launcher.state.json").read_text(encoding="utf-8"))
+            mode = data.get("appearance", "System")
+            return mode if mode in ("System", "Dark", "Light") else "System"
+        except Exception:  # noqa: BLE001
+            return "System"
+
+    def _save_appearance(self, mode: str) -> None:
+        try:
+            Path("launcher.state.json").write_text(
+                json.dumps({"appearance": mode}), encoding="utf-8"
+            )
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+    def _apply_appearance(self, mode: str) -> None:
+        ctk.set_appearance_mode(mode)
+        if hasattr(self, "appearance"):
+            self.appearance.set(mode)
+
+    def _on_appearance(self, choice: str) -> None:
+        self._apply_appearance(choice)
+        self._save_appearance(choice)
 
     # ------------------------------------------------------------------
     # Screen routing
@@ -779,12 +916,15 @@ class LauncherApp:
     def show_screen(
         self, screen_class: type[ctk.CTkFrame], *args: Any, **kwargs: Any
     ) -> None:
-        if self.current_screen is not None:
-            self.current_screen.destroy()
-        _cls: Any = screen_class
-        new_screen = _cls(self.root, self, *args, **kwargs)
-        new_screen.pack(fill=tk.BOTH, expand=True)
-        self.current_screen = new_screen
+        def swap() -> None:
+            if self.current_screen is not None:
+                self.current_screen.destroy()
+            _cls: Any = screen_class
+            new_screen = _cls(self.content, self, *args, **kwargs)
+            new_screen.grid(row=0, column=0, sticky="nsew")
+            self.current_screen = new_screen
+
+        screen_transition(self.root, swap, reduced=self._reduced_motion)
 
     # ------------------------------------------------------------------
     # Window close (FR-SYS-010)
@@ -851,6 +991,7 @@ class LauncherApp:
         Returns one of 'restore', 'create', or 'cancel'.
         """
         response: dict[str, str] = {"choice": "cancel"}
+        f = self.fonts
 
         dialog = ctk.CTkToplevel(self.root)
         dialog.title("Database Not Found")
@@ -863,8 +1004,8 @@ class LauncherApp:
         ctk.CTkLabel(
             dialog,
             text="No database found",
-            font=heading_font(16),
-            text_color=[L_TEXT, TEXT],
+            font=f["h2"],
+            text_color=COLORS["text_primary"],
         ).pack(padx=24, pady=(24, 6))
         ctk.CTkLabel(
             dialog,
@@ -872,8 +1013,8 @@ class LauncherApp:
                 "Arcade could not find arcade.db. Restore the most recent "
                 "backup, or start with a new (empty) database."
             ),
-            font=body_font(12),
-            text_color=MUTED_TEXT,
+            font=f["body"],
+            text_color=COLORS["text_secondary"],
             wraplength=460,
             justify="left",
         ).pack(padx=24, pady=(0, 12))
@@ -882,8 +1023,8 @@ class LauncherApp:
             ctk.CTkLabel(
                 dialog,
                 text=f"Latest backup: {latest.name}",
-                font=mono_font(11),
-                text_color=[L_TEXT, TEXT],
+                font=f["mono"],
+                text_color=COLORS["text_primary"],
             ).pack(padx=24, pady=(0, 12))
 
         def _choose(value: str) -> None:
@@ -896,36 +1037,36 @@ class LauncherApp:
             text="Restore latest backup",
             command=lambda: _choose("restore"),
             state="normal" if latest is not None else "disabled",
-            font=heading_font(13),
+            font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=BLUE,
-            hover_color=BLUE_HOVER,
-            text_color=TEXT,
+            fg_color=COLORS["accent_fill"],
+            hover_color=COLORS["accent_fill_hover"],
+            text_color=COLORS["text_on_accent"],
         )
         restore_btn.pack(fill="x", padx=24, pady=(4, 10))
         create_btn = ctk.CTkButton(
             dialog,
             text="Create new database",
             command=lambda: _choose("create"),
-            font=heading_font(13),
+            font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=EMERALD,
-            hover_color=EMERALD_HOVER,
-            text_color=TEXT,
+            fg_color=COLORS["success"],
+            hover_color=COLORS["success"][1],
+            text_color=COLORS["text_on_accent"],
         )
         create_btn.pack(fill="x", padx=24, pady=(0, 10))
         cancel_btn = ctk.CTkButton(
             dialog,
             text="Cancel",
             command=lambda: _choose("cancel"),
-            font=body_font(12),
+            font=f["body"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=[L_BORDER, S700],
-            hover_color=[L_BORDER, S700_HOVER],
-            text_color=[L_TEXT, TEXT],
+            fg_color=COLORS["bg_tertiary"],
+            hover_color=COLORS["border"],
+            text_color=COLORS["text_primary"],
         )
         cancel_btn.pack(fill="x", padx=24, pady=(0, 16))
 
@@ -943,11 +1084,14 @@ class LauncherApp:
             if Path("arcade.config.json").exists():
                 if self._ensure_database():
                     self.show_screen(MainScreen)
-                    self._main_screen = self.current_screen
+                    self._main_screen = self.current_screen  # type: ignore[assignment]
+                    self.status.set("Database ready", "success")
             else:
                 self.show_screen(SetupWizard, result)
+                self.status.set("Setup required", "busy")
         else:
             self.show_screen(ActivationScreen, result)
+            self.status.set("License required", "error")
 
     # ------------------------------------------------------------------
     # Entry hook
