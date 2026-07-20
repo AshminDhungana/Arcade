@@ -1,0 +1,1 @@
+"""License GUI sub-package."""
