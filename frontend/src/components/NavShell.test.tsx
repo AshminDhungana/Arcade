@@ -51,4 +51,20 @@ describe('NavShell', () => {
     render(<MemoryRouter><NavShell><div>child</div></NavShell></MemoryRouter>);
     expect(screen.getByText('Events')).toBeInTheDocument();
   });
+
+  it('renders the gamepad tile brand image without a gradient wrapper', () => {
+    useFeatureFlagStore.setState({
+      flags: { ...useFeatureFlagStore.getState().flags },
+    });
+    const { container } = render(
+      <MemoryRouter>
+        <NavShell>
+          <div>child</div>
+        </NavShell>
+      </MemoryRouter>,
+    );
+    const imgs = container.querySelectorAll('img[src="/arcade_icon.svg"]');
+    expect(imgs.length).toBeGreaterThanOrEqual(1);
+    expect(document.querySelector('.bg-brand-gradient')).toBeNull();
+  });
 });
