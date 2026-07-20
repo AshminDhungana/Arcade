@@ -51,6 +51,12 @@ from launcher_widgets import (
     show_toast,
 )
 
+# Default bind address/port for the Arcade server. Overridable per-install
+# via the setup wizard; kept here as the single source of truth so the
+# wizard default, fallbacks, and placeholders can't drift apart.
+DEFAULT_HOST = "0.0.0.0"
+DEFAULT_PORT = 8741
+
 # ---------------------------------------------------------------------------
 # Error messages (SDD Section 16.7)
 # ---------------------------------------------------------------------------
@@ -348,8 +354,8 @@ class SetupWizard(_BaseScreen):
         self.form.grid_columnconfigure(0, weight=1)
 
         self._cafe_name_var = ctk.StringVar()
-        self._host_var = ctk.StringVar(value="0.0.0.0")
-        self._port_var = ctk.StringVar(value="8000")
+        self._host_var = ctk.StringVar(value=DEFAULT_HOST)
+        self._port_var = ctk.StringVar(value=str(DEFAULT_PORT))
         self._admin_id_var = ctk.StringVar(value="admin")
         self._admin_pin_var = ctk.StringVar()
         self._cashier_id_var = ctk.StringVar(value="cashier")
@@ -364,8 +370,8 @@ class SetupWizard(_BaseScreen):
             "Basic identity and network settings for this server.",
             [
                 ("Café Name", self._cafe_name_var, {"placeholder": "My Arcade"}),
-                ("Server IP", self._host_var, {"placeholder": "0.0.0.0"}),
-                ("Port", self._port_var, {"placeholder": "8000"}),
+                ("Server IP", self._host_var, {"placeholder": DEFAULT_HOST}),
+                ("Port", self._port_var, {"placeholder": str(DEFAULT_PORT)}),
             ],
         )
         row = self._section(
@@ -525,8 +531,8 @@ class SetupWizard(_BaseScreen):
         config: dict[str, Any] = {
             "cafe_name": self._cafe_name_var.get()
             or payload.get("cafe_name", "Arcade"),
-            "host": self._host_var.get() or "0.0.0.0",
-            "port": int(self._port_var.get() or 8000),
+            "host": self._host_var.get() or DEFAULT_HOST,
+            "port": int(self._port_var.get() or DEFAULT_PORT),
             "admin_staff_id": self._admin_id_var.get() or "admin",
             "admin_pin_hash": hash_pin(self._admin_pin_var.get() or "admin"),
             "cashier_staff_id": self._cashier_id_var.get() or "cashier",
@@ -706,8 +712,8 @@ class MainScreen(_BaseScreen):
     def _start_server(self) -> None:
         if self._proc is not None and self._proc.poll() is None:
             return
-        host = "0.0.0.0"
-        port = 8000
+        host = DEFAULT_HOST
+        port = DEFAULT_PORT
         if Path("arcade.config.json").exists():
             try:
                 cfg = json.loads(Path("arcade.config.json").read_text(encoding="utf-8"))
@@ -761,7 +767,7 @@ class MainScreen(_BaseScreen):
 
     def _open_dashboard(self) -> None:
         host = "localhost"
-        port = 8000
+        port = DEFAULT_PORT
         if Path("arcade.config.json").exists():
             try:
                 cfg = json.loads(Path("arcade.config.json").read_text(encoding="utf-8"))
