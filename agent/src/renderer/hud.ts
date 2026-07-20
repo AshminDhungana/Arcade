@@ -38,6 +38,10 @@ function applyPhase(): void {
 }
 
 function showIntro(): void {
+  // Clear any existing timers to prevent stacking on repeat calls (M3)
+  if (introTimerId) clearTimeout(introTimerId);
+  if (callStaffTimerId) clearTimeout(callStaffTimerId);
+
   if (timerEl) {
     timerEl.style.display = 'block';
     reveal(timerEl);
@@ -72,6 +76,11 @@ function showUrgent(): void {
   if (timerEl) {
     timerEl.style.display = 'block';
     reveal(timerEl);
+    // Clear any existing countdown to prevent interval leak (I2)
+    if (urgentCountdownStop) {
+      urgentCountdownStop();
+      urgentCountdownStop = null;
+    }
     // local countdown from server's remaining seconds
     urgentCountdownStop = countdown(pendingLowTimeMinutes * 60, (rem) => {
       timerEl!.textContent = formatMMSS(rem);
@@ -137,9 +146,11 @@ function initHud(): void {
     setPhase('URGENT', 'low-time');
   });
 
-  window.electronAPI.onSessionStatus((status: string) => {
-    if (status === 'active') setPhase('INTRO', 'session-start');
-    else if (status === 'ended') setPhase('ENDED', 'session-end');
+  window.electronAPI.onSessionStatus((status: boolean | string) => {
+    // Preload sends boolean (data.active), but test mocks may send string 'active'/'ended'.
+    // Treat truthy as active, falsy as ended.
+    const active = typeof status === 'boolean' ? status : status === 'active';
+    setPhase(active ? 'INTRO' : 'ENDED', active ? 'session-start' : 'session-end');
   });
 
   window.electronAPI.onAnnouncement((text: string, durationMs: number) => {
@@ -164,6 +175,10 @@ function initHud(): void {
       }
     }
   });
+
+  // C1 fix: HUD window is created only when a session starts (showHud() called from hideKioskOverlay()).
+  // Therefore "HUD window created" == "session start". Auto-trigger INTRO phase.
+  setPhase('INTRO', 'session-start');
 }
 
 if (typeof document !== 'undefined') {

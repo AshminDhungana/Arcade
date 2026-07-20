@@ -84,6 +84,9 @@ body {
 .kiosk-status .ok { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: var(--glow) var(--accent); }
 
 .call-staff-btn {
+  position: absolute;
+  right: 4vw;
+  bottom: 4vh;
   font-family: var(--font-display); font-weight: 600; font-size: .9rem;
   letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
   background: transparent; border: 1.5px solid var(--accent);
