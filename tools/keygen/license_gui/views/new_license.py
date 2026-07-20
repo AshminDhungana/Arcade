@@ -21,8 +21,9 @@ except ImportError:
         parse_trial_days,
     )
     from license_helpers import validate_inputs
-    from theme import COLORS, RADIUS, SPACING
-    from widgets import Card, LabeledField, ResultPanel, SegmentedControl, show_toast
+
+    from ..theme import COLORS, RADIUS, SPACING
+    from ..widgets import Card, LabeledField, ResultPanel, SegmentedControl, show_toast
 
 
 class NewLicenseView:
