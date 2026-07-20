@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Login from './Login';
+import { setPrefersReducedMotion } from '../test-setup';
 
 // Mock the login API
 vi.mock('@/api/auth', () => ({
@@ -124,5 +125,24 @@ describe('Login', () => {
     expect(
       screen.getByRole('button', { name: /switch to dark theme/i }),
     ).toBeInTheDocument();
+  });
+
+  it('renders and toggles correctly when reduced-motion is preferred', () => {
+    // Turns useReducedMotion() on so the reduced-motion branches in Login
+    // (initial={false}, exit={undefined}) actually execute during this render.
+    setPrefersReducedMotion(true);
+    try {
+      localStorage.clear();
+      const { container } = renderWithRouter();
+      // Core UI still renders with animations disabled.
+      expect(screen.getByLabelText(/staff id/i)).toBeInTheDocument();
+      const wrapper = container.querySelector('.login-root');
+      expect(wrapper?.getAttribute('data-theme')).toBe('dark');
+      // Toggle still works under reduced motion (exercises the exit branch).
+      fireEvent.click(screen.getByRole('button', { name: /switch to light theme/i }));
+      expect(wrapper?.getAttribute('data-theme')).toBe('light');
+    } finally {
+      setPrefersReducedMotion(false);
+    }
   });
 });
