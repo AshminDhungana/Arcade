@@ -11,16 +11,12 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -151,16 +147,12 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -220,16 +212,12 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -450,16 +438,12 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -519,16 +503,12 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -659,16 +639,12 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -728,16 +704,12 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -868,16 +840,12 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -937,16 +905,12 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1077,16 +1041,12 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1146,16 +1106,12 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1321,16 +1277,12 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1390,16 +1342,12 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1530,16 +1478,12 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1599,16 +1543,12 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1739,16 +1679,12 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1808,16 +1744,12 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1948,16 +1880,12 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2017,16 +1945,12 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2212,16 +2136,12 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2281,16 +2201,12 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2421,16 +2337,12 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2490,16 +2402,12 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <div
-          class="bg-brand-gradient flex h-8 w-8 items-center justify-center rounded-lg"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-5"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-8 w-8 rounded-lg shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2630,16 +2538,12 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       <div
         class="flex items-center gap-2"
       >
-        <div
-          class="bg-brand-gradient flex h-7 w-7 items-center justify-center rounded-md"
-        >
-          <img
-            alt=""
-            aria-hidden="true"
-            class="h-4 w-4"
-            src="/arcade_icon.svg"
-          />
-        </div>
+        <img
+          alt=""
+          aria-hidden="true"
+          class="h-7 w-7 rounded-md shadow-sm"
+          src="/arcade_icon.svg"
+        />
         <h1
           class="text-lg font-bold text-foreground"
         >
