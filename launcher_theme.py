@@ -12,6 +12,7 @@ recovery microcopy.
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 from tkinter import font as tkfont
@@ -134,3 +135,57 @@ def assert_contrast(body_min: float = _BODY_MIN) -> None:
         dark = _contrast(COLORS[text_tok][1], COLORS[bg_tok][1])
         assert light >= body_min, f"{text_tok}/{bg_tok} light {light:.2f} < {body_min}"  # noqa: S101
         assert dark >= body_min, f"{text_tok}/{bg_tok} dark {dark:.2f} < {body_min}"  # noqa: S101
+
+
+def dark_svg(svg_text: str) -> str:
+    """Drop the gradient-filled background square to transparent, leaving only
+    the white controller glyph — used for the dark-mode logo variant."""
+    return re.sub(
+        r'<rect[^>]*fill="url\(#brandGradient\)"[^>]*/>',
+        '<rect width="24" height="24" rx="5" ry="5" fill="none"/>',
+        svg_text,
+    )
+
+
+def rasterize_logo(size: int, dark: bool):
+    """Return a PIL RGBA Image of the logo, or None on any failure.
+    Uses cairosvg when available; otherwise the committed PNG fallback."""
+    if cairosvg is not None and BRAND_LOGO_SVG.is_file():
+        try:
+            svg = BRAND_LOGO_SVG.read_text(encoding="utf-8")
+            if dark:
+                svg = dark_svg(svg)
+            png = cairosvg.svg2png(
+                bytestring=svg.encode("utf-8"),
+                output_width=size,
+                output_height=size,
+            )
+            return Image.open(__import__("io").BytesIO(png)).convert("RGBA")
+        except Exception:  # noqa: S110
+            pass
+    png_path = LOGO_WHITE_PNG if dark else LOGO_LIGHT_PNG
+    if Image is not None and png_path.is_file():
+        try:
+            return Image.open(png_path).convert("RGBA")
+        except Exception:
+            return None
+    return None
+
+
+def load_logo(size: int = 44):
+    """Return a CTkImage with light/dark variants, or None if unavailable.
+    Headless-safe: never raises."""
+    if Image is None:
+        return None
+    try:
+        light = rasterize_logo(size, dark=False)
+        dark = rasterize_logo(size, dark=True)
+        if light is None and dark is None:
+            return None
+        return ctk.CTkImage(  # noqa: F821
+            light_image=light,
+            dark_image=dark or light,
+            size=(size, size),
+        )
+    except Exception:
+        return None
