@@ -3,30 +3,83 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root,
+:root {
+  --background: #f8fafc;
+  --foreground: #020617;
+  --card: #ffffff;
+  --card-foreground: #020617;
+  --popover: #ffffff;
+  --popover-foreground: #020617;
+  --primary: #0090fa;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #020617;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #f1f5f9;
+  --accent-foreground: #020617;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0090fa;
+  --radius: 0.75rem;
+}
+
 .dark {
-  --background: #020617;        /* surface-950 — page base */
-  --foreground: #f8fafc;        /* text-50 */
-  --card: #0f172a;              /* surface-900 — panels */
+  --background: #020617;
+  --foreground: #f8fafc;
+  --card: #0f172a;
   --card-foreground: #f8fafc;
-  --popover: #1e293b;           /* surface-800 — overlays */
+  --popover: #1e293b;
   --popover-foreground: #f8fafc;
-  --primary: #0090fa;           /* brand mid */
+  --primary: #0090fa;
   --primary-foreground: #ffffff;
   --secondary: #1e293b;
   --secondary-foreground: #f8fafc;
   --muted: #1e293b;
-  --muted-foreground: #94a3b8;  /* text-muted */
+  --muted-foreground: #94a3b8;
   --accent: #1e293b;
   --accent-foreground: #f8fafc;
-  --destructive: #ef4444;       /* danger-500 */
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --success: #22c55e;           /* success-500 */
+  --success: #22c55e;
   --success-foreground: #ffffff;
-  --warning: #f59e0b;           /* amber-500 */
+  --warning: #f59e0b;
   --warning-foreground: #ffffff;
-  --border: #334155;            /* surface-700 */
+  --border: #334155;
   --input: #334155;
+  --ring: #0090fa;
+  --radius: 0.75rem;
+}
+
+.login-root[data-theme="light"] {
+  --background: #f8fafc;
+  --foreground: #020617;
+  --card: #ffffff;
+  --card-foreground: #020617;
+  --popover: #ffffff;
+  --popover-foreground: #020617;
+  --primary: #0090fa;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #020617;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #f1f5f9;
+  --accent-foreground: #020617;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
   --ring: #0090fa;
   --radius: 0.75rem;
 }
@@ -59,14 +112,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-}
-
-/* Ambient brand backdrop for the login page */
-.bg-ambient {
-  background-color: var(--background);
-  background-image:
-    radial-gradient(60rem 60rem at 88% -10%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 60%),
-    radial-gradient(42rem 42rem at 6% 112%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 55%);
 }
 
 /* ---- Neon-grid login backdrop (theme-aware via tokens) ---- */
