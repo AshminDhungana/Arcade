@@ -93,12 +93,16 @@ export default function Login() {
     <div className="bg-ambient flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="bg-brand-gradient mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg">
-            <img src="/arcade_icon.svg" alt="" className="h-8 w-8" aria-hidden="true" />
-          </div>
           <h1 className="text-2xl font-bold text-foreground">Arcade</h1>
           <p className="mt-1 text-sm text-muted-foreground">Staff Sign In</p>
         </div>
+
+        <img
+          src="/arcade_icon.svg"
+          alt=""
+          className="mb-4 h-14 w-14 rounded-2xl shadow-lg"
+          aria-hidden="true"
+        />
 
         {lockoutSeconds !== null && (
           <Alert variant="destructive" className="mb-4">

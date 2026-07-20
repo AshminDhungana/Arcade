@@ -87,4 +87,12 @@ describe('Login', () => {
       expect(screen.getByText(/account locked/i)).toBeInTheDocument();
     });
   });
+
+  it('renders the gamepad tile brand image without a gradient wrapper', () => {
+    const { container } = renderWithRouter();
+    const img = container.querySelector('img[src="/arcade_icon.svg"]');
+    expect(img).not.toBeNull();
+    expect(img?.className).toContain('rounded-2xl');
+    expect(document.querySelector('.bg-brand-gradient')).toBeNull();
+  });
 });
