@@ -1,0 +1,80 @@
+/* agent/src/renderer/tokens.css — shared broadcast design system */
+
+:root {
+  --bg-0: #050609;
+  --bg-1: #0b0e15;
+  --bg-2: #141926;
+  --accent: #22d3ee;
+  --accent-2: #a855f7;
+  --live: #ef4444;
+  --warn: #f59e0b;
+  --text-1: #f8fafc;
+  --text-2: #9aa6b8;
+  --text-3: #5b6678;
+  --border: rgba(255, 255, 255, .08);
+  --glow: 0 0 24px;
+  --radius: 14px;
+  --grad: linear-gradient(135deg, #22d3ee, #a855f7);
+  --font-display: 'Chakra Petch', 'Russo One', system-ui, sans-serif;
+  --font-ui: 'Inter', system-ui, sans-serif;
+}
+
+/* ---- Fonts (bundled; system fallback) — files added in Task 9 ---- */
+@font-face {
+  font-family: 'Chakra Petch';
+  src: url('./public/ChakraPetch-SemiBold.woff2') format('woff2');
+  font-weight: 600; font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./public/Inter-Regular.woff2') format('woff2');
+  font-weight: 400; font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./public/Inter-Medium.woff2') format('woff2');
+  font-weight: 500; font-display: swap;
+}
+
+/* ---- Shared modal (used by kiosk + HUD) ---- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, .85);
+  display: none; align-items: center; justify-content: center;
+  z-index: 1000; opacity: 0;
+  transition: opacity .3s ease;
+  pointer-events: none;
+}
+.modal-overlay.visible { opacity: 1; }
+.modal-content {
+  pointer-events: auto;
+  background: var(--bg-1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 2.5rem;
+  max-width: 520px; width: 90%;
+  text-align: center;
+  box-shadow: 0 0 50px rgba(34, 211, 238, .18);
+}
+.modal-title {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 1.4rem; margin-bottom: 1rem; color: var(--warn);
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+}
+.modal-body { font-size: .95rem; color: var(--text-2); margin-bottom: 1.25rem; }
+.modal-actions { display: flex; gap: 1rem; justify-content: center; margin-top: 1.25rem; }
+.modal-btn {
+  pointer-events: auto; padding: .75rem 2rem; font-size: 1rem;
+  border-radius: 8px; cursor: pointer; text-transform: uppercase;
+  font-family: var(--font-display); letter-spacing: .08em;
+  transition: background .2s ease;
+}
+.modal-btn.primary { background: var(--accent); border: none; color: var(--bg-0); }
+.modal-btn.primary:hover { background: #6fe3ff; }
+.modal-btn.secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+.modal-btn.secondary:hover { background: var(--bg-2); }
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
