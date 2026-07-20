@@ -1,230 +1,103 @@
-/* agent/src/renderer/kiosk.css — Kiosk overlay theme */
+/* agent/src/renderer/kiosk.css — broadcast kiosk lock screen */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0a0a0f;
-  color: #ffffff;
-  height: 100vh;
-  width: 100vw;
+  font-family: var(--font-ui);
+  background: var(--bg-0);
+  color: var(--text-1);
+  height: 100vh; width: 100vw;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
 }
 
 #app {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
   text-align: center;
 }
 
 .kiosk-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
+  position: relative;
+  width: 100%; height: 100%;
 }
 
+/* Centered hero cluster (brand, banner, clock, timer, session indicator) */
+.kiosk-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1.25rem; text-align: center;
+}
+
+/* Top bug: gradient wordmark + status pill */
+.kiosk-bug {
+  position: absolute; top: 4vh; left: 4vw; right: 4vw;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.cafe-wordmark {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(20px, 2.4vw, 34px); letter-spacing: .06em;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.status-pill {
+  display: flex; align-items: center; gap: .5rem;
+  font-family: var(--font-display); font-weight: 600; font-size: .8rem;
+  letter-spacing: .16em; color: var(--live);
+  padding: .35rem .8rem; border: 1px solid rgba(239, 68, 68, .5);
+  border-radius: 40px; background: rgba(239, 68, 68, .1);
+}
+.status-pill .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--live);
+  box-shadow: var(--glow) var(--live); animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+
+/* Hero */
 .cafe-brand {
-  font-size: 4vw;
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #e0e0e0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(32px, 5vw, 64px); letter-spacing: .04em;
+  color: var(--text-1); text-shadow: 0 0 30px rgba(34, 211, 238, .18);
 }
-
-.cafe-brand .accent { color: #4fc3f7; }
-
-.cafe-logo {
-  max-height: 6vw;
-  width: auto;
-  object-fit: contain;
+.event-banner {
+  margin-top: .5rem; font-size: clamp(11px, 1.2vw, 15px);
+  letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
 }
 
 .clock {
-  font-size: 12vw;
-  font-weight: 200;
-  font-variant-numeric: tabular-nums;
-  color: #ffffff;
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(48px, 9vw, 110px); letter-spacing: .03em;
+  color: var(--text-1); font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 40px rgba(34, 211, 238, .3);
 }
 
-.session-indicator {
-  font-size: 2vw;
-  padding: 0.75rem 2rem;
-  border-radius: 50px;
-  background: rgba(79, 195, 247, 0.15);
-  border: 1px solid rgba(79, 195, 247, 0.3);
-  color: #4fc3f7;
-  display: none;
+/* Bottom rail */
+.kiosk-rail {
+  position: absolute; bottom: 4vh; left: 4vw; right: 4vw;
+  display: flex; align-items: center; justify-content: space-between;
 }
-
-.session-indicator.active { display: block; }
-
-.timer-display {
-  font-size: 3vw;
-  font-variant-numeric: tabular-nums;
-  color: #4fc3f7;
-  min-height: 4vw;
+.kiosk-status {
+  font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2);
+  display: flex; align-items: center; gap: .5rem;
 }
+.kiosk-status .ok { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: var(--glow) var(--accent); }
 
 .call-staff-btn {
-  padding: 1rem 3rem;
-  font-size: 1.5vw;
-  background: transparent;
-  border: 2px solid #4fc3f7;
-  color: #4fc3f7;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-family: var(--font-display); font-weight: 600; font-size: .9rem;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+  background: transparent; border: 1.5px solid var(--accent);
+  border-radius: 10px; padding: .7rem 1.6rem; cursor: pointer;
+  box-shadow: var(--glow) rgba(34, 211, 238, .25); transition: background .2s, color .2s;
 }
+.call-staff-btn:hover { background: var(--accent); color: var(--bg-0); }
 
-.call-staff-btn:hover {
-  background: #4fc3f7;
-  color: #0a0a0f;
-}
-
+/* Announcement (reused by HUD) */
 .announcement-banner {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 1rem;
-  background: rgba(255, 193, 7, 0.15);
-  border-bottom: 1px solid rgba(255, 193, 7, 0.3);
-  color: #ffc107;
-  font-size: 1.5vw;
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  pointer-events: none;
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: 1rem; background: rgba(245, 158, 11, .15);
+  border-bottom: 1px solid rgba(245, 158, 11, .3);
+  color: var(--warn); font-size: 1rem; text-align: center;
+  opacity: 0; transition: opacity .5s ease; pointer-events: none;
 }
-
 .announcement-banner.visible { opacity: 1; }
-
-/* Modal overlay styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.modal-overlay.visible { opacity: 1; }
-
-.modal-content {
-  background: #1a1a2e;
-  border: 1px solid #4fc3f7;
-  border-radius: 16px;
-  padding: 3rem;
-  max-width: 500px;
-  width: 90%;
-  text-align: center;
-}
-
-.modal-title {
-  font-size: 2vw;
-  margin-bottom: 1.5rem;
-  color: #ffc107;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.modal-title svg {
-  width: 1.6em;
-  height: 1.6em;
-}
-
-.modal-body {
-  font-size: 1.5vw;
-  color: #e0e0e0;
-  margin-bottom: 2rem;
-}
-
-.pin-pad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin: 1rem auto;
-  max-width: 300px;
-}
-
-.pin-pad button {
-  padding: 1rem;
-  font-size: 1.5rem;
-  background: #2a2a3e;
-  border: 1px solid #4fc3f7;
-  color: #4fc3f7;
-  border-radius: 8px;
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.pin-pad button:hover { background: #3a3a4e; }
-
-.pin-display {
-  font-size: 2rem;
-  letter-spacing: 0.5em;
-  color: #4fc3f7;
-  margin: 1rem 0;
-  min-height: 2.5rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 2rem;
-}
-
-.modal-btn {
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  text-transform: uppercase;
-  transition: background 0.2s ease;
-}
-
-.modal-btn.primary {
-  background: #4fc3f7;
-  border: none;
-  color: #0a0a0f;
-}
-
-.modal-btn.primary:hover { background: #6fd5ff; }
-
-.modal-btn.secondary {
-  background: transparent;
-  border: 1px solid #4fc3f7;
-  color: #4fc3f7;
-}
-
-.modal-btn.secondary:hover { background: #2a2a3e; }
