@@ -221,10 +221,10 @@ def screen_title(parent, fonts, text, subtitle=None):
 def show_toast(app, message, kind="info", duration_ms=2500):
     """Borderless, self-destructing toast pinned to the app's bottom-right."""
     col = {
-        "info": COLORS["accent"],
-        "success": COLORS["success"],
-        "error": COLORS["error"],
-    }.get(kind, COLORS["accent"])
+        "info": COLORS["accent_fill"],
+        "success": COLORS["success_fill"],
+        "error": COLORS["error_fill"],
+    }.get(kind, COLORS["accent_fill"])
     toast = ctk.CTkToplevel(app.root)
     toast.overrideredirect(True)
     toast.attributes("-topmost", True)

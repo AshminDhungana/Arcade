@@ -587,7 +587,7 @@ class MainScreen(_BaseScreen):
             text_color=COLORS["text_on_accent"],
             height=28,
             corner_radius=14,
-            fg_color=COLORS["error"],
+            fg_color=COLORS["error_fill"],
             padx=14,
         )
         self._pill.grid(row=0, column=0, padx=(0, SPACING["md"]), sticky="w")
@@ -610,8 +610,8 @@ class MainScreen(_BaseScreen):
             font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=COLORS["success"],
-            hover_color=COLORS["success"][1],
+            fg_color=COLORS["success_fill"],
+            hover_color=COLORS["success_fill"][1],
             text_color=COLORS["text_on_accent"],
         )
         self._start_btn.grid(row=0, column=0, padx=(0, SPACING["xs"]), sticky="ew")
@@ -622,8 +622,8 @@ class MainScreen(_BaseScreen):
             font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=COLORS["error"],
-            hover_color=COLORS["error"][1],
+            fg_color=COLORS["error_fill"],
+            hover_color=COLORS["error_fill"][1],
             text_color=COLORS["text_on_accent"],
             state="disabled",
         )
@@ -730,7 +730,7 @@ class MainScreen(_BaseScreen):
             stderr=subprocess.STDOUT,
             text=True,
         )
-        self._set_status("●", f"Running at http://{host}:{port}", "success")
+        self._set_status("●", f"Running at http://{host}:{port}", "success_fill")
         self._start_btn.configure(state="disabled")
         self._stop_btn.configure(state="normal")
         show_toast(self.controller, "Server started", kind="success")
@@ -754,7 +754,7 @@ class MainScreen(_BaseScreen):
             except subprocess.TimeoutExpired:
                 self._proc.kill()
                 self._proc.wait()
-        self._set_status("■", "Stopped", "error")
+        self._set_status("■", "Stopped", "error_fill")
         self._start_btn.configure(state="normal")
         self._stop_btn.configure(state="disabled")
         show_toast(self.controller, "Server stopped", kind="error")
@@ -1060,8 +1060,8 @@ class LauncherApp:
             font=f["body_bold"],
             height=BTN_HEIGHT,
             corner_radius=RADIUS,
-            fg_color=COLORS["success"],
-            hover_color=COLORS["success"][1],
+            fg_color=COLORS["success_fill"],
+            hover_color=COLORS["success_fill"][1],
             text_color=COLORS["text_on_accent"],
         )
         create_btn.pack(fill="x", padx=24, pady=(0, 10))

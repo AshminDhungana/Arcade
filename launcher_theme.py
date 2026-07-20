@@ -48,8 +48,13 @@ COLORS = {
     "accent_fill": ("#5E62F2", "#4F46E5"),
     "accent_fill_hover": ("#4F46E5", "#4338CA"),
     "success": ("#16A34A", "#22C55E"),
+    # White-text-safe variants for solid fills (toasts, pill, Start/Stop).
+    # A single green/red cannot be both white-text-safe AND readable as text
+    # on a dark surface, so fills get their own darkened tokens.
+    "success_fill": ("#15803D", "#166534"),
     "warning": ("#D97706", "#F59E0B"),
     "error": ("#DC2626", "#EF4444"),
+    "error_fill": ("#DC2626", "#B91C1C"),
     "border": ("#E6E7EC", "#2A2A32"),
 }
 
@@ -63,6 +68,8 @@ _CONTRAST_PAIRS = [
     ("text_primary", "bg_secondary"),
     ("text_on_accent", "accent_fill"),
     ("text_on_accent", "accent_fill_hover"),
+    ("text_on_accent", "success_fill"),
+    ("text_on_accent", "error_fill"),
 ]
 _BODY_MIN = 4.5
 
