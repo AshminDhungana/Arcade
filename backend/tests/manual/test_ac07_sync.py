@@ -1,7 +1,7 @@
 """AC-07 Manual Test Verification Script.  # noqa: INP001
 
 Usage (run this after performing the manual test steps up to reconnect):
-    python test_ac07_sync.py --base-url http://localhost:8000
+    python test_ac07_sync.py --base-url http://localhost:8741
 
 This script connects to the server's dashboard websocket and monitors
 for SYNC-related seat_updated events. It also polls the REST API to
@@ -79,7 +79,7 @@ def check_elapsed_accuracy(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="AC-07 SYNC verification")
-    parser.add_argument("--base-url", default="http://localhost:8000")
+    parser.add_argument("--base-url", default="http://localhost:8741")
     parser.add_argument("--session-id", help="Session ID to verify (optional)")
     parser.add_argument(
         "--timeout",

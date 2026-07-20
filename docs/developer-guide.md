@@ -44,10 +44,10 @@ python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 **Dev endpoints:**
-- API: `http://localhost:8000/api`
-- Health: `http://localhost:8000/health`
-- Swagger: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- API: `http://localhost:8741/api`
+- Health: `http://localhost:8741/health`
+- Swagger: `http://localhost:8741/docs`
+- ReDoc: `http://localhost:8741/redoc`
 
 ## Frontend Setup
 
@@ -55,7 +55,7 @@ python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 make frontend-dev       # Or: cd frontend && npm install && npm run dev
 ```
 
-**Dev endpoints:** `http://localhost:5173` (Vite proxies `/api` -> `localhost:8000`, `/ws` -> `ws://localhost:8000`).
+**Dev endpoints:** `http://localhost:5173` (Vite proxies `/api` -> `localhost:8741`, `/ws` -> `ws://localhost:8741`).
 
 ## Agent Setup
 
@@ -235,7 +235,7 @@ When the agent reconnects after a LAN dropout, it sends a `SYNC` message. The se
 
 ```json
 {
-  "server_url": "ws://192.168.1.100:8000",
+  "server_url": "ws://192.168.1.100:8741",
   "seat_id": "seat_001",
   "agent_secret": "c9a1b2c3d4e5f6...",
   "override_code_hash": null,

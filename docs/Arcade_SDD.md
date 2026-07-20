@@ -1348,7 +1348,7 @@ async function handleScreenshot(): Promise<string> {
 
 ```json
 {
-  "server_url": "ws://192.168.1.100:8000",
+  "server_url": "ws://192.168.1.100:8741",
   "seat_id": "seat_001",
   "agent_secret": "c9a1b2c3d4e5f6...",
   "reconnect_max_seconds": 60,

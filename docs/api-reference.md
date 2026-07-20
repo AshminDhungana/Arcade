@@ -1,6 +1,6 @@
 # Arcade API Reference
 
-> **Base URL:** `http://<server-ip>:8000/api`
+> **Base URL:** `http://<server-ip>:8741/api`
 >
 > **Auth:** All endpoints require a valid JWT in the `Authorization: Bearer <token>` header.
 >   Rate-limited: 5 failed login attempts per IP -> 15-minute lockout.
@@ -917,7 +917,7 @@ Dashboard clients connect here to receive real-time events. Primarily a listener
 
 **Connection:**
 ```
-wss://<server-ip>:8000/ws/dashboard
+wss://<server-ip>:8741/ws/dashboard
 ```
 
 | Event Type     | Payload                          | Description                |
@@ -935,7 +935,7 @@ Each gaming PC connects here. The `secret` is validated against `agent_secrets` 
 
 **Connection:**
 ```
-wss://<server-ip>:8000/ws/agent/seat_001?secret=<agent_secret>
+wss://<server-ip>:8741/ws/agent/seat_001?secret=<agent_secret>
 ```
 
 **Agent -> Server messages:**

@@ -34,7 +34,7 @@ export const PING_MESSAGE: WSMessage = { type: 'PING', payload: {} };
 
 /** Agent configuration loaded from `agent.config.json`. */
 export interface AgentConfig {
-  /** WebSocket server URL, e.g. `ws://192.168.1.100:8000`. */
+  /** WebSocket server URL, e.g. `ws://192.168.1.100:8741`. */
   server_url: string;
 
   /** Seat identifier, e.g. `seat_001`. */

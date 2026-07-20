@@ -83,7 +83,7 @@ The four components are:
 
 ### 2. Frontend (`frontend/`)
 
-- Vite dev server with proxy: `/api` -> `localhost:8000`, `/ws` -> `ws://localhost:8000`
+- Vite dev server with proxy: `/api` -> `localhost:8741`, `/ws` -> `ws://localhost:8741`
 - TailwindCSS v4 for styling
 - React Query for server state, Zustand for client state, Recharts for charts
 - Vitest + jsdom + React Testing Library for tests

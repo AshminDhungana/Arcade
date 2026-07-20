@@ -32,7 +32,7 @@ Feature flags live in the `AppSettings` table and are toggled from the dashboard
 `PATCH /api/settings` with a `Bearer` admin token, e.g.:
 
 ```bash
-curl -X PATCH http://localhost:8000/api/settings \
+curl -X PATCH http://localhost:8741/api/settings \
   -H "Authorization: Bearer <admin-jwt>" \
   -H "Content-Type: application/json" \
   -d '{"enable_tournaments": "true"}'
@@ -106,7 +106,7 @@ after that, control is fully offline.
    ```
 6. Enable the feature flag (default is `false`):
    ```bash
-   curl -X PATCH http://localhost:8000/api/settings \
+   curl -X PATCH http://localhost:8741/api/settings \
      -H "Authorization: Bearer <admin-jwt>" \
      -H "Content-Type: application/json" \
      -d '{"enable_tuya": "true"}'

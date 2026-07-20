@@ -84,7 +84,7 @@ If the agent cannot reach the server, the staff override PIN is unavailable (it 
 
 ```json
 {
-  "server_url": "ws://192.168.1.100:8000",
+  "server_url": "ws://192.168.1.100:8741",
   "seat_id": "seat_001",
   "agent_secret": "c9a1b2c3d4e5f6...",
   "override_code_hash": null,
@@ -308,8 +308,8 @@ The following vectors **cannot be blocked at the application level** and are doc
 ### "server_url must start with ws:// or wss://"
 
 - The `server_url` must use the WebSocket protocol, not HTTP.
-- Correct: `ws://192.168.1.100:8000` or `wss://10.0.0.1:8443`
-- Incorrect: `http://192.168.1.100:8000`
+- Correct: `ws://192.168.1.100:8741` or `wss://10.0.0.1:8443`
+- Incorrect: `http://192.168.1.100:8741`
 
 ### "seat_id is required"
 
