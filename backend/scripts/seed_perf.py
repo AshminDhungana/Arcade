@@ -73,9 +73,9 @@ async def seed_structural(db) -> None:  # type: ignore[no-untyped-def]
         for j in range(1, 5):
             seats.append(
                 Seat(
-                    name=f"Seat {i*4+j:03d}",
+                    name=f"Seat {i * 4 + j:03d}",
                     zone_id=zone.id,
-                    mac_address=f"00:11:22:33:44:{i*4+j:02x}",
+                    mac_address=f"00:11:22:33:44:{i * 4 + j:02x}",
                     status=SeatStatus.AVAILABLE.value,
                     is_console=(j > 2),
                 )

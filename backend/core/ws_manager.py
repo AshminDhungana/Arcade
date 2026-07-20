@@ -21,9 +21,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import WebSocket
+from sqlalchemy import select
 
 from backend.core.config import get_config
 from backend.core.database import AsyncSessionLocal
+from backend.models.settings import AppSettings
 
 # ---------------------------------------------------------------------------
 # Constants  (SDD §9.1)
@@ -348,10 +350,22 @@ class WebSocketManager:
         from backend.services.wol_service import wol_success_callback as _wol_callback
 
         asyncio.create_task(_wol_callback(seat_id))
+
+        # Fetch event_banner from AppSettings (default to empty string if not set)
+        event_banner = ""
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(AppSettings.value).where(AppSettings.key == "event_banner")
+            )
+            value = result.scalar_one_or_none()
+            if value is not None:
+                event_banner = value
+
         return {
             "type": "REGISTERED",
             "seat_id": seat_id,
             "cafe_name": get_config().cafe_name,
+            "event_banner": event_banner,
         }
 
     async def _handle_sync(

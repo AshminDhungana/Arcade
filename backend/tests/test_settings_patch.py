@@ -74,3 +74,35 @@ async def test_patch_settings_flips_flag_and_gates_members_503(client: AsyncClie
     # members router is gated on enable_members -> now returns 503
     res2 = await client.get("/api/members?q=x")
     assert res2.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_patch_settings_event_banner_persists_and_returns(
+    client: AsyncClient,
+):
+    """event_banner is a free-form string setting: default absent/empty,
+    then set + returned."""
+    # Default: event_banner absent from GET
+    res_get = await client.get("/api/settings")
+    assert res_get.status_code == 200
+    assert res_get.json().get("event_banner", "") == ""
+
+    # Set a banner
+    res_patch = await client.patch(
+        "/api/settings", json={"event_banner": "Weekend Tournament"}
+    )
+    assert res_patch.status_code == 200
+    assert res_patch.json().get("event_banner") == "Weekend Tournament"
+
+    # GET returns it
+    res_get2 = await client.get("/api/settings")
+    assert res_get2.status_code == 200
+    assert res_get2.json().get("event_banner") == "Weekend Tournament"
+
+    # Overwrite with empty string
+    res_patch2 = await client.patch("/api/settings", json={"event_banner": ""})
+    assert res_patch2.status_code == 200
+    assert res_patch2.json().get("event_banner") == ""
+
+    res_get3 = await client.get("/api/settings")
+    assert res_get3.json().get("event_banner") == ""

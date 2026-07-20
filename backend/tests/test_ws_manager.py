@@ -29,6 +29,7 @@ from backend.core.ws_manager import (
 )
 from backend.models import Seat, Zone
 from backend.models._enums import PricingModel
+from backend.models.settings import AppSettings
 
 # ---------------------------------------------------------------------------
 # Protocol helpers (Task 1)
@@ -448,6 +449,70 @@ class TestAgentHandlers:
         assert result.get("type") == "REGISTERED"
         # Agent fetches the cafe name once on REGISTER (Epic 5.5).
         assert result.get("cafe_name") == get_config().cafe_name
+
+    async def test_handle_register_includes_event_banner_from_settings(
+        self, mock_config
+    ) -> None:
+        """REGISTERED payload includes event_banner from AppSettings (Task 12)."""
+        del mock_config
+        mgr = WebSocketManager()
+
+        # Seed event_banner in the database
+        async with AsyncSessionLocal() as db:
+            db.add(AppSettings(key="event_banner", value="Weekend Tournament"))
+            await db.commit()
+
+        try:
+            result = await mgr.handle_agent_message(
+                "seat_002",
+                {
+                    "type": "REGISTER",
+                    "payload": {
+                        "seat_id": "seat_002",
+                        "mac_address": "aa:bb:cc:dd:ee:ff",
+                        "hostname": "test-pc-2",
+                    },
+                },
+            )
+            assert result.get("type") == "REGISTERED"
+            assert result.get("event_banner") == "Weekend Tournament"
+        finally:
+            # Clean up
+            async with AsyncSessionLocal() as db:
+                await db.execute(
+                    AppSettings.__table__.delete().where(
+                        AppSettings.key == "event_banner"
+                    )
+                )
+                await db.commit()
+
+    async def test_handle_register_event_banner_empty_when_unset(
+        self, mock_config
+    ) -> None:
+        """REGISTERED payload has empty event_banner when not set in AppSettings."""
+        del mock_config
+        mgr = WebSocketManager()
+
+        # Ensure event_banner is not set
+        async with AsyncSessionLocal() as db:
+            await db.execute(
+                AppSettings.__table__.delete().where(AppSettings.key == "event_banner")
+            )
+            await db.commit()
+
+        result = await mgr.handle_agent_message(
+            "seat_003",
+            {
+                "type": "REGISTER",
+                "payload": {
+                    "seat_id": "seat_003",
+                    "mac_address": "aa:bb:cc:dd:ee:ff",
+                    "hostname": "test-pc-3",
+                },
+            },
+        )
+        assert result.get("type") == "REGISTERED"
+        assert result.get("event_banner") == ""
 
     async def test_handle_health_broadcasts_to_dashboards(self, mock_config):  # type: ignore[no-untyped-def]
         del mock_config
