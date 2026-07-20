@@ -44,6 +44,9 @@ export class AgentWebSocketClient {
   /** Cafe name fetched from the server on REGISTERED. */
   public cafeName = '';
 
+  /** Event banner fetched from the server on REGISTERED (empty = hidden). */
+  public eventBanner = '';
+
   private persistTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -55,6 +58,7 @@ export class AgentWebSocketClient {
     this.commandHandlers = createCommandHandlers(platform, {
       seatId: config.seat_id,
       getCafeName: () => this.cafeName,
+      getEventBanner: () => this.eventBanner,
     }, store);
   }
 
@@ -266,9 +270,12 @@ export class AgentWebSocketClient {
 
       // Capture the cafe name so SHOW_OVERLAY can brand the kiosk (Epic 5.5).
       if (message.type === 'REGISTERED') {
-        const payload = message.payload as { cafe_name?: string };
+        const payload = message.payload as { cafe_name?: string; event_banner?: string };
         if (payload.cafe_name) {
           this.cafeName = payload.cafe_name;
+        }
+        if (payload.event_banner) {
+          this.eventBanner = payload.event_banner;
         }
         return;
       }

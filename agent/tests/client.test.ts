@@ -35,4 +35,16 @@ describe('AgentWebSocketClient REGISTERED', () => {
     } as any);
     expect(client.getCafeName()).toBe('Neon Cafe');
   });
+
+  it('captures event_banner from the REGISTERED reply', async () => {
+    const client = new AgentWebSocketClient(baseConfig as any, makeFakePlatform(), undefined);
+    await client.handleMessage({
+      data: JSON.stringify({
+        type: 'REGISTERED',
+        payload: { seat_id: 'seat_001', cafe_name: 'Neon Cafe', event_banner: 'Summer Tournament!' },
+      }),
+    } as any);
+    expect(client.getCafeName()).toBe('Neon Cafe');
+    expect((client as any).eventBanner).toBe('Summer Tournament!');
+  });
 });

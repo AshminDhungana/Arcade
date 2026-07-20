@@ -175,6 +175,7 @@ describe('AgentWebSocketClient', () => {
         announcements: [],
         callStaffEnabled: true,
         sessionActive: false,
+        eventBanner: '',
       });
     }
   });
