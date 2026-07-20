@@ -54,7 +54,10 @@ class Settings(BaseModel):
         default_factory=lambda: int(os.environ.get("LOW_TIME_WARNING_MINUTES", "5"))
     )
     host: str = "0.0.0.0"  # noqa: S104  # nosec B104
-    port: int = Field(default=8000, ge=1, le=65535)
+    # Default matches launcher.py DEFAULT_PORT (0.0.0.0:8741). The setup wizard
+    # always writes an explicit port into arcade.config.json, so this is only a
+    # fallback for pre-setup tooling that builds Settings() directly.
+    port: int = Field(default=8741, ge=1, le=65535)
 
     # ──Database / Storage ────────────────────────────────────────────
     db_path: str = "./arcade.db"
