@@ -1473,11 +1473,11 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 - [ ] Add a light/dark mode toggle button to the frontend.
 
-- [ ] Use the `gamepad-directional` icon from `lucide-react` consistently across the app: on the login screen, on the page shown after login, and as the browser tab favicon while the server is running. Apply the same icon in both the agent and the frontend, styled to look professional.
-
 - [ ] In `launcher.py`, the "Open Dashboard" button should be disabled (non-functional) until the server has actually been started.
 
 - [ ] Check whether the cashier and new-user roles have access to all zones by default. If not, define how an admin can grant them access.
+
+[ ] in ./tools/keygen/generate_license.py in dark mode the logo is not looking good, we need to invert the color of the logo to white for dark mode to look good.
 
 ### Epic 7.4: Launcher Cross-Platform Testing (ENG-A)
 
