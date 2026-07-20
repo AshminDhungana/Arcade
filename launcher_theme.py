@@ -12,10 +12,13 @@ recovery microcopy.
 
 from __future__ import annotations
 
+import io
 import re
 import sys
 from pathlib import Path
 from tkinter import font as tkfont
+
+import customtkinter as ctk
 
 try:
     from PIL import Image
@@ -160,7 +163,7 @@ def rasterize_logo(size: int, dark: bool):
                 output_width=size,
                 output_height=size,
             )
-            return Image.open(__import__("io").BytesIO(png)).convert("RGBA")
+            return Image.open(io.BytesIO(png)).convert("RGBA")
         except Exception:  # noqa: S110
             pass
     png_path = LOGO_WHITE_PNG if dark else LOGO_LIGHT_PNG
@@ -182,7 +185,7 @@ def load_logo(size: int = 44):
         dark = rasterize_logo(size, dark=True)
         if light is None and dark is None:
             return None
-        return ctk.CTkImage(  # noqa: F821
+        return ctk.CTkImage(
             light_image=light,
             dark_image=dark or light,
             size=(size, size),
