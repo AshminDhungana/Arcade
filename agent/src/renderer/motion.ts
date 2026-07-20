@@ -1,7 +1,17 @@
 // agent/src/renderer/motion.ts
 
+/** True when the OS/user has requested reduced motion. Safe when matchMedia is
+ *  unavailable (e.g. jsdom in tests) — absence is treated as "no reduction". */
+export function prefersReducedMotion(): boolean {
+  return (
+    typeof matchMedia === 'function' &&
+    matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
 /** Entrance reveal: fade + rise. No-op if Web Animations API is unavailable. */
 export function reveal(el: HTMLElement, delayMs = 0): void {
+  if (prefersReducedMotion()) return;
   if (typeof el.animate !== 'function') return;
   el.animate(
     [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }],
@@ -11,6 +21,7 @@ export function reveal(el: HTMLElement, delayMs = 0): void {
 
 /** Subtle per-second pulse on the timer digit group. */
 export function pulseTimer(el: HTMLElement): void {
+  if (prefersReducedMotion()) return;
   if (typeof el.animate !== 'function') return;
   el.animate(
     [{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }],
