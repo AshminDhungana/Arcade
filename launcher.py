@@ -717,8 +717,8 @@ class MainScreen(_BaseScreen):
         if Path("arcade.config.json").exists():
             try:
                 cfg = json.loads(Path("arcade.config.json").read_text(encoding="utf-8"))
-                host = cfg.get("host", "0.0.0.0")
-                port = int(cfg.get("port", 8000))
+                host = cfg.get("host", DEFAULT_HOST)
+                port = int(cfg.get("port", DEFAULT_PORT))
             except (ValueError, KeyError, json.JSONDecodeError):
                 pass
         self._proc = subprocess.Popen(  # noqa: S603
@@ -772,7 +772,7 @@ class MainScreen(_BaseScreen):
             try:
                 cfg = json.loads(Path("arcade.config.json").read_text(encoding="utf-8"))
                 host = cfg.get("host", "localhost")
-                port = int(cfg.get("port", 8000))
+                port = int(cfg.get("port", DEFAULT_PORT))
             except (ValueError, KeyError, json.JSONDecodeError):
                 pass
         webbrowser.open(f"http://{host}:{port}")
