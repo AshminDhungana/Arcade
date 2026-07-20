@@ -12,12 +12,9 @@ recovery microcopy.
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 from tkinter import font as tkfont
-
-import customtkinter as ctk
 
 try:
     from PIL import Image
@@ -44,7 +41,7 @@ COLORS = {
     "text_disabled": ("#A8A8B2", "#5B5B66"),
     "text_on_accent": ("#FFFFFF", "#FFFFFF"),
     "accent": ("#6366F1", "#818CF8"),
-    "accent_fill": ("#6366F1", "#4F46E5"),
+    "accent_fill": ("#5E62F2", "#4F46E5"),
     "accent_fill_hover": ("#4F46E5", "#4338CA"),
     "success": ("#16A34A", "#22C55E"),
     "warning": ("#D97706", "#F59E0B"),
@@ -74,7 +71,7 @@ def _resolve_display_font() -> str | None:
         try:
             tkfont.Font(file=str(ttf))
             return ttf.stem
-        except Exception:
+        except Exception:  # noqa: S112
             continue
     return None
 
@@ -96,7 +93,7 @@ def load_font_family(ctk) -> str:
         try:
             ctk.FontManager.load_font(str(ttf))
             return "Inter"
-        except Exception:
+        except Exception:  # noqa: S110
             pass
     return _system_sans()
 
@@ -117,8 +114,10 @@ def make_fonts(ctk) -> dict:
 def _relative_luminance(hex_color: str) -> float:
     hex_color = hex_color.lstrip("#")
     r, g, b = (int(hex_color[i : i + 2], 16) / 255 for i in (0, 2, 4))
+
     def lin(c: float) -> float:
         return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
     return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
 
 
@@ -133,5 +132,5 @@ def assert_contrast(body_min: float = _BODY_MIN) -> None:
     for text_tok, bg_tok in _CONTRAST_PAIRS:
         light = _contrast(COLORS[text_tok][0], COLORS[bg_tok][0])
         dark = _contrast(COLORS[text_tok][1], COLORS[bg_tok][1])
-        assert light >= body_min, f"{text_tok}/{bg_tok} light {light:.2f} < {body_min}"
-        assert dark >= body_min, f"{text_tok}/{bg_tok} dark {dark:.2f} < {body_min}"
+        assert light >= body_min, f"{text_tok}/{bg_tok} light {light:.2f} < {body_min}"  # noqa: S101
+        assert dark >= body_min, f"{text_tok}/{bg_tok} dark {dark:.2f} < {body_min}"  # noqa: S101
