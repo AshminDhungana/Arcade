@@ -39,6 +39,13 @@ describe('Icon component', () => {
     expect(svg).toHaveClass('w-7');
   });
 
+  it('applies correct size class for size={14}', () => {
+    render(<Icon name="GamepadDirectional" size={14} />);
+    const svg = screen.getByRole('img', { hidden: true });
+    expect(svg).toHaveClass('h-3.5');
+    expect(svg).toHaveClass('w-3.5');
+  });
+
   it('defaults to size={24} when size not provided', () => {
     render(<Icon name="GamepadDirectional" />);
     const svg = screen.getByRole('img', { hidden: true });
@@ -75,6 +82,19 @@ describe('Icon component', () => {
     <Icon name="GamepadDirectional" size={999} />;
     // placeholder — TS catches this
   });
+
+  it('does not apply motion props when motion="none" (default)', () => {
+    render(<Icon name="GamepadDirectional" motion="none" />);
+    const svg = screen.getByRole('img', { hidden: true });
+    expect(svg).not.toHaveAttribute('initial');
+    expect(svg).not.toHaveAttribute('animate');
+  });
+
+  it('renders without motion wrapper when motion="entrance" but size < 32', () => {
+    render(<Icon name="GamepadDirectional" size={24} motion="entrance" />);
+    const svg = screen.getByRole('img', { hidden: true });
+    expect(svg.tagName.toLowerCase()).toBe('svg');
+  });
 });
 
 describe('FaviconIcon constant', () => {
@@ -95,5 +115,11 @@ describe('FaviconIcon constant', () => {
   it('is fixed at 32x32', () => {
     expect(FaviconIcon).toContain('width="32"');
     expect(FaviconIcon).toContain('height="32"');
+  });
+
+  it('contains GamepadDirectional paths', () => {
+    // GamepadDirectional has 4 path elements
+    const pathCount = (FaviconIcon.match(/<path/g) || []).length;
+    expect(pathCount).toBe(4);
   });
 });

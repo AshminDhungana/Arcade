@@ -1,6 +1,8 @@
 // frontend/src/components/ui/Icon.tsx
 import { forwardRef, SVGAttributes } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useReducedMotion } from 'motion/react';
 import {
   GamepadDirectional,
   Monitor,
@@ -273,6 +275,7 @@ import {
   SquareUserRound,
   BadgeX,
   BadgeQuestionMark,
+  HelpCircle,
 } from 'lucide-react';
 
 // 1 — Icon name allow-list
@@ -549,19 +552,22 @@ export type IconName =
   | 'BadgeX'
   | 'BadgeQuestionMark';
 
-// 2 — Icon size union (only allowed sizes)
-export type IconSize = 16 | 20 | 24 | 28 | 32 | 40 | 48 | 56;
+// 2 — Icon size union (only allowed sizes per spec)
+export type IconSize = 14 | 16 | 20 | 24 | 28 | 32 | 48 | 56;
 
 // 3 — Variant (stroke | fill)
 export type IconVariant = 'stroke' | 'fill';
 
+// 3b — Motion prop (none | entrance)
+export type IconMotion = 'none' | 'entrance';
+
 const sizeClassMap: Record<IconSize, string> = {
+  14: 'h-3.5 w-3.5',
   16: 'h-4 w-4',
   20: 'h-5 w-5',
   24: 'h-6 w-6',
   28: 'h-7 w-7',
   32: 'h-8 w-8',
-  40: 'h-10 w-10',
   48: 'h-12 w-12',
   56: 'h-14 w-14',
 };
@@ -846,36 +852,58 @@ interface IconProps extends Omit<SVGAttributes<SVGSVGElement>, 'width' | 'height
   name: IconName;
   size?: IconSize;
   variant?: IconVariant;
+  motion?: IconMotion;
   className?: string;
   'aria-hidden'?: boolean;
 }
 
 export const Icon = forwardRef<SVGSVGElement, IconProps>(
-  ({ name, size = 24, variant = 'stroke', className = '', 'aria-hidden': ariaHidden = true, ...props }, ref) => {
-    const LucideIcon = iconMap[name];
+  ({ name, size = 24, variant = 'stroke', motion = 'none', className = '', 'aria-hidden': ariaHidden = true, ...props }, ref) => {
+    const LucideIcon = iconMap[name] ?? HelpCircle;
+    const prefersReducedMotion = useReducedMotion();
+
+    // Warn in dev for unknown icon names
+    if (process.env.NODE_ENV !== 'production' && !iconMap[name]) {
+      console.warn(`[Icon] Unknown icon name: "${name}". Falling back to "HelpCircle".`);
+    }
 
     const variantProps =
       variant === 'fill'
         ? { fill: 'currentColor', stroke: 'none' }
         : { stroke: 'currentColor', fill: 'none', strokeWidth: 2 };
 
-    return (
-      <LucideIcon
-        ref={ref}
-        size={size}
-        className={`${sizeClassMap[size]} ${className}`}
-        role="img"
-        aria-hidden={ariaHidden}
-        {...variantProps}
-        {...props}
-      />
-    );
+    const shouldAnimate = motion === 'entrance' && size >= 32 && !prefersReducedMotion;
+
+    const baseLucideProps = {
+      ref,
+      size,
+      className: `${sizeClassMap[size]} ${className}`,
+      role: 'img',
+      'aria-hidden': ariaHidden,
+      ...variantProps,
+      ...props,
+    };
+
+    if (shouldAnimate) {
+      return (
+        <motion.svg
+          {...baseLucideProps}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+        >
+          <LucideIcon {...baseLucideProps} />
+        </motion.svg>
+      );
+    }
+
+    return <LucideIcon {...baseLucideProps} />;
   }
 );
 
 Icon.displayName = 'Icon';
 
-// 6 — FaviconIcon SVG constant (stroke, 32×32)
+// 6 — FaviconIcon SVG constant (GamepadDirectional, stroke, 32×32)
 export const FaviconIcon = `<svg
   xmlns="http://www.w3.org/2000/svg"
   width="32"
@@ -887,7 +915,8 @@ export const FaviconIcon = `<svg
   stroke-linecap="round"
   stroke-linejoin="round"
 >
-  <rect x="2" y="3" width="20" height="14" rx="2" />
-  <path d="M8 21h8" />
-  <path d="M12 17v4" />
+  <path d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z" />
+  <path d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z" />
+  <path d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z" />
+  <path d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z" />
 </svg>`;
