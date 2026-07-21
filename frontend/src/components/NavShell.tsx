@@ -1,7 +1,8 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useFeatureFlagStore } from "@/store/featureFlagStore";
+import { useAuthStore } from "@/store/authStore";
 import type { ReactNode } from "react";
 import type { IconName } from "@/components/ui/Icon";
 import { Sheet } from "@/components/ui/Sheet";
@@ -19,6 +20,14 @@ export function NavShell({ children }: { children: ReactNode }) {
   const flags = useFeatureFlagStore((s) => s.flags);
   const items = NAV.filter((n) => !n.flag || flags[n.flag]);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   const navLinks = (
     <nav className="flex flex-col gap-1" aria-label="Primary">
@@ -51,6 +60,15 @@ export function NavShell({ children }: { children: ReactNode }) {
           <h1 className="text-lg font-bold text-foreground">Arcade</h1>
         </div>
         {navLinks}
+        <button
+          type="button"
+          onClick={handleLogout}
+          aria-label="Logout"
+          title="Logout"
+          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        >
+          <Icon name="Unlock" size={16} variant="stroke" aria-hidden={true} />
+        </button>
       </aside>
 
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
@@ -86,6 +104,15 @@ export function NavShell({ children }: { children: ReactNode }) {
           </button>
         </div>
         {navLinks}
+        <button
+          type="button"
+          onClick={handleLogout}
+          aria-label="Logout"
+          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground w-full mt-auto"
+        >
+          <Icon name="Unlock" size={16} variant="stroke" aria-hidden={true} />
+          <span>Logout</span>
+        </button>
       </Sheet>
 
       <div className="min-w-0 flex-1">{children}</div>
