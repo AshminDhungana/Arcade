@@ -464,7 +464,7 @@ export type IconName =
   | 'HelpCircle';
 
 // 2 — Icon size union (only allowed sizes per spec)
-export type IconSize = 14 | 16 | 20 | 24 | 28 | 32 | 48 | 56;
+export type IconSize = 14 | 16 | 20 | 24 | 28 | 32 | 48 | 56 | 80;
 
 // 3 — Variant (stroke | fill)
 export type IconVariant = 'stroke' | 'fill';
@@ -481,6 +481,7 @@ const sizeClassMap: Record<IconSize, string> = {
   32: 'h-8 w-8',
   48: 'h-12 w-12',
   56: 'h-14 w-14',
+  80: 'h-20 w-20',
 };
 
 // 4 — IconName → Lucide component map (tree-shakeable via direct imports above)

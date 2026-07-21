@@ -180,7 +180,7 @@ describe('Login layout — centered logo above card', () => {
     renderWithRouterAndMotion();
     const logo = screen.getByRole('button', { name: /toggle theme \(logo\)/i });
     // Icon component renders as svg with size classes
-    expect(logo).toHaveClass('h-14', 'w-14'); // size 56 = h-14 w-14
+    expect(logo).toHaveClass('h-20', 'w-20'); // size 80 = h-20 w-20
   });
 
   test('theme badge button exists in card header', () => {

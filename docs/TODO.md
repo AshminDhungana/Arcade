@@ -1463,6 +1463,8 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 ---
 
+- [ ] Signature should look good, and also , signature should be white in darkmode and dark in white mode.
+
 ## UI/UX
 - [ ] Add a light/dark mode toggle to the frontend. with all pages to support light and dark mode and should look professional and premium.
 

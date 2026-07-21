@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, AlertCircle, Eye, EyeOff, Sun, Moon } from 'lucide-react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { login, AuthError } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { Input } from '@/components/ui/Input';
@@ -119,24 +119,31 @@ export default function Login() {
       <NeonGridBackground />
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
-        {/* Centered logo above card — clickable theme toggle */}
-        <Icon
-          name="GamepadDirectional"
-          size={56}
-          variant="fill"
-          motion="none"
-          role="button"
-          tabIndex={0}
+        {/* Centered logo — doubles as the light/dark theme toggle */}
+        <motion.button
+          type="button"
           onClick={toggleTheme}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              toggleTheme();
-            }
-          }}
-          aria-label="Toggle theme (logo)"
-          className="text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none transition-opacity hover:opacity-80"
-        />
+          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          aria-pressed={theme === 'dark'}
+          title="Toggle theme"
+          whileHover={reduceMotion ? undefined : { scale: 1.04 }}
+          whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+          className="mx-auto flex h-24 w-24 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/40 shadow-lg backdrop-blur-sm outline-none transition-colors hover:bg-card/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <motion.span
+            animate={{ rotate: theme === 'dark' ? 0 : 180 }}
+            transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 220, damping: 20 }}
+            className="flex items-center justify-center"
+          >
+            <Icon
+              name="GamepadDirectional"
+              size={64}
+              variant="fill"
+              motion="none"
+              className="text-foreground transition-colors duration-500"
+            />
+          </motion.span>
+        </motion.button>
 
         {/* Login card */}
         <motion.div
@@ -146,45 +153,9 @@ export default function Login() {
           className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8 mt-6"
           data-testid="login-card"
         >
-          {/* Card header: title + theme badge */}
-          <div className="mb-6 flex items-start justify-between">
-            <div className="flex-1 text-center">
-              <h1 className="text-xl font-semibold text-foreground">Staff Sign In</h1>
-            </div>
-            {/* Theme badge button — top right */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              aria-label={
-                theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
-              }
-              title="Toggle theme"
-              className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-lg outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {theme === 'dark' ? (
-                  <motion.span
-                    key="moon"
-                    initial={reduceMotion ? false : { rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={reduceMotion ? undefined : { rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Moon className="size-4" />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="sun"
-                    initial={reduceMotion ? false : { rotate: 90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={reduceMotion ? undefined : { rotate: -90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Sun className="size-4" />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </button>
+          {/* Card header */}
+          <div className="mb-6 text-center">
+            <h1 className="text-xl font-semibold text-foreground">Staff Sign In</h1>
           </div>
 
           {lockoutSeconds !== null && (
@@ -258,7 +229,10 @@ export default function Login() {
         </motion.div>
 
         {/* Signature watermark — bottom-right, faint, theme-aware; reveals once on load */}
-        <SignatureWatermark className="absolute bottom-4 right-8 pointer-events-none z-10" />
+        <SignatureWatermark
+          theme={theme}
+          className="absolute bottom-4 right-8 pointer-events-none z-10"
+        />
       </div>
     </div>
   );
