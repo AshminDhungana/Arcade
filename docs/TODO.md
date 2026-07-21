@@ -1466,12 +1466,8 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 ## UI/UX
 - [ ] Add a light/dark mode toggle to the frontend. with all pages to support light and dark mode and should look professional and premium.
 
-
-- [ ] Login screen icon and the browser tab icon, change it to lucid react gamepad-directional icon use /ui-ux-pro-max to improve the design and /motion-dev for imporvements. and also use the same icon eveywhere inside the frontend replace the old icon with it .
-
 ## Server & Networking
 
-- [x] Move the server off the default `0.0.0.0:8000` onto a dedicated address/port to avoid conflicts with other local programs. Update `launcher.py` to display the new address/port, and update the agent to connect using the same values.
 - [ ] Add a logout button to the server (currently missing).
 
 ## Launcher (`launcher.py`)
@@ -2107,7 +2103,7 @@ All engineers must use the exact field names below. ENG-B (Launcher) writes this
 
 ```json
 {
-  "server_url": "string (e.g., 'ws://192.168.1.100:8741')",
+  "server_url": "string (e.g., 'ws://192.168.1.100:8000')",
   "cafe_name": "string",
   "seat_id": "string (e.g., 'seat_001')",
   "agent_secret": "string (64-char hex â€” unique per seat)",

@@ -89,18 +89,18 @@ describe('Login', () => {
     });
   });
 
-  it('renders the gamepad tile brand image without a gradient wrapper', () => {
+  it('renders the GamepadDirectional icon via Icon component', () => {
     const { container } = renderWithRouter();
-    const img = container.querySelector('img[src="/arcade_icon.svg"]');
-    expect(img).not.toBeNull();
-    expect(img?.className).toContain('rounded-2xl');
-    expect(document.querySelector('.bg-brand-gradient')).toBeNull();
+    const icon = container.querySelector('svg[role="img"][aria-hidden="true"]');
+    expect(icon).not.toBeNull();
+    // Check that it's the GamepadDirectional icon (4 path elements)
+    expect(icon?.querySelectorAll('path').length).toBe(4);
   });
 
   it('renders the signature as a decorative, theme-aware svg', () => {
     const { container } = renderWithRouter();
-    // Signature is the only svg that fills with currentColor (lucide icons use fill="none")
-    const sig = container.querySelector('svg[fill="currentColor"]');
+    // Signature is the only svg that fills with currentColor AND has 3 paths (gamepad has 4)
+    const sig = container.querySelector('svg[fill="currentColor"]:not([class*="lucide"])');
     expect(sig).not.toBeNull();
     expect(sig?.getAttribute('aria-hidden')).toBe('true');
     const classAttr = sig?.getAttribute('class') ?? '';

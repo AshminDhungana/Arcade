@@ -95,6 +95,12 @@ describe('Icon component', () => {
     const svg = screen.getByRole('img', { hidden: true });
     expect(svg.tagName.toLowerCase()).toBe('svg');
   });
+
+  it('renders with motion wrapper when motion="entrance" and size >= 32', () => {
+    render(<Icon name="GamepadDirectional" size={56} variant="fill" motion="entrance" aria-hidden={true} className="text-primary" />);
+    const svg = screen.getByRole('img', { hidden: true });
+    expect(svg).toBeInTheDocument();
+  });
 });
 
 describe('FaviconIcon constant', () => {

@@ -11,12 +11,33 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -35,15 +56,16 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -84,15 +106,16 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -117,15 +140,16 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -147,12 +171,33 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -167,15 +212,16 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -212,12 +258,33 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -236,15 +303,16 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -285,15 +353,16 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-users size-4"
+            class="lucide lucide-users h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -320,15 +389,16 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -353,15 +423,16 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-calendar-days size-4"
+            class="lucide lucide-calendar-days h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -408,15 +479,16 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -438,12 +510,33 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -458,15 +551,16 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -503,12 +597,33 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -527,15 +642,16 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -576,15 +692,16 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -609,15 +726,16 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -639,12 +757,33 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -659,15 +798,16 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -704,12 +844,33 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -728,15 +889,16 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -777,15 +939,16 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -810,15 +973,16 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -840,12 +1004,33 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -860,15 +1045,16 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -905,12 +1091,33 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -929,15 +1136,16 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -978,15 +1186,16 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1011,15 +1220,16 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1041,12 +1251,33 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1061,15 +1292,16 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -1106,12 +1338,33 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1130,15 +1383,16 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -1179,15 +1433,16 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-users size-4"
+            class="lucide lucide-users h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1214,15 +1469,16 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1247,15 +1503,16 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1277,12 +1534,33 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1297,15 +1575,16 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -1342,12 +1621,33 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1366,15 +1666,16 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -1415,15 +1716,16 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1448,15 +1750,16 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1478,12 +1781,33 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1498,15 +1822,16 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -1543,12 +1868,33 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1567,15 +1913,16 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -1616,15 +1963,16 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1649,15 +1997,16 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1679,12 +2028,33 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1699,15 +2069,16 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -1744,12 +2115,33 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1768,15 +2160,16 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -1817,15 +2210,16 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1850,15 +2244,16 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -1880,12 +2275,33 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1900,15 +2316,16 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -1945,12 +2362,33 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -1969,15 +2407,16 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -2018,15 +2457,16 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -2051,15 +2491,16 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-calendar-days size-4"
+            class="lucide lucide-calendar-days h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -2106,15 +2547,16 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -2136,12 +2578,33 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2156,15 +2619,16 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -2201,12 +2665,33 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2225,15 +2710,16 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -2274,15 +2760,16 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -2307,15 +2794,16 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -2337,12 +2825,33 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2357,15 +2866,16 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -2402,12 +2912,33 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       <div
         class="mb-2 flex items-center gap-2 px-3 py-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-8 w-8 rounded-lg shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-8 w-8"
+          fill="none"
+          height="32"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="32"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2426,15 +2957,16 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard size-4"
+            class="lucide lucide-layout-dashboard h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
@@ -2475,15 +3007,16 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-chart-column size-4"
+            class="lucide lucide-chart-column h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -2508,15 +3041,16 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-settings size-4"
+            class="lucide lucide-settings h-4 w-4"
             fill="none"
-            height="24"
+            height="16"
+            role="img"
             stroke="currentColor"
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             viewBox="0 0 24 24"
-            width="24"
+            width="16"
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
@@ -2538,12 +3072,33 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       <div
         class="flex items-center gap-2"
       >
-        <img
-          alt=""
+        <svg
           aria-hidden="true"
-          class="h-7 w-7 rounded-md shadow-sm"
-          src="/arcade_icon.svg"
-        />
+          class="lucide lucide-gamepad-directional h-7 w-7"
+          fill="none"
+          height="28"
+          role="img"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="28"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"
+          />
+          <path
+            d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"
+          />
+          <path
+            d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"
+          />
+          <path
+            d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"
+          />
+        </svg>
         <h1
           class="text-lg font-bold text-foreground"
         >
@@ -2558,15 +3113,16 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       >
         <svg
           aria-hidden="true"
-          class="lucide lucide-menu size-5"
+          class="lucide lucide-menu h-5 w-5"
           fill="none"
-          height="24"
+          height="20"
+          role="img"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           viewBox="0 0 24 24"
-          width="24"
+          width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path

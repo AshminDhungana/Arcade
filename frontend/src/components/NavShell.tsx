@@ -1,17 +1,18 @@
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { LayoutDashboard, Users, BarChart3, Settings as SettingsIcon, CalendarDays, Menu, X } from "lucide-react";
 import { useFeatureFlagStore } from "@/store/featureFlagStore";
 import type { ReactNode } from "react";
+import type { IconName } from "@/components/ui/Icon";
 import { Sheet } from "@/components/ui/Sheet";
+import { Icon } from "@/components/ui/Icon";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, flag: null },
-  { to: "/members", label: "Members", icon: Users, flag: "enable_members" as const },
-  { to: "/analytics", label: "Analytics", icon: BarChart3, flag: null },
-  { to: "/events", label: "Events", icon: CalendarDays, flag: "enable_tournaments" as const },
-  { to: "/settings", label: "Settings", icon: SettingsIcon, flag: null },
+  { to: "/", label: "Dashboard", icon: "LayoutDashboard", flag: null },
+  { to: "/members", label: "Members", icon: "Users", flag: "enable_members" as const },
+  { to: "/analytics", label: "Analytics", icon: "BarChart3", flag: null },
+  { to: "/events", label: "Events", icon: "CalendarDays", flag: "enable_tournaments" as const },
+  { to: "/settings", label: "Settings", icon: "Settings", flag: null },
 ];
 
 export function NavShell({ children }: { children: ReactNode }) {
@@ -35,7 +36,7 @@ export function NavShell({ children }: { children: ReactNode }) {
             }`
           }
         >
-          <n.icon className="size-4" />
+          <Icon name={n.icon as IconName} size={16} variant="stroke" aria-hidden={true} />
           {n.label}
         </NavLink>
       ))}
@@ -46,7 +47,7 @@ export function NavShell({ children }: { children: ReactNode }) {
     <div className="bg-background flex min-h-screen md:flex">
       <aside className="bg-card hidden w-60 shrink-0 flex-col border-r border-border p-3 md:flex">
         <div className="mb-2 flex items-center gap-2 px-3 py-2">
-          <img src="/arcade_icon.svg" alt="" className="h-8 w-8 rounded-lg shadow-sm" aria-hidden="true" />
+          <Icon name="GamepadDirectional" size={32} variant="stroke" aria-hidden={true} />
           <h1 className="text-lg font-bold text-foreground">Arcade</h1>
         </div>
         {navLinks}
@@ -54,7 +55,7 @@ export function NavShell({ children }: { children: ReactNode }) {
 
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
         <div className="flex items-center gap-2">
-          <img src="/arcade_icon.svg" alt="" className="h-7 w-7 rounded-md shadow-sm" aria-hidden="true" />
+          <Icon name="GamepadDirectional" size={28} variant="stroke" aria-hidden={true} />
           <h1 className="text-lg font-bold text-foreground">Arcade</h1>
         </div>
         <button
@@ -64,7 +65,7 @@ export function NavShell({ children }: { children: ReactNode }) {
           aria-expanded={menuOpen}
           className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
-          <Menu className="size-5" />
+          <Icon name="Menu" size={20} variant="stroke" aria-hidden={true} />
         </button>
       </div>
 
@@ -72,7 +73,7 @@ export function NavShell({ children }: { children: ReactNode }) {
         <Dialog.Title className="sr-only">Arcade menu</Dialog.Title>
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <div className="flex items-center gap-2 px-3 py-2">
-            <img src="/arcade_icon.svg" alt="" className="h-8 w-8 rounded-lg shadow-sm" aria-hidden="true" />
+            <Icon name="GamepadDirectional" size={32} variant="stroke" aria-hidden={true} />
             <h1 className="text-lg font-bold text-foreground">Arcade</h1>
           </div>
           <button
@@ -81,7 +82,7 @@ export function NavShell({ children }: { children: ReactNode }) {
             aria-label="Close menu"
             className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
-            <X className="size-5" />
+            <Icon name="X" size={20} variant="stroke" aria-hidden={true} />
           </button>
         </div>
         {navLinks}

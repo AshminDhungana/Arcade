@@ -29,6 +29,7 @@ import {
   ChevronUp,
   ChevronDown,
   Menu,
+  X,
   Settings,
   User,
   Users,
@@ -43,11 +44,11 @@ import {
   SortDesc,
   Download,
   Upload,
-  Print,
   Copy,
   Edit,
   Trash2,
   Archive,
+  BarChart3,
   Folder,
   File,
   FileText,
@@ -259,6 +260,7 @@ export type IconName =
   | 'ChevronUp'
   | 'ChevronDown'
   | 'Menu'
+  | 'X'
   | 'Settings'
   | 'User'
   | 'Users'
@@ -273,7 +275,6 @@ export type IconName =
   | 'SortDesc'
   | 'Download'
   | 'Upload'
-  | 'Print'
   | 'Copy'
   | 'Edit'
   | 'Trash2'
@@ -288,6 +289,7 @@ export type IconName =
   | 'Timer'
   | 'Calendar'
   | 'CalendarDays'
+  | 'BarChart3'
   | 'MapPin'
   | 'Navigation'
   | 'Compass'
@@ -508,6 +510,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   ChevronUp,
   ChevronDown,
   Menu,
+  X,
   Settings,
   User,
   Users,
@@ -522,11 +525,11 @@ const iconMap: Record<IconName, LucideIcon> = {
   SortDesc,
   Download,
   Upload,
-  Print,
   Copy,
   Edit,
   Trash2,
   Archive,
+  BarChart3,
   Folder,
   File,
   FileText,
@@ -711,6 +714,34 @@ const iconMap: Record<IconName, LucideIcon> = {
   HelpCircle,
 };
 
+// Internal animated wrapper component (no forwardRef to avoid issues with useReducedMotion + dynamic LucideIcon)
+function AnimatedIconWrapper({
+  LucideIcon,
+  size,
+  variantProps,
+  className,
+  ariaHidden,
+}: {
+  LucideIcon: LucideIcon;
+  size: IconSize;
+  variantProps: { fill?: string; stroke?: string; strokeWidth?: number };
+  className: string;
+  ariaHidden: boolean;
+}) {
+  return (
+    <motion.svg
+      className={`${sizeClassMap[size]} ${className}`}
+      role="img"
+      aria-hidden={ariaHidden}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+    >
+      <LucideIcon size={size} {...variantProps} />
+    </motion.svg>
+  );
+}
+
 // 5 — Icon component
 interface IconProps extends Omit<SVGAttributes<SVGSVGElement>, 'width' | 'height'> {
   name: IconName;
@@ -738,8 +769,8 @@ export const Icon = forwardRef<SVGSVGElement, IconProps>(
 
     const shouldAnimate = motion === 'entrance' && size >= 32 && !prefersReducedMotion;
 
-    const baseLucideProps = {
-      ref,
+    // Build props for the Lucide icon (inner SVG)
+    const lucideProps = {
       size,
       className: `${sizeClassMap[size]} ${className}`,
       role: 'img',
@@ -749,19 +780,19 @@ export const Icon = forwardRef<SVGSVGElement, IconProps>(
     };
 
     if (shouldAnimate) {
+      // Use separate component to avoid forwardRef + useReducedMotion + dynamic component issue
       return (
-        <motion.svg
-          {...baseLucideProps}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-        >
-          <LucideIcon {...baseLucideProps} />
-        </motion.svg>
+        <AnimatedIconWrapper
+          LucideIcon={LucideIcon}
+          size={size}
+          variantProps={variantProps}
+          className={className}
+          ariaHidden={ariaHidden}
+        />
       );
     }
 
-    return <LucideIcon {...baseLucideProps} />;
+    return <LucideIcon ref={ref} {...lucideProps} />;
   }
 );
 

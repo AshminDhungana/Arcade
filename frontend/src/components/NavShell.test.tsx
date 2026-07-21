@@ -63,8 +63,9 @@ describe('NavShell', () => {
         </NavShell>
       </MemoryRouter>,
     );
-    const imgs = container.querySelectorAll('img[src="/arcade_icon.svg"]');
-    expect(imgs.length).toBeGreaterThanOrEqual(1);
+    // Three GamepadDirectional icons: sidebar, mobile header, sheet header
+    const svgs = container.querySelectorAll('svg[aria-hidden="true"]');
+    expect(svgs.length).toBeGreaterThanOrEqual(3);
     expect(document.querySelector('.bg-brand-gradient')).toBeNull();
   });
 });

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import NeonGridBackground from "@/components/login/NeonGridBackground";
 import Signature from "@/components/Signature";
+import { Icon } from "@/components/ui/Icon";
 
 type LoginTheme = "light" | "dark";
 const THEME_KEY = "arcade-login-theme";
@@ -133,11 +134,13 @@ export default function Login() {
             title="Toggle theme"
             className="relative mb-4 rounded-2xl shadow-lg outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <img
-              src="/arcade_icon.svg"
-              alt=""
+            <Icon
+              name="GamepadDirectional"
+              size={56}
+              variant="fill"
+              motion="entrance"
               aria-hidden="true"
-              className="h-14 w-14 rounded-2xl"
+              className="text-primary"
             />
             <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-foreground shadow ring-1 ring-border">
               <AnimatePresence mode="wait" initial={false}>
