@@ -66,14 +66,14 @@ describe('Icon component', () => {
 
   it('throws TypeScript error for invalid name (compile-time)', () => {
     // @ts-expect-error invalid icon name
-    const _ = <Icon name="NonExistentIcon" />;
-    expect(true).toBe(true); // placeholder — TS catches this
+    <Icon name="NonExistentIcon" />;
+    // placeholder — TS catches this
   });
 
   it('throws TypeScript error for invalid size (compile-time)', () => {
     // @ts-expect-error invalid size
-    const _ = <Icon name="GamepadDirectional" size={999} />;
-    expect(true).toBe(true);
+    <Icon name="GamepadDirectional" size={999} />;
+    // placeholder — TS catches this
   });
 });
 
