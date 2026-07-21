@@ -91,7 +91,10 @@ describe('Login', () => {
 
   it('renders the GamepadDirectional icon via Icon component', () => {
     const { container } = renderWithRouter();
-    const icon = container.querySelector('svg[role="img"][aria-hidden="true"]');
+    // Logo now has role="button" with aria-label
+    const icon = container.querySelector(
+      'svg[role="button"][aria-label="Toggle theme (logo)"]',
+    );
     expect(icon).not.toBeNull();
     // Check that it's the GamepadDirectional icon (4 path elements)
     expect(icon?.querySelectorAll('path').length).toBe(4);
@@ -99,15 +102,23 @@ describe('Login', () => {
 
   it('renders the signature as a decorative, theme-aware svg', () => {
     const { container } = renderWithRouter();
-    // Signature is the only svg that fills with currentColor AND has 3 paths (gamepad has 4)
-    const sig = container.querySelector('svg[fill="currentColor"]:not([class*="lucide"])');
+    // Signature is wrapped in a div/wrapper with positioning classes, inner SVG has theming
+    const sig = container.querySelector(
+      'svg[fill="currentColor"]:not([class*="lucide"])',
+    );
     expect(sig).not.toBeNull();
+    // Inner SVG has aria-hidden
     expect(sig?.getAttribute('aria-hidden')).toBe('true');
-    const classAttr = sig?.getAttribute('class') ?? '';
-    expect(classAttr).toContain('text-foreground');
-    expect(classAttr).toContain('bottom-4');
-    expect(classAttr).toContain('right-4');
+    const sigClass = sig?.getAttribute('class') ?? '';
+    expect(sigClass).toContain('text-gray-900');
+    expect(sigClass).toContain('dark:text-white');
     expect(sig?.querySelectorAll('path').length).toBe(3);
+    // Wrapper should have positioning
+    const wrapper = sig?.parentElement;
+    expect(wrapper).not.toBeNull();
+    const wrapperClass = wrapper?.getAttribute('class') ?? '';
+    expect(wrapperClass).toContain('bottom-4');
+    expect(wrapperClass).toContain('right-8');
   });
 
   it('toggles theme via the logo button and persists the choice', () => {
@@ -144,5 +155,43 @@ describe('Login', () => {
     } finally {
       setPrefersReducedMotion(false);
     }
+  });
+});
+
+describe('Login layout — centered logo above card', () => {
+  const renderWithRouterAndMotion = () =>
+    render(
+      <BrowserRouter>
+        <Login />
+      </BrowserRouter>,
+    );
+
+  test('logo is rendered above login card, not inside it', () => {
+    renderWithRouterAndMotion();
+    const logo = screen.getByRole('button', { name: /toggle theme \(logo\)/i });
+    const card = screen.getByTestId('login-card');
+    expect(logo).toBeInTheDocument();
+    expect(card).toBeInTheDocument();
+    // Logo should NOT be inside card
+    expect(card).not.toContainHTML(logo.outerHTML);
+  });
+
+  test('logo has correct size, variant, motion', () => {
+    renderWithRouterAndMotion();
+    const logo = screen.getByRole('button', { name: /toggle theme \(logo\)/i });
+    // Icon component renders as svg with size classes
+    expect(logo).toHaveClass('h-14', 'w-14'); // size 56 = h-14 w-14
+  });
+
+  test('theme badge button exists in card header', () => {
+    renderWithRouterAndMotion();
+    const badge = screen.getByRole('button', { name: /toggle theme/i });
+    expect(badge).toBeInTheDocument();
+  });
+
+  test('card header shows "Staff Sign In" title, not "Arcade"', () => {
+    renderWithRouterAndMotion();
+    expect(screen.getByText('Staff Sign In')).toBeInTheDocument();
+    expect(screen.queryByText('Arcade')).not.toBeInTheDocument();
   });
 });

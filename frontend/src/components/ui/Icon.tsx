@@ -721,12 +721,14 @@ function AnimatedIconWrapper({
   variantProps,
   className,
   ariaHidden,
+  ...props
 }: {
   LucideIcon: LucideIcon;
   size: IconSize;
   variantProps: { fill?: string; stroke?: string; strokeWidth?: number };
   className: string;
   ariaHidden: boolean;
+  [key: string]: unknown;
 }) {
   return (
     <motion.svg
@@ -736,6 +738,7 @@ function AnimatedIconWrapper({
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+      {...props}
     >
       <LucideIcon size={size} {...variantProps} />
     </motion.svg>
@@ -750,16 +753,40 @@ interface IconProps extends Omit<SVGAttributes<SVGSVGElement>, 'width' | 'height
   motion?: IconMotion;
   className?: string;
   'aria-hidden'?: boolean;
+  // Accessibility props for when icon acts as button
+  role?: string;
+  tabIndex?: number;
+  onClick?: MouseEventHandler<SVGSVGElement>;
+  onKeyDown?: KeyboardEventHandler<SVGSVGElement>;
+  'aria-label'?: string;
 }
 
 export const Icon = forwardRef<SVGSVGElement, IconProps>(
-  ({ name, size = 24, variant = 'stroke', motion = 'none', className = '', 'aria-hidden': ariaHidden = true, ...props }, ref) => {
+  (
+    {
+      name,
+      size = 24,
+      variant = 'stroke',
+      motion = 'none',
+      className = '',
+      'aria-hidden': ariaHidden = true,
+      role,
+      tabIndex,
+      onClick,
+      onKeyDown,
+      'aria-label': ariaLabel,
+      ...props
+    },
+    ref,
+  ) => {
     const LucideIcon = iconMap[name] ?? HelpCircle;
     const prefersReducedMotion = useReducedMotion();
 
     // Warn in dev for unknown icon names
     if (process.env.NODE_ENV !== 'production' && !iconMap[name]) {
-      console.warn(`[Icon] Unknown icon name: "${name}". Falling back to "HelpCircle".`);
+      console.warn(
+        `[Icon] Unknown icon name: "${name}". Falling back to "HelpCircle".`,
+      );
     }
 
     const variantProps =
@@ -773,8 +800,12 @@ export const Icon = forwardRef<SVGSVGElement, IconProps>(
     const lucideProps = {
       size,
       className: `${sizeClassMap[size]} ${className}`,
-      role: 'img',
-      'aria-hidden': ariaHidden,
+      role: role ?? 'img',
+      'aria-hidden': role ? undefined : ariaHidden,
+      'aria-label': ariaLabel,
+      tabIndex,
+      onClick,
+      onKeyDown,
       ...variantProps,
       ...props,
     };
@@ -793,7 +824,7 @@ export const Icon = forwardRef<SVGSVGElement, IconProps>(
     }
 
     return <LucideIcon ref={ref} {...lucideProps} />;
-  }
+  },
 );
 
 Icon.displayName = 'Icon';

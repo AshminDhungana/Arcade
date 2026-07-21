@@ -7,7 +7,9 @@ test.describe('Login page', () => {
       await mockApi(page);
       await page.setViewportSize({ width, height: 800 });
       await page.goto('/login');
-      await expect(page.getByRole('heading', { name: /arcade/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /staff sign in/i })).toBeVisible();
+      // Logo is now above the card, so check for it separately
+      await expect(page.getByRole('button', { name: /toggle theme \(logo\)/i })).toBeVisible();
       await expectNoHorizontalOverflow(page, `login ${width}px`);
       // inputs + sign-in + pin toggle
       await expectTapTargets(page, 'input, button', `login controls @ ${width}px`);

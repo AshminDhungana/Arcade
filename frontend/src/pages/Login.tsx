@@ -1,36 +1,36 @@
-import { useState, useRef, useCallback, useEffect, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { Lock, User, AlertCircle, Eye, EyeOff, Sun, Moon } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { login, AuthError } from "@/api/auth";
-import { useAuthStore } from "@/store/authStore";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
-import { Alert } from "@/components/ui/Alert";
-import NeonGridBackground from "@/components/login/NeonGridBackground";
-import Signature from "@/components/Signature";
-import { Icon } from "@/components/ui/Icon";
+import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Lock, User, AlertCircle, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { login, AuthError } from '@/api/auth';
+import { useAuthStore } from '@/store/authStore';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/ui/Alert';
+import NeonGridBackground from '@/components/login/NeonGridBackground';
+import { SignatureWatermark } from '@/components/SignatureWatermark';
+import { Icon } from '@/components/ui/Icon';
 
-type LoginTheme = "light" | "dark";
-const THEME_KEY = "arcade-login-theme";
+type LoginTheme = 'light' | 'dark';
+const THEME_KEY = 'arcade-login-theme';
 
 function getInitialTheme(): LoginTheme {
   const stored = localStorage.getItem(THEME_KEY);
-  return stored === "light" || stored === "dark" ? stored : "dark";
+  return stored === 'light' || stored === 'dark' ? stored : 'dark';
 }
 
 function formatCountdown(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 export default function Login() {
   const navigate = useNavigate();
   const storeLogin = useAuthStore((state) => state.login);
 
-  const [staffId, setStaffId] = useState("");
-  const [pin, setPin] = useState("");
+  const [staffId, setStaffId] = useState('');
+  const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export default function Login() {
   );
 
   const toggleTheme = useCallback(() => {
-    setTheme((t) => (t === "dark" ? "light" : "dark"));
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -82,25 +82,25 @@ export default function Login() {
       const response = await login(staffId.trim(), pin.trim());
       storeLogin(response.access_token, response.staff);
       setFailureCount(0);
-      navigate("/", { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof AuthError) {
         if (err.status === 429 && err.retryAfter !== null) {
-          setError("Too many failed login attempts. Please try again later.");
+          setError('Too many failed login attempts. Please try again later.');
           startCountdown(err.retryAfter);
         } else if (err.status === 401) {
           const newCount = failureCount + 1;
           setFailureCount(newCount);
           if (newCount >= 5) {
-            setError("Account temporarily locked due to multiple failed attempts.");
+            setError('Account temporarily locked due to multiple failed attempts.');
           } else {
             setError(`Invalid staff ID or PIN. (${5 - newCount} attempts remaining)`);
           }
         } else {
-          setError(err.message || "Authentication failed.");
+          setError(err.message || 'Authentication failed.');
         }
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        setError('An unexpected error occurred. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -112,39 +112,57 @@ export default function Login() {
   }, [clearCountdown]);
 
   return (
-    <div className="login-root relative min-h-screen overflow-hidden" data-theme={theme}>
+    <div
+      className="login-root relative min-h-screen overflow-hidden"
+      data-theme={theme}
+    >
       <NeonGridBackground />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
+        {/* Centered logo above card — clickable theme toggle */}
+        <Icon
+          name="GamepadDirectional"
+          size={56}
+          variant="fill"
+          motion="none"
+          role="button"
+          tabIndex={0}
+          onClick={toggleTheme}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleTheme();
+            }
+          }}
+          aria-label="Toggle theme (logo)"
+          className="text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none transition-opacity hover:opacity-80"
+        />
+
+        {/* Login card */}
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 24 }}
-          className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8"
+          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+          className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8 mt-6"
+          data-testid="login-card"
         >
-          <div className="mb-6 flex flex-col items-center text-center">
-            <h1 className="text-2xl font-bold text-foreground">Arcade</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Staff Sign In</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-            title="Toggle theme"
-            className="relative mb-4 rounded-2xl shadow-lg outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Icon
-              name="GamepadDirectional"
-              size={56}
-              variant="fill"
-              motion="entrance"
-              aria-hidden="true"
-              className="text-primary"
-            />
-            <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card text-foreground shadow ring-1 ring-border">
+          {/* Card header: title + theme badge */}
+          <div className="mb-6 flex items-start justify-between">
+            <div className="flex-1 text-center">
+              <h1 className="text-xl font-semibold text-foreground">Staff Sign In</h1>
+            </div>
+            {/* Theme badge button — top right */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={
+                theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
+              }
+              title="Toggle theme"
+              className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-lg outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <AnimatePresence mode="wait" initial={false}>
-                {theme === "dark" ? (
+                {theme === 'dark' ? (
                   <motion.span
                     key="moon"
                     initial={reduceMotion ? false : { rotate: -90, opacity: 0 }}
@@ -152,7 +170,7 @@ export default function Login() {
                     exit={reduceMotion ? undefined : { rotate: 90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Moon className="size-3.5" />
+                    <Moon className="size-4" />
                   </motion.span>
                 ) : (
                   <motion.span
@@ -162,12 +180,12 @@ export default function Login() {
                     exit={reduceMotion ? undefined : { rotate: -90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Sun className="size-3.5" />
+                    <Sun className="size-4" />
                   </motion.span>
                 )}
               </AnimatePresence>
-            </span>
-          </button>
+            </button>
+          </div>
 
           {lockoutSeconds !== null && (
             <Alert variant="destructive" className="mb-4">
@@ -175,8 +193,10 @@ export default function Login() {
               <div>
                 <p className="font-medium">Account locked</p>
                 <p className="mt-0.5">
-                  Too many failed attempts. Retry after:{" "}
-                  <span className="font-mono font-semibold">{formatCountdown(lockoutSeconds)}</span>
+                  Too many failed attempts. Retry after:{' '}
+                  <span className="font-mono font-semibold">
+                    {formatCountdown(lockoutSeconds)}
+                  </span>
                 </p>
               </div>
             </Alert>
@@ -206,7 +226,7 @@ export default function Login() {
               id="pin"
               label="PIN"
               icon={<Lock className="size-4" />}
-              type={showPin ? "text" : "password"}
+              type={showPin ? 'text' : 'password'}
               autoComplete="off"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
@@ -220,20 +240,26 @@ export default function Login() {
                   type="button"
                   onClick={() => setShowPin((prev) => !prev)}
                   className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  aria-label={showPin ? "Hide password" : "Show password"}
+                  aria-label={showPin ? 'Hide password' : 'Show password'}
                 >
                   {showPin ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               }
             />
-            <Button type="submit" disabled={isSubmitting || lockoutSeconds !== null} loading={isSubmitting} className="w-full">
-              {isSubmitting ? "Signing in..." : "Sign In"}
+            <Button
+              type="submit"
+              disabled={isSubmitting || lockoutSeconds !== null}
+              loading={isSubmitting}
+              className="w-full"
+            >
+              {isSubmitting ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
         </motion.div>
-      </div>
 
-      <Signature className="pointer-events-none absolute bottom-4 right-4 z-10 h-8 w-auto text-foreground opacity-80 drop-shadow-sm sm:h-10" />
+        {/* Signature watermark — bottom-right, faint, theme-aware; reveals once on load */}
+        <SignatureWatermark className="absolute bottom-4 right-8 pointer-events-none z-10" />
+      </div>
     </div>
   );
 }
