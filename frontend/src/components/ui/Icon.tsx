@@ -23,11 +23,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  InfoCircle,
   Check,
-  X,
-  Plus,
-  Minus,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
@@ -60,7 +56,6 @@ import {
   Music,
   Clock,
   Timer,
-  Stopwatch,
   Calendar,
   CalendarDays,
   MapPin,
@@ -82,7 +77,6 @@ import {
   Smartphone,
   Tablet,
   Laptop,
-  Desktop,
   Server,
   Database,
   HardDrive,
@@ -110,38 +104,7 @@ import {
   GitCommit,
   GitMerge,
   GitPullRequest,
-  Github,
-  Gitlab,
-  Bitbucket,
-  Docker,
-  Kubernetes,
-  Aws,
-  Azure,
-  GoogleCloud,
-  Vercel,
-  Netlify,
-  Railway,
-  PlanetScale,
-  Supabase,
-  Firebase,
-  MongoDB,
-  Postgres,
-  MySql,
-  Redis,
-  Elasticsearch,
-  Kafka,
-  RabbitMQ,
-  GraphQL,
-  Rest,
   Webhook,
-  WebSocket,
-  Api,
-  Sdk,
-  Cli,
-  Gui,
-  ApiKey,
-  Token,
-  Secret,
   Shield,
   ShieldCheck,
   ShieldAlert,
@@ -149,7 +112,6 @@ import {
   LockKeyhole,
   UnlockKeyhole,
   Fingerprint,
-  FaceId,
   KeyRound,
   KeySquare,
   BadgePercent,
@@ -175,7 +137,6 @@ import {
   BookmarkMinus,
   BookmarkPlus,
   Tag,
-  TagMinus,
   TagPlus,
   Link,
   Link2,
@@ -202,11 +163,9 @@ import {
   MoveHorizontal,
   MoveVertical,
   MoveDiagonal,
-  Resize,
   Maximize,
   Minimize,
   Expand,
-  Contract,
   CornerUpLeft,
   CornerUpRight,
   CornerDownLeft,
@@ -238,14 +197,9 @@ import {
   Sidebar,
   SidebarOpen,
   SidebarClose,
-  MenuHorizontal,
-  MenuVertical,
   MoreHorizontal,
   MoreVertical,
-  DotsHorizontal,
-  DotsVertical,
   Ellipsis,
-  EllipsisHorizontal,
   EllipsisVertical,
   Hexagon,
   Octagon,
@@ -278,7 +232,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
-// 1 — Icon name allow-list
+// 1 — Icon name allow-list (only icons that exist in lucide-react@1.21.0)
 export type IconName =
   | 'GamepadDirectional'
   | 'Monitor'
@@ -299,11 +253,7 @@ export type IconName =
   | 'CheckCircle'
   | 'XCircle'
   | 'AlertTriangle'
-  | 'InfoCircle'
   | 'Check'
-  | 'X'
-  | 'Plus'
-  | 'Minus'
   | 'ChevronLeft'
   | 'ChevronRight'
   | 'ChevronUp'
@@ -336,7 +286,6 @@ export type IconName =
   | 'Music'
   | 'Clock'
   | 'Timer'
-  | 'Stopwatch'
   | 'Calendar'
   | 'CalendarDays'
   | 'MapPin'
@@ -358,7 +307,6 @@ export type IconName =
   | 'Smartphone'
   | 'Tablet'
   | 'Laptop'
-  | 'Desktop'
   | 'Server'
   | 'Database'
   | 'HardDrive'
@@ -386,38 +334,7 @@ export type IconName =
   | 'GitCommit'
   | 'GitMerge'
   | 'GitPullRequest'
-  | 'Github'
-  | 'Gitlab'
-  | 'Bitbucket'
-  | 'Docker'
-  | 'Kubernetes'
-  | 'Aws'
-  | 'Azure'
-  | 'GoogleCloud'
-  | 'Vercel'
-  | 'Netlify'
-  | 'Railway'
-  | 'PlanetScale'
-  | 'Supabase'
-  | 'Firebase'
-  | 'MongoDB'
-  | 'Postgres'
-  | 'MySql'
-  | 'Redis'
-  | 'Elasticsearch'
-  | 'Kafka'
-  | 'RabbitMQ'
-  | 'GraphQL'
-  | 'Rest'
   | 'Webhook'
-  | 'WebSocket'
-  | 'Api'
-  | 'Sdk'
-  | 'Cli'
-  | 'Gui'
-  | 'ApiKey'
-  | 'Token'
-  | 'Secret'
   | 'Shield'
   | 'ShieldCheck'
   | 'ShieldAlert'
@@ -425,7 +342,6 @@ export type IconName =
   | 'LockKeyhole'
   | 'UnlockKeyhole'
   | 'Fingerprint'
-  | 'FaceId'
   | 'KeyRound'
   | 'KeySquare'
   | 'BadgePercent'
@@ -451,7 +367,6 @@ export type IconName =
   | 'BookmarkMinus'
   | 'BookmarkPlus'
   | 'Tag'
-  | 'TagMinus'
   | 'TagPlus'
   | 'Link'
   | 'Link2'
@@ -478,11 +393,9 @@ export type IconName =
   | 'MoveHorizontal'
   | 'MoveVertical'
   | 'MoveDiagonal'
-  | 'Resize'
   | 'Maximize'
   | 'Minimize'
   | 'Expand'
-  | 'Contract'
   | 'CornerUpLeft'
   | 'CornerUpRight'
   | 'CornerDownLeft'
@@ -514,14 +427,9 @@ export type IconName =
   | 'Sidebar'
   | 'SidebarOpen'
   | 'SidebarClose'
-  | 'MenuHorizontal'
-  | 'MenuVertical'
   | 'MoreHorizontal'
   | 'MoreVertical'
-  | 'DotsHorizontal'
-  | 'DotsVertical'
   | 'Ellipsis'
-  | 'EllipsisHorizontal'
   | 'EllipsisVertical'
   | 'Hexagon'
   | 'Octagon'
@@ -550,7 +458,8 @@ export type IconName =
   | 'SquareUser'
   | 'SquareUserRound'
   | 'BadgeX'
-  | 'BadgeQuestionMark';
+  | 'BadgeQuestionMark'
+  | 'HelpCircle';
 
 // 2 — Icon size union (only allowed sizes per spec)
 export type IconSize = 14 | 16 | 20 | 24 | 28 | 32 | 48 | 56;
@@ -593,11 +502,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  InfoCircle,
   Check,
-  X,
-  Plus,
-  Minus,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
@@ -630,7 +535,6 @@ const iconMap: Record<IconName, LucideIcon> = {
   Music,
   Clock,
   Timer,
-  Stopwatch,
   Calendar,
   CalendarDays,
   MapPin,
@@ -652,7 +556,6 @@ const iconMap: Record<IconName, LucideIcon> = {
   Smartphone,
   Tablet,
   Laptop,
-  Desktop,
   Server,
   Database,
   HardDrive,
@@ -680,38 +583,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   GitCommit,
   GitMerge,
   GitPullRequest,
-  Github,
-  Gitlab,
-  Bitbucket,
-  Docker,
-  Kubernetes,
-  Aws,
-  Azure,
-  GoogleCloud,
-  Vercel,
-  Netlify,
-  Railway,
-  PlanetScale,
-  Supabase,
-  Firebase,
-  MongoDB,
-  Postgres,
-  MySql,
-  Redis,
-  Elasticsearch,
-  Kafka,
-  RabbitMQ,
-  GraphQL,
-  Rest,
   Webhook,
-  WebSocket,
-  Api,
-  Sdk,
-  Cli,
-  Gui,
-  ApiKey,
-  Token,
-  Secret,
   Shield,
   ShieldCheck,
   ShieldAlert,
@@ -719,7 +591,6 @@ const iconMap: Record<IconName, LucideIcon> = {
   LockKeyhole,
   UnlockKeyhole,
   Fingerprint,
-  FaceId,
   KeyRound,
   KeySquare,
   BadgePercent,
@@ -745,7 +616,6 @@ const iconMap: Record<IconName, LucideIcon> = {
   BookmarkMinus,
   BookmarkPlus,
   Tag,
-  TagMinus,
   TagPlus,
   Link,
   Link2,
@@ -772,11 +642,9 @@ const iconMap: Record<IconName, LucideIcon> = {
   MoveHorizontal,
   MoveVertical,
   MoveDiagonal,
-  Resize,
   Maximize,
   Minimize,
   Expand,
-  Contract,
   CornerUpLeft,
   CornerUpRight,
   CornerDownLeft,
@@ -808,14 +676,9 @@ const iconMap: Record<IconName, LucideIcon> = {
   Sidebar,
   SidebarOpen,
   SidebarClose,
-  MenuHorizontal,
-  MenuVertical,
   MoreHorizontal,
   MoreVertical,
-  DotsHorizontal,
-  DotsVertical,
   Ellipsis,
-  EllipsisHorizontal,
   EllipsisVertical,
   Hexagon,
   Octagon,
@@ -845,6 +708,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   SquareUserRound,
   BadgeX,
   BadgeQuestionMark,
+  HelpCircle,
 };
 
 // 5 — Icon component
