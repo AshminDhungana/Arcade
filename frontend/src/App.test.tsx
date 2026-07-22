@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import App from './App';
 import { useAuthStore } from './store/authStore';
 import { useFeatureFlagStore } from './store/featureFlagStore';
+import { useThemeStore } from './store/themeStore';
 
 // Mock the heavy page modules so these tests exercise routing only
 // (their data hooks would otherwise hit the network).
@@ -44,6 +45,13 @@ describe('App', () => {
     // Seed flags as loaded + members/tournaments on so guarded routes render
     useFeatureFlagStore.getState().setFlags(ALL_ON);
     vi.clearAllMocks();
+  });
+
+  it('initializes theme store on mount', () => {
+    const mockToggle = vi.spyOn(useThemeStore.getState(), 'initialize');
+    window.history.pushState({}, '', '/login');
+    render(<App />, { wrapper: createWrapper() });
+    expect(mockToggle).toHaveBeenCalled();
   });
 
   it('renders login page at /login', () => {
