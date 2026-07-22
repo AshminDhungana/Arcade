@@ -14,7 +14,7 @@ const ALL_FLAGS = {
   enable_inventory: false, enable_reservations: false, enable_vouchers: false,
   enable_tournaments: false, enable_expense_tracking: false,
   enable_health_monitoring: false, require_member_for_session: false,
-  enable_assigned_time_limit: false,
+  require_print_before_release: false, enable_assigned_time_limit: false,
 };
 
 const MEMBER: Member = {
@@ -63,6 +63,8 @@ const mockSeat: Seat = {
   wol_attempts: 0,
   wol_successes: 0,
   wol_failures: 0,
+  overlay_forced: false,
+  assigned_end_at: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -158,8 +160,8 @@ describe('SeatActionModal', () => {
   });
 
   it('disables Force Overlay buttons while request is pending', async () => {
-    let resolveFn: (v: unknown) => void;
-    forceOverlay.mockImplementation(() => new Promise((resolve) => { resolveFn = resolve; }));
+    let resolveFn: (value: void | PromiseLike<void>) => void;
+    vi.mocked(forceOverlay).mockImplementation(() => new Promise((resolve) => { resolveFn = resolve; }));
     render(<SeatActionModal seat={mockSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
     fireEvent.click(screen.getByRole('button', { name: /force overlay on/i }));
     expect(screen.getByRole('button', { name: /force overlay on/i })).toBeDisabled();

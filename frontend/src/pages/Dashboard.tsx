@@ -20,7 +20,7 @@ function ConnectionBadge({
   };
 
   const labels = {
-    connected: 'Connected',
+    connected: '',
     connecting: 'Connecting…',
     disconnected: 'Connection lost',
   };
@@ -33,7 +33,7 @@ function ConnectionBadge({
       <span
         className={`h-2 w-2 rounded-full bg-current ${status === 'connecting' ? 'animate-pulse' : ''}`}
       />
-      {labels[status]}
+      {labels[status] && <span>{labels[status]}</span>}
     </div>
   );
 }

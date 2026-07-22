@@ -88,6 +88,8 @@ describe('SettingsPage', () => {
         enable_expense_tracking: false,
         enable_health_monitoring: false,
         require_member_for_session: false,
+        require_print_before_release: false,
+        enable_assigned_time_limit: false,
       },
     });
     mockState.staff = [STAFF_ADMIN];

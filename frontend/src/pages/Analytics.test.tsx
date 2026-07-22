@@ -14,6 +14,7 @@ const ALL_FLAGS = {
   enable_inventory: false, enable_reservations: false, enable_vouchers: false,
   enable_tournaments: false, enable_expense_tracking: false,
   enable_health_monitoring: false, require_member_for_session: false,
+  require_print_before_release: false, enable_assigned_time_limit: false,
 };
 
 const SUMMARY: AnalyticsSummary = {
@@ -41,12 +42,14 @@ const SEATS: Seat[] = [
   {
     id: 's1', name: 'PC-01', zone_id: 'z', mac_address: null, status: SeatStatus.AVAILABLE,
     plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0,
-    wol_failures: 0, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+    wol_failures: 0, overlay_forced: false, assigned_end_at: null,
+    created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   },
   {
     id: 's2', name: 'PC-02', zone_id: 'z', mac_address: null, status: SeatStatus.OFFLINE,
     plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0,
-    wol_failures: 0, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+    wol_failures: 0, overlay_forced: false, assigned_end_at: null,
+    created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   },
 ];
 

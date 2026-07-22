@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { NavShell } from './components/NavShell';
 import { useFeatureFlagStore } from './store/featureFlagStore';
-import type { FeatureFlags } from './store/featureFlagStore';
+import type { FeatureFlags } from '@/types/pos';
 
 const KEYS = [
   'enable_members', 'enable_packages', 'enable_pos', 'enable_inventory',

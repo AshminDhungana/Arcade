@@ -1,8 +1,11 @@
 // frontend/src/components/ui/Icon.tsx
-import { forwardRef, SVGAttributes } from 'react';
+import { forwardRef, type SVGAttributes, type MouseEventHandler, type KeyboardEventHandler } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useReducedMotion } from 'motion/react';
+
+const isDev = import.meta.env.DEV;
+
 import {
   GamepadDirectional,
   Monitor,
@@ -464,7 +467,7 @@ export type IconName =
   | 'HelpCircle';
 
 // 2 — Icon size union (only allowed sizes per spec)
-export type IconSize = 14 | 16 | 20 | 24 | 28 | 32 | 48 | 56 | 80;
+export type IconSize = 14 | 16 | 20 | 24 | 28 | 32 | 48 | 56 | 64 | 80;
 
 // 3 — Variant (stroke | fill)
 export type IconVariant = 'stroke' | 'fill';
@@ -481,6 +484,7 @@ const sizeClassMap: Record<IconSize, string> = {
   32: 'h-8 w-8',
   48: 'h-12 w-12',
   56: 'h-14 w-14',
+  64: 'h-16 w-16',
   80: 'h-20 w-20',
 };
 
@@ -784,7 +788,7 @@ export const Icon = forwardRef<SVGSVGElement, IconProps>(
     const prefersReducedMotion = useReducedMotion();
 
     // Warn in dev for unknown icon names
-    if (process.env.NODE_ENV !== 'production' && !iconMap[name]) {
+    if (isDev && !iconMap[name]) {
       console.warn(
         `[Icon] Unknown icon name: "${name}". Falling back to "HelpCircle".`,
       );

@@ -22,13 +22,13 @@ describe('UnprintedInvoices', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('renders the empty state when no unprinted invoices', () => {
-    (useUnprintedInvoices as unknown as vi.Mock).mockReturnValue({ data: [], isLoading: false });
+    (useUnprintedInvoices as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ data: [], isLoading: false });
     render(wrap(<UnprintedInvoices />));
     expect(screen.getByText(/no unprinted invoices/i)).toBeTruthy();
   });
 
   it('renders a row with Reprint / Force close actions', async () => {
-    (useUnprintedInvoices as unknown as vi.Mock).mockReturnValue({
+    (useUnprintedInvoices as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       data: [{ id: 'inv-1', print_status: 'FAILED', total_paise: 500, session_id: 's1' }],
       isLoading: false,
     });

@@ -92,7 +92,7 @@ export function SeatCard({ seat, onClick }: SeatCardProps) {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.stopPropagation();
-                  handleAddTime(e);
+                  handleAddTime(e as unknown as MouseEvent);
                 }
               }}
               className="flex items-center gap-1 rounded-md bg-fuchsia-600 px-2 py-1 text-xs font-medium text-white hover:bg-fuchsia-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 cursor-pointer"

@@ -19,6 +19,7 @@ const mockSeat: Seat = {
   wol_successes: 0,
   wol_failures: 0,
   overlay_forced: false, // base seat
+  assigned_end_at: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };

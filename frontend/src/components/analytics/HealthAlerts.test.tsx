@@ -17,6 +17,8 @@ const seat = (id: string, name: string, status: SeatStatus): Seat => ({
   wol_attempts: 0,
   wol_successes: 0,
   wol_failures: 0,
+  overlay_forced: false,
+  assigned_end_at: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 });

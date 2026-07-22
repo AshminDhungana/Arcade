@@ -13,6 +13,8 @@ describe('Seat types', () => {
       plug_id: null,
       is_console: false,
       notes: null,
+      overlay_forced: false,
+      assigned_end_at: null,
       wol_attempts: 0,
       wol_successes: 0,
       wol_failures: 0,

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, test } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Login from './Login';
@@ -110,7 +110,7 @@ describe('Login', () => {
     // Inner SVG has aria-hidden
     expect(sig?.getAttribute('aria-hidden')).toBe('true');
     // Check it has theme-aware classes via the wrapper / className prop
-    const sigClass = sig?.getAttribute('class') ?? '';
+    // const sigClass = sig?.getAttribute('class') ?? '';
     // The markdown wrapper uses these classes (set in Login.tsx: text-neutral-900 dark:text-white)
     // But since we're testing the SVG directly, we check it has the right viewBox
     expect(sig?.getAttribute('viewBox')).toBe('0 0 1571 800');

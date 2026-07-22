@@ -9,7 +9,7 @@ beforeEach(() => {
 
 describe('invoice print-gate API', () => {
   it('listUnprinted fetches /invoices/unprinted', async () => {
-    const spy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify([{ id: 'i1', print_status: 'FAILED' }]), { status: 200 }),
     );
     const res = await listUnprinted(TOKEN);
@@ -18,7 +18,7 @@ describe('invoice print-gate API', () => {
   });
 
   it('reprintInvoice posts to /invoices/{id}/reprint', async () => {
-    const spy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ id: 'i1', print_status: 'PRINTED' }), { status: 200 }),
     );
     await reprintInvoice('i1', TOKEN);
@@ -27,7 +27,7 @@ describe('invoice print-gate API', () => {
   });
 
   it('markInvoicePrinted posts to /invoices/{id}/mark-printed', async () => {
-    const spy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ id: 'i1', print_status: 'PRINTED' }), { status: 200 }),
     );
     await markInvoicePrinted('i1', TOKEN);

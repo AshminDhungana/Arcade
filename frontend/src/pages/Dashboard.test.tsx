@@ -54,7 +54,9 @@ describe('DashboardPage', () => {
   it('renders dashboard title and connection badge', () => {
     render(<DashboardPage />, { wrapper: makeWrapper() });
     expect(screen.getByText('Arcade Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    // Connection badge shows green dot when connected (no text label)
+    expect(screen.getByLabelText('Connection status')).toBeInTheDocument();
+    expect(screen.getByLabelText('Connection status')).toHaveClass('bg-success/15');
   });
 
   it('shows "Lock all idle seats" button for ADMIN users', () => {
