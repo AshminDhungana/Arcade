@@ -1462,19 +1462,10 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 - [x] **Linux kiosk hardening verification** (ENG-B): X11 all shortcuts blocked; Wayland fallback verified; known gaps documented
 
 ---
-
-- [ ] Signature should look good, and also , signature should be white in darkmode and dark in white mode.
-
-## UI/UX
-- [ ] Add a light/dark mode toggle to the frontend. with all pages to support light and dark mode and should look professional and premium.
-
-## Server & Networking
-
-- [ ] Add a logout button to the server (currently missing).
-
 ## Launcher (`launcher.py`)
 
 - [ ] Run `launcher.py` in the background, the same way the agent does.
+- [ ] even if laucher is closed untill stop server is not pressed from the launcher the server should keep running, the close minimize shouls run the launcher in background. for all os
 - [ ] Disable the "Open Dashboard" button until the server has actually started.
 
 ## Access Control

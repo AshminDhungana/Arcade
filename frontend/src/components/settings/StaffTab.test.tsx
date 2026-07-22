@@ -338,14 +338,16 @@ describe('StaffTab', () => {
     await waitFor(() => expect(mockState.changeStaffPinFn).toHaveBeenCalledWith({ id: 's1', pin: '5678' }));
 
     // Resolve the mutation
-    resolveChangePin!();
-    isPendingRefs.changePin.current = false;
+    await act(async () => {
+      resolveChangePin!();
+      isPendingRefs.changePin.current = false;
 
-    // Update list data to simulate query invalidation
-    mockState.staff = [STAFF_ADMIN, STAFF_CASHIER];
+      // Update list data to simulate query invalidation
+      mockState.staff = [STAFF_ADMIN, STAFF_CASHIER];
 
-    // Re-render
-    rerender(<StaffTab />);
+      // Re-render
+      rerender(<StaffTab />);
+    });
 
     // Assert success toast
     const { toast } = await import('@/store/toastStore');

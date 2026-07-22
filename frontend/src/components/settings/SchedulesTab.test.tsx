@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { SchedulesTab } from './SchedulesTab';
@@ -125,7 +125,7 @@ describe('SchedulesTab', () => {
 
     // Click "Add Schedule" button
     const addBtn = screen.getByRole('button', { name: /add schedule/i });
-    await addBtn.click();
+    await act(async () => { await addBtn.click(); });
 
     // Fill the modal form
     const nameInput = screen.getByLabelText(/schedule name/i);
@@ -134,16 +134,17 @@ describe('SchedulesTab', () => {
     const endTimeInput = screen.getByLabelText(/end time \(hh:mm\)/i);
     const surchargeInput = screen.getByLabelText(/surcharge per hour \(₹\)/i);
 
-    fireEvent.change(nameInput, { target: { value: 'Weekday Off-Peak' } });
-    // It's off-peak, so don't toggle the switch (default false)
-    fireEvent.change(daySelect, { target: { value: 'all' } });
-    fireEvent.change(startTimeInput, { target: { value: '08:00' } });
-    fireEvent.change(endTimeInput, { target: { value: '18:00' } });
-    fireEvent.change(surchargeInput, { target: { value: '10' } });
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'Weekday Off-Peak' } });
+      fireEvent.change(daySelect, { target: { value: 'all' } });
+      fireEvent.change(startTimeInput, { target: { value: '08:00' } });
+      fireEvent.change(endTimeInput, { target: { value: '18:00' } });
+      fireEvent.change(surchargeInput, { target: { value: '10' } });
+    });
 
     // Submit the form
     const submitBtn = screen.getByRole('button', { name: /create/i });
-    fireEvent.click(submitBtn);
+    await act(async () => { await fireEvent.click(submitBtn); });
 
     // Resolve the create promise with the new schedule
     await waitFor(() => expect(mockState.createScheduleFn).toHaveBeenCalled());
@@ -158,9 +159,11 @@ describe('SchedulesTab', () => {
     });
 
     resolveCreate!(newSchedule);
-    await waitFor(() => {
-      mockState.schedules = [newSchedule];
-      rerender(<SchedulesTab />);
+    await act(async () => {
+      await waitFor(() => {
+        mockState.schedules = [newSchedule];
+        rerender(<SchedulesTab />);
+      });
     });
 
     // Verify the new schedule appears in the list
@@ -178,20 +181,22 @@ describe('SchedulesTab', () => {
     render(<SchedulesTab />, { wrapper: makeWrapper() });
 
     const addBtn = screen.getByRole('button', { name: /add schedule/i });
-    await addBtn.click();
+    await act(async () => { await addBtn.click(); });
 
     const nameInput = screen.getByLabelText(/schedule name/i);
     const startTimeInput = screen.getByLabelText(/start time \(hh:mm\)/i);
     const endTimeInput = screen.getByLabelText(/end time \(hh:mm\)/i);
     const surchargeInput = screen.getByLabelText(/surcharge per hour \(₹\)/i);
 
-    fireEvent.change(nameInput, { target: { value: 'Test' } });
-    fireEvent.change(startTimeInput, { target: { value: '10:00' } });
-    fireEvent.change(endTimeInput, { target: { value: '12:00' } });
-    fireEvent.change(surchargeInput, { target: { value: '10' } });
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'Test' } });
+      fireEvent.change(startTimeInput, { target: { value: '10:00' } });
+      fireEvent.change(endTimeInput, { target: { value: '12:00' } });
+      fireEvent.change(surchargeInput, { target: { value: '10' } });
+    });
 
     const submitBtn = screen.getByRole('button', { name: /create/i });
-    fireEvent.click(submitBtn);
+    await act(async () => { await fireEvent.click(submitBtn); });
 
     await waitFor(() => expect(mockState.createScheduleFn).toHaveBeenCalled());
 

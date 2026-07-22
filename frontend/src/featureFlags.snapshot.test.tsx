@@ -10,6 +10,8 @@ const KEYS = [
   'enable_reservations', 'enable_vouchers', 'enable_tournaments',
   'enable_expense_tracking', 'enable_health_monitoring',
   'require_member_for_session',
+  'require_print_before_release',
+  'enable_assigned_time_limit',
 ] as const;
 
 const ALL_OFF = Object.fromEntries(KEYS.map((k) => [k, false])) as unknown as FeatureFlags;
