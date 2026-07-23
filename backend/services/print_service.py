@@ -10,6 +10,7 @@ import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -121,6 +122,79 @@ def _format_receipt(
 
 
 # ---------------------------------------------------------------------------
+# Printer URI parsing
+# ---------------------------------------------------------------------------
+
+
+def _parse_printer_uri(uri: str) -> dict[str, Any]:
+    """Parse a printer URI into components.
+
+    Supported schemes:
+    - usb://<device-path> or usb://<vendor>:<product>
+    - socket://<host>:<port>
+    - ipp://<host>:<port>/<path>
+    - http://<host>:<port>/<path>
+    - https://<host>:<port>/<path>
+    - lpd://<host>:<port>/<queue>
+
+    Returns a dict with: scheme, host, port, path, vendor, product
+    """
+    # Handle USB URIs specially: urlparse treats vendor:product as host:port
+    if uri.startswith("usb://"):
+        rest = uri[6:]  # Remove "usb://"
+        if ":" in rest and not rest.startswith(":"):
+            # Format: usb://vendor:product
+            parts = rest.split(":", 1)
+            try:
+                vendor = int(parts[0], 16)
+                product = int(parts[1], 16)
+                return {
+                    "scheme": "usb",
+                    "host": None,
+                    "port": None,
+                    "path": "",
+                    "vendor": vendor,
+                    "product": product,
+                }
+            except ValueError:
+                pass
+        # Format: usb://device-path
+        return {
+            "scheme": "usb",
+            "host": None,
+            "port": None,
+            "path": rest,
+            "vendor": None,
+            "product": None,
+        }
+
+    # For network URIs, use urlparse
+    parsed = urlparse(uri)
+    scheme = parsed.scheme.lower()
+
+    result: dict[str, Any] = {
+        "scheme": scheme,
+        "host": parsed.hostname,
+        "port": parsed.port,
+        "path": parsed.path.lstrip("/"),
+        "vendor": None,
+        "product": None,
+    }
+
+    # Default ports for network schemes
+    if scheme in ("http", "https") and result["port"] is None:
+        result["port"] = 80 if scheme == "http" else 443
+    elif scheme == "ipp" and result["port"] is None:
+        result["port"] = 631
+    elif scheme == "lpd" and result["port"] is None:
+        result["port"] = 515
+    elif scheme == "socket" and result["port"] is None:
+        result["port"] = 9100
+
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Printer dispatch
 # ---------------------------------------------------------------------------
 
@@ -135,6 +209,66 @@ def _get_printer(config: Settings) -> Any:
         Printer object with ``.text()``, ``.cut()``, ``.close()`` methods.
     """
     printer_type = config.printer_type
+    printer_uri = config.printer_uri
+
+    # If printer_uri is provided, parse it and use for connection
+    if printer_uri:
+        parsed = _parse_printer_uri(printer_uri)
+        scheme = parsed["scheme"]
+
+        # USB printer with URI
+        if scheme == "usb":
+            from escpos.printer import Usb
+
+            vendor = parsed["vendor"]
+            product = parsed["product"]
+
+            # Fall back to config values if not in URI
+            if vendor is None:
+                vendor = int(config.printer_usb_vendor or "0x04b8", 16)
+            if product is None:
+                product = int(config.printer_usb_product or "0x0202", 16)
+
+            try:
+                return Usb(vendor, product)
+            except RuntimeError:
+                logger.warning(
+                    "USB printer unavailable (%s), falling back to dummy",
+                    printer_uri,
+                )
+                return _DummyPrinter()
+
+        # Network printer schemes
+        if scheme in ("socket", "ipp", "http", "https", "lpd"):
+            from escpos.printer import Network
+
+            host = parsed["host"]
+            port = parsed["port"]
+
+            if host is None or port is None:
+                logger.warning(
+                    "Invalid network printer URI: %s, falling back to dummy",
+                    printer_uri,
+                )
+                return _DummyPrinter()
+
+            try:
+                return Network(host, port)
+            except RuntimeError:
+                logger.warning(
+                    "Network printer unavailable (%s), falling back to dummy",
+                    printer_uri,
+                )
+                return _DummyPrinter()
+
+        # Unknown scheme - fall back to legacy printer_type behavior
+        logger.warning(
+            "Unsupported printer URI scheme: %s, falling back to printer_type=%s",
+            scheme,
+            printer_type,
+        )
+
+    # No printer_uri provided - fall back to legacy behavior
     if printer_type == "usb":
         from escpos.printer import Usb
 
@@ -145,6 +279,7 @@ def _get_printer(config: Settings) -> Any:
         except RuntimeError:
             logger.warning("USB printer unavailable, falling back to dummy")
             return _DummyPrinter()
+
     if printer_type == "network":
         from escpos.printer import Network
 
