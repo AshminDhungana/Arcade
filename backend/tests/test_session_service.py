@@ -17,7 +17,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from backend.core.database import Base
 from backend.models import SeatStatus, SessionStatus
 from backend.models._enums import ShiftStatus
-from backend.repositories import seat_repo, session_repo, shift_repo, staff_repo
+from backend.repositories import (
+    seat_repo,
+    session_repo,
+    shift_repo,
+    staff_repo,
+    staff_zone_repo,
+)
 from backend.services.session_service import (
     extend_session,
     get_session,
@@ -46,8 +52,40 @@ async def db() -> AsyncGenerator[AsyncSession]:
 
 
 @pytest.fixture
-async def zone_and_seat(db: AsyncSession):
-    """Create a zone and seat; return (zone, seat)."""
+async def zone_and_seat(db: AsyncSession, staff_member):
+    """Create a zone and seat; return (zone, seat).
+
+    Uses the zone the staff has access to.
+    """
+    from backend.repositories import zone_repo
+
+    # Get the zone the staff member has access to
+    zone_ids = await staff_zone_repo.get_zone_ids_for_staff(db, staff_member.id)
+    zone_id = zone_ids[0]
+    zone = await zone_repo.get_by_id(db, zone_id)
+
+    seat = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
+    return zone, seat
+
+
+@pytest.fixture
+async def staff_member(db: AsyncSession):
+    """Create and return a CASHIER staff member with zone access."""
+    from backend import models as m
+
+    # Create admin for granting zone access
+    admin = await staff_repo.create(
+        db, name="Admin", pin_hash="argon2id$", role=m.StaffRole.ADMIN
+    )
+
+    # Create cashier
+    cashier = await staff_repo.create(
+        db, name="Cashier User", pin_hash="argon2id$", role=m.StaffRole.CASHIER
+    )
+
+    await db.flush()
+
+    # Assign default zone access to cashier
     from backend.models import PricingModel, Zone
 
     zone = Zone(
@@ -59,16 +97,10 @@ async def zone_and_seat(db: AsyncSession):
     db.add(zone)
     await db.flush()
 
-    seat = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
-    return zone, seat
-
-
-@pytest.fixture
-async def staff_member(db: AsyncSession):
-    """Create and return a CASHIER staff member."""
-    return await staff_repo.create(
-        db, name="Cashier User", pin_hash="argon2id$", role="CASHIER"
+    await staff_zone_repo.assign_zone(
+        db, staff_id=cashier.id, zone_id=zone.id, granted_by=admin.id
     )
+    return cashier
 
 
 # -------------------------------------------------------------------

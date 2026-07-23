@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { Plus, Shield, User, KeyRound } from 'lucide-react';
+import { Plus, Shield, User, KeyRound, Lock, Unlock, X, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   useStaff,
   useCreateStaff,
   useDeactivateStaff,
   useReactivateStaff,
   useChangeStaffPin,
+  useStaffZoneAssignments,
+  useAssignZoneToStaff,
+  useRevokeZoneFromStaff,
+  useZones,
 } from '@/api/settings';
 import { Button } from '@/components/ui/Button';
 import { Table, Th, Td } from '@/components/ui/Table';
@@ -14,7 +18,7 @@ import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { toast } from '@/store/toastStore';
-import type { Staff, StaffRole } from '@/types/settings';
+import type { Staff, StaffRole, StaffZone, Zone } from '@/types/settings';
 
 const ROLE_BADGE_VARIANTS: Record<StaffRole, string> = {
   ADMIN: 'bg-purple-900/30 text-purple-300',
@@ -248,6 +252,132 @@ function activeBadge(isActive: boolean) {
   );
 }
 
+// Zone Assignment Modal for Staff
+function ZoneAssignModal({
+  open,
+  onClose,
+  staff,
+  zones,
+  assignments,
+  onAssign,
+  onRevoke,
+  isAssigning,
+  isRevoking,
+}: {
+  open: boolean;
+  onClose: () => void;
+  staff: Staff | null;
+  zones: Zone[];
+  assignments: StaffZone[];
+  onAssign: (zoneId: string) => void;
+  onRevoke: (zoneId: string) => void;
+  isAssigning: boolean;
+  isRevoking: boolean;
+}) {
+  const [showAvailable, setShowAvailable] = useState(false);
+
+  if (!staff) return null;
+
+  const assignedZoneIds = new Set(assignments.map((a) => a.zone_id));
+  const assignedZones = zones.filter((z) => assignedZoneIds.has(z.id));
+  const availableZones = zones.filter((z) => !assignedZoneIds.has(z.id));
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Zone Access — ${staff.name}`}>
+      {/* Assigned Zones */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-sm text-foreground">Assigned Zones</h4>
+          {assignedZones.length === 0 && (
+            <span className="text-xs text-muted-foreground">
+              {assignments.length === 0 ? 'No zones assigned' : 'All zones assigned'}
+            </span>
+          )}
+        </div>
+        {assignedZones.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {assignedZones.map((zone) => (
+              <div
+                key={zone.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-card p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-emerald-400" />
+                  <span className="font-medium">{zone.name}</span>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => onRevoke(zone.id)}
+                  disabled={isRevoking}
+                  aria-label={`Revoke access to ${zone.name}`}
+                >
+                  <X className="h-4 w-4 text-red-400" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {assignments.length === 0 ? 'No zones assigned. Cashiers with no zones cannot start sessions.' : 'All available zones are already assigned.'}
+          </p>
+        )}
+      </section>
+
+      {/* Available Zones */}
+      {availableZones.length > 0 && (
+        <>
+          <hr className="border-border my-4" />
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-sm text-foreground">Available Zones</h4>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowAvailable(!showAvailable)}
+              className="text-sm"
+            >
+              {showAvailable ? (
+                <>
+                  <ChevronUp className="h-4 w-4 mr-1" />
+                  Hide
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  Show ({availableZones.length})
+                </>
+              )}
+            </Button>
+          </div>
+          {showAvailable && (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {availableZones.map((zone) => (
+                <div
+                  key={zone.id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-secondary transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Unlock className="h-4 w-4 text-blue-400" />
+                    <span className="font-medium">{zone.name}</span>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onAssign(zone.id)}
+                    disabled={isAssigning}
+                  >
+                    Assign
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </Modal>
+  );
+}
+
 export function StaffTab() {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -256,12 +386,22 @@ export function StaffTab() {
   const [confirmStaffName, setConfirmStaffName] = useState('');
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [pinStaff, setPinStaff] = useState<Staff | null>(null);
+  const [zoneAssignModalOpen, setZoneAssignModalOpen] = useState(false);
+  const [zoneAssignStaff, setZoneAssignStaff] = useState<Staff | null>(null);
 
   const { data: staff = [], isLoading, isError, refetch } = useStaff();
   const createStaff = useCreateStaff();
   const deactivateStaff = useDeactivateStaff();
   const reactivateStaff = useReactivateStaff();
   const changePin = useChangeStaffPin();
+  const { data: zones = [], isLoading: zonesLoading } = useZones();
+  const assignZone = useAssignZoneToStaff();
+  const revokeZone = useRevokeZoneFromStaff();
+
+  // Fetch zone assignments for selected staff
+  const { data: assignments = [], refetch: refetchAssignments } = useStaffZoneAssignments(
+    zoneAssignStaff?.id ?? ''
+  );
 
   const handleSubmit = async (data: StaffFormData) => {
     try {
@@ -393,6 +533,22 @@ export function StaffTab() {
                   <Td>{activeBadge(s.is_active)}</Td>
                   <Td className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {/* Zone Assignment Button (for cashiers) */}
+                      {s.role === 'CASHIER' && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          aria-label={`Manage zones for ${s.name}`}
+                          onClick={() => {
+                            setZoneAssignStaff(s);
+                            setZoneAssignModalOpen(true);
+                          }}
+                          disabled={assignZone.isPending || revokeZone.isPending || zonesLoading}
+                        >
+                          <Unlock className="h-4 w-4 mr-1" />
+                          Zones
+                        </Button>
+                      )}
                       {s.is_active ? (
                         <>
                           <Button
@@ -477,6 +633,54 @@ export function StaffTab() {
           }}
           onConfirm={handleChangePin}
           isLoading={changePin.isPending}
+        />
+      )}
+
+      {/* Zone Assignment Modal */}
+      {zoneAssignModalOpen && zoneAssignStaff && (
+        <ZoneAssignModal
+          open={zoneAssignModalOpen}
+          onClose={() => {
+            setZoneAssignModalOpen(false);
+            setZoneAssignStaff(null);
+          }}
+          staff={zoneAssignStaff}
+          zones={zones}
+          assignments={assignments}
+          onAssign={async (zoneId: string) => {
+            try {
+              await assignZone.mutateAsync({ staffId: zoneAssignStaff.id, body: { zone_id: zoneId } });
+              toast.success(`Zone assigned to ${zoneAssignStaff.name}`);
+              refetchAssignments();
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : 'Failed to assign zone';
+              if (msg.includes('403') || msg.includes('401')) {
+                toast.error('Admin required');
+              } else if (msg.includes('409')) {
+                toast.error('Zone already assigned');
+              } else {
+                toast.error(msg);
+              }
+            }
+          }}
+          onRevoke={async (zoneId: string) => {
+            try {
+              await revokeZone.mutateAsync({ staffId: zoneAssignStaff.id, zoneId });
+              toast.success(`Zone revoked from ${zoneAssignStaff.name}`);
+              refetchAssignments();
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : 'Failed to revoke zone';
+              if (msg.includes('403') || msg.includes('401')) {
+                toast.error('Admin required');
+              } else if (msg.includes('404')) {
+                toast.error('Assignment not found');
+              } else {
+                toast.error(msg);
+              }
+            }
+          }}
+          isAssigning={assignZone.isPending}
+          isRevoking={revokeZone.isPending}
         />
       )}
     </div>

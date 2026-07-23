@@ -92,9 +92,29 @@ async def set_overlay_forced(
 # ---------------------------------------------------------------------------
 
 
-async def list_seats(db: AsyncSession) -> Sequence[SeatResponse]:
-    """Return all seats with their current status and active-session assigned_end_at."""
+async def list_seats(
+    db: AsyncSession, staff: Staff | None = None
+) -> Sequence[SeatResponse]:
+    """Return all seats with their current status and active-session assigned_end_at.
+
+    If staff is provided and is a cashier (not admin), filters to only seats
+    in zones the staff has access to.
+    """
+    from backend.models._enums import StaffRole
+    from backend.repositories import staff_zone_repo
+
+    # Start with all seats
     seats = await seat_repo.list(db)
+
+    # Filter by zone if staff is a cashier
+    if staff is not None and staff.role != StaffRole.ADMIN:
+        zone_ids = await staff_zone_repo.get_zone_ids_for_staff(db, staff.id)
+        if zone_ids:
+            seats = [s for s in seats if s.zone_id in zone_ids]
+        else:
+            # Cashier with no zones assigned - return empty list
+            return []
+
     seat_ids = [s.id for s in seats]
     assigned = await seat_repo.assigned_end_at_by_seat(db, seat_ids)
     active = await seat_repo.active_session_by_seat(db, seat_ids)
@@ -112,11 +132,24 @@ async def list_seats(db: AsyncSession) -> Sequence[SeatResponse]:
     return responses
 
 
-async def get_seat(db: AsyncSession, seat_id: str) -> SeatResponse:
-    """Return a single seat.  Raises 404 if not found."""
+async def get_seat(
+    db: AsyncSession, seat_id: str, staff: Staff | None = None
+) -> SeatResponse:
+    """Return a single seat. Raises 404 if not found or if cashier has
+    no zone access."""
+    from backend.models._enums import StaffRole
+    from backend.repositories import staff_zone_repo
+
     seat = await seat_repo.get_by_id(db, seat_id)
     if seat is None:
         raise SeatNotFoundError(seat_id)
+
+    # Check zone access if staff is a cashier
+    if staff is not None and staff.role != StaffRole.ADMIN:
+        zone_ids = await staff_zone_repo.get_zone_ids_for_staff(db, staff.id)
+        if seat.zone_id not in zone_ids:
+            raise SeatNotFoundError(seat_id)
+
     resp = await _seat_to_response(db, seat)
     assigned = await seat_repo.assigned_end_at_by_seat(db, [seat.id])
     resp.assigned_end_at = _ensure_tz(assigned.get(seat.id))

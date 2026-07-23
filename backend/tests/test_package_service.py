@@ -331,7 +331,13 @@ class TestPackageIntegration:
             PaymentMethod,
             PricingModel,
         )
-        from backend.repositories import member_repo, package_repo, seat_repo, zone_repo
+        from backend.repositories import (
+            member_repo,
+            package_repo,
+            seat_repo,
+            staff_zone_repo,
+            zone_repo,
+        )
         from backend.services.billing_service import checkout_session
         from backend.services.session_service import start_session
 
@@ -345,6 +351,11 @@ class TestPackageIntegration:
         )
         seat = await seat_repo.create(
             db, name="Seat 1", zone_id=zone.id, mac_address="AA:BB:CC:DD:EE:FF"
+        )
+
+        # Assign zone to staff (cashier needs zone access)
+        await staff_zone_repo.assign_zone(
+            db, staff_id=sample_staff.id, zone_id=zone.id, granted_by=sample_staff.id
         )
 
         # Create package (120 min for 20000 paise)

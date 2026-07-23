@@ -38,6 +38,26 @@ export interface Staff {
   updated_at?: string;
 }
 
+export interface StaffZone {
+  zone_id: string;
+  zone_name: string;
+  granted_by: string;
+  granted_at: string;
+  is_active: boolean;
+}
+
+export interface StaffZoneAssign {
+  zone_id: string;
+}
+
+export interface StaffZoneBulkAssign {
+  zone_ids: string[];
+}
+
+// Request types for API
+export type StaffZoneAssignRequest = StaffZoneAssign;
+export type StaffZoneBulkAssignRequest = StaffZoneBulkAssign;
+
 export interface MenuItem {
   id: string;
   name: string;

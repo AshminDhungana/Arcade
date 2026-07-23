@@ -5,6 +5,8 @@ import type {
   PeakSchedule,
   Staff,
   MenuItem,
+  StaffZoneAssignRequest,
+  StaffZoneBulkAssignRequest,
 } from '@/types/settings';
 import { useAuthStore } from '@/store/authStore';
 
@@ -204,6 +206,69 @@ export async function deleteSchedule(id: string, token: string | null): Promise<
     headers: authHeaders(token),
   });
   if (!res.ok) throw new Error(`Failed to delete schedule: ${res.status}`);
+}
+
+// ---------- Staff Zone Assignments ----------
+
+export async function listStaffZoneAssignments(
+  staffId: string,
+  token: string | null,
+): Promise<import('@/types/settings').StaffZone[]> {
+  const res = await fetch(`${API_BASE}/staff/${staffId}/zones`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`Failed to load zone assignments: ${res.status}`);
+  return (await res.json()) as import('@/types/settings').StaffZone[];
+}
+
+export async function assignZoneToStaff(
+  staffId: string,
+  body: import('@/types/settings').StaffZoneAssign,
+  token: string | null,
+): Promise<import('@/types/settings').StaffZone> {
+  const res = await fetch(`${API_BASE}/staff/${staffId}/zones`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Failed to assign zone: ${res.status}`);
+  return (await res.json()) as import('@/types/settings').StaffZone;
+}
+
+export async function bulkAssignZonesToStaff(
+  staffId: string,
+  body: import('@/types/settings').StaffZoneBulkAssign,
+  token: string | null,
+): Promise<import('@/types/settings').StaffZone[]> {
+  const res = await fetch(`${API_BASE}/staff/${staffId}/zones/bulk`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Failed to bulk assign zones: ${res.status}`);
+  return (await res.json()) as import('@/types/settings').StaffZone[];
+}
+
+export async function revokeZoneFromStaff(
+  staffId: string,
+  zoneId: string,
+  token: string | null,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/staff/${staffId}/zones/${zoneId}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`Failed to revoke zone: ${res.status}`);
+}
+
+export async function listMyAccessibleZones(
+  token: string | null,
+): Promise<import('@/types/settings').Zone[]> {
+  const res = await fetch(`${API_BASE}/staff/me/zones`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`Failed to load accessible zones: ${res.status}`);
+  return (await res.json()) as import('@/types/settings').Zone[];
 }
 
 // ---------- Staff ----------
@@ -466,6 +531,62 @@ export function useChangeStaffPin() {
   return useMutation({
     mutationFn: ({ id, pin }: { id: string; pin: string }) => changeStaffPin(id, pin, token),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['staff'] }),
+  });
+}
+
+// Staff Zone Assignments
+export function useStaffZoneAssignments(staffId: string) {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['staff', staffId, 'zones'],
+    queryFn: () => listStaffZoneAssignments(staffId, token),
+    enabled: !!staffId,
+    staleTime: 30_000,
+  });
+}
+
+export function useAssignZoneToStaff() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { staffId: string; body: StaffZoneAssignRequest }) =>
+      assignZoneToStaff(vars.staffId, vars.body, token),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['staff', vars.staffId, 'zones'] });
+    },
+  });
+}
+
+export function useBulkAssignZonesToStaff() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { staffId: string; body: StaffZoneBulkAssignRequest }) =>
+      bulkAssignZonesToStaff(vars.staffId, vars.body, token),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['staff', vars.staffId, 'zones'] });
+    },
+  });
+}
+
+export function useRevokeZoneFromStaff() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { staffId: string; zoneId: string }) =>
+      revokeZoneFromStaff(vars.staffId, vars.zoneId, token),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['staff', vars.staffId, 'zones'] });
+    },
+  });
+}
+
+export function useMyAccessibleZones() {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['staff', 'me', 'zones'],
+    queryFn: () => listMyAccessibleZones(token),
+    staleTime: 30_000,
   });
 }
 

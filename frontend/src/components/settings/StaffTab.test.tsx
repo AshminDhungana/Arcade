@@ -72,6 +72,21 @@ vi.mock('@/api/settings', () => ({
       return isPendingRefs.changePin.current;
     },
   }),
+  useZones: () => ({
+    data: [],
+    isLoading: false,
+    isError: false,
+  }),
+  useAssignZoneToStaff: () => ({
+    mutateAsync: vi.fn(),
+  }),
+  useRevokeZoneFromStaff: () => ({
+    mutateAsync: vi.fn(),
+  }),
+  useStaffZoneAssignments: () => ({
+    data: [],
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock('@/store/toastStore', () => ({

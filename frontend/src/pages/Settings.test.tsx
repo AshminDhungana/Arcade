@@ -66,6 +66,21 @@ vi.mock('@/api/settings', () => ({
     isPending: false,
   }),
   patchSettings: vi.fn(),
+  useZones: () => ({
+    data: [],
+    isLoading: false,
+    isError: false,
+  }),
+  useAssignZoneToStaff: () => ({
+    mutateAsync: vi.fn(),
+  }),
+  useRevokeZoneFromStaff: () => ({
+    mutateAsync: vi.fn(),
+  }),
+  useStaffZoneAssignments: () => ({
+    data: [],
+    refetch: vi.fn(),
+  }),
 }));
 
 const renderWithProviders = (ui: React.ReactElement) => {

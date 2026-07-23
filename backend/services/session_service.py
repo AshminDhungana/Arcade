@@ -18,7 +18,7 @@ from backend.core.config import get_config
 from backend.core.feature_flags import get_flag
 from backend.core.ws_manager import AgentOfflineError, Msg
 from backend.core.ws_manager import manager as ws_manager
-from backend.models import GamingSession, SeatStatus, SessionStatus
+from backend.models import GamingSession, Seat, SeatStatus, SessionStatus
 from backend.models._enums import AuditAction
 from backend.repositories import package_repo, seat_repo, session_repo, shift_repo
 from backend.schemas.session import SessionResponse
@@ -140,14 +140,15 @@ async def start_session(
         2. Check ``require_member_for_session`` feature flag.
         3. Ensure no other active session exists for this seat.
         4. Validate seat status is ``AVAILABLE`` / ``RESERVED``.
-        5. Stub-resolve the billing rate (Phase 3 will be real).
-        6. Create ``GamingSession`` record with ``status=ACTIVE``.
-        7. Update seat status → ``IN_USE``.
-        8. Broadcast ``seat_updated`` to dashboards.
-        9. Send ``HIDE_OVERLAY`` to the agent (non-blocking).
-        10. Write audit log entry ``SESSION_START``.
-        11. Power the console ON via Tuya (non-blocking, best-effort).
-        12. Return ``SessionResponse``.
+        5. Check zone access for staff (cashiers must have zone access).
+        6. Stub-resolve the billing rate (Phase 3 will be real).
+        7. Create ``GamingSession`` record with ``status=ACTIVE``.
+        8. Update seat status → ``IN_USE``.
+        9. Broadcast ``seat_updated`` to dashboards.
+        10. Send ``HIDE_OVERLAY`` to the agent (non-blocking).
+        11. Write audit log entry ``SESSION_START``.
+        12. Power the console ON via Tuya (non-blocking, best-effort).
+        13. Return ``SessionResponse``.
     """
     # 1. Validate seat exists
     seat = await seat_repo.get_by_id(db, seat_id)
@@ -157,6 +158,19 @@ async def start_session(
     # 2. Feature flag check
     if get_flag("require_member_for_session") and not member_id:
         raise HTTPException(status_code=400, detail="Member required for session")
+
+    # 5. Check zone access for staff (cashiers must have zone access)
+    if staff is not None:
+        from backend.models._enums import StaffRole
+        from backend.repositories import staff_zone_repo
+
+        if staff.role != StaffRole.ADMIN:
+            zone_ids = await staff_zone_repo.get_zone_ids_for_staff(db, staff.id)
+            if seat.zone_id not in zone_ids:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access denied: not authorized for this zone",
+                )
 
     # 3. No duplicate active session for this seat
     existing = await session_repo.get_active_by_seat(db, seat_id)
@@ -422,9 +436,40 @@ async def get_session(db: AsyncSession, /, session_id: str) -> SessionResponse:
     return _session_to_response(session)
 
 
-async def list_active_sessions(db: AsyncSession) -> list[SessionResponse]:
-    """Return all sessions with ``ACTIVE`` or ``PAUSED`` status."""
+async def list_active_sessions(
+    db: AsyncSession, staff: Staff | None = None
+) -> list[SessionResponse]:
+    """Return all sessions with ``ACTIVE`` or ``PAUSED`` status.
+
+    If staff is provided and is a cashier (not admin), filters to only sessions
+    for seats in zones the staff has access to.
+    """
+    from backend.models._enums import StaffRole
+    from backend.repositories import staff_zone_repo
+
     sessions = await session_repo.list_active(db)
+
+    # Filter by zone if staff is a cashier
+    if staff is not None and staff.role != StaffRole.ADMIN:
+        zone_ids = await staff_zone_repo.get_zone_ids_for_staff(db, staff.id)
+        if zone_ids:
+            # We need to load the seat for each session to check zone
+            # For efficiency, get all seat IDs first
+            seat_ids = list({s.seat_id for s in sessions})
+            seats = {}
+            for seat_id in seat_ids:
+                seat = await db.get(Seat, seat_id)
+                if seat:
+                    seats[seat_id] = seat
+            sessions = [
+                s
+                for s in sessions
+                if s.seat_id in seats and seats[s.seat_id].zone_id in zone_ids
+            ]
+        else:
+            # Cashier with no zones assigned - return empty list
+            return []
+
     return [_session_to_response(s) for s in sessions]
 
 

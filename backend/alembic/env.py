@@ -48,6 +48,7 @@ from backend.models import (  # noqa: E402,F401
     SessionPOSItem,
     Shift,
     Staff,
+    StaffZone,
     Voucher,
     Zone,
 )

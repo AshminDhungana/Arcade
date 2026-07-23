@@ -14,6 +14,7 @@ from backend.services import (
     seat_service,
     session_service,
     shift_service,
+    staff_zone_service,
     tuya_service,
     wallet_service,
     zone_service,
@@ -21,6 +22,7 @@ from backend.services import (
 from backend.services.billing_service import LockedRate, resolve_rate
 from backend.services.device_type_service import DeviceTypeService
 from backend.services.package_service import PackageService
+from backend.services.staff_zone_service import StaffZoneService
 from backend.services.wallet_service import WalletService
 from backend.services.zone_service import ZoneService
 
@@ -38,6 +40,7 @@ __all__: list[str] = [
     "seat_service",
     "session_service",
     "shift_service",
+    "staff_zone_service",
     "tuya_service",
     "wallet_service",
     "zone_service",
@@ -48,4 +51,5 @@ __all__: list[str] = [
     "ZoneService",
     "DeviceTypeService",
     "PeakScheduleService",
+    "StaffZoneService",
 ]

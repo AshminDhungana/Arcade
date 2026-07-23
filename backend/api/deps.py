@@ -21,6 +21,7 @@ from backend.core.security import (
 )
 from backend.models._enums import StaffRole
 from backend.models.staff import Staff
+from backend.repositories import staff_zone_repo
 
 
 def _extract_bearer_token(request: Request) -> str:
@@ -91,5 +92,31 @@ async def require_self_or_admin(
     if staff.role != StaffRole.ADMIN and staff.id != staff_id:
         raise HTTPException(
             status_code=403, detail="Admin or account owner access required"
+        )
+    return staff
+
+
+async def require_zone_access(
+    zone_id: str,
+    staff: Staff = Depends(get_current_staff),  # noqa: B008 – FastAPI DI idiom
+    db: AsyncSession = Depends(get_db),  # noqa: B008 – FastAPI DI idiom
+) -> Staff:
+    """FastAPI dependency that enforces zone access for the current staff.
+
+    - Admins always pass (they have access to all zones)
+    - Cashiers must have an active StaffZone assignment for the zone_id
+
+    Raises:
+        HTTPException(403): If the cashier is not assigned to the zone.
+    """
+    if staff.role == StaffRole.ADMIN:
+        return staff
+
+    has_access = await staff_zone_repo.is_staff_assigned_to_zone(
+        db, staff_id=staff.id, zone_id=zone_id
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=403, detail="Access denied: not authorized for this zone"
         )
     return staff

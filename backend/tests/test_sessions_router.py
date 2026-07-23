@@ -15,12 +15,14 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend import models as m
 from backend.core.database import AsyncSessionLocal
+from backend.core.security import create_access_token
 from backend.main import app
 from backend.models import PricingModel, Zone
 from backend.models.seat import Seat
 from backend.models.staff import Staff
-from backend.repositories import seat_repo, staff_repo
+from backend.repositories import seat_repo, staff_repo, staff_zone_repo
 
 
 @pytest.fixture
@@ -39,13 +41,58 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient]:
 
 
 @pytest.fixture
-async def cashier(db: AsyncSession) -> Staff:
-    """Create and return a CASHIER staff member."""
+async def admin(db: AsyncSession) -> Staff:
+    """Create and return an ADMIN staff member."""
     staff = await staff_repo.create(
-        db, name="Cashier", pin_hash="argon2id$", role="CASHIER"
+        db, name="Admin", pin_hash="argon2id$", role=m.StaffRole.ADMIN
     )
     await db.commit()
     return staff
+
+
+@pytest.fixture
+async def cashier(db: AsyncSession) -> Staff:
+    """Create and return a CASHIER staff member."""
+    staff = await staff_repo.create(
+        db, name="Cashier", pin_hash="argon2id$", role=m.StaffRole.CASHIER
+    )
+    await db.commit()
+    return staff
+
+
+@pytest.fixture
+async def zone(db: AsyncSession) -> Zone:
+    """Create and return a zone."""
+    zone = Zone(
+        name="Main Floor",
+        rate_per_minute_paise=5,
+        rate_per_hour_paise=300,
+        pricing_model=PricingModel.PER_MINUTE,
+    )
+    db.add(zone)
+    await db.commit()
+    await db.refresh(zone)
+    return zone
+
+
+@pytest.fixture
+async def seat(db: AsyncSession, zone: Zone) -> Seat:
+    """Create and return a seat in the zone."""
+    seat = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
+    await db.commit()
+    return seat
+
+
+@pytest.fixture
+async def cashier_with_zone_access(
+    db: AsyncSession, admin: Staff, cashier: Staff, zone: Zone
+) -> Staff:
+    """Assign zone access to the cashier."""
+    await staff_zone_repo.assign_zone(
+        db, staff_id=cashier.id, zone_id=zone.id, granted_by=admin.id
+    )
+    await db.commit()
+    return cashier
 
 
 @pytest.fixture
@@ -58,34 +105,16 @@ async def assigned_time_enabled() -> AsyncGenerator[None]:
     _flag_cache.pop("enable_assigned_time_limit", None)
 
 
-def _auth_headers(cashier: Staff) -> dict[str, str]:
-    """Build Bearer headers for the cashier (real JWT matching DB token_version)."""
-    from backend.core.security import create_access_token
-
-    token = create_access_token(cashier.id, "CASHIER", cashier.token_version)
+def _auth_headers(staff: Staff) -> dict[str, str]:
+    """Build Bearer headers for the staff (real JWT matching DB token_version)."""
+    token = create_access_token(staff.id, staff.role.value, staff.token_version)
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _seed_seat(db: AsyncSession) -> Seat:
-    """Create a zone + seat and return the seat."""
-    zone = Zone(
-        name="Main Floor",
-        rate_per_minute_paise=5,
-        rate_per_hour_paise=300,
-        pricing_model=PricingModel.PER_MINUTE,
-    )
-    db.add(zone)
-    await db.flush()
-    seat = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
-    await db.commit()
-    return seat
-
-
 async def test_start_session_with_assigned_minutes(
-    db: AsyncSession, client: AsyncClient, cashier: Staff
+    db: AsyncSession, client: AsyncClient, cashier_with_zone_access: Staff, seat: Seat
 ) -> None:
-    seat = await _seed_seat(db)
-    headers = _auth_headers(cashier)
+    headers = _auth_headers(cashier_with_zone_access)
     resp = await client.post(
         "/api/sessions",
         json={"seat_id": seat.id, "assigned_minutes": 90},
@@ -99,11 +128,11 @@ async def test_start_session_with_assigned_minutes(
 async def test_extend_endpoint_pushes_deadline(
     db: AsyncSession,
     client: AsyncClient,
-    cashier: Staff,
+    cashier_with_zone_access: Staff,
+    seat: Seat,
     assigned_time_enabled: None,
 ) -> None:
-    seat = await _seed_seat(db)
-    headers = _auth_headers(cashier)
+    headers = _auth_headers(cashier_with_zone_access)
     start = await client.post(
         "/api/sessions",
         json={"seat_id": seat.id, "assigned_minutes": 60},
@@ -122,11 +151,11 @@ async def test_extend_endpoint_pushes_deadline(
 async def test_extend_rejects_non_positive(
     db: AsyncSession,
     client: AsyncClient,
-    cashier: Staff,
+    cashier_with_zone_access: Staff,
+    seat: Seat,
     assigned_time_enabled: None,
 ) -> None:
-    seat = await _seed_seat(db)
-    headers = _auth_headers(cashier)
+    headers = _auth_headers(cashier_with_zone_access)
     start = await client.post(
         "/api/sessions",
         json={"seat_id": seat.id, "assigned_minutes": 60},
@@ -142,10 +171,9 @@ async def test_extend_rejects_non_positive(
 
 
 async def test_extend_blocked_when_flag_off(
-    db: AsyncSession, client: AsyncClient, cashier: Staff
+    db: AsyncSession, client: AsyncClient, cashier_with_zone_access: Staff, seat: Seat
 ) -> None:
-    seat = await _seed_seat(db)
-    headers = _auth_headers(cashier)
+    headers = _auth_headers(cashier_with_zone_access)
     start = await client.post(
         "/api/sessions",
         json={"seat_id": seat.id, "assigned_minutes": 60},

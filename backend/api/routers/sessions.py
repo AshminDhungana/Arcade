@@ -19,16 +19,46 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import require_cashier
+from backend.api.deps import require_cashier, require_zone_access
 from backend.core.database import get_db
 from backend.core.feature_flags import require_feature
 from backend.models._enums import PaymentMethod
+from backend.models.seat import Seat
 from backend.models.staff import Staff
 from backend.schemas.invoice import InvoiceResponse
 from backend.schemas.session import SessionResponse
 from backend.services import billing_service, session_service
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+
+
+async def get_session_seat_and_check_zone(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Staff = Depends(require_cashier),  # noqa: B008
+) -> Staff:
+    """Fetch the session's seat and enforce zone access for cashiers.
+
+    Admins bypass the check. Cashiers must be assigned to the seat's zone.
+    Returns the authenticated staff member.
+    """
+    from backend.repositories import session_repo
+
+    session = await session_repo.get_by_id(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    seat = await db.get(Seat, session.seat_id)
+    if seat is None:
+        raise HTTPException(status_code=404, detail="Seat not found")
+
+    # Use the zone access dependency
+    return await require_zone_access(seat.zone_id, staff, db)
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +91,10 @@ async def create_session(
     db: AsyncSession = Depends(get_db),  # noqa: B008
     staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
 ) -> SessionResponse:
-    """Start a new session on an available seat (cashier+)."""
+    """Start a new session on an available seat (cashier+).
+
+    Zone access for the seat's zone is enforced inside the service layer.
+    """
     return await session_service.start_session(
         db, body.seat_id, body.member_id, staff, assigned_minutes=body.assigned_minutes
     )
@@ -82,7 +115,7 @@ async def extend_session_route(
     session_id: str,
     body: _ExtendBody,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
 ) -> SessionResponse:
     """Push a session's assigned end forward; reverts EXPIRED seats."""
     return await session_service.extend_session(
@@ -94,7 +127,7 @@ async def extend_session_route(
 async def pause_session(
     session_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
 ) -> SessionResponse:
     """Pause an active session (cashier+)."""
     return await session_service.pause_session(db, session_id, staff)
@@ -104,7 +137,7 @@ async def pause_session(
 async def resume_session(
     session_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
 ) -> SessionResponse:
     """Resume a paused session (cashier+)."""
     return await session_service.resume_session(db, session_id, staff)
@@ -113,19 +146,19 @@ async def resume_session(
 @router.get("/active", response_model=Sequence[SessionResponse])
 async def list_active_sessions(
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    _staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
 ) -> Sequence[SessionResponse]:
-    """List all active/paused sessions (cashier+)."""
-    return await session_service.list_active_sessions(db)
+    """List all active/paused sessions (cashier+). Filtered by zone for cashiers."""
+    return await session_service.list_active_sessions(db, staff)
 
 
 @router.get("/{session_id}", response_model=SessionResponse)
 async def get_session(
     session_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    _staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
 ) -> SessionResponse:
-    """Get a single session by ID (cashier+)."""
+    """Get a single session by ID (cashier+). Zone access checked for cashiers."""
     return await session_service.get_session(db, session_id)
 
 
@@ -138,12 +171,12 @@ async def post_checkout(
     session_id: str,
     body: _CheckoutBody,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
 ) -> InvoiceResponse:
     """Checkout and generate invoice (cashier+).
 
     Marks the session as COMPLETED, sets seat to AVAILABLE, and returns
-    the generated Invoice.
+    the generated Invoice. Zone access checked for cashiers.
     """
     invoice = await billing_service.checkout_session(
         db=db,
@@ -168,10 +201,12 @@ class _ForceCloseBody(BaseModel):
 async def force_close_unprinted_session(
     session_id: str,
     body: _ForceCloseBody,
-    staff: Annotated[Staff, Depends(require_cashier)],  # noqa: B008
+    staff: Annotated[Staff, Depends(get_session_seat_and_check_zone)],  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> InvoiceResponse:
-    """Force-release a held (unprinted) checkout via own-PIN re-auth (cashier+)."""
+    """Force-release a held checkout via own-PIN re-auth (cashier+).
+    Zone access checked for cashiers.
+    """
     reason = (body.override_reason or "").strip()
     if not reason:
         raise HTTPException(status_code=422, detail="override_reason is required")

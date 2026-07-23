@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.core.database import Base
 from backend.models._enums import PricingModel
 from backend.models._types import StrEnumColumn
+
+if TYPE_CHECKING:
+    from backend.models.staff_zone import StaffZone
 
 
 class Zone(Base):
@@ -35,4 +39,9 @@ class Zone(Base):
         nullable=False,
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
+    )
+
+    # Relationships
+    staff_assignments: Mapped[list[StaffZone]] = relationship(
+        "StaffZone", back_populates="zone", passive_deletes=True
     )

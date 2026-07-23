@@ -1462,24 +1462,10 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 - [x] **Linux kiosk hardening verification** (ENG-B): X11 all shortcuts blocked; Wayland fallback verified; known gaps documented
 
 ---
-## Launcher (`launcher.py`)
-
-- [ ] Run `launcher.py` in the background, the same way the agent does.
-- [ ] even if laucher is closed untill stop server is not pressed from the launcher the server should keep running, the close minimize shouls run the launcher in background. for all os
-- [ ] Disable the "Open Dashboard" button until the server has actually started.
-
-## Access Control
-
-- [ ] Audit whether cashier and new-user roles have zone access by default. If not, define how an admin can grant them zone access.
-
-## Bug Fixes
-
-- [ ] `tools/keygen/generate_license.py`: the logo doesn't render well in dark mode — invert it to white so it's visible.
-
 
 ### Epic 7.4: Launcher Cross-Platform Testing (ENG-A)
 
-- [ ] Test `launcher.py` on macOS: document `brew install python-tk@3.11` prerequisite
+- [~] Test `launcher.py` on macOS: document `brew install python-tk@3.11` prerequisite ( Will test Later)
 - [ ] Test on Ubuntu 22.04: document `sudo apt-get install python3-tk` prerequisite
 - [ ] Verify subprocess spawning of uvicorn works on all 3 OSes
 - [ ] **Definition of done:** AC-15 â€” Launcher runs without errors on all three OSes

@@ -16,12 +16,12 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import require_admin, require_cashier
+from backend.api.deps import require_admin, require_cashier, require_zone_access
 from backend.core.database import get_db
 from backend.core.feature_flags import require_feature
 from backend.core.security import hash_pin
@@ -39,6 +39,29 @@ from backend.services import (
 from backend.services.enrollment_service import generate_enroll_code
 
 router = APIRouter(prefix="/seats", tags=["seats"])
+
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+
+
+async def get_seat_and_check_zone(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Staff = Depends(require_cashier),  # noqa: B008
+) -> Staff:
+    """Fetch the seat and enforce zone access for cashiers.
+
+    Admins bypass the check. Cashiers must be assigned to the seat's zone.
+    Returns the authenticated staff member.
+    """
+    seat = await db.get(Seat, seat_id)
+    if seat is None:
+        raise HTTPException(status_code=404, detail=f"Seat {seat_id} not found")
+
+    # Use the zone access dependency
+    return await require_zone_access(seat.zone_id, staff, db)
 
 
 # ---------------------------------------------------------------------------
@@ -97,20 +120,20 @@ async def bulk_seat_overlay(
 @router.get("")
 async def list_seats(
     db: AsyncSession = Depends(get_db),  # noqa: B008 – FastAPI DI idiom
-    _staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
 ) -> Sequence[SeatResponse]:
-    """List all seats with their current status."""
-    return await seat_service.list_seats(db)
+    """List all seats with their current status (filtered by zone for cashiers)."""
+    return await seat_service.list_seats(db, staff)
 
 
 @router.get("/{seat_id}")
 async def get_seat(
     seat_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008 – FastAPI DI idiom
-    _staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(get_seat_and_check_zone)] = None,  # noqa: B008
 ) -> SeatResponse:
-    """Get a single seat by ID."""
-    return await seat_service.get_seat(db, seat_id)
+    """Get a single seat by ID (zone access checked for cashiers)."""
+    return await seat_service.get_seat(db, seat_id, staff)
 
 
 @router.patch("/{seat_id}/maintenance", status_code=status.HTTP_200_OK)
@@ -162,7 +185,7 @@ async def send_seat_message(
     seat_id: str,
     body: _MessageBody,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(get_seat_and_check_zone)] = None,  # noqa: B008
 ) -> None:
     """Send a ``SHOW_MESSAGE`` command to the seat's agent (cashier+)."""
     await remote_command_service.send_message(db, seat_id, body.message, staff)
@@ -172,7 +195,7 @@ async def send_seat_message(
 async def request_seat_screenshot(
     seat_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(get_seat_and_check_zone)] = None,  # noqa: B008
 ) -> Response:
     """Request a screenshot from the seat's agent (cashier+). Returns JPEG bytes."""
     data = await remote_command_service.request_screenshot(db, seat_id, staff)

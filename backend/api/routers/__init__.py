@@ -30,6 +30,7 @@ from backend.api.routers.sessions import router as session_router
 from backend.api.routers.settings import router as settings_router
 from backend.api.routers.shifts import router as shift_router
 from backend.api.routers.staff import router as staff_router
+from backend.api.routers.staff_zones import router as staff_zones_router
 from backend.api.routers.vouchers import router as voucher_router
 from backend.api.routers.zones import router as zone_router
 
@@ -72,6 +73,7 @@ routers: list[APIRouter] = [
     promotion_router,
     voucher_router,
     staff_router,
+    staff_zones_router,
     zone_router,
     device_type_router,
     schedule_router,
