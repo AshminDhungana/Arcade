@@ -20,7 +20,10 @@ import sqlite3
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
+import urllib.error
+import urllib.request
 import webbrowser
 from datetime import UTC, datetime
 from pathlib import Path
@@ -562,8 +565,11 @@ class MainScreen(_BaseScreen):
         super().__init__(parent, controller)
         self._proc: subprocess.Popen[str] | None = None
         self._log_thread: threading.Thread | None = None
+        self._health_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._logs_started = False
+        self._server_host = DEFAULT_HOST
+        self._server_port = DEFAULT_PORT
         self._build()
 
     def _build(self) -> None:
@@ -644,6 +650,7 @@ class MainScreen(_BaseScreen):
             fg_color=COLORS["bg_tertiary"],
             hover_color=COLORS["border"],
             text_color=COLORS["text_primary"],
+            state="disabled",
         )
         self._dashboard_btn.grid(row=0, column=2, padx=(SPACING["xs"], 0), sticky="ew")
 
@@ -712,13 +719,13 @@ class MainScreen(_BaseScreen):
     def _start_server(self) -> None:
         if self._proc is not None and self._proc.poll() is None:
             return
-        host = DEFAULT_HOST
-        port = DEFAULT_PORT
+        self._server_host = DEFAULT_HOST
+        self._server_port = DEFAULT_PORT
         if Path("arcade.config.json").exists():
             try:
                 cfg = json.loads(Path("arcade.config.json").read_text(encoding="utf-8"))
-                host = cfg.get("host", DEFAULT_HOST)
-                port = int(cfg.get("port", DEFAULT_PORT))
+                self._server_host = cfg.get("host", DEFAULT_HOST)
+                self._server_port = int(cfg.get("port", DEFAULT_PORT))
             except (ValueError, KeyError, json.JSONDecodeError):
                 pass
         self._proc = subprocess.Popen(  # noqa: S603
@@ -728,21 +735,26 @@ class MainScreen(_BaseScreen):
                 "uvicorn",
                 "backend.main:app",
                 "--host",
-                host,
+                self._server_host,
                 "--port",
-                str(port),
+                str(self._server_port),
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
         )
-        self._set_status("●", f"Running at http://{host}:{port}", "success_fill")
+        status_msg = f"Running at http://{self._server_host}:{self._server_port}"
+        self._set_status("●", status_msg, "success_fill")
         self._start_btn.configure(state="disabled")
         self._stop_btn.configure(state="normal")
+        self._dashboard_btn.configure(state="disabled")
         show_toast(self.controller, "Server started", kind="success")
         self._stop_event.clear()
         self._log_thread = threading.Thread(target=self._stream_logs, daemon=True)
         self._log_thread.start()
+        # Start health check polling to enable dashboard button when server is ready
+        self._health_thread = threading.Thread(target=self._poll_health, daemon=True)
+        self._health_thread.start()
 
     def _stream_logs(self) -> None:
         if self._proc is not None and self._proc.stdout is not None:
@@ -750,6 +762,33 @@ class MainScreen(_BaseScreen):
                 if self._stop_event.is_set():
                     break
                 self._append_log(line)
+
+    def _poll_health(self) -> None:
+        """Poll /health until it responds 200, then enable dashboard button."""
+        max_attempts = 60  # 30 seconds max (0.5s intervals)
+        attempt = 0
+        while attempt < max_attempts and not self._stop_event.is_set():
+            try:
+                url = f"http://127.0.0.1:{self._server_port}/health"
+                req = urllib.request.Request(url, method="GET")  # noqa: S310
+                with urllib.request.urlopen(req, timeout=2) as resp:  # noqa: S310
+                    if resp.status == 200:
+                        # Server is healthy: enable dashboard button on main thread
+                        self._root().after(
+                            0,
+                            lambda: self._dashboard_btn.configure(state="normal"),
+                        )
+                        return
+            except (
+                urllib.error.URLError,
+                urllib.error.HTTPError,
+                TimeoutError,
+                OSError,
+            ):
+                pass
+            attempt += 1
+            time.sleep(0.5)
+        # If we exit without success, button stays disabled
 
     def _stop_server(self) -> None:
         self._stop_event.set()
@@ -763,6 +802,7 @@ class MainScreen(_BaseScreen):
         self._set_status("■", "Stopped", "error_fill")
         self._start_btn.configure(state="normal")
         self._stop_btn.configure(state="disabled")
+        self._dashboard_btn.configure(state="disabled")
         show_toast(self.controller, "Server stopped", kind="error")
 
     def _open_dashboard(self) -> None:
