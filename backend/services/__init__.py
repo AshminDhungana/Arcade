@@ -9,6 +9,7 @@ from backend.services import (
     package_service,
     peak_schedule_service,
     pos_service,
+    printer_discovery,
     remote_command_service,
     reservation_service,
     seat_service,
@@ -22,6 +23,7 @@ from backend.services import (
 from backend.services.billing_service import LockedRate, resolve_rate
 from backend.services.device_type_service import DeviceTypeService
 from backend.services.package_service import PackageService
+from backend.services.printer_discovery import DiscoveredPrinter, discover_printers
 from backend.services.staff_zone_service import StaffZoneService
 from backend.services.wallet_service import WalletService
 from backend.services.zone_service import ZoneService
@@ -35,6 +37,7 @@ __all__: list[str] = [
     "package_service",
     "peak_schedule_service",
     "pos_service",
+    "printer_discovery",
     "remote_command_service",
     "reservation_service",
     "seat_service",
@@ -52,4 +55,6 @@ __all__: list[str] = [
     "DeviceTypeService",
     "PeakScheduleService",
     "StaffZoneService",
+    "DiscoveredPrinter",
+    "discover_printers",
 ]
