@@ -7,6 +7,9 @@ import type {
   MenuItem,
   StaffZoneAssignRequest,
   StaffZoneBulkAssignRequest,
+  Seat,
+  SeatCreate,
+  SeatUpdate,
 } from '@/types/settings';
 import { useAuthStore } from '@/store/authStore';
 
@@ -625,5 +628,101 @@ export function useDeleteMenuItem() {
   return useMutation({
     mutationFn: (id: string) => deleteMenuItem(id, token),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['menuItems'] }),
+  });
+}
+
+// ---------- Seats ----------
+export async function listSeats(token: string | null): Promise<Seat[]> {
+  const res = await fetch(`${API_BASE}/seats`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error(`Failed to load seats: ${res.status}`);
+  return (await res.json()) as Seat[];
+}
+
+export async function getSeat(id: string, token: string | null): Promise<Seat> {
+  const res = await fetch(`${API_BASE}/seats/${id}`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error(`Failed to load seat: ${res.status}`);
+  return (await res.json()) as Seat;
+}
+
+export async function createSeat(
+  s: SeatCreate,
+  token: string | null,
+): Promise<Seat> {
+  const res = await fetch(`${API_BASE}/seats`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(s),
+  });
+  if (!res.ok) throw new Error(`Failed to create seat: ${res.status}`);
+  return (await res.json()) as Seat;
+}
+
+export async function updateSeat(
+  id: string,
+  s: SeatUpdate,
+  token: string | null,
+): Promise<Seat> {
+  const res = await fetch(`${API_BASE}/seats/${id}`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify(s),
+  });
+  if (!res.ok) throw new Error(`Failed to update seat: ${res.status}`);
+  return (await res.json()) as Seat;
+}
+
+export async function deleteSeat(id: string, token: string | null): Promise<void> {
+  const res = await fetch(`${API_BASE}/seats/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`Failed to delete seat: ${res.status}`);
+}
+
+// ---------- React Query hooks for Seats ----------
+export function useSeats() {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['seats'],
+    queryFn: () => listSeats(token),
+    staleTime: 30_000,
+  });
+}
+
+export function useSeat(id: string) {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['seats', id],
+    queryFn: () => getSeat(id, token),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateSeat() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (s: SeatCreate) => createSeat(s, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
+  });
+}
+
+export function useUpdateSeat() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: SeatUpdate }) =>
+      updateSeat(vars.id, vars.data, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
+  });
+}
+
+export function useDeleteSeat() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteSeat(id, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
   });
 }

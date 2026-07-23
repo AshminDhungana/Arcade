@@ -14,11 +14,11 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.ws_manager import manager as ws_manager
-from backend.models._enums import AuditAction, SeatStatus
+from backend.models._enums import AuditAction, SeatStatus, StaffRole
 from backend.models.seat import Seat
 from backend.models.staff import Staff
 from backend.repositories import seat_repo, zone_repo
-from backend.schemas.seat import SeatResponse
+from backend.schemas.seat import SeatCreate, SeatResponse, SeatUpdate
 from backend.services import audit_service
 
 
@@ -100,7 +100,6 @@ async def list_seats(
     If staff is provided and is a cashier (not admin), filters to only seats
     in zones the staff has access to.
     """
-    from backend.models._enums import StaffRole
     from backend.repositories import staff_zone_repo
 
     # Start with all seats
@@ -137,7 +136,6 @@ async def get_seat(
 ) -> SeatResponse:
     """Return a single seat. Raises 404 if not found or if cashier has
     no zone access."""
-    from backend.models._enums import StaffRole
     from backend.repositories import staff_zone_repo
 
     seat = await seat_repo.get_by_id(db, seat_id)
@@ -268,3 +266,134 @@ async def update_mac_address(
     await _broadcast_seat_update(db, updated)
 
     return await _seat_to_response(db, updated)
+
+
+async def create_seat(
+    db: AsyncSession,
+    seat_in: SeatCreate,
+    staff: Staff | None = None,
+) -> SeatResponse:
+    """Create a new seat.
+
+    Args:
+        db: Active async SQLAlchemy session.
+        seat_in: Seat creation data.
+        staff: The admin staff member creating the seat.
+
+    Returns:
+        The created seat as a ``SeatResponse``.
+
+    Raises:
+        HTTPException(404): If the zone does not exist.
+    """
+    # Verify zone exists
+    zone = await zone_repo.get_by_id(db, seat_in.zone_id)
+    if zone is None:
+        raise HTTPException(status_code=404, detail="Zone not found")
+
+    created = await seat_repo.create(
+        db,
+        name=seat_in.name,
+        zone_id=seat_in.zone_id,
+        mac_address=seat_in.mac_address,
+        plug_id=seat_in.plug_id,
+        is_console=seat_in.is_console,
+        notes=seat_in.notes,
+    )
+
+    await audit_service.log(
+        db,
+        action=AuditAction.SEAT_CREATED,
+        entity_type="seat",
+        entity_id=created.id,
+        staff_id=staff.id if staff else None,
+        detail=f"Created seat '{created.name}' in zone '{zone.name}'",
+    )
+
+    await _broadcast_seat_update(db, created)
+    return await _seat_to_response(db, created)
+
+
+async def update_seat(
+    db: AsyncSession,
+    seat_id: str,
+    seat_in: SeatUpdate,
+    staff: Staff | None = None,
+) -> SeatResponse:
+    """Update an existing seat.
+
+    Args:
+        db: Active async SQLAlchemy session.
+        seat_id: The seat's UUID.
+        seat_in: Seat update data (only provided fields are updated).
+        staff: The admin staff member updating the seat.
+
+    Returns:
+        The updated seat as a ``SeatResponse``.
+
+    Raises:
+        HTTPException(404): If the seat or zone does not exist.
+    """
+    seat = await seat_repo.get_by_id(db, seat_id)
+    if seat is None:
+        raise SeatNotFoundError(seat_id)
+
+    # Verify zone exists if zone_id is being updated
+    if seat_in.zone_id is not None:
+        zone = await zone_repo.get_by_id(db, seat_in.zone_id)
+        if zone is None:
+            raise HTTPException(status_code=404, detail="Zone not found")
+
+    update_data = seat_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(seat, key, value)
+
+    updated = await seat_repo.update(db, seat)
+
+    await audit_service.log(
+        db,
+        action=AuditAction.SEAT_UPDATED,
+        entity_type="seat",
+        entity_id=updated.id,
+        staff_id=staff.id if staff else None,
+        detail=f"Updated seat '{updated.name}'",
+    )
+
+    await _broadcast_seat_update(db, updated)
+    return await _seat_to_response(db, updated)
+
+
+async def delete_seat(
+    db: AsyncSession,
+    seat_id: str,
+    staff: Staff | None = None,
+) -> None:
+    """Delete a seat.
+
+    Args:
+        db: Active async SQLAlchemy session.
+        seat_id: The seat's UUID.
+        staff: The admin staff member deleting the seat.
+
+    Raises:
+        HTTPException(404): If the seat does not exist.
+    """
+    seat = await seat_repo.get_by_id(db, seat_id)
+    if seat is None:
+        raise SeatNotFoundError(seat_id)
+
+    seat_name = seat.name
+
+    await seat_repo.delete_by_id(db, seat_id)
+
+    await audit_service.log(
+        db,
+        action=AuditAction.SEAT_DELETED,
+        entity_type="seat",
+        entity_id=seat_id,
+        staff_id=staff.id if staff else None,
+        detail=f"Deleted seat '{seat_name}'",
+    )
+
+    # Broadcast deletion so dashboards can remove the seat
+    await ws_manager.broadcast_to_dashboards("seat_deleted", {"seat_id": seat_id})

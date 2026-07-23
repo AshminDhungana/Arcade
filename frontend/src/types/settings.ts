@@ -67,3 +67,62 @@ export interface MenuItem {
   low_stock_threshold: number | null;
   is_available: boolean;
 }
+
+export type SeatStatus =
+  | 'AVAILABLE'
+  | 'IN_USE'
+  | 'RESERVED'
+  | 'PAUSED'
+  | 'MAINTENANCE'
+  | 'OFFLINE'
+  | 'BOOTING'
+  | 'UNREACHABLE'
+  | 'EXPIRED';
+
+export interface SeatFormData {
+  name: string;
+  zone_id: string;
+  mac_address: string;
+  plug_id: string;
+  is_console: boolean;
+  notes: string;
+}
+
+export interface Seat {
+  id: string;
+  name: string;
+  zone_id: string;
+  zone_name?: string;
+  mac_address: string | null;
+  status: string;
+  plug_id: string | null;
+  is_console: boolean;
+  notes: string | null;
+  overlay_forced: boolean;
+  assigned_end_at: string | null;
+  wol_attempts: number;
+  wol_successes: number;
+  wol_failures: number;
+  current_session_id?: string;
+  current_session_started_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SeatCreate {
+  name: string;
+  zone_id: string;
+  mac_address?: string | null;
+  plug_id?: string | null;
+  is_console?: boolean;
+  notes?: string | null;
+}
+
+export interface SeatUpdate {
+  name?: string;
+  zone_id?: string;
+  mac_address?: string | null;
+  plug_id?: string | null;
+  is_console?: boolean;
+  notes?: string | null;
+}

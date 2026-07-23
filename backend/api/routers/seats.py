@@ -29,7 +29,7 @@ from backend.core.ws_manager import manager
 from backend.models.seat import Seat
 from backend.models.staff import Staff
 from backend.repositories import seat_repo
-from backend.schemas.seat import SeatResponse
+from backend.schemas.seat import SeatCreate, SeatResponse, SeatUpdate
 from backend.services import (
     remote_command_service,
     seat_service,
@@ -134,6 +134,37 @@ async def get_seat(
 ) -> SeatResponse:
     """Get a single seat by ID (zone access checked for cashiers)."""
     return await seat_service.get_seat(db, seat_id, staff)
+
+
+@router.post("", response_model=SeatResponse, status_code=status.HTTP_201_CREATED)
+async def create_seat(
+    body: SeatCreate,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> SeatResponse:
+    """Create a new seat (admin only)."""
+    return await seat_service.create_seat(db, body, staff)
+
+
+@router.patch("/{seat_id}", response_model=SeatResponse)
+async def update_seat(
+    seat_id: str,
+    body: SeatUpdate,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> SeatResponse:
+    """Update a seat (admin only)."""
+    return await seat_service.update_seat(db, seat_id, body, staff)
+
+
+@router.delete("/{seat_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_seat(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> None:
+    """Delete a seat (admin only)."""
+    await seat_service.delete_seat(db, seat_id, staff)
 
 
 @router.patch("/{seat_id}/maintenance", status_code=status.HTTP_200_OK)

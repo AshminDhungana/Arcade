@@ -236,6 +236,9 @@ class AuditAction(Enum):
     SHIFT_CLOSE_UNPRINTED = "SHIFT_CLOSE_UNPRINTED"
     STAFF_ZONE_ASSIGNED = "STAFF_ZONE_ASSIGNED"
     STAFF_ZONE_REVOKED = "STAFF_ZONE_REVOKED"
+    SEAT_CREATED = "SEAT_CREATED"
+    SEAT_UPDATED = "SEAT_UPDATED"
+    SEAT_DELETED = "SEAT_DELETED"
 
 
 # ── License ──────────────────────────────────────────────────────────────

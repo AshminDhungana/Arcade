@@ -3,6 +3,7 @@ import { FeatureFlagsTab } from '@/components/settings/FeatureFlagsTab';
 import { PricingTab } from '@/components/settings/PricingTab';
 import { SchedulesTab } from '@/components/settings/SchedulesTab';
 import { StaffTab } from '@/components/settings/StaffTab';
+import { SeatsTab } from '@/components/settings/SeatsTab';
 import { MenuTab } from '@/components/settings/MenuTab';
 import { PrinterTab } from '@/components/settings/PrinterTab';
 import { BroadcastTab } from '@/components/settings/BroadcastTab';
@@ -20,6 +21,7 @@ export default function SettingsPage() {
             <TabsTrigger value="pricing">Pricing</TabsTrigger>
             <TabsTrigger value="schedules">Schedules</TabsTrigger>
             <TabsTrigger value="staff">Staff</TabsTrigger>
+            <TabsTrigger value="seats">Seats</TabsTrigger>
             <TabsTrigger value="menu">Menu</TabsTrigger>
             <TabsTrigger value="printer">Printer</TabsTrigger>
             <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
@@ -28,6 +30,7 @@ export default function SettingsPage() {
           <TabsContent value="pricing"><PricingTab /></TabsContent>
           <TabsContent value="schedules"><SchedulesTab /></TabsContent>
           <TabsContent value="staff"><StaffTab /></TabsContent>
+          <TabsContent value="seats"><SeatsTab /></TabsContent>
           <TabsContent value="menu"><MenuTab /></TabsContent>
           <TabsContent value="printer"><PrinterTab /></TabsContent>
           <TabsContent value="broadcast"><BroadcastTab /></TabsContent>
