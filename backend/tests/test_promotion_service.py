@@ -66,16 +66,22 @@ async def sample_seat(db: AsyncSession, sample_zone: Zone) -> Seat:
 
 
 @pytest_asyncio.fixture
-async def sample_staff(db: AsyncSession):
-    """Create a stub staff member with a pin hash (no real authentication)."""
-    from backend.repositories import staff_repo
+async def sample_staff(db: AsyncSession, sample_zone: Zone):
+    """Create a stub staff member with a pin hash (no real authentication)
+    and assign them to the sample zone so they can start sessions."""
+    from backend.repositories import staff_repo, staff_zone_repo
 
-    return await staff_repo.create(
+    staff = await staff_repo.create(
         db,
         name="Test Staff",
         pin_hash="$argon2id$v=19$m=102400,t=2,p=8$fakehashplaceholder",
         role="CASHIER",
     )
+    # Assign staff to the sample zone so they can start sessions
+    await staff_zone_repo.assign_zone(
+        db, staff_id=staff.id, zone_id=sample_zone.id, granted_by=staff.id
+    )
+    return staff
 
 
 class TestGetApplicablePromotion:
