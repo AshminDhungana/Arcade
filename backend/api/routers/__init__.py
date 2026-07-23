@@ -22,6 +22,7 @@ from backend.api.routers.members import router as member_router
 from backend.api.routers.menu import router as menu_router
 from backend.api.routers.packages import router as package_router
 from backend.api.routers.pos import router as pos_router
+from backend.api.routers.printers import router as printer_router
 from backend.api.routers.promotions import router as promotion_router
 from backend.api.routers.reservations import router as reservation_router
 from backend.api.routers.schedules import router as schedule_router
@@ -82,4 +83,5 @@ routers: list[APIRouter] = [
     reservation_router,
     analytics_router,
     event_router,
+    printer_router,
 ]
