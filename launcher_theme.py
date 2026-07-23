@@ -32,8 +32,8 @@ except Exception:  # pragma: no cover - optional at runtime
 
 _LAUNCHER_DIR = Path(__file__).resolve().parent
 BRAND_LOGO_SVG = _LAUNCHER_DIR / "frontend" / "public" / "arcade_icon.svg"
-LOGO_LIGHT_PNG = _LAUNCHER_DIR / "arcade_logo_light.png"
-LOGO_WHITE_PNG = _LAUNCHER_DIR / "arcade_logo_white.png"
+LOGO_LIGHT_PNG = _LAUNCHER_DIR / "docs" / "assets" / "arcade_logo_light.png"
+LOGO_WHITE_PNG = _LAUNCHER_DIR / "docs" / "assets" / "arcade_logo_white.png"
 GRADIENT_STRIP = _LAUNCHER_DIR / "tools" / "keygen" / "icon" / "arcade_gradient_3px.png"
 
 COLORS = {

@@ -25,7 +25,8 @@ Most gaming cafes run on a patchwork of a generic timer app, a separate POS, a n
 
 No internet required during operation. No subscription fees. No per-seat licensing. You own the box it runs on.
 
-> **Project status:** Arcade is in the design-complete phase, ready for development. The architecture and feature set below reflect the plan for v1 — see [Build Phases](#build-phases) for what's planned.
+
+## ![[Arcade Demo]](./docs/assets/image.png)
 
 ---
 

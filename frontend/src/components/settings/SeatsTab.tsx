@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Plus, Monitor, Settings, Trash2 } from 'lucide-react';
 import {
   useSeats,
@@ -54,8 +54,7 @@ function SeatFormModal({
   });
   const [errors, setErrors] = useState<Partial<Record<keyof SeatFormData, string>>>({});
 
-  // Reset form when modal opens/closes or initialData changes
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     if (initialData) {
       setFormData({
         name: initialData.name,
@@ -76,11 +75,12 @@ function SeatFormModal({
       });
     }
     setErrors({});
-  };
+  }, [initialData]);
 
-  if (open) {
+  // Reset form when modal opens/closes or initialData changes
+  useEffect(() => {
     resetForm();
-  }
+  }, [open, resetForm]);
 
   const handleChange = (field: keyof SeatFormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
