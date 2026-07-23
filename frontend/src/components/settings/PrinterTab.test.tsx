@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import type { ReactNode } from 'react';
 
 const SETTINGS: Record<string, string> = {
-  printer_type: 'network',
+  printer_type: 'usb',
   printer_usb_vendor: '0x0416',
   printer_usb_product: '0x5011',
 };
@@ -21,6 +21,11 @@ vi.mock('@/api/settings', () => ({
     data: mockState.settings,
     isLoading: false,
     isError: false,
+    refetch: vi.fn(),
+  }),
+  useDiscoveredPrinters: () => ({
+    data: [],
+    isLoading: false,
     refetch: vi.fn(),
   }),
   patchSettings: (patch: Record<string, string>) => mockState.patchFn(patch),
@@ -66,8 +71,9 @@ describe('PrinterTab', () => {
   it('seeds the form from current printer settings', () => {
     render(<PrinterTab />, { wrapper: makeWrapper() });
 
-    expect(screen.getByLabelText(/usb vendor id/i)).toHaveValue('0x0416');
-    expect(screen.getByLabelText(/usb product id/i)).toHaveValue('0x5011');
+    // The currently configured section displays the USB vendor/product
+    expect(screen.getByText(/VID: 0x0416/)).toBeInTheDocument();
+    expect(screen.getByText(/PID: 0x5011/)).toBeInTheDocument();
   });
 
   it('saves printer config (PATCH with printer keys) and shows success toast', async () => {

@@ -82,6 +82,37 @@ export function parsePrinterConfig(settings: Record<string, string>): PrinterCon
   };
 }
 
+// ---- Printer Discovery Types ----
+export interface DiscoveredPrinter {
+  name: string;
+  connection_type: 'usb' | 'network';
+  uri: string;
+  is_default: boolean;
+  description?: string;
+  location?: string;
+  make_and_model?: string;
+  driver_name?: string;
+}
+
+// ---------- Printer Discovery ----------
+export async function discoverPrinters(token: string | null): Promise<DiscoveredPrinter[]> {
+  const res = await fetch(`${API_BASE}/printers/discover`, { headers: authHeaders(token) });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(err.detail ?? `Printer discovery failed: ${res.status}`);
+  }
+  return (await res.json()) as DiscoveredPrinter[];
+}
+
+export function useDiscoveredPrinters() {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['printers', 'discovered'],
+    queryFn: () => discoverPrinters(token),
+    staleTime: 60_000, // Cache for 1 minute
+  });
+}
+
 // ---------- Zones ----------
 export async function listZones(token: string | null): Promise<Zone[]> {
   const res = await fetch(`${API_BASE}/zones`, { headers: authHeaders(token) });
