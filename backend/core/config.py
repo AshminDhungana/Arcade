@@ -13,6 +13,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -87,6 +88,7 @@ class Settings(BaseModel):
     printer_type: Literal["usb", "network"] | None = "usb"
     printer_usb_vendor: str | None = None
     printer_usb_product: str | None = None
+    printer_uri: str | None = None
 
     # ── Validation helpers ────────────────────────────────────────────
     @field_validator("backup_time", mode="after")
@@ -94,6 +96,22 @@ class Settings(BaseModel):
     def _validate_backup_time(cls, value: str) -> str:  # noqa: N805
         if not re.fullmatch(r"^([01]\d|2[0-3]):([0-5]\d)$", value):
             msg = f"backup_time must be HH:MM (24-hour), got: {value!r}"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("printer_uri", mode="after")
+    @classmethod
+    def _validate_printer_uri(cls, value: str | None) -> str | None:
+        """Validate printer URI scheme is a supported printer protocol."""
+        if value is None:
+            return None
+        valid_schemes = {"usb", "socket", "ipp", "http", "https", "lpd"}
+        parsed = urlparse(value)
+        if parsed.scheme.lower() not in valid_schemes:
+            msg = (
+                f"printer_uri scheme '{parsed.scheme}' not supported. "
+                f"Valid schemes: {', '.join(sorted(valid_schemes))}"
+            )
             raise ValueError(msg)
         return value
 
