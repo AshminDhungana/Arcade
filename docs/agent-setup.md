@@ -19,6 +19,22 @@ The Arcade Agent runs on each client (gaming) PC as an Electron-based kiosk over
   - [Production](#production)
   - [Development](#development)
 - [Auto-Start Configuration](#auto-start-configuration)
+  - [Windows](#windows)
+  - [macOS](#macos)
+  - [Linux](#linux)
+  - [Auto-Start Comparison Table](#auto-start-comparison-table)
+- [Per-OS Installation](#per-os-installation)
+  - [Windows Installation](#windows-installation)
+  - [macOS Installation](#macos-installation)
+  - [Linux Installation](#linux-installation)
+- [Kiosk Hardening & Known Limitations](#kiosk-hardening--known-limitations)
+  - [Windows](#windows-1)
+  - [macOS](#macos-1)
+  - [Linux — X11](#linux--x11)
+  - [Linux — Wayland](#linux--wayland)
+  - [Per-OS Known Limitations Table](#per-os-known-limitations-table)
+- [Post-Install Verification Checklist](#post-install-verification-checklist)
+- [Uninstall / Cleanup](#uninstall--cleanup)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -41,36 +57,12 @@ The agent self-configures on first launch — no `agent.config.json` needs to be
 3. In the first-run window, type the enroll code and click **Connect**. The agent contacts the server, receives its `seat_id` + `agent_secret`, writes `agent.config.json` locally, and relaunches into the kiosk. **No file copying.**
 
 ### Later changes (in-agent Settings)
+
 In the agent's staff-override dialog, the **Override** button (enter the staff override PIN to drop the kiosk) and the **Settings** button are both available. The **Settings** button currently re-opens the setup window to **re-enroll the agent with a new code**. Editing the server address or adjusting reconnect/health intervals from in-agent Settings is a planned **v2** enhancement and is **not** available in v1 — those fields must be set out-of-band (e.g. hand-editing `agent.config.json`) for now.
 
 ### Emergency master PIN
+
 If the agent cannot reach the server, the staff override PIN is unavailable (it is provisioned by the server). The build-injected **master PIN** then works as an emergency unlock (see `tools/keygen/generate_keys.py`). It is accepted **only** when the server is unreachable, and is never shown in the UI.
-
----
-
-## Windows Installation
-
-1. **Download the agent installer.**
-   - The Arcade Agent is distributed as an NSIS installer (`ArcadeAgent-<version>-setup.exe`) or a portable `.zip`.
-   - Place the installer on the target gaming PC or copy it across the LAN.
-
-2. **Run the installer.**
-   - Double-click the `.exe` and follow the wizard.
-   - Default install path: `C:\Program Files\ArcadeAgent\`.
-   - For a portable install, extract the `.zip` to any directory.
-
-3. **Place `agent.config.json` next to the agent executable.**
-   ```
-   C:\Program Files\ArcadeAgent\
-   ├── ArcadeAgent.exe
-   ├── agent.config.json   <-- place here
-   └── ...
-   ```
-   The agent reads `agent.config.json` at startup from the same directory as `ArcadeAgent.exe`.
-
-4. **Configure Windows Firewall (if prompted).**
-   - The first time the agent runs, Windows may block the WebSocket connection.
-   - Allow `ArcadeAgent.exe` through the private network profile.
 
 ---
 
@@ -116,11 +108,13 @@ If the agent cannot reach the server, the staff override PIN is unavailable (it 
 
 ### File Permissions
 
-The `agent_secret` is a sensitive credential. On Linux and macOS, restrict the file so only the owner can read it:
+The `agent_secret` is a sensitive credential. Restrict the file so only the owner can read it:
 
-```bash
-chmod 600 agent.config.json
-```
+| OS | Command / Procedure |
+|----|---------------------|
+| **Linux** | `chmod 600 agent.config.json` |
+| **macOS** | `chmod 600 agent.config.json`<br>Optionally: `xattr -w com.apple.security.cs.disable-library-validation yes agent.config.json` (not needed for config file, but relevant for the app bundle) |
+| **Windows** | Right-click `agent.config.json` → **Properties** → **Security** tab → **Advanced** → **Disable inheritance** → **Remove all inherited permissions** → **Add** → enter your username → **Full control** → **OK** on all dialogs |
 
 > **Security:** Never commit `agent.config.json` to version control. It is already `.gitignore`d.
 
@@ -177,96 +171,257 @@ agent/
 
 ## Auto-Start Configuration
 
-### Windows
-
 The agent can be configured to start automatically when the user logs in.
 
-1. **Via the Dashboard (recommended):**
-   - Open the Arcade Dashboard.
-   - Navigate to **Settings -> Agent -> Auto-Start**.
-   - Toggle "Enable Auto-Start" for the target seat.
-   - The server sends a `SET_AUTO_START` command; the agent calls `WindowsPlatformService.enableAutoStart()`.
+### Windows
 
-2. **Manual (registry):**
-   The agent's `WindowsPlatformService` writes to:
-   ```
-   HKCU\Software\Microsoft\Windows\CurrentVersion\Run
-   ```
-   Value name: `ArcadeAgent`
-   Value data: `"C:\Program Files\ArcadeAgent\ArcadeAgent.exe"`
+**Via the Dashboard (recommended):**
 
-3. **Disable:**
-   - Via Dashboard: toggle off in **Settings -> Agent -> Auto-Start**.
-   - Manually: delete the `ArcadeAgent` value from the registry above.
+1. Open the Arcade Dashboard.
+2. Navigate to **Settings → Agent → Auto-Start**.
+3. Toggle "Enable Auto-Start" for the target seat.
+4. The server sends a `SET_AUTO_START` command; the agent calls `WindowsPlatformService.enableAutoStart()`.
 
-4. **UAC:** Writes to `HKCU` (current user) do not require admin privileges.
+**Manual (registry):**
+
+The agent's `WindowsPlatformService` writes to:
+
+```
+HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+```
+
+Value name: `ArcadeAgent`
+Value data: `"C:\Program Files\ArcadeAgent\ArcadeAgent.exe"`
+
+**Disable:**
+
+- Via Dashboard: toggle off in **Settings → Agent → Auto-Start**.
+- Manually: delete the `ArcadeAgent` value from the registry above.
+
+**UAC:** Writes to `HKCU` (current user) do not require admin privileges.
 
 ### macOS
 
-- LaunchAgent plist at `~/Library/LaunchAgents/com.arcade.agent.plist`
-- Enable via Dashboard or `platform.enableAutoStart()`.
+**Via the Dashboard (recommended):**
 
-#### Unsigned distribution (macOS)
+Same as Windows — the server sends `SET_AUTO_START`; the agent calls `DarwinPlatformService.enableAutoStart()` (creates a user `LaunchAgent`).
 
-The v1.0 agent is distributed **unsigned** (no Apple Developer ID certificate).
-macOS Gatekeeper blocks unknown-developer apps on first launch. Use one bypass:
+**Manual (LaunchAgent plist):**
 
-1. **Right-click → Open** the app. The first "unidentified developer" dialog shows an
-   **Open** button; later launches are allowed.
-2. **Clear the quarantine flag** (recommended for kiosk / automated installs):
+```xml
+<!-- ~/Library/LaunchAgents/com.arcade.agent.plist -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.arcade.agent</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Applications/Arcade Agent.app/Contents/MacOS/Arcade Agent</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/arcade-agent.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/arcade-agent.err</string>
+</dict>
+</plist>
+```
 
-   ```bash
-   sudo xattr -dr com.apple.quarantine "/Applications/Arcade Agent.app"
-   ```
+Load it: `launchctl load ~/Library/LaunchAgents/com.arcade.agent.plist`
 
-   (`-d` deletes the attribute, `-r` recurses into the bundle. Use `-c` to also clear
-   `com.apple.metadata` if needed.)
-
-3. **Allow per-identity** where you manage the machine:
-
-   ```bash
-   spctl --add "/Applications/Arcade Agent.app"
-   ```
-
-**Known limitation:** an unsigned app has no stable code identity, so macOS
-re-prompts for **Accessibility** and **Screen Recording** permissions after every
-binary change (rebuild, reinstall). Grant them in **System Settings → Privacy &
-Security** after each fresh install. Notarization is a v2 concern.
+**Disable:** `launchctl unload ~/Library/LaunchAgents/com.arcade.agent.plist`
 
 ### Linux
 
-- **Recommended session:** **X11** for client (gaming) PCs. Kiosk lockdown is
-  reliable on X11; see the Wayland note below.
-- **Auto-start:** `~/.config/autostart/arcade-agent.desktop` (XDG autostart).
-  Enable via Dashboard (**Settings → Agent → Auto-Start**) or
-  `platform.enableAutoStart()`. The agent writes:
-  ```
-  [Desktop Entry]
-  Type=Application
-  Name=Arcade Agent
-  Exec=<path to agent binary>
-  X-GNOME-Autostart-enabled=true
-  X-GNOME-Autostart-Delay=5
-  ```
-  Disable via Dashboard or `platform.disableAutoStart()` (deletes the file;
-  safe to run even if it is already absent).
-- **Power control:** `systemctl reboot` / `systemctl poweroff` (falls back to
-  `loginctl reboot` / `loginctl poweroff`). The launching user needs polkit
-  permission to power off / reboot the machine.
-- **Wayland (not recommended for v1.0):** On a native Wayland session, no
-  Electron app-level API can prevent the user from switching away — the
-  compositor owns window stacking. The agent applies `setKiosk` + a
-  `screen-saver` always-on-top hint and logs a warning, but the overlay is
-  **not** bypass-proof on Wayland. For true lockdown, run the agent under a
-  dedicated single-app Wayland compositor, e.g.:
-  ```
-  cage /opt/ArcadeAgent/arcade-agent --ozone-platform-hint=auto
-  ```
-  (`gnome-kiosk` and `ubuntu-frame` are alternatives.) This is the secure
-  deployment path; X11 is the simpler one.
-- **Screenshots:** Work natively on X11. On Wayland they go through the
-  PipeWire portal and require a user-granted screen-share prompt; if denied or
-  unavailable, the capture fails with a clear error (see Troubleshooting).
+**Recommended session: X11** for client (gaming) PCs. Kiosk lockdown is reliable on X11; see the Wayland note below.
+
+**Via the Dashboard (recommended):**
+
+Same flow — the agent calls `LinuxPlatformService.enableAutoStart()` (writes an XDG autostart `.desktop` file).
+
+**Manual (XDG autostart):**
+
+```ini
+# ~/.config/autostart/arcade-agent.desktop
+[Desktop Entry]
+Type=Application
+Name=Arcade Agent
+Exec=/opt/ArcadeAgent/arcade-agent
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
+```
+
+**Disable:** Delete `~/.config/autostart/arcade-agent.desktop` or run `LinuxPlatformService.disableAutoStart()`.
+
+**Power control:** `systemctl reboot` / `systemctl poweroff` (falls back to `loginctl reboot` / `loginctl poweroff`). The launching user needs polkit permission to power off / reboot the machine.
+
+**Wayland (not recommended for v1.0):** On a native Wayland session, no Electron app-level API can prevent the user from switching away — the compositor owns window stacking. The agent applies `setKiosk` + a `screen-saver` always-on-top hint and logs a warning, but the overlay is **not** bypass-proof on Wayland. For true lockdown, run the agent under a dedicated single-app Wayland compositor, e.g.:
+
+```
+cage /opt/ArcadeAgent/arcade-agent --ozone-platform-hint=auto
+```
+
+(`gnome-kiosk` and `ubuntu-frame` are alternatives.) This is the secure deployment path; X11 is the simpler one.
+
+**Screenshots:** Work natively on X11. On Wayland they go through the PipeWire portal and require a user-granted screen-share prompt; if denied or unavailable, the capture fails with a clear error (see Troubleshooting).
+
+### Auto-Start Comparison Table
+
+| Aspect | Windows | macOS | Linux (X11) |
+|--------|---------|-------|-------------|
+| **Mechanism** | Registry `HKCU\...\Run` | User `LaunchAgent` (`~/Library/LaunchAgents`) | XDG autostart (`~/.config/autostart/`) |
+| **Admin required** | No | No | No |
+| **Persistence across reboots** | Yes | Yes | Yes |
+| **Dashboard control** | Yes (`SET_AUTO_START`) | Yes | Yes |
+| **Logs location** | Event Viewer / agent log | `~/Library/Logs` or `StandardOutPath` | `journalctl --user -u arcade-agent` or stdout |
+| **Common issues** | Antivirus blocking registry write | Unsigned app → Gatekeeper blocks; plist not loaded if path wrong | Desktop environment not started yet; `Exec` path wrong |
+
+---
+
+## Per-OS Installation
+
+### Windows Installation
+
+1. **Download the agent installer.**
+   - The Arcade Agent is distributed as an NSIS installer (`ArcadeAgent-<version>-setup.exe`) or a portable `.zip`.
+   - Place the installer on the target gaming PC or copy it across the LAN.
+
+2. **Run the installer.**
+   - Double-click the `.exe` and follow the wizard.
+   - Default install path: `C:\Program Files\ArcadeAgent\`.
+   - For a portable install, extract the `.zip` to any directory.
+
+3. **Place `agent.config.json` next to the agent executable.**
+
+   ```
+   C:\Program Files\ArcadeAgent\
+   ├── ArcadeAgent.exe
+   ├── agent.config.json   <-- place here
+   └── ...
+   ```
+
+   The agent reads `agent.config.json` at startup from the same directory as `ArcadeAgent.exe`.
+
+4. **Configure Windows Firewall (if prompted).**
+   - The first time the agent runs, Windows may block the WebSocket connection.
+   - Allow `ArcadeAgent.exe` through the private network profile.
+
+5. **Verify:** Launch the agent. The kiosk overlay should appear and show "Connecting…" → seat name / cafe name.
+
+---
+
+### macOS Installation
+
+> **Note:** The v1.0 agent is distributed **unsigned** (no Apple Developer ID certificate). macOS Gatekeeper blocks unknown-developer apps on first launch.
+
+#### Method A: Packaged `.dmg` (recommended for operators)
+
+1. **Download** `ArcadeAgent-<version>-arm64.dmg` (Apple Silicon) or `-x64.dmg` (Intel).
+2. **Open the `.dmg`** and drag `Arcade Agent.app` to `/Applications`.
+3. **Bypass Gatekeeper (first launch only):**
+   - **Option 1 (GUI):** Right-click `Arcade Agent.app` → **Open**. The "unidentified developer" dialog shows an **Open** button; later launches are allowed.
+   - **Option 2 (CLI, recommended for kiosk/automated installs):**
+     ```bash
+     sudo xattr -dr com.apple.quarantine "/Applications/Arcade Agent.app"
+     ```
+     (`-d` deletes the attribute, `-r` recurses into the bundle. Use `-c` to also clear `com.apple.metadata` if needed.)
+   - **Option 3 (allow per-identity):**
+     ```bash
+     spctl --add "/Applications/Arcade Agent.app"
+     ```
+
+   **Known limitation:** an unsigned app has no stable code identity, so macOS re-prompts for **Accessibility** and **Screen Recording** permissions after every binary change (rebuild, reinstall). Grant them in **System Settings → Privacy & Security** after each fresh install. Notarization is a v2 concern.
+
+4. **Place `agent.config.json` next to the app bundle:**
+
+   ```
+   /Applications/
+   ├── Arcade Agent.app
+   │   ├── Contents/
+   │   │   ├── MacOS/
+   │   │   │   └── Arcade Agent   <-- executable
+   │   │   └── Resources/
+   │   └── agent.config.json      <-- place HERE (same dir as .app)
+   ```
+
+   The agent resolves the config path relative to `process.execPath` (the executable inside the bundle), so placing it next to the `.app` works.
+
+5. **Grant permissions (first launch):**
+   - **Screen Recording:** Required for screenshots. System Settings → Privacy & Security → Screen Recording → enable for Arcade Agent.
+   - **Accessibility:** Required for global shortcut interception. System Settings → Privacy & Security → Accessibility → enable for Arcade Agent.
+
+6. **Verify:** Launch from `/Applications`. The kiosk overlay should appear.
+
+#### Method B: Run from source (developers)
+
+```bash
+# Prerequisites
+brew install python-tk  # or: xcode-select --install && pip install tk
+# Node.js 20 LTS
+# pnpm or npm
+
+cd agent
+npm install
+npm run build        # produces distributable in agent/dist/
+npm run start        # dev mode (no kiosk)
+```
+
+---
+
+### Linux Installation
+
+#### Prerequisites
+
+| Distro | Command |
+|--------|---------|
+| **Ubuntu / Debian** | `sudo apt update && sudo apt install python3-tk python3-venv libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2` |
+| **Fedora / RHEL** | `sudo dnf install python3-tkinter nss atk at-spi2-atk cups-libs libdrm libxkbcommon xorg-x11-server-Xorg libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib` |
+| **Arch / Manjaro** | `sudo pacman -S tk python nss atk at-spi2-atk cups libdrm libxkbcommon xorg-server xorg-xcomposite xorg-xdamage xorg-xfixes xorg-xrandr mesa alsa-lib` |
+
+> **Why `python3-tk`/`python3-tkinter`?** The launcher (Tkinter) and agent build process both need Tcl/Tk headers at **build time**. The packaged agent (via PyInstaller/electron-builder) bundles its own Tcl/Tk, so the runtime does not need it — but the build host does.
+
+#### Method A: Packaged AppImage (recommended for operators)
+
+1. **Download** `ArcadeAgent-<version>-x86_64.AppImage`.
+2. **Make executable:** `chmod +x ArcadeAgent-*.AppImage`.
+3. **Place `agent.config.json` next to the AppImage:**
+
+   ```
+   /opt/ArcadeAgent/
+   ├── ArcadeAgent-1.0.0-x86_64.AppImage
+   ├── agent.config.json      <-- here
+   └── arcade-agent           <-- symlink to AppImage (optional)
+   ```
+
+4. **Set config permissions:** `chmod 600 agent.config.json`
+5. **Run:** `./ArcadeAgent-1.0.0-x86_64.AppImage`
+
+   **FUSE note:** AppImage requires FUSE. On distros without `fuse2` (e.g., Ubuntu 24.04+), install `libfuse2` or extract: `./ArcadeAgent-*.AppImage --appimage-extract && ./squashfs-root/AppRun`.
+
+#### Method B: `.deb` package
+
+```bash
+sudo apt install ./ArcadeAgent-<version>_amd64.deb
+# Config goes to /etc/arcade-agent/agent.config.json (package default)
+# Or place next to binary: /usr/bin/arcade-agent
+```
+
+#### Method C: Run from source (developers)
+
+```bash
+# Prerequisites (see table above)
+# Node.js 20 LTS, pnpm/npm
+
+cd agent
+npm install
+npm run build
+npm run start
+```
 
 ---
 
@@ -276,24 +431,109 @@ The Arcade Agent runs as a full-screen Electron kiosk overlay (`kiosk:true`, `cl
 
 The following vectors **cannot be blocked at the application level** and are documented as permanent limitations (not bugs):
 
-**Windows**
-- **Ctrl+Alt+Del** (Secure Attention Sequence) and **Ctrl+Shift+Esc** (Task Manager) — OS-level; no userspace app can intercept them.
-- **Win+D** (show desktop / taskbar) — no supported Electron fix (`electron#38020`, unresolved). For true taskbar suppression, replace `explorer.exe` as the shell via `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell` (requires deployment control of the device).
-- **Win+L** (lock) — locks the session; the kiosk overlay re-shows on unlock.
-- **Sticky Keys (Shift×5)** and **PrintScreen / Win+Shift+S** — OS-level accessibility/capture; disable Sticky Keys via Group Policy on managed machines.
+### Windows
 
-**macOS**
-- **Cmd+Option+Esc** (Force Quit) and **Ctrl+Cmd+Power** (power dialog) — OS-level, uninterceptable. (Cmd+Q, Cmd+Tab, Cmd+Space are handled by the agent / kiosk flag; see the matrix.)
+| Vector | Severity | Workaround / Mitigation |
+|--------|----------|-------------------------|
+| **Ctrl+Alt+Del** (Secure Attention Sequence) | Critical | OS-level; no userspace app can intercept. |
+| **Ctrl+Shift+Esc** (Task Manager) | Critical | OS-level; disable via Group Policy on managed machines. |
+| **Win+D** (Show desktop / taskbar) | High | No supported Electron fix (`electron#38020`). For true taskbar suppression, replace `explorer.exe` as the shell via `HKLM\...\Winlogon\Shell` (requires deployment control of the device). |
+| **Win+L** (Lock) | Medium | Locks the session; kiosk re-shows on unlock. |
+| **Sticky Keys (Shift×5)** | Medium | Disable via Group Policy on managed machines. |
+| **PrintScreen / Win+Shift+S** | Medium | OS-level accessibility/capture; disable via Group Policy. |
 
-**Linux — X11**
-- **Alt+Tab** and compositor-specific exits — kiosk mode suppresses these inconsistently across window managers (`electron#3646`). Test per target DE (GNOME/KDE/XFCE/DWM); do not assume parity. X11 is the recommended session for client PCs.
+### macOS
 
-**Linux — Wayland**
-- No Electron-level API prevents switching away — `setAlwaysOnTop('screen-saver')` is non-functional on Wayland (`electron#50403`). For true lockdown, run the agent under a dedicated single-app Wayland compositor:
-  ```
-  cage /opt/ArcadeAgent/arcade-agent --ozone-platform-hint=auto
-  ```
-  (`gnome-kiosk` and `ubuntu-frame` are alternatives.) Screenshots require the PipeWire portal prompt.
+| Vector | Severity | Workaround / Mitigation |
+|--------|----------|-------------------------|
+| **Cmd+Option+Esc** (Force Quit) | Critical | OS-level, uninterceptable. |
+| **Ctrl+Cmd+Power** (Power dialog) | Critical | OS-level, uninterceptable. |
+| **Cmd+Q**, **Cmd+Tab**, **Cmd+Space** | Medium | Handled by agent / kiosk flag; see verification matrix. |
+
+### Linux — X11
+
+| Vector | Severity | Workaround / Mitigation |
+|--------|----------|-------------------------|
+| **Alt+Tab** | High | Kiosk mode suppresses these inconsistently across window managers (`electron#3646`). Test per target DE (GNOME/KDE/XFCE/DWM); do not assume parity. |
+| Compositor-specific exits | Medium | X11 is the recommended session for client PCs. |
+
+### Linux — Wayland
+
+| Vector | Severity | Workaround / Mitigation |
+|--------|----------|-------------------------|
+| **All app-level kiosk escapes** | Critical | No Electron-level API prevents switching away — `setAlwaysOnTop('screen-saver')` is non-functional on Wayland (`electron#50403`). **For true lockdown, run under a dedicated single-app Wayland compositor:** `cage /opt/ArcadeAgent/arcade-agent --ozone-platform-hint=auto` (or `gnome-kiosk`, `ubuntu-frame`). |
+| **Screenshots** | High | Go through PipeWire portal; require user-granted screen-share prompt. If denied/unavailable, capture fails with a clear error. |
+
+### Per-OS Known Limitations Table
+
+| OS | Vector | Severity | Tracking | Workaround |
+|----|--------|----------|----------|------------|
+| Windows | Ctrl+Alt+Del | Critical | OS-protected | Group Policy disable Task Manager |
+| Windows | Win+D | High | electron#38020 | Replace shell; accept gap |
+| Windows | Sticky Keys | Medium | OS accessibility | Group Policy |
+| macOS | Cmd+Opt+Esc | Critical | OS-protected | None |
+| macOS | Ctrl+Cmd+Power | Critical | OS-protected | None |
+| Linux (X11) | Alt+Tab | High | electron#3646 | Test per DE; use X11 |
+| Linux (Wayland) | All kiosk escapes | Critical | electron#50403 | Run under Cage/gnome-kiosk |
+
+---
+
+## Post-Install Verification Checklist
+
+After installing on a client PC, verify each item:
+
+| # | Check | Windows | macOS | Linux |
+|---|-------|---------|-------|-------|
+| 1 | `agent.config.json` present next to executable | ☐ | ☐ | ☐ |
+| 2 | Config permissions `600` (or ACL) | ☐ | ☐ | ☐ |
+| 3 | Agent process starts without error | ☐ | ☐ | ☐ |
+| 4 | Kiosk overlay appears (full-screen, no title bar) | ☐ | ☐ | ☐ |
+| 5 | Dashboard shows seat status `AVAILABLE` (green) | ☐ | ☐ | ☐ |
+| 6 | Health metrics appear in dashboard within 60s | ☐ | ☐ | ☐ |
+| 7 | Start session from dashboard → overlay hides | ☐ | ☐ | ☐ |
+| 8 | End session → overlay shows again | ☐ | ☐ | ☐ |
+| 9 | Screenshot request from dashboard returns image | ☐ | ☐ (grant Screen Recording) | ☐ (X11: yes; Wayland: portal prompt) |
+| 10 | Auto-start survives reboot (if enabled) | ☐ | ☐ | ☐ |
+| 11 | Staff override PIN works (if configured) | ☐ | ☐ | ☐ |
+
+---
+
+## Uninstall / Cleanup
+
+### Windows
+
+1. **Stop the agent** (Task Manager → `ArcadeAgent.exe` → End Task).
+2. **Disable auto-start** (Dashboard or delete `HKCU\...\Run\ArcadeAgent`).
+3. **Uninstall via Settings** → Apps → Arcade Agent → Uninstall, or run the NSIS uninstaller (`C:\Program Files\ArcadeAgent\uninstall.exe`).
+4. **Remove config & logs:**
+   - `C:\Program Files\ArcadeAgent\agent.config.json`
+   - `%APPDATA%\ArcadeAgent\` (logs, local SQLite)
+5. **Firewall rule:** Remove "ArcadeAgent" allow rule if no longer needed.
+
+### macOS
+
+1. **Stop the agent** (Activity Monitor → `Arcade Agent` → Quit).
+2. **Disable auto-start:** `launchctl unload ~/Library/LaunchAgents/com.arcade.agent.plist` (or via Dashboard).
+3. **Delete app:** Drag `/Applications/Arcade Agent.app` to Trash.
+4. **Remove config & logs:**
+   - `/Applications/agent.config.json` (if placed there)
+   - `~/Library/Application Support/ArcadeAgent/` (local SQLite, logs)
+   - `~/Library/LaunchAgents/com.arcade.agent.plist`
+   - `~/Library/Logs/arcade-agent*.log`
+5. **Clear quarantine (if reapplied):** `sudo xattr -dr com.apple.quarantine "/Applications/Arcade Agent.app"`
+
+### Linux
+
+1. **Stop the agent:** `pkill -f arcade-agent` or `systemctl --user stop arcade-agent`.
+2. **Disable auto-start:** `rm ~/.config/autostart/arcade-agent.desktop` (or via Dashboard).
+3. **Remove binary:**
+   - AppImage: delete the `.AppImage` file and `agent.config.json`.
+   - `.deb`: `sudo apt remove arcade-agent`.
+   - Source: delete the `agent/` directory.
+4. **Remove config & logs:**
+   - `/etc/arcade-agent/agent.config.json` (if system-wide)
+   - `~/.config/arcade-agent/` or `~/.local/share/arcade-agent/` (local SQLite, logs)
+   - `~/.config/autostart/arcade-agent.desktop`
 
 ---
 
@@ -336,7 +576,7 @@ The following vectors **cannot be blocked at the application level** and are doc
 ### Kiosk overlay not appearing after Windows boot
 
 - Ensure auto-start is enabled (check registry or Dashboard).
-- Check that the agent process is running (Task Manager -> Processes -> `ArcadeAgent` or `electron`).
+- Check that the agent process is running (Task Manager → Processes → `ArcadeAgent` or `electron`).
 - Check that `agent.config.json` is next to the executable.
 - Review the agent log for connection errors (`1008` = invalid secret, `1006` = server unreachable).
 
@@ -348,12 +588,18 @@ The following vectors **cannot be blocked at the application level** and are doc
 
 ### Screenshot request returns no image
 
-- On Windows: no additional permission is needed.
-- On macOS: grant Screen Recording permission in System Preferences.
-- On Linux (Wayland): screenshots may not work. Consider X11 for client PCs.
+- **Windows:** no additional permission needed.
+- **macOS:** grant Screen Recording permission in System Preferences.
+- **Linux (Wayland):** screenshots may not work. Consider X11 for client PCs.
 
 ### "App is damaged" / "unidentified developer" on macOS
 
 The agent is unsigned. Clear the quarantine flag with
-`sudo xattr -dr com.apple.quarantine "/Applications/Arcade Agent.app"`,
+
+```bash
+sudo xattr -dr com.apple.quarantine "/Applications/Arcade Agent.app"
+```
+
 or run `spctl --add` for the app, or right-click → Open on first launch.
+
+---

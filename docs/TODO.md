@@ -1465,7 +1465,7 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 ### Epic 7.4: Launcher Cross-Platform Testing (ENG-A)
 
-- [~] Test `launcher.py` on macOS: document `brew install python-tk@3.11` prerequisite ( Will test Later)
+- [ ] Test `launcher.py` on macOS: document `brew install python-tk@3.11` prerequisite ( Will test Later)
 - [ ] Test on Ubuntu 22.04: document `sudo apt-get install python3-tk` prerequisite
 - [ ] Verify subprocess spawning of uvicorn works on all 3 OSes
 - [ ] **Definition of done:** AC-15 â€” Launcher runs without errors on all three OSes
@@ -1488,59 +1488,11 @@ Complete the platform abstraction for macOS and Linux. Package the agent for all
 
 ### Documentation Requirements (Phase 7)
 
-- [ ] `docs/agent-setup.md`: complete per-OS installation (Windows, macOS, Linux), file permissions, auto-start, known limitations table
-- [ ] `docs/deployment.md`: Launcher setup on macOS and Linux including Tkinter prerequisite
+- [x] `docs/agent-setup.md`: complete per-OS installation (Windows, macOS, Linux), file permissions, auto-start, known limitations table
+- [x] `docs/deployment.md`: Launcher setup on macOS and Linux including Tkinter prerequisite
 
 ---
 
-## Feature: Simplify Printer Setup — Auto-Detect Connected Printers
-
-### Problem
-The current printer settings screen requires users to manually enter the
-**USB Vendor ID** and **USB Product ID** to connect a printer. This is
-technical, error-prone, and a poor experience for non-technical users.
-
-### Goal
-Replace (or supplement) manual ID entry with an automatic printer picker
-that lists printers already recognized by the operating system, so the
-user can just select one instead of typing IDs.
-
-### Requirements
-1. **Auto-detect printers**
-   - Query the OS for all currently connected/installed printers
-     (USB and network), instead of requiring manual USB vendor/product ID input.
-   - Since the printer is already connected/installed at the OS level, pull
-     the device list from the OS printer/USB subsystem rather than asking
-     the user to look up hardware IDs themselves.
-
-2. **UI changes**
-   - Add a "Detected Printers" list showing printer name (and connection
-     type: USB / Network) for each device found.
-   - User selects a printer from the list → app auto-fills the required
-     connection details (vendor ID, product ID, or network address) behind
-     the scenes.
-   - Keep manual entry as a fallback/advanced option for edge cases where
-     a printer isn't auto-detected.
-
-3. **Cross-platform support**
-   - Must work on **Windows, macOS, and Linux**.
-   - Use OS-native printer enumeration APIs on each platform (e.g.,
-     Windows Print Spooler API, macOS/Linux CUPS) rather than a single
-     library that only supports one OS, so behavior stays consistent.
-
-4. **Connection types**
-   - Support both **USB** and **Network** printers in the detection list,
-     matching the existing "Connection type" selector (USB / Network).
-
-### Acceptance Criteria
-- [ ] Opening printer settings shows a live list of OS-detected printers.
-- [ ] Selecting a printer from the list auto-populates vendor ID / product
-      ID (or IP/network info) without manual entry.
-- [ ] Manual vendor ID / product ID entry still works as a fallback.
-- [ ] Feature verified working on Windows, macOS, and Linux.
-- [ ] Clear empty-state message if no printers are detected (e.g., "No
-      printers found — check your printer is connected or enter details
-      manually").
 
 
 ## Phase 8: Testing & Quality Assurance
@@ -2044,16 +1996,16 @@ To be completed at the end of Phase 13, before any customer delivery.
 - [ ] Agent distributables install on all three OSes
 - [ ] Nightly backup scheduled and tested (manual trigger works)
 - [ ] Backup retention pruning works
-- [ ] `docs/deployment.md` first-run checklist complete and followed successfully
-- [ ] File permissions documented (`chmod 600` for `arcade.config.json`, `agent.config.json`, `license.key`)
+- [x] `docs/deployment.md` first-run checklist complete and followed successfully
+- [x] File permissions documented (`chmod 600` for `arcade.config.json`, `agent.config.json`, `license.key`)
 
 ### Documentation
 
 - [ ] No `TODO` placeholders in any `.md` file
 - [ ] OpenAPI spec exported and accurate
 - [ ] `docs/operator-guide.md` reviewed by a non-technical person
-- [ ] `docs/deployment.md` followed successfully on a fresh machine
-- [ ] Known platform limitations table in `docs/agent-setup.md`
+- [x] `docs/deployment.md` followed successfully on a fresh machine
+- [x] Known platform limitations table in `docs/agent-setup.md`
 
 ### Operations
 
