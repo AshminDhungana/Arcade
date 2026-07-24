@@ -3,17 +3,18 @@
 import asyncio
 import secrets
 
+from sqlalchemy import delete, select
+
 from backend.core.database import AsyncSessionLocal
 from backend.models import PricingModel, Seat, SeatStatus, Zone
 
 
 async def seed_load_test() -> None:
+    """Create 50 load test seats with unique agent secrets."""
     async with AsyncSessionLocal() as db:
         # Ensure zones exist
-        from sqlalchemy import select
-
-        zones_result = await db.execute(select(Zone))
-        zone_list = zones_result.scalars().all()
+        zones = await db.execute(select(Zone))
+        zone_list = zones.scalars().all()
         if len(zone_list) < 2:
             # Create zones if missing
             zone1 = Zone(
@@ -34,12 +35,10 @@ async def seed_load_test() -> None:
             await db.flush()
             zone_list = [zone1, zone2]
 
-        # Delete existing load-test seats (idempotent)
-        from sqlalchemy import delete
-
+        # Delete existing load test seats (idempotent)
         await db.execute(delete(Seat).where(Seat.name.like("Load-%")))
 
-        # Create 50 seats with unique agent secrets
+        # Create 50 seats
         seats = []
         for i in range(1, 51):
             zone = zone_list[(i - 1) // 25]
