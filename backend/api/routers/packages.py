@@ -67,9 +67,11 @@ async def sell_package_to_member(
         db,
         member_id=member_id,
         package_id=body.package_id,
-        payment_method=body.payment_method.value
-        if isinstance(body.payment_method, PaymentMethod)
-        else body.payment_method,
+        payment_method=(
+            body.payment_method.value
+            if isinstance(body.payment_method, PaymentMethod)
+            else body.payment_method
+        ),
         staff=staff,
     )
     return MemberPackageEntitlementResponse.model_validate(entitlement)

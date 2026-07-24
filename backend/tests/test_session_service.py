@@ -649,14 +649,17 @@ async def _start_with_limit(
     with patch("backend.services.session_service.ws_manager") as mock_ws:
         mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
         mock_ws.send_to_agent = AsyncMock(return_value=None)
-        return await start_session(
-            db,
-            seat_id=seat.id,
-            member_id=None,
-            staff=staff_member,
-            time_now=now,
-            assigned_minutes=minutes,
-        ), seat
+        return (
+            await start_session(
+                db,
+                seat_id=seat.id,
+                member_id=None,
+                staff=staff_member,
+                time_now=now,
+                assigned_minutes=minutes,
+            ),
+            seat,
+        )
 
 
 async def test_extend_in_use_pushes_deadline(

@@ -78,16 +78,14 @@ async def test_local_cache_survives_process_crash(
 
         # Process 1: create session
         conn1 = sqlite3.connect(local_db_path)
-        conn1.execute(
-            """
+        conn1.execute("""
             CREATE TABLE IF NOT EXISTS local_sessions (
                 session_id TEXT PRIMARY KEY,
                 seat_id TEXT,
                 local_elapsed_seconds REAL DEFAULT 0,
                 status TEXT
             )
-            """
-        )
+            """)
         session_id = "session-crash-test-123"
         conn1.execute(
             """

@@ -189,9 +189,9 @@ class PromotionService:
                     "member_id": session.member_id,
                     "status": session.status.value,
                     "promotion_id": session.promotion_id,
-                    "started_at": session.started_at.isoformat()
-                    if session.started_at
-                    else None,
+                    "started_at": (
+                        session.started_at.isoformat() if session.started_at else None
+                    ),
                 },
             )
         except Exception as exc:  # pragma: no cover - non-blocking

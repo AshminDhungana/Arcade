@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from sqlalchemy import event, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
@@ -145,7 +146,7 @@ async def test_staff_zone_composite_pk():
             )
             db.add(assign2)
 
-            with pytest.raises(Exception):  # noqa: B017 - IntegrityError on duplicate PK
+            with pytest.raises(IntegrityError):  # IntegrityError on duplicate PK
                 await db.flush()
     finally:
         await engine.dispose()

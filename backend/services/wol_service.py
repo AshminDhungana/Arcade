@@ -73,9 +73,9 @@ async def _broadcast_seat_update(seat: Seat) -> None:
         "seat_updated",
         {
             "seat_id": seat.id,
-            "status": seat.status.name
-            if hasattr(seat.status, "name")
-            else str(seat.status),
+            "status": (
+                seat.status.name if hasattr(seat.status, "name") else str(seat.status)
+            ),
         },
     )
 

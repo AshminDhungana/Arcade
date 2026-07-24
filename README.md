@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🕹️ Arcade — Gaming Cafe Management Software
+# 🎮 Arcade — Gaming Cafe Management Software
 
 **The self‑hosted operating system for gaming cafes.**
 

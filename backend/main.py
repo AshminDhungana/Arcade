@@ -193,7 +193,11 @@ def _get_cors_origins() -> list[str]:
     # In production the host may be a specific LAN IP; fall back to wildcard
     # only in dev (safer default).
     host = config.host
-    if host in ("0.0.0.0", "127.0.0.1", "localhost"):  # nosec B104  # noqa: S104 – dev host check
+    # Dev hosts — not production bindings (Bandit/ruff false positive)
+    # This check allows CORS for dev hosts; the server itself binds to config.host
+    # which is safe since it comes from the validated config file.
+    dev_hosts = ("0.0.0.0", "127.0.0.1", "localhost")  # noqa: S104  # nosec
+    if host in dev_hosts:
         return ["http://localhost:*"]
     return [f"http://{host}:{config.port}"]
 
