@@ -12,3 +12,7 @@ pip-audit==2.7.3
 locust==2.44.4
 faker==40.23.0
 types-python-jose==3.5.0.20260408
+
+# Load testing
+psutil==6.0.0
+websockets==13.0
