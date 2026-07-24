@@ -50,50 +50,73 @@ MENU = [
 
 async def seed_structural(db) -> None:  # type: ignore[no-untyped-def]
     """Create 2 zones, 8 seats, 5 menu items, 3 members."""
-    zones = [
-        Zone(
-            name=ZONE_NAMES[0],
-            rate_per_minute_paise=20,
-            rate_per_hour_paise=1200,
-            pricing_model="PER_MINUTE",
-            block_minutes=15,
-        ),
-        Zone(
-            name=ZONE_NAMES[1],
-            rate_per_minute_paise=30,
-            rate_per_hour_paise=1800,
-            pricing_model="PER_MINUTE",
-            block_minutes=15,
-        ),
-    ]
-    db.add_all(zones)
-    await db.flush()
-    seats = []
-    for i, zone in enumerate(zones):
-        for j in range(1, 5):
-            seats.append(
-                Seat(
-                    name=f"Seat {i * 4 + j:03d}",
-                    zone_id=zone.id,
-                    mac_address=f"00:11:22:33:44:{i * 4 + j:02x}",
-                    status=SeatStatus.AVAILABLE.value,
-                    is_console=(j > 2),
+    # Only create if not exists (idempotent for re-runs)
+    existing_zones = (await db.scalars(select(Zone))).all()
+    if not existing_zones:
+        zones = [
+            Zone(
+                name=ZONE_NAMES[0],
+                rate_per_minute_paise=20,
+                rate_per_hour_paise=1200,
+                pricing_model="PER_MINUTE",
+                block_minutes=15,
+            ),
+            Zone(
+                name=ZONE_NAMES[1],
+                rate_per_minute_paise=30,
+                rate_per_hour_paise=1800,
+                pricing_model="PER_MINUTE",
+                block_minutes=15,
+            ),
+        ]
+        db.add_all(zones)
+        await db.flush()
+    else:
+        zones = existing_zones
+
+    existing_seats = (await db.scalars(select(Seat))).all()
+    if not existing_seats:
+        seats = []
+        for i, zone in enumerate(zones):
+            for j in range(1, 5):
+                seats.append(
+                    Seat(
+                        name=f"Seat {i * 4 + j:03d}",
+                        zone_id=zone.id,
+                        mac_address=f"00:11:22:33:44:{i * 4 + j:02x}",
+                        status=SeatStatus.AVAILABLE.value,
+                        is_console=(j > 2),
+                    )
                 )
-            )
-    db.add_all(seats)
-    db.add_all(
-        [
-            Member(name="Alice", phone="+9779800000001", tier=MemberTier.BRONZE.value),
-            Member(name="Bob", phone="+9779800000002", tier=MemberTier.SILVER.value),
-            Member(name="Charlie", phone="+9779800000003", tier=MemberTier.GOLD.value),
-        ]
-    )
-    db.add_all(
-        [
-            MenuItem(name=n, category=c, price_paise=p, is_available=True)
-            for n, c, p in MENU
-        ]
-    )
+        db.add_all(seats)
+    else:
+        seats = existing_seats
+
+    existing_members = (await db.scalars(select(Member))).all()
+    if len(existing_members) < 3:
+        db.add_all(
+            [
+                Member(
+                    name="Alice", phone="+9779800000001", tier=MemberTier.BRONZE.value
+                ),
+                Member(
+                    name="Bob", phone="+9779800000002", tier=MemberTier.SILVER.value
+                ),
+                Member(
+                    name="Charlie", phone="+9779800000003", tier=MemberTier.GOLD.value
+                ),
+            ]
+        )
+
+    existing_menu = (await db.scalars(select(MenuItem))).all()
+    if not existing_menu:
+        db.add_all(
+            [
+                MenuItem(name=n, category=c, price_paise=p, is_available=True)
+                for n, c, p in MENU
+            ]
+        )
+
     await db.flush()
 
 

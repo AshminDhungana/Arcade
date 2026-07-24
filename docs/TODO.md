@@ -1561,13 +1561,13 @@ Comprehensive automated test coverage, end-to-end testing of all 23 SRS acceptan
 
 #### Feature 8.1.2: Load and Performance Tests
 
-- [ ] **Task: 50 concurrent WebSocket connections performance test**
-  - [ ] Use `locust` with `websockets` library or `pytest-benchmark`
-  - [ ] Simulate 50 agents: each connects, sends HEALTH messages every 60 seconds
-  - [ ] Simulate 3 dashboard clients receiving seat broadcasts
-  - [ ] Measure CPU usage, message delivery latency, memory usage
-  - [ ] **Pass criteria:** No messages dropped; broadcast latency < 1 second; server CPU < 80% (NFR-PERF-001, NFR-PERF-003)
-  - [ ] Add seeded dataset test: `backend/scripts/seed_year_data.py` â€” seeds 365 days Ã— 100 sessions/day; run analytics queries; verify all complete < 2 seconds
+- [x] **Task: 50 concurrent WebSocket connections performance test**
+  - [x] Use `locust` with `websockets` library or `pytest-benchmark`
+  - [x] Simulate 50 agents: each connects, sends HEALTH messages every 60 seconds
+  - [x] Simulate 3 dashboard clients receiving seat broadcasts
+  - [x] Measure CPU usage, message delivery latency, memory usage
+  - [x] **Pass criteria:** No messages dropped; broadcast latency < 1 second; server CPU < 80% (NFR-PERF-001, NFR-PERF-003)
+  - [x] Add seeded dataset test: `backend/scripts/seed_year_data.py` â€” seeds 365 days Ã— 100 sessions/day; run analytics queries; verify all complete < 2 seconds
 
 #### Feature 8.1.3: CI Pipeline (GitHub Actions)
 
