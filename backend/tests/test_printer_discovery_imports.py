@@ -26,8 +26,10 @@ def test_cups_dependencies_importable():
     if sys.platform != "win32":
         import cups
 
-        conn = cups.Connection()
-        assert hasattr(conn, "getPrinters")
-        assert hasattr(conn, "getDefault")
+        # Verify the module imports and has expected attributes
+        # Don't actually connect - no CUPS server in CI
+        assert hasattr(cups, "Connection")
+        assert hasattr(cups.Connection, "getPrinters")
+        assert hasattr(cups.Connection, "getDefault")
     else:
         pytest.skip("CUPS not on Windows")
