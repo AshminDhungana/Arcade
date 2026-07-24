@@ -58,7 +58,10 @@ async def wait_for_condition(coro, timeout: float = 5.0, interval: float = 0.1):
     """Poll an async condition until true or timeout."""
     start = time.monotonic()
     while time.monotonic() - start < timeout:
-        if await coro():
+        result = coro()
+        if asyncio.iscoroutine(result):
+            result = await result
+        if result:
             return
         await asyncio.sleep(interval)
     raise TimeoutError(f"Condition not met within {timeout}s")

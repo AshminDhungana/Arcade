@@ -59,19 +59,9 @@ async def file_db() -> AsyncGenerator[tuple[AsyncSession, Path]]:
 async def integration_client(
     integration_db: AsyncSession,
 ) -> AsyncGenerator[AsyncClient]:
-    from backend.api.deps import get_current_staff, get_db
-    from backend.models import StaffRole
-
-    # Mock staff for auth
-    class MockStaff:
-        id = "test-staff-id"
-        name = "Test Cashier"
-        is_active = True
-        token_version = 0
-        role = StaffRole.CASHIER
+    from backend.api.deps import get_db
 
     app.dependency_overrides[get_db] = lambda: integration_db
-    app.dependency_overrides[get_current_staff] = lambda: MockStaff()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -147,4 +137,34 @@ def mock_staff():
         is_active=True,
         token_version=0,
     )
+    return staff
+
+
+# Admin staff fixture for tests needing ADMIN role with zone access
+@pytest_asyncio.fixture
+async def admin_staff(integration_db, seeded_zone):
+    from backend.models import StaffRole
+    from backend.repositories import staff_repo, staff_zone_repo
+
+    admin = await staff_repo.create(
+        integration_db, name="Admin", pin_hash="argon2id$", role=StaffRole.ADMIN
+    )
+    await integration_db.commit()
+    await staff_zone_repo.assign_zone(
+        integration_db, staff_id=admin.id, zone_id=seeded_zone.id, granted_by=admin.id
+    )
+    await integration_db.commit()
+    return admin
+
+
+# Admin staff fixture for bypassing zone checks
+@pytest.fixture
+async def admin_staff(integration_db):
+    from backend.models import StaffRole
+    from backend.repositories import staff_repo
+
+    staff = await staff_repo.create(
+        integration_db, name="Test Admin", pin_hash="argon2id$", role=StaffRole.ADMIN
+    )
+    await integration_db.commit()
     return staff

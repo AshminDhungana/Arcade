@@ -401,6 +401,12 @@ class WebSocketManager:
                 session = await session_repo.get_by_id(db, session_id)
                 if session is not None and session.status == SessionStatus.ACTIVE:
                     started_at = session.started_at
+                    # Ensure timezone-aware datetime (SQLite may return naive)
+                    if (
+                        started_at.tzinfo is None
+                        or started_at.tzinfo.utcoffset(started_at) is None
+                    ):
+                        started_at = started_at.replace(tzinfo=UTC)
                     total_paused = float(session.total_paused_seconds or 0)
                     now = datetime.now(UTC)
                     sae_seconds = server_anchor_elapsed(started_at, total_paused, now)
