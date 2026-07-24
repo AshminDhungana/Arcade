@@ -6,7 +6,7 @@ import secrets
 from sqlalchemy import delete, select
 
 from backend.core.database import AsyncSessionLocal
-from backend.models import PricingModel, Seat, SeatStatus, Zone
+from backend.models import GamingSession, PricingModel, Seat, SeatStatus, Zone
 
 
 async def seed_load_test() -> None:
@@ -35,10 +35,38 @@ async def seed_load_test() -> None:
             await db.flush()
             zone_list = [zone1, zone2]
 
-        # Delete existing load test seats (idempotent)
-        await db.execute(delete(Seat).where(Seat.name.like("Load-%")))
+        # Check if load test seats already exist
+        existing_seats = await db.execute(select(Seat).where(Seat.name.like("Load-%")))
+        existing = existing_seats.scalars().all()
 
-        # Create 50 seats
+        if len(existing) >= 50:
+            print(
+                f"Found {len(existing)} existing load test seats, updating secrets..."
+            )
+            for seat in existing[:50]:
+                if not seat.agent_secret:
+                    seat.agent_secret = secrets.token_hex(32)
+            await db.commit()
+            for seat in existing[:50]:
+                await db.refresh(seat)
+                print(f"Updated {seat.name}: secret={seat.agent_secret[:8]}...")
+            return
+
+        # Clean up old Load-* seats and their dependent sessions
+        # (FK constraints prevent direct delete if sessions reference them)
+        old_seats = await db.execute(select(Seat).where(Seat.name.like("Load-%")))
+        old_seat_list = old_seats.scalars().all()
+        if old_seat_list:
+            old_ids = [s.id for s in old_seat_list]
+            await db.execute(
+                delete(GamingSession).where(GamingSession.seat_id.in_(old_ids))
+            )
+            await db.flush()
+            for s in old_seat_list:
+                await db.delete(s)
+            await db.flush()
+
+        # Create 50 seats with unique agent secrets
         seats = []
         for i in range(1, 51):
             zone = zone_list[(i - 1) // 25]
