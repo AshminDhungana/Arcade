@@ -1,11 +1,11 @@
 [project]
 name = "arcade-backend"
 version = "0.0.0"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py312"
 # Exclude validation spikes (frozen ARCH-* artifacts) and the venv.
 extend-exclude = ["backend/tests/validation_tasks", "backend/venv", "backend/arch01_app.py", "backend/arch01_stress_test.py", "alembic/versions"]
 
@@ -27,12 +27,12 @@ select = ["E", "F", "I", "UP", "B", "S"]
 
 [tool.black]
 line-length = 88
-target-version = ["py313"]
+target-version = ["py312"]
 # Exclude validation spikes (frozen ARCH-* artifacts) and the venv.
 extend-exclude = "backend/(venv|tests/validation_tasks|arch01_app\\.py|arch01_stress_test\\.py)|alembic/versions"
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.12"
 strict = true
 exclude = "(venv|tests/|arch01_)"
 plugins = ["pydantic.mypy"]
