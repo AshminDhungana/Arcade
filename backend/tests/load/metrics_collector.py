@@ -4,6 +4,8 @@ import asyncio
 import time
 from dataclasses import dataclass, field
 
+import psutil
+
 
 @dataclass
 class MetricsSnapshot:
@@ -43,13 +45,11 @@ class MetricsCollector:
         self.interval = interval
         self._task: asyncio.Task | None = None
         self.summary = MetricsSummary()
-        self._process = None
+        self._process: psutil.Process | None = None
 
     async def start(self) -> None:
-        import psutil
-
         self._process = psutil.Process(self.pid)
-        # Prime cpu_percent()
+        # Prime cpu_percent() for time-average measurement
         self._process.cpu_percent(interval=None)
         self.summary.start_time = time.time()
         self._task = asyncio.create_task(self._sample_loop())
@@ -72,9 +72,7 @@ class MetricsCollector:
                 rss_mb = self._process.memory_info().rss / (1024 * 1024)
                 self.summary.samples.append(
                     MetricsSnapshot(
-                        timestamp=time.time(),
-                        cpu_percent=cpu,
-                        memory_rss_mb=rss_mb,
+                        timestamp=time.time(), cpu_percent=cpu, memory_rss_mb=rss_mb
                     )
                 )
 
@@ -82,13 +80,12 @@ class MetricsCollector:
         return self.summary
 
 
-async def test_collector() -> None:
-    import os
-
-    c = MetricsCollector(os.getpid(), interval=0.1)
-    await c.start()
+async def _self_test():
+    """Quick self-test when run directly."""
+    collector = MetricsCollector(pid=psutil.os.getpid(), interval=0.1)
+    await collector.start()
     await asyncio.sleep(0.5)
-    summary = await c.stop()
+    summary = await collector.stop()
     print(
         f"Samples: {len(summary.samples)}, "
         f"Avg CPU: {summary.avg_cpu:.1f}%, "
@@ -97,4 +94,4 @@ async def test_collector() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(test_collector())
+    asyncio.run(_self_test())
