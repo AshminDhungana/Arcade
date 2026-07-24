@@ -20,7 +20,8 @@ async def test_ws_register_rejects_missing_secret(
     mock_ws = AsyncMock()
     mock_ws.accept = AsyncMock()
 
-    # Mock seat_repo.get_agent_secret at the module where it's used (inside connect_agent)
+    # Mock seat_repo.get_agent_secret at the module where it's used
+    # (inside connect_agent)
     with patch(
         "backend.repositories.seat_repo.get_agent_secret", new_callable=AsyncMock
     ) as mock_get_secret:

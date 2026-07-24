@@ -25,7 +25,6 @@ async def test_screenshot_max_dimensions_1280x720(
     buffer = BytesIO()
     large_img.save(buffer, format="JPEG", quality=95)
     large_img_data = buffer.getvalue()
-    large_img_b64 = base64.b64encode(large_img_data).decode()
 
     # Mock agent connection
     mock_ws = AsyncMock()
@@ -90,8 +89,7 @@ async def test_screenshot_max_size_limit(
     large_data = buffer.getvalue()
 
     # Base64 overhead ~33%
-    large_b64 = base64.b64encode(large_data).decode()
-    msg_size = len(large_b64)
+    _ = base64.b64encode(large_data).decode()
 
     # This documents the constraint - actual limit enforced at wire level
     assert MAX_MESSAGE_SIZE == 5 * 1024 * 1024
@@ -104,6 +102,7 @@ async def test_screenshot_rate_limit_enforced(
     from backend.core.ws_manager import manager as ws_manager
     from backend.services.remote_command_service import (
         ScreenshotInFlightError,
+        ScreenshotTimeoutError,
         request_screenshot,
     )
 
@@ -210,7 +209,7 @@ async def test_screenshot_dashboard_receives_thumbnail(
         # Also capture broadcast_to_dashboards call
         with patch.object(
             ws_manager, "broadcast_to_dashboards", new_callable=AsyncMock
-        ) as mock_broadcast:
+        ):
             result = await request_screenshot(
                 integration_db, seeded_seat.id, admin_staff
             )

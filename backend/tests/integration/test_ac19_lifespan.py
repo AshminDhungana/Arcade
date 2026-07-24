@@ -1,4 +1,5 @@
-"""AC-19: Lifespan startup/shutdown — no deprecation warnings, proper async lifecycle."""
+"""AC-19: Lifespan startup/shutdown — no deprecation warnings,
+proper async lifecycle."""
 
 import os
 import tempfile
@@ -42,7 +43,9 @@ async def test_lifespan_startup_no_deprecation_warnings():
             ]
 
             for dw in deprecation_warnings:
-                assert False, f"Deprecation warning in backend code: {dw.message}"
+                raise AssertionError(
+                    f"Deprecation warning in backend code: {dw.message}"
+                )
     finally:
         os.environ.pop("ARCADE_DB_PATH", None)
         db_path.unlink(missing_ok=True)
@@ -100,7 +103,7 @@ async def test_lifespan_startup_starts_scheduler():
 
         from backend.main import app, lifespan
 
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True) as _:
             warnings.simplefilter("always")
 
             async with lifespan(app):
@@ -120,7 +123,8 @@ async def test_lifespan_startup_starts_scheduler():
 
 
 async def test_lifespan_startup_starts_websocket_manager():
-    """Lifespan starts WebSocket manager (heartbeat task starts lazily on first connection)."""
+    """Lifespan starts WebSocket manager
+    (heartbeat task starts lazily on first connection)."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
         db_path = Path(tmp.name)
 
@@ -180,9 +184,8 @@ async def test_lifespan_shutdown_cancels_tasks():
 
             # Connect to trigger heartbeat
             client = TestClient(app)
-            with client.websocket_connect("/ws/dashboard") as ws:
-                # Heartbeat task should now be running
-                pass  # Just trigger connection
+            with client.websocket_connect("/ws/dashboard"):
+                pass  # Heartbeat task should now be running
 
             from backend.core.scheduler import shutdown_scheduler
 
@@ -335,7 +338,7 @@ async def test_lifespan_backup_scheduler_registered():
 
         from backend.main import app, lifespan
 
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True) as _:
             warnings.simplefilter("always")
 
             async with lifespan(app):

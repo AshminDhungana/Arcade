@@ -101,8 +101,8 @@ async def test_analytics_summary_fields(integration_client, integration_db):
     # Type checks
     assert isinstance(data["total_revenue_paise"], int)
     assert isinstance(data["session_count"], int)
-    assert isinstance(data["average_duration_seconds"], (int, float))
-    assert isinstance(data["busiest_hour"], (dict, type(None)))
+    assert isinstance(data["average_duration_seconds"], int | float)
+    assert isinstance(data["busiest_hour"], dict | None)
     assert isinstance(data["weekly_revenue"], list)
     assert isinstance(data["top_pos_items"], list)
     assert isinstance(data["member_registration_trend"], list)

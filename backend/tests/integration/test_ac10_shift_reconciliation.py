@@ -244,7 +244,8 @@ async def test_shift_close_with_card_payments_ignored_for_cash(
 async def test_shift_close_wallet_payments(
     integration_client, integration_db, seeded_zone, seeded_seat, admin_staff
 ):
-    """Wallet payments are NOT treated like cash for reconciliation (current implementation)."""
+    """Wallet payments are NOT treated like cash for reconciliation
+    (current implementation)."""
     shift = await shift_service.open_shift(
         integration_db, staff_id=admin_staff.id, opening_cash_paise=50000
     )

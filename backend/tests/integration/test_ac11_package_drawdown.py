@@ -11,7 +11,8 @@ from backend.services import billing_service, package_service, session_service
 async def test_package_drawdown_exhausted_on_checkout(
     integration_client, integration_db, seeded_zone, seeded_seat, admin_staff
 ):
-    """Package entitlement is fully exhausted after session checkout exceeds package minutes."""
+    """Package entitlement is fully exhausted after session
+    checkout exceeds package minutes."""
     # Enable feature flags
     _flag_cache["enable_packages"] = True
     _flag_cache["enable_pos"] = True
@@ -146,7 +147,8 @@ async def test_package_drawdown_partial_usage(
 async def test_package_drawdown_fifo_multiple_packages(
     integration_client, integration_db, seeded_zone, seeded_seat, admin_staff
 ):
-    """Multiple packages consumed - only the session's entitlement is drawn down (current behavior)."""
+    """Multiple packages consumed - only the session's entitlement
+    is drawn down (current behavior)."""
     _flag_cache["enable_packages"] = True
 
     member = await member_repo.create(
@@ -201,7 +203,8 @@ async def test_package_drawdown_fifo_multiple_packages(
     session_obj = await session_repo.get_by_id(integration_db, session.id)
     # Session gets the first (FIFO) entitlement
     session_obj.package_entitlement_id = ent1.id
-    # 45 minutes will exhaust first package (30 min) but second package is NOT auto-consumed
+    # 45 minutes will exhaust first package (30 min) but second
+    # package is NOT auto-consumed
     session_obj.started_at = datetime.now(UTC) - __import__("datetime").timedelta(
         minutes=45
     )
@@ -212,10 +215,12 @@ async def test_package_drawdown_fifo_multiple_packages(
     )
     await integration_db.commit()
 
-    # First package partially exhausted (used 30 of 45 minutes), second package untouched (only session's entitlement is used)
+    # First package partially exhausted (used 30 of 45 minutes),
+    # second package untouched (only session's entitlement is used)
     refreshed1 = await package_repo.get_entitlement_by_id(integration_db, ent1.id)
     refreshed2 = await package_repo.get_entitlement_by_id(integration_db, ent2.id)
-    # 45 min session, first package has 30 min -> 30 min used, 0 remaining (exhausted)
+    # 45 min session, first package has 30 min -> 30 min used,
+    # 0 remaining (exhausted)
     assert refreshed1.remaining_minutes == 0
     assert refreshed1.status == EntitlementStatus.EXHAUSTED
     # Second package is NOT touched because it's not attached to the session

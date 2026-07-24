@@ -57,7 +57,8 @@ async def test_audit_log_repo_has_no_update_method(
 async def test_audit_log_direct_delete_fails(
     integration_client, integration_db, seeded_zone, seeded_seat, admin_staff
 ):
-    """Direct SQL DELETE on audit log is prevented by application logic (not enforced by DB)."""
+    """Direct SQL DELETE on audit log is prevented by application logic
+    (not enforced by DB)."""
     from backend.repositories import audit_repo
     from backend.services import audit_service
 

@@ -155,16 +155,3 @@ async def admin_staff(integration_db, seeded_zone):
     )
     await integration_db.commit()
     return admin
-
-
-# Admin staff fixture for bypassing zone checks
-@pytest.fixture
-async def admin_staff(integration_db):
-    from backend.models import StaffRole
-    from backend.repositories import staff_repo
-
-    staff = await staff_repo.create(
-        integration_db, name="Test Admin", pin_hash="argon2id$", role=StaffRole.ADMIN
-    )
-    await integration_db.commit()
-    return staff

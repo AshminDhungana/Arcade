@@ -234,7 +234,7 @@ async def test_tinytuya_version_33_support(
         mock_device = MagicMock()
         mock_device_class.return_value = mock_device
 
-        device = _build_device(device_cfg)
+        _build_device(device_cfg)
 
         mock_device_class.assert_called_with(
             "device-123", "192.168.1.100", "local-key-123", version="3.3"

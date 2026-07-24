@@ -42,9 +42,10 @@ async def test_local_session_cache_created_on_session_start(
         # Insert session record (what agent would do on start)
         conn.execute(
             """
-            INSERT INTO local_sessions (session_id, seat_id, member_id, started_at, status, local_elapsed_seconds)
+            INSERT INTO local_sessions
+            (session_id, seat_id, member_id, started_at, status, local_elapsed_seconds)
             VALUES (?, ?, ?, ?, ?, ?)
-        """,
+            """,
             (
                 session.id,
                 seeded_seat.id,
@@ -77,20 +78,23 @@ async def test_local_cache_survives_process_crash(
 
         # Process 1: create session
         conn1 = sqlite3.connect(local_db_path)
-        conn1.execute("""
+        conn1.execute(
+            """
             CREATE TABLE IF NOT EXISTS local_sessions (
                 session_id TEXT PRIMARY KEY,
                 seat_id TEXT,
                 local_elapsed_seconds REAL DEFAULT 0,
                 status TEXT
             )
-        """)
+            """
+        )
         session_id = "session-crash-test-123"
         conn1.execute(
             """
-            INSERT INTO local_sessions (session_id, seat_id, local_elapsed_seconds, status)
+            INSERT INTO local_sessions
+            (session_id, seat_id, local_elapsed_seconds, status)
             VALUES (?, ?, ?, ?)
-        """,
+            """,
             (session_id, seeded_seat.id, 300.0, "ACTIVE"),
         )
         conn1.commit()
@@ -101,7 +105,8 @@ async def test_local_cache_survives_process_crash(
         # Process 2: restart, read local cache
         conn2 = sqlite3.connect(local_db_path)
         cursor = conn2.execute(
-            "SELECT session_id, local_elapsed_seconds FROM local_sessions WHERE session_id = ?",
+            "SELECT session_id, local_elapsed_seconds "
+            "FROM local_sessions WHERE session_id = ?",
             (session_id,),
         )
         row = cursor.fetchone()
@@ -133,16 +138,18 @@ async def test_local_cache_written_every_10_seconds(
         session_id = "session-write-test"
         start_time = datetime.now(UTC)
 
-        # Simulate writes every 10 seconds for 30 seconds - use INSERT OR REPLACE on same key
-        # This actually replaces the same row, so only 1 row exists at the end
-        # The test documents the expected behavior - agent updates the same row
+        # Simulate writes every 10 seconds for 30 seconds - use INSERT OR REPLACE
+        # on same key. This actually replaces the same row, so only 1 row exists
+        # at the end. The test documents the expected behavior - agent updates
+        # the same row.
         for i in range(4):  # 0, 10, 20, 30 seconds
             elapsed = i * 10
             conn.execute(
                 """
-                INSERT OR REPLACE INTO local_sessions (session_id, seat_id, local_elapsed_seconds, last_write_at)
+                INSERT OR REPLACE INTO local_sessions
+                (session_id, seat_id, local_elapsed_seconds, last_write_at)
                 VALUES (?, ?, ?, ?)
-            """,
+                """,
                 (
                     session_id,
                     seeded_seat.id,
@@ -154,7 +161,8 @@ async def test_local_cache_written_every_10_seconds(
 
         # Verify the last write has the correct value (30 seconds)
         cursor = conn.execute(
-            "SELECT local_elapsed_seconds FROM local_sessions WHERE session_id = ? ORDER BY last_write_at",
+            "SELECT local_elapsed_seconds FROM local_sessions "
+            "WHERE session_id = ? ORDER BY last_write_at",
             (session_id,),
         )
         rows = cursor.fetchall()
@@ -193,9 +201,11 @@ async def test_local_cache_written_on_pause_resume_end(
         start_time = datetime.now(UTC)
         conn.execute(
             """
-            INSERT INTO local_sessions (session_id, seat_id, status, local_elapsed_seconds, last_event_at, last_event_type)
+            INSERT INTO local_sessions
+            (session_id, seat_id, status, local_elapsed_seconds,
+             last_event_at, last_event_type)
             VALUES (?, ?, ?, ?, ?, ?)
-        """,
+            """,
             (session_id, seeded_seat.id, "ACTIVE", 0, start_time.isoformat(), "START"),
         )
         conn.commit()
@@ -204,9 +214,11 @@ async def test_local_cache_written_on_pause_resume_end(
         pause_time = start_time + timedelta(seconds=100)
         conn.execute(
             """
-            UPDATE local_sessions SET status=?, local_elapsed_seconds=?, total_paused_seconds=?, last_event_at=?, last_event_type=?
+            UPDATE local_sessions
+            SET status=?, local_elapsed_seconds=?, total_paused_seconds=?,
+                last_event_at=?, last_event_type=?
             WHERE session_id=?
-        """,
+            """,
             ("PAUSED", 100, 0, pause_time.isoformat(), "PAUSE", session_id),
         )
         conn.commit()
@@ -215,9 +227,10 @@ async def test_local_cache_written_on_pause_resume_end(
         resume_time = pause_time + timedelta(seconds=20)
         conn.execute(
             """
-            UPDATE local_sessions SET status=?, total_paused_seconds=?, last_event_at=?, last_event_type=?
+            UPDATE local_sessions
+            SET status=?, total_paused_seconds=?, last_event_at=?, last_event_type=?
             WHERE session_id=?
-        """,
+            """,
             ("ACTIVE", 20, resume_time.isoformat(), "RESUME", session_id),
         )
         conn.commit()
@@ -226,15 +239,17 @@ async def test_local_cache_written_on_pause_resume_end(
         end_time = start_time + timedelta(seconds=300)
         conn.execute(
             """
-            UPDATE local_sessions SET status=?, local_elapsed_seconds=?, last_event_at=?, last_event_type=?
+            UPDATE local_sessions
+            SET status=?, local_elapsed_seconds=?, last_event_at=?, last_event_type=?
             WHERE session_id=?
-        """,
+            """,
             ("ENDED", 300, end_time.isoformat(), "END", session_id),
         )
         conn.commit()
 
         cursor = conn.execute(
-            "SELECT status, local_elapsed_seconds, total_paused_seconds, last_event_type FROM local_sessions WHERE session_id=?",
+            "SELECT status, local_elapsed_seconds, total_paused_seconds, "
+            "last_event_type FROM local_sessions WHERE session_id=?",
             (session_id,),
         )
         row = cursor.fetchone()
@@ -281,10 +296,12 @@ async def test_sync_reconciliation_on_reconnect(
         success = await ws_manager.connect_agent(seeded_seat.id, "test-secret", mock_ws)
     assert success is True
 
-    # Agent reconnects with SYNC - local says 650s, server says ~600s (drift = 50s > 5s tolerance)
+    # Agent reconnects with SYNC - local says 650s, server says ~600s
+    # (drift = 50s > 5s tolerance)
     agent_elapsed = 650.0
 
-    # Mock session_repo.get_by_id inside _handle_sync (imported locally in that function)
+    # Mock session_repo.get_by_id inside _handle_sync
+    # (imported locally in that function)
     with patch(
         "backend.repositories.session_repo.get_by_id", new_callable=AsyncMock
     ) as mock_get_session:
@@ -342,7 +359,8 @@ async def test_sync_accept_server_when_within_tolerance(
     # Agent local time = 602s, server = ~600s (drift = 2s <= 5s tolerance)
     agent_elapsed = 602.0
 
-    # Mock session_repo.get_by_id inside _handle_sync (imported locally in that function)
+    # Mock session_repo.get_by_id inside _handle_sync
+    # (imported locally in that function)
     with patch(
         "backend.repositories.session_repo.get_by_id", new_callable=AsyncMock
     ) as mock_get_session:
@@ -436,9 +454,11 @@ async def test_multiple_sessions_in_local_cache(
             sid = f"session-{i}"
             conn.execute(
                 """
-                INSERT INTO local_sessions (session_id, seat_id, member_id, started_at, ended_at, status, local_elapsed_seconds, total_paused_seconds)
+                INSERT INTO local_sessions
+                (session_id, seat_id, member_id, started_at, ended_at, status,
+                 local_elapsed_seconds, total_paused_seconds)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
+                """,
                 (
                     sid,
                     seeded_seat.id,

@@ -35,7 +35,7 @@ def test_license_verification_valid_signature(
     }
 
     # Create canonical payload for signing
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
 
     with patch("backend.licensing.verify.VerifyKey") as mock_verify_key:
         mock_verify_instance = mock_verify_key.return_value
@@ -204,7 +204,8 @@ def test_license_verification_hardware_id_collection(
 def test_license_endpoint_requires_admin(
     integration_client, integration_db, seeded_zone, seeded_seat
 ):
-    """POST /api/license/verify requires ADMIN role - SKIPPED: endpoint not implemented yet."""
+    """POST /api/license/verify requires ADMIN role -
+    SKIPPED: endpoint not implemented yet."""
     pytest.skip("License verification endpoint not yet implemented")
 
 

@@ -37,7 +37,6 @@ async def test_backup_creates_sqlite_backup_file(
     backup_dir.mkdir()
 
     config = get_config()
-    original = config.backup_dir
 
     with patch.object(config, "backup_dir", str(backup_dir)):
         result = await run_backup(db=file_session, source_db=db_path)
@@ -161,7 +160,7 @@ async def test_backup_manual_trigger_endpoint(
         "backend.api.routers.backup.backup_service.run_backup", new_callable=AsyncMock
     ) as mock_backup:
         mock_backup.return_value = BackupResult(
-            backup_path=Path("/tmp/arcade_20240101_0300.db"), pruned_count=0
+            backup_path=Path("arcade_20240101_0300.db"), pruned_count=0
         )
 
         resp = await integration_client.post(
@@ -252,9 +251,10 @@ async def test_backup_failure_logged_and_alerted(
             try:
                 await run_backup(db=file_session)
             except OSError:
-                pass  # Expected - failure is propagated to caller (scheduler handles it)
+                pass  # Expected - failure is propagated to caller
+                # (scheduler handles it)
 
-    # Test passes if no unhandled exception (exception is raised and caller handles it)
+    # Test passes if no unhandled exception
 
 
 async def test_backup_scheduler_respects_timezone(
@@ -269,10 +269,3 @@ async def test_backup_scheduler_respects_timezone(
 
     scheduler = init_scheduler()
     assert scheduler.timezone is not None
-
-    # Cleanup
-    shutdown_scheduler(scheduler)
-
-
-# Need to import shutdown_scheduler for cleanup
-from backend.core.scheduler import shutdown_scheduler

@@ -1,4 +1,5 @@
-"""AC-03: End-to-end checkout with time charge, package drawdown, POS items, receipt fields all correct."""
+"""AC-03: End-to-end checkout with time charge, package drawdown,
+POS items, receipt fields all correct."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -6,7 +7,8 @@ from datetime import UTC, datetime, timedelta
 async def test_checkout_time_charge_package_pos_receipt(
     integration_client, integration_db, seeded_zone, seeded_seat, admin_staff
 ):
-    """End-to-end checkout: time charge, package drawdown, POS items, receipt fields all correct."""
+    """End-to-end checkout: time charge, package drawdown,
+    POS items, receipt fields all correct."""
     # Enable feature flags
     from backend.core.feature_flags import _flag_cache
     from backend.models import (
@@ -54,7 +56,8 @@ async def test_checkout_time_charge_package_pos_receipt(
     )
     await integration_db.commit()
     print(
-        f"Created entitlement: {entitlement.id}, remaining: {entitlement.remaining_minutes}"
+        f"Created entitlement: {entitlement.id}, "
+        f"remaining: {entitlement.remaining_minutes}"
     )
 
     # 2. Start session with member + package
@@ -65,7 +68,8 @@ async def test_checkout_time_charge_package_pos_receipt(
         integration_db, seeded_seat.id, member.id, admin_staff
     )
     print(
-        f"Session created: {session_response.id}, package_entitlement_id: {session_response.package_entitlement_id}"
+        f"Session created: {session_response.id}, "
+        f"package_entitlement_id: {session_response.package_entitlement_id}"
     )
 
     # Get the actual ORM object to modify timestamps
@@ -129,7 +133,8 @@ async def test_checkout_time_charge_package_pos_receipt(
     assert InvoiceLineItemType.POS_ITEM in line_types
 
     assert invoice.payment_method == PaymentMethod.CASH
-    # Verify invoice fields (no duration_minutes, seat_name, member_name on Invoice model)
+    # Verify invoice fields (no duration_minutes, seat_name,
+    # member_name on Invoice model)
     assert invoice.time_charge_paise == expected_time_charge
     assert invoice.package_credit_used_paise == expected_package_credit
     assert invoice.pos_total_paise == expected_pos_total

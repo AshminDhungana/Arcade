@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 async def test_wol_magic_packet_structure(
     integration_db, seeded_zone, seeded_seat, admin_staff
 ):
-    """WoL magic packet has correct structure: 6 bytes 0xFF + 16 repetitions of 6-byte MAC."""
+    """WoL magic packet has correct structure: 6 bytes 0xFF +
+    16 repetitions of 6-byte MAC."""
     from backend.services.wol_service import send_magic_packet
 
     # Set a MAC address on the seat
