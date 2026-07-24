@@ -98,7 +98,7 @@ async def seed_structural(db) -> None:  # type: ignore[no-untyped-def]
 
 
 async def seed_year(
-    db: AsyncSession, *, days: int = 365, sessions_per_day: int = 10
+    db: AsyncSession, *, days: int = 365, sessions_per_day: int = 100
 ) -> None:
     """Generate *days* of completed sessions across the seats.
 
