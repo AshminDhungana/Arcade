@@ -1,32 +1,47 @@
 """AC-19: Lifespan startup/shutdown — no deprecation warnings,
 proper async lifecycle."""
 
+import importlib
 import os
 import tempfile
 import warnings
+from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 
-async def test_lifespan_startup_no_deprecation_warnings():
-    """FastAPI lifespan context manager starts up without deprecation warnings."""
-    # Create a temporary database for this test
+@contextmanager
+def isolated_lifespan_db():
+    """Create a temporary DB and restore the environment afterward."""
+    orig_db_path = os.environ.get("ARCADE_DB_PATH")
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
         db_path = Path(tmp.name)
 
     os.environ["ARCADE_DB_PATH"] = str(db_path)
-
     try:
-        # Need to reload modules to pick up new DB path
-        import importlib
-
         import backend.core.database
         import backend.main
 
         importlib.reload(backend.core.database)
         importlib.reload(backend.main)
+        yield db_path
+    finally:
+        if orig_db_path is not None:
+            os.environ["ARCADE_DB_PATH"] = orig_db_path
+        else:
+            os.environ.pop("ARCADE_DB_PATH", None)
+        import backend.core.database
+        import backend.main
 
+        importlib.reload(backend.core.database)
+        importlib.reload(backend.main)
+        db_path.unlink(missing_ok=True)
+
+
+async def test_lifespan_startup_no_deprecation_warnings():
+    """FastAPI lifespan context manager starts up without deprecation warnings."""
+    with isolated_lifespan_db():
         from backend.main import app, lifespan
 
         with warnings.catch_warnings(record=True) as w:
@@ -46,27 +61,11 @@ async def test_lifespan_startup_no_deprecation_warnings():
                 raise AssertionError(
                     f"Deprecation warning in backend code: {dw.message}"
                 )
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_lifespan_startup_initializes_database():
     """Lifespan startup initializes database (migrations, WAL mode)."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.core.database import async_engine
         from backend.main import app, lifespan
 
@@ -80,27 +79,11 @@ async def test_lifespan_startup_initializes_database():
 
                 result = await conn.execute(text("PRAGMA foreign_keys"))
                 assert result.scalar() == 1
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_lifespan_startup_starts_scheduler():
     """Lifespan startup starts APScheduler for backups and watchdogs."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.main import app, lifespan
 
         with warnings.catch_warnings(record=True) as _:
@@ -117,28 +100,12 @@ async def test_lifespan_startup_starts_scheduler():
                 from backend.core.scheduler import shutdown_scheduler
 
                 shutdown_scheduler(scheduler)
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_lifespan_startup_starts_websocket_manager():
     """Lifespan starts WebSocket manager
     (heartbeat task starts lazily on first connection)."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.core.ws_manager import HEARTBEAT_INTERVAL
         from backend.core.ws_manager import manager as ws_manager
         from backend.main import app, lifespan
@@ -149,30 +116,11 @@ async def test_lifespan_startup_starts_websocket_manager():
             assert HEARTBEAT_INTERVAL == 30.0
             # The manager instance exists
             assert ws_manager is not None
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_lifespan_shutdown_cancels_tasks():
     """Lifespan shutdown cancels all background tasks cleanly."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
-        # Connect a dashboard to trigger heartbeat task
-        from fastapi.testclient import TestClient
-
+    with isolated_lifespan_db():
         from backend.main import app, lifespan
 
         async with lifespan(app):
@@ -191,27 +139,10 @@ async def test_lifespan_shutdown_cancels_tasks():
 
             shutdown_scheduler(scheduler)
 
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
-
 
 async def test_lifespan_shutdown_closes_database():
     """Lifespan shutdown closes database connections."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.core.database import async_engine
         from backend.main import app, lifespan
 
@@ -219,15 +150,10 @@ async def test_lifespan_shutdown_closes_database():
             assert async_engine is not None
             # Engine should be valid
             assert async_engine.pool is not None
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_lifespan_no_on_event_decorators_used():
     """Verify @app.on_event('startup')/'shutdown' not used — lifespan only."""
-    # This test verifies the architectural decision in the codebase
-    # The FastAPI app uses lifespan context manager, not on_event decorators
     import importlib
 
     import backend.main
@@ -243,20 +169,7 @@ async def test_lifespan_no_on_event_decorators_used():
 
 async def test_lifespan_idempotent_startup_shutdown():
     """Multiple startup/shutdown cycles don't cause issues."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.main import app, lifespan
 
         with warnings.catch_warnings(record=True) as w:
@@ -278,27 +191,11 @@ async def test_lifespan_idempotent_startup_shutdown():
                 and issubclass(warning.category, DeprecationWarning)
             ]
             assert len(backend_deps) == 0
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_testclient_triggers_lifespan():
     """TestClient properly triggers lifespan events."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.main import app
 
         with warnings.catch_warnings(record=True) as w:
@@ -315,27 +212,11 @@ async def test_testclient_triggers_lifespan():
                 and issubclass(warning.category, DeprecationWarning)
             ]
             assert len(backend_deps) == 0
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_lifespan_backup_scheduler_registered():
     """Backup scheduler job registered on startup."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.main import app, lifespan
 
         with warnings.catch_warnings(record=True) as _:
@@ -356,27 +237,11 @@ async def test_lifespan_backup_scheduler_registered():
                 from backend.core.scheduler import shutdown_scheduler
 
                 shutdown_scheduler(scheduler)
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_lifespan_watchdog_scheduler_registered():
     """WoL watchdog scheduler job registered on startup."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.main import app, lifespan
 
         async with lifespan(app):
@@ -397,27 +262,11 @@ async def test_lifespan_watchdog_scheduler_registered():
             from backend.core.scheduler import shutdown_scheduler
 
             shutdown_scheduler(scheduler)
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
 
 
 async def test_lifespan_lan_discovery_beacon_started():
     """LAN discovery beacon started on startup."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-        db_path = Path(tmp.name)
-
-    os.environ["ARCADE_DB_PATH"] = str(db_path)
-
-    try:
-        import importlib
-
-        import backend.core.database
-        import backend.main
-
-        importlib.reload(backend.core.database)
-        importlib.reload(backend.main)
-
+    with isolated_lifespan_db():
         from backend.core.lan_discovery import (
             start_discovery_beacon,
             stop_discovery_beacon,
@@ -430,6 +279,3 @@ async def test_lifespan_lan_discovery_beacon_started():
             pass
 
         stop_discovery_beacon()
-    finally:
-        os.environ.pop("ARCADE_DB_PATH", None)
-        db_path.unlink(missing_ok=True)
