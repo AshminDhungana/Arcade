@@ -38,13 +38,14 @@ def connect() -> sqlite3.Connection:
 
 
 def find_duplicate_groups(conn: sqlite3.Connection) -> list[tuple[str, str]]:
-    rows = conn.execute("""
+    query = """
         SELECT zone_id, name
         FROM seats
         GROUP BY zone_id, name
         HAVING COUNT(*) > 1
         ORDER BY zone_id, name
-        """).fetchall()
+        """
+    rows = conn.execute(query).fetchall()
     return [(zone_id, name) for zone_id, name in rows]
 
 
