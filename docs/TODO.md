@@ -1,4 +1,4 @@
-﻿# Arcade â€” Engineering Execution Plan v2.1
+# Arcade â€” Engineering Execution Plan v2.1
 
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
@@ -1569,21 +1569,21 @@ Comprehensive automated test coverage, end-to-end testing of all 23 SRS acceptan
   - [x] **Pass criteria:** No messages dropped; broadcast latency < 1 second; server CPU < 80% (NFR-PERF-001, NFR-PERF-003)
   - [x] Add seeded dataset test: `backend/scripts/seed_year_data.py` â€” seeds 365 days Ã— 100 sessions/day; run analytics queries; verify all complete < 2 seconds
 
-#### Feature 8.1.3: CI Pipeline (GitHub Actions)
+#### Feature 8.1.3: CI Pipeline (GitHub Actions) ✅ _Complete (2026-07-25)_
 
-- [ ] **Task: Finalise GitHub Actions CI workflow** (`.github/workflows/ci.yml`)
-  - [ ] Job: `lint-python` â€” `ruff check backend/`, `black --check backend/`, `mypy backend/`
-  - [ ] Job: `security-scan` â€” `bandit -r backend/`, `pip-audit -r backend/requirements.txt`
-  - [ ] Job: `test-backend` â€” `pytest --cov=backend --cov-report=xml --cov-fail-under=80`
-  - [ ] Job: `lint-frontend` â€” `npm run lint` in `frontend/`
-  - [ ] Job: `test-frontend` â€” `npm test` in `frontend/`
-  - [ ] Job: `lint-agent` â€” `npm run lint` in `agent/`
-  - [ ] Job: `dep-audit-frontend` â€” `npm audit --audit-level=high` in `frontend/` and `agent/`
-  - [ ] Job: `check-secrets` â€” `git-secrets` or grep for `private_key`, `*.pem` in staged files
-  - [ ] All jobs must pass before PR can merge to `main`
-  - [ ] Coverage report uploaded to Codecov or published as GitHub Actions artifact
-  - [ ] Pip cache and npm cache configured for speed
-  - [ ] **Note:** Add Windows runner for native Windows tests: `runs-on: windows-latest` for the agent job
+- [x] **Task: Finalise GitHub Actions CI workflow** (`.github/workflows/ci.yml`)
+  - [x] Job: `lint-python` — `ruff check backend/`, `black --check backend/`, `mypy backend/`
+  - [x] Job: `security-scan` — `bandit -r backend/`, `pip-audit -r backend/requirements.txt`
+  - [x] Job: `test-backend` — `pytest --cov=backend --cov-report=xml --cov-fail-under=80`
+  - [x] Job: `lint-frontend` — `npm run lint` in `frontend/`
+  - [x] Job: `test-frontend` — `npm test` in `frontend/`
+  - [x] Job: `lint-agent` — `npm run lint` in `agent/`
+  - [x] Job: `dep-audit-frontend` — `npm audit --audit-level=high` in `frontend/` and `agent/`
+  - [x] Job: `check-secrets` — `git-secrets` or grep for `private_key`, `*.pem` in staged files
+  - [x] All jobs must pass before PR can merge to `main`
+  - [x] Coverage report uploaded to Codecov or published as GitHub Actions artifact
+  - [x] Pip cache and npm cache configured for speed
+  - [x] **Note:** Add Windows runner for native Windows tests: `runs-on: windows-latest` for the agent job
 
 ---
 
