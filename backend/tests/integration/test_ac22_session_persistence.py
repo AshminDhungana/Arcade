@@ -25,8 +25,7 @@ async def test_local_session_cache_created_on_session_start(
     with tempfile.TemporaryDirectory() as tmpdir:
         local_db_path = os.path.join(tmpdir, "agent_sessions.db")
         conn = sqlite3.connect(local_db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS local_sessions (
                 session_id TEXT PRIMARY KEY,
                 seat_id TEXT,
@@ -37,8 +36,7 @@ async def test_local_session_cache_created_on_session_start(
                 server_elapsed_seconds REAL DEFAULT 0,
                 last_sync_at TEXT
             )
-        """
-        )
+        """)
         conn.commit()
 
         # Insert session record (what agent would do on start)
@@ -80,16 +78,14 @@ async def test_local_cache_survives_process_crash(
 
         # Process 1: create session
         conn1 = sqlite3.connect(local_db_path)
-        conn1.execute(
-            """
+        conn1.execute("""
             CREATE TABLE IF NOT EXISTS local_sessions (
                 session_id TEXT PRIMARY KEY,
                 seat_id TEXT,
                 local_elapsed_seconds REAL DEFAULT 0,
                 status TEXT
             )
-            """
-        )
+            """)
         session_id = "session-crash-test-123"
         conn1.execute(
             """
@@ -127,16 +123,14 @@ async def test_local_cache_written_every_10_seconds(
         local_db_path = os.path.join(tmpdir, "agent_sessions.db")
 
         conn = sqlite3.connect(local_db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS local_sessions (
                 session_id TEXT PRIMARY KEY,
                 seat_id TEXT,
                 local_elapsed_seconds REAL DEFAULT 0,
                 last_write_at TEXT
             )
-        """
-        )
+        """)
         conn.commit()
 
         session_id = "session-write-test"
@@ -186,8 +180,7 @@ async def test_local_cache_written_on_pause_resume_end(
         local_db_path = os.path.join(tmpdir, "agent_sessions.db")
 
         conn = sqlite3.connect(local_db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS local_sessions (
                 session_id TEXT PRIMARY KEY,
                 seat_id TEXT,
@@ -197,8 +190,7 @@ async def test_local_cache_written_on_pause_resume_end(
                 last_event_at TEXT,
                 last_event_type TEXT
             )
-        """
-        )
+        """)
         conn.commit()
 
         session_id = "session-event-test"
@@ -441,8 +433,7 @@ async def test_multiple_sessions_in_local_cache(
         local_db_path = os.path.join(tmpdir, "agent_sessions.db")
 
         conn = sqlite3.connect(local_db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE local_sessions (
                 session_id TEXT PRIMARY KEY,
                 seat_id TEXT,
@@ -453,8 +444,7 @@ async def test_multiple_sessions_in_local_cache(
                 local_elapsed_seconds REAL,
                 total_paused_seconds INTEGER
             )
-        """
-        )
+        """)
         conn.commit()
 
         # Insert multiple historical sessions
@@ -495,15 +485,13 @@ async def test_local_cache_cleanup_old_sessions(
         local_db_path = os.path.join(tmpdir, "agent_sessions.db")
 
         conn = sqlite3.connect(local_db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE local_sessions (
                 session_id TEXT PRIMARY KEY,
                 started_at TEXT,
                 status TEXT
             )
-        """
-        )
+        """)
         conn.commit()
 
         # Insert old and new sessions
