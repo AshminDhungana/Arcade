@@ -47,7 +47,7 @@ async def test_wol_magic_packet_structure(
         for i in range(16):
             start = 6 + i * 6
             end = start + 6
-            assert packet[start:end] == mac_bytes, f"MAC repetition {i+1} mismatch"
+            assert packet[start:end] == mac_bytes, f"MAC repetition {i + 1} mismatch"
 
         # Check socket was created with correct params
         mock_socket_class.assert_called_with(socket.AF_INET, socket.SOCK_DGRAM)

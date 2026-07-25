@@ -23,8 +23,7 @@ async def discover_printers_endpoint(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
-                f"Printer discovery unavailable: {exc}. "
-                "Install platform dependencies."
+                f"Printer discovery unavailable: {exc}. Install platform dependencies."
             ),
         ) from exc
     except Exception as exc:
