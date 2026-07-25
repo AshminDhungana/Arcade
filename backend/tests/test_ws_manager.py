@@ -215,14 +215,13 @@ async def seeded_seat():
     async with AsyncSessionLocal() as db:
         db.add(Seat(id=seat_id, name=seat_id, zone_id="z1", agent_secret=secret))
         await db.commit()
-    try:
-        yield seat_id, secret
-    finally:
-        async with AsyncSessionLocal() as db:
-            seat = await db.get(Seat, seat_id)
-            if seat is not None:
-                await db.delete(seat)
-                await db.commit()
+    yield seat_id, secret
+    # Cleanup runs AFTER the test completes
+    async with AsyncSessionLocal() as db:
+        seat = await db.get(Seat, seat_id)
+        if seat is not None:
+            await db.delete(seat)
+            await db.commit()
 
 
 # ---------------------------------------------------------------------------

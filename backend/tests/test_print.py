@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
-from backend.models._enums import PaymentMethod
+from backend.core.database import Base
+from backend.models._enums import InvoicePrintStatus, PaymentMethod
+from backend.repositories import invoice_repo
 from backend.schemas.invoice import InvoiceLineItemResponse, InvoiceResponse
+from backend.services import print_service as ps
 from backend.services.print_service import format_money, print_receipt
 
 # ---------------------------------------------------------------------------
@@ -172,53 +177,30 @@ class TestPrintReceipt:
 
 
 # ---------------------------------------------------------------------------
-# Print-status tracking / outbox (Appends to test_print.py)
+# Print-status tracking / outbox
 # ---------------------------------------------------------------------------
-
-from datetime import timedelta  # noqa: E402
-
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
-from sqlalchemy.pool import StaticPool  # noqa: E402
-
-from backend.core.database import Base  # noqa: E402
-from backend.models._enums import InvoicePrintStatus  # noqa: E402
-from backend.repositories import invoice_repo, print_job_repo  # noqa: E402, F401
-from backend.services import print_service as ps  # noqa: E402
 
 _CASH = __import__(
     "backend.models._enums", fromlist=["PaymentMethod"]
-).PaymentMethod.CASH  # noqa: E501
+).PaymentMethod.CASH
+
 
 # StaticPool is required so the in-memory ":memory:" database is shared across
 # the test's session and the session that ``enqueue_and_track_print`` opens for
 # itself — otherwise each checked-out connection gets its own isolated DB and
 # the background commit is never visible to the assertions below.
-_ENGINE = create_async_engine(
-    "sqlite+aiosqlite:///:memory:",
-    echo=False,
-    poolclass=StaticPool,
-    connect_args={"check_same_thread": False},
-)
-_MAKER = async_sessionmaker(_ENGINE, expire_on_commit=False)
-_INITED = False
-
-
-async def _ensure_tables() -> None:
-    global _INITED
-    if not _INITED:
-        async with _ENGINE.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        _INITED = True
-
-
-async def _in_memory_session():
-    await _ensure_tables()
-    return _MAKER()
-
-
-def _sessionmaker():
-    # Same engine; enqueue_and_track_print opens its own session from this maker.
-    return _MAKER
+@pytest.mark.anyio
+async def _make_engine():
+    """Create a fresh engine per test (scoped to the current event loop)."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        echo=False,
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    return engine
 
 
 class _DummyOKPrinter:
@@ -275,10 +257,37 @@ def _resp_for(inv):
 
 
 class TestPrintStatusTracking:
+    @pytest.fixture
+    async def engine(self):
+        """Fresh engine per test, scoped to the current event loop."""
+        engine = await _make_engine()
+        try:
+            yield engine
+        finally:
+            await engine.dispose()
+
+    @pytest.fixture
+    async def maker(self, engine):
+        """Session maker bound to the test's engine."""
+        return async_sessionmaker(engine, expire_on_commit=False)
+
+    @pytest.fixture
+    async def db(self, maker):
+        """Fresh session per test."""
+        async with maker() as session:
+            yield session
+
     @pytest.mark.anyio
-    async def test_print_receipt_returns_bool(self) -> None:
+    async def test_print_receipt_returns_bool(self, maker) -> None:
         cfg = _make_config()
         inv = _make_invoice_response("inv-bool")
+        # Create invoice in DB
+        async with maker() as db:
+            await invoice_repo.create(
+                db, session_id="s-bool", payment_method=_CASH, total_paise=100
+            )
+            await db.commit()
+
         with patch.object(ps, "_get_printer", return_value=_DummyOKPrinter()):
             assert await ps.print_receipt(inv, "Test", cfg) is True
         with patch.object(ps, "_get_printer", side_effect=RuntimeError("boom")):
@@ -292,42 +301,40 @@ class TestPrintStatusTracking:
         assert ps._next_retry_delay(10) == timedelta(minutes=30)
 
     @pytest.mark.anyio
-    async def test_enqueue_tracks_printed(self) -> None:
-        db = await _in_memory_session()
-        inv = await invoice_repo.create(
-            db, session_id="s1", payment_method=_CASH, total_paise=100
-        )
-        await db.commit()
+    async def test_enqueue_tracks_printed(self, maker) -> None:
+        async with maker() as db:
+            inv = await invoice_repo.create(
+                db, session_id="s1", payment_method=_CASH, total_paise=100
+            )
+            await db.commit()
         cfg = _make_config()
         with patch.object(ps, "_get_printer", return_value=_DummyOKPrinter()):
             await ps.enqueue_and_track_print(
-                inv.id, _resp_for(inv), "Test", cfg, session_factory=_sessionmaker()
+                inv.id, _resp_for(inv), "Test", cfg, session_factory=maker
             )
-        await db.commit()
         # The outbox session enqueue_and_track_print opened committed its own
         # changes; read via a fresh session so we observe the persisted outcome
         # rather than the original (PENDING) instance cached in `db`.
-        async with _MAKER() as db2:
+        async with maker() as db2:
             reloaded = await invoice_repo.get_by_id(db2, inv.id)
             assert reloaded.print_status == InvoicePrintStatus.PRINTED
             assert await ps.print_job_repo.get_by_invoice(db2, inv.id) is None
 
     @pytest.mark.anyio
-    async def test_enqueue_tracks_failed_and_enqueues_job(self) -> None:
-        db = await _in_memory_session()
-        inv = await invoice_repo.create(
-            db, session_id="s2", payment_method=_CASH, total_paise=200
-        )
-        await db.commit()
+    async def test_enqueue_tracks_failed_and_enqueues_job(self, maker) -> None:
+        async with maker() as db:
+            inv = await invoice_repo.create(
+                db, session_id="s2", payment_method=_CASH, total_paise=200
+            )
+            await db.commit()
         cfg = _make_config()
         with patch.object(ps, "_get_printer", side_effect=RuntimeError("printer dead")):
             await ps.enqueue_and_track_print(
-                inv.id, _resp_for(inv), "Test", cfg, session_factory=_sessionmaker()
+                inv.id, _resp_for(inv), "Test", cfg, session_factory=maker
             )
-        await db.commit()
         # Read via a fresh session to observe the outbox session's committed
         # FAILED outcome rather than the cached (PENDING) instance in `db`.
-        async with _MAKER() as db2:
+        async with maker() as db2:
             reloaded = await invoice_repo.get_by_id(db2, inv.id)
             assert reloaded.print_status == InvoicePrintStatus.FAILED
             job = await ps.print_job_repo.get_by_invoice(db2, inv.id)
@@ -337,17 +344,16 @@ class TestPrintStatusTracking:
         assert job.next_retry_at is not None
 
     @pytest.mark.anyio
-    async def test_enqueue_persistence_failure_stays_retryable(self) -> None:
+    async def test_enqueue_persistence_failure_stays_retryable(self, maker) -> None:
         """A persistence failure in the fire-and-forget task must NOT raise and
         MUST leave a ``PrintJob`` retry row so the invoice stays retryable.
         """
-        db = await _in_memory_session()
-        inv = await invoice_repo.create(
-            db, session_id="s-fail", payment_method=_CASH, total_paise=500
-        )
-        await db.commit()
+        async with maker() as db:
+            inv = await invoice_repo.create(
+                db, session_id="s-fail", payment_method=_CASH, total_paise=500
+            )
+            await db.commit()
         cfg = _make_config()
-        factory = _sessionmaker()
 
         # Simulate a transient DB error in the persistence step so the primary
         # background commit cannot complete. The fallback must open a fresh
@@ -361,11 +367,11 @@ class TestPrintStatusTracking:
         ):
             # Must not raise (fire-and-forget task hardening).
             await ps.enqueue_and_track_print(
-                inv.id, _resp_for(inv), "Test", cfg, session_factory=factory
+                inv.id, _resp_for(inv), "Test", cfg, session_factory=maker
             )
 
         # A PrintJob retry row must exist so the scheduler can still pick it up.
-        async with _MAKER() as db2:
+        async with maker() as db2:
             reloaded = await invoice_repo.get_by_id(db2, inv.id)
             assert reloaded.print_status == InvoicePrintStatus.PENDING
             job = await ps.print_job_repo.get_by_invoice(db2, inv.id)
@@ -374,42 +380,42 @@ class TestPrintStatusTracking:
         assert job.next_retry_at is not None
 
     @pytest.mark.anyio
-    async def test_retry_due_print_jobs_succeeds(self) -> None:
-        db = await _in_memory_session()
-        inv = await invoice_repo.create(
-            db, session_id="s3", payment_method=_CASH, total_paise=300
-        )
-        await ps.print_job_repo.create(
-            db,
-            invoice_id=inv.id,
-            attempts=1,
-            next_retry_at=datetime.now(UTC) - timedelta(minutes=1),
-            last_error="x",
-        )
-        await db.commit()
+    async def test_retry_due_print_jobs_succeeds(self, maker) -> None:
+        async with maker() as db:
+            inv = await invoice_repo.create(
+                db, session_id="s3", payment_method=_CASH, total_paise=300
+            )
+            await ps.print_job_repo.create(
+                db,
+                invoice_id=inv.id,
+                attempts=1,
+                next_retry_at=datetime.now(UTC) - timedelta(minutes=1),
+                last_error="x",
+            )
+            await db.commit()
         with patch.object(ps, "_get_printer", return_value=_DummyOKPrinter()):
-            retried = await ps.retry_due_print_jobs(db)
-        await db.commit()
+            retried = await ps.retry_due_print_jobs(maker())
         assert retried == [inv.id]
-        reloaded = await invoice_repo.get_by_id(db, inv.id)
-        assert reloaded.print_status == InvoicePrintStatus.PRINTED
-        assert await ps.print_job_repo.get_by_invoice(db, inv.id) is None
+        async with maker() as db2:
+            reloaded = await invoice_repo.get_by_id(db2, inv.id)
+            assert reloaded.print_status == InvoicePrintStatus.PRINTED
+            assert await ps.print_job_repo.get_by_invoice(db2, inv.id) is None
 
     @pytest.mark.anyio
-    async def test_mark_print_skipped_removes_job(self) -> None:
-        db = await _in_memory_session()
-        inv = await invoice_repo.create(
-            db, session_id="s4", payment_method=_CASH, total_paise=400
-        )
-        await ps.print_job_repo.create(
-            db,
-            invoice_id=inv.id,
-            attempts=2,
-            next_retry_at=datetime.now(UTC) + timedelta(minutes=5),
-        )
-        await db.commit()
-        await ps.mark_print_skipped(db, inv.id)
-        await db.commit()
-        reloaded = await invoice_repo.get_by_id(db, inv.id)
-        assert reloaded.print_status == InvoicePrintStatus.SKIPPED
-        assert await ps.print_job_repo.get_by_invoice(db, inv.id) is None
+    async def test_mark_print_skipped_removes_job(self, maker) -> None:
+        async with maker() as db:
+            inv = await invoice_repo.create(
+                db, session_id="s4", payment_method=_CASH, total_paise=400
+            )
+            await ps.print_job_repo.create(
+                db,
+                invoice_id=inv.id,
+                attempts=2,
+                next_retry_at=datetime.now(UTC) + timedelta(minutes=5),
+            )
+            await db.commit()
+        await ps.mark_print_skipped(maker(), inv.id)
+        async with maker() as db2:
+            reloaded = await invoice_repo.get_by_id(db2, inv.id)
+            assert reloaded.print_status == InvoicePrintStatus.SKIPPED
+            assert await ps.print_job_repo.get_by_invoice(db2, inv.id) is None

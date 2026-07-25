@@ -16,6 +16,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend import models as m
+from backend.api.deps import get_db
 from backend.core.database import AsyncSessionLocal
 from backend.core.security import create_access_token
 from backend.main import app
@@ -34,10 +35,12 @@ async def db() -> AsyncGenerator[AsyncSession]:
 
 @pytest.fixture
 async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient]:
-    """Yield an AsyncClient bound to the real app."""
+    """Yield an AsyncClient bound to the real app with overridden get_db."""
+    app.dependency_overrides[get_db] = lambda: db
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture

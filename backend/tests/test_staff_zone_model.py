@@ -11,9 +11,17 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import StaticPool
 
+from backend.core.database import Base
 
-def _make_test_sessionlocal():
-    """Build a fresh async_sessionmaker bound to an in-memory aiosqlite engine."""
+# Import models at module level so they're registered with Base.metadata
+from backend.models._enums import PricingModel, StaffRole
+from backend.models.staff import Staff
+from backend.models.staff_zone import StaffZone
+from backend.models.zone import Zone
+
+
+def _make_test_engine():
+    """Build a fresh in-memory aiosqlite engine."""
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
         echo=False,
@@ -34,51 +42,51 @@ def _make_test_sessionlocal():
         cursor.close()
 
     event.listen(engine.sync_engine, "connect", _apply_pragmas)
-    SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
-    return engine, SessionLocal
+    return engine
 
 
-async def _ensure_schema(engine) -> None:
-    """Create all tables on the test engine."""
-    from backend.core.database import Base
-
+async def _create_schema(engine) -> async_sessionmaker:
+    """Create all tables and return a sessionmaker bound to the engine."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+    return SessionLocal
+
+
+def _create_test_staff_zone_objects():
+    """Helper to create test objects (Staff, Zone, StaffZone)."""
+    admin = Staff(
+        id="admin1",
+        name="Admin",
+        role=StaffRole.ADMIN,
+        pin_hash="hash",
+        is_active=True,
+    )
+    cashier = Staff(
+        id="cashier1",
+        name="Cashier",
+        role=StaffRole.CASHIER,
+        pin_hash="hash",
+        is_active=True,
+    )
+    zone = Zone(
+        id="zone1",
+        name="Standard PC",
+        rate_per_minute_paise=100,
+        rate_per_hour_paise=5000,
+        pricing_model=PricingModel.PER_MINUTE,
+    )
+    return admin, cashier, zone
 
 
 @pytest.mark.asyncio
 async def test_staff_zone_model_creation():
     """StaffZone can be created with all required fields."""
-    engine, TestSessionLocal = _make_test_sessionlocal()
-    await _ensure_schema(engine)
+    engine = _make_test_engine()
     try:
+        TestSessionLocal = await _create_schema(engine)
         async with TestSessionLocal() as db:
-            from backend.models._enums import PricingModel, StaffRole
-            from backend.models.staff import Staff
-            from backend.models.staff_zone import StaffZone
-            from backend.models.zone import Zone
-
-            admin = Staff(
-                id="admin1",
-                name="Admin",
-                role=StaffRole.ADMIN,
-                pin_hash="hash",
-                is_active=True,
-            )
-            cashier = Staff(
-                id="cashier1",
-                name="Cashier",
-                role=StaffRole.CASHIER,
-                pin_hash="hash",
-                is_active=True,
-            )
-            zone = Zone(
-                id="zone1",
-                name="Standard PC",
-                rate_per_minute_paise=100,
-                rate_per_hour_paise=5000,
-                pricing_model=PricingModel.PER_MINUTE,
-            )
+            admin, cashier, zone = _create_test_staff_zone_objects()
 
             db.add_all([admin, cashier, zone])
             await db.flush()
@@ -101,36 +109,11 @@ async def test_staff_zone_model_creation():
 @pytest.mark.asyncio
 async def test_staff_zone_composite_pk():
     """StaffZone enforces unique (staff_id, zone_id) pair."""
-    engine, TestSessionLocal = _make_test_sessionlocal()
-    await _ensure_schema(engine)
+    engine = _make_test_engine()
     try:
+        TestSessionLocal = await _create_schema(engine)
         async with TestSessionLocal() as db:
-            from backend.models._enums import PricingModel, StaffRole
-            from backend.models.staff import Staff
-            from backend.models.staff_zone import StaffZone
-            from backend.models.zone import Zone
-
-            admin = Staff(
-                id="admin1",
-                name="Admin",
-                role=StaffRole.ADMIN,
-                pin_hash="hash",
-                is_active=True,
-            )
-            cashier = Staff(
-                id="cashier1",
-                name="Cashier",
-                role=StaffRole.CASHIER,
-                pin_hash="hash",
-                is_active=True,
-            )
-            zone = Zone(
-                id="zone1",
-                name="Standard PC",
-                rate_per_minute_paise=100,
-                rate_per_hour_paise=5000,
-                pricing_model=PricingModel.PER_MINUTE,
-            )
+            admin, cashier, zone = _create_test_staff_zone_objects()
 
             db.add_all([admin, cashier, zone])
             await db.flush()
@@ -155,36 +138,11 @@ async def test_staff_zone_composite_pk():
 @pytest.mark.asyncio
 async def test_staff_zone_cascade_delete_staff():
     """Deleting staff cascades-deletes their zone assignments."""
-    engine, TestSessionLocal = _make_test_sessionlocal()
-    await _ensure_schema(engine)
+    engine = _make_test_engine()
     try:
+        TestSessionLocal = await _create_schema(engine)
         async with TestSessionLocal() as db:
-            from backend.models._enums import PricingModel, StaffRole
-            from backend.models.staff import Staff
-            from backend.models.staff_zone import StaffZone
-            from backend.models.zone import Zone
-
-            admin = Staff(
-                id="admin1",
-                name="Admin",
-                role=StaffRole.ADMIN,
-                pin_hash="hash",
-                is_active=True,
-            )
-            cashier = Staff(
-                id="cashier1",
-                name="Cashier",
-                role=StaffRole.CASHIER,
-                pin_hash="hash",
-                is_active=True,
-            )
-            zone = Zone(
-                id="zone1",
-                name="Standard PC",
-                rate_per_minute_paise=100,
-                rate_per_hour_paise=5000,
-                pricing_model=PricingModel.PER_MINUTE,
-            )
+            admin, cashier, zone = _create_test_staff_zone_objects()
 
             db.add_all([admin, cashier, zone])
             await db.flush()
@@ -207,36 +165,11 @@ async def test_staff_zone_cascade_delete_staff():
 @pytest.mark.asyncio
 async def test_staff_zone_cascade_delete_zone():
     """Deleting zone cascades-deletes assignments to it."""
-    engine, TestSessionLocal = _make_test_sessionlocal()
-    await _ensure_schema(engine)
+    engine = _make_test_engine()
     try:
+        TestSessionLocal = await _create_schema(engine)
         async with TestSessionLocal() as db:
-            from backend.models._enums import PricingModel, StaffRole
-            from backend.models.staff import Staff
-            from backend.models.staff_zone import StaffZone
-            from backend.models.zone import Zone
-
-            admin = Staff(
-                id="admin1",
-                name="Admin",
-                role=StaffRole.ADMIN,
-                pin_hash="hash",
-                is_active=True,
-            )
-            cashier = Staff(
-                id="cashier1",
-                name="Cashier",
-                role=StaffRole.CASHIER,
-                pin_hash="hash",
-                is_active=True,
-            )
-            zone = Zone(
-                id="zone1",
-                name="Standard PC",
-                rate_per_minute_paise=100,
-                rate_per_hour_paise=5000,
-                pricing_model=PricingModel.PER_MINUTE,
-            )
+            admin, cashier, zone = _create_test_staff_zone_objects()
 
             db.add_all([admin, cashier, zone])
             await db.flush()
