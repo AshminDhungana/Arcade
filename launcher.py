@@ -205,14 +205,15 @@ class ActivationScreen(_BaseScreen):
             pady=(SPACING["md"], SPACING["xs"]),
             sticky="ew",
         )
-        ctk.CTkLabel(
+        self.error_label = ctk.CTkLabel(
             card,
             text=msg,
             font=f["body"],
             text_color=COLORS["text_primary"],
             wraplength=540,
             justify="center",
-        ).grid(
+        )
+        self.error_label.grid(
             row=1, column=0, padx=SPACING["lg"], pady=(0, SPACING["xs"]), sticky="ew"
         )
         ctk.CTkLabel(

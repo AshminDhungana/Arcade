@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -11,19 +12,49 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # ---------------------------------------------------------------------------
-# Tcl/Tk availability check (Windows venv sometimes missing tcl) -----------
+# Display/GUI availability check (CI/headless environments) ------------------
 # ---------------------------------------------------------------------------
 
 _TK_AVAILABLE = False
+_DISPLAY_AVAILABLE = False
 
-try:
-    import tkinter as _tk
+# Check for display (Windows doesn't use DISPLAY env var, but CI usually lacks GUI)
+if os.name == "nt":
+    # On Windows, check if we can create a GUI window
+    try:
+        import customtkinter as ctk
 
-    _tk_root = _tk.Tk()
-    _tk_root.destroy()
-    _TK_AVAILABLE = True
-except Exception:
-    _TK_AVAILABLE = False
+        _tk_root = ctk.CTk()
+        _tk_root.withdraw()  # Don't show window
+        _tk_root.update()
+        _tk_root.destroy()
+        _TK_AVAILABLE = True
+        _DISPLAY_AVAILABLE = True
+    except Exception:
+        _TK_AVAILABLE = False
+        _DISPLAY_AVAILABLE = False
+else:
+    # On Linux/macOS, check DISPLAY
+    if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
+        try:
+            import customtkinter as ctk
+
+            _tk_root = ctk.CTk()
+            _tk_root.withdraw()  # Don't show window
+            _tk_root.update()
+            _tk_root.destroy()
+            _TK_AVAILABLE = True
+            _DISPLAY_AVAILABLE = True
+        except Exception:
+            _TK_AVAILABLE = False
+            _DISPLAY_AVAILABLE = False
+
+
+# Skip all launcher tests if no display/GUI available
+pytestmark = pytest.mark.skipif(
+    not _DISPLAY_AVAILABLE,
+    reason="GUI tests require a display (set DISPLAY or run on Windows with GUI)",
+)
 
 
 def _missing_result() -> Any:
@@ -37,12 +68,11 @@ def _missing_result() -> Any:
     )()
 
 
-@pytest.mark.skipif(not _TK_AVAILABLE, reason="Tcl/Tk not available")
 class TestActivationScreen:
     def test_browse_copies_license_file_and_keeps_original(
         self, tmp_path: Any, monkeypatch: Any
     ) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import ActivationScreen, LauncherApp
 
@@ -54,7 +84,7 @@ class TestActivationScreen:
         src.write_text("FAKE-ED25519-LICENSE")
 
         monkeypatch.chdir(tmp_path)
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         app._check_and_route = MagicMock()  # type: ignore[assignment]
         screen = ActivationScreen(root, app, _missing_result())  # type: ignore[arg-type]
@@ -66,14 +96,15 @@ class TestActivationScreen:
         assert (
             src.exists()
         ), "original license file must not be deleted (it is copied, not moved)"
+        root.destroy()
 
     def test_shows_error_for_missing_license(self) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from backend.licensing.verify import LicenseError
         from launcher import ActivationScreen, LauncherApp
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         with patch("launcher.check_license") as mock_check:
             result = type(
@@ -87,11 +118,11 @@ class TestActivationScreen:
         root.destroy()
 
     def test_shows_hardware_id(self) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import ActivationScreen, LauncherApp
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         with patch("launcher.check_license") as mock_check:
             with patch("launcher.get_hardware_id", return_value="a" * 32):
@@ -111,14 +142,13 @@ class TestActivationScreen:
         root.destroy()
 
 
-@pytest.mark.skipif(not _TK_AVAILABLE, reason="Tcl/Tk not available")
 class TestSetupWizard:
     def test_writes_arcade_config_json(self, tmp_path: Any, monkeypatch: Any) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import LauncherApp, SetupWizard
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr("launcher._db_path", lambda: tmp_path / "arcade.db")
@@ -159,11 +189,11 @@ class TestSetupWizard:
         root.destroy()
 
     def test_writes_license_status_to_db(self, tmp_path: Any, monkeypatch: Any) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import LauncherApp, SetupWizard
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         db_path = tmp_path / "arcade.db"
         monkeypatch.chdir(tmp_path)
@@ -204,7 +234,7 @@ class TestSetupWizard:
     def test_finish_seeds_default_staff_best_effort(
         self, tmp_path: Any, monkeypatch: Any
     ) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import LauncherApp, SetupWizard
 
@@ -233,7 +263,7 @@ class TestSetupWizard:
                 },
             },
         )()
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         wizard = SetupWizard(root, app, result)  # type: ignore[arg-type]
         wizard._cafe_name_var.set("Test Cafe")
@@ -243,14 +273,13 @@ class TestSetupWizard:
         root.destroy()
 
 
-@pytest.mark.skipif(not _TK_AVAILABLE, reason="Tcl/Tk not available")
 class TestMainScreen:
     def test_server_start_button_spawns_subprocess(self) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import LauncherApp, MainScreen
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         screen = MainScreen(root, app)  # type: ignore[arg-type]
         with patch("subprocess.Popen") as mock_popen:
@@ -264,11 +293,11 @@ class TestMainScreen:
         root.destroy()
 
     def test_server_stop_sends_sigterm(self) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import LauncherApp, MainScreen
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         screen = MainScreen(root, app)  # type: ignore[arg-type]
         with patch("subprocess.Popen") as mock_popen:
@@ -281,12 +310,11 @@ class TestMainScreen:
         root.destroy()
 
 
-@pytest.mark.skipif(not _TK_AVAILABLE, reason="Tcl/Tk not available")
 class TestDatabaseBootstrap:
     def test_missing_db_routes_to_main_after_restore_choice(
         self, tmp_path: Any, monkeypatch: Any
     ) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import LauncherApp, MainScreen
 
@@ -322,7 +350,7 @@ class TestDatabaseBootstrap:
             lambda self, cls, *a, **k: shown.append(cls),
         )
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         app._check_and_route()
         assert shown == [MainScreen]
@@ -330,7 +358,7 @@ class TestDatabaseBootstrap:
 
     def test_missing_db_cancel_quits(self, tmp_path: Any, monkeypatch: Any) -> None:
         """Cancel on the missing-DB modal quits the launcher (no MainScreen)."""
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import LauncherApp
 
@@ -374,19 +402,19 @@ class TestDatabaseBootstrap:
             lambda self, cls, *a, **k: shown.append(cls),
         )
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         app._check_and_route()
-        # Cancel path: root.destroy() called, show_screen NOT called
+        # Cancel path: root.destroy() called by _check_and_route, show_screen NOT called
         assert shown == []
         assert restore_called["v"] is False
         assert create_called["v"] is False
-        root.destroy()
+        # root is already destroyed by _check_and_route() on cancel path
 
     def test_present_db_routes_to_main_after_ensure_schema(
         self, tmp_path: Any, monkeypatch: Any
     ) -> None:
-        import tkinter as tk
+        import customtkinter as ctk
 
         from launcher import LauncherApp, MainScreen
 
@@ -422,7 +450,7 @@ class TestDatabaseBootstrap:
 
         monkeypatch.setattr(LauncherApp, "_ask_db_restore", _fake_ask)
 
-        root = tk.Tk()
+        root = ctk.CTk()
         app = LauncherApp(root)
         app._check_and_route()
         assert shown == [MainScreen]

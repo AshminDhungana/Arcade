@@ -4,18 +4,36 @@ import uuid
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from backend.core.database import AsyncSessionLocal, Base, async_engine
-from backend.main import app
+import backend.core.database as database
+import backend.main as main_module
 from backend.models import Seat, Zone
 from backend.models._enums import PricingModel
 from backend.services.enrollment_service import generate_enroll_code
 
 
+def _get_engine():
+    return database.async_engine
+
+
+def _get_session_local():
+    return database.AsyncSessionLocal
+
+
+def _get_base():
+    return database.Base
+
+
+def _get_app():
+    return main_module.app
+
+
 async def _ensure_schema_and_zone() -> None:
     """Self-contained DB setup (see test_enrollment_service.py for rationale)."""
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    async with AsyncSessionLocal() as db:
+    engine = _get_engine()
+    base = _get_base()
+    async with engine.begin() as conn:
+        await conn.run_sync(base.metadata.create_all)
+    async with _get_session_local()() as db:
         if await db.get(Zone, "z1") is None:
             db.add(
                 Zone(
@@ -31,12 +49,12 @@ async def _ensure_schema_and_zone() -> None:
 
 
 def _client():
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=_get_app())
     return AsyncClient(transport=transport, base_url="http://test")
 
 
 async def _cleanup(seat_id: str) -> None:
-    async with AsyncSessionLocal() as db:
+    async with _get_session_local()() as db:
         seat = await db.get(Seat, seat_id)
         if seat is not None:
             await db.delete(seat)
@@ -58,7 +76,7 @@ async def test_agent_enroll_roundtrip():
     await _ensure_schema_and_zone()
     try:
         # Seed a seat directly (bypass admin auth for the test setup).
-        async with AsyncSessionLocal() as db:
+        async with _get_session_local()() as db:
             db.add(Seat(id=seat_id, name=seat_id, zone_id="z1"))
             await db.commit()
             code = await generate_enroll_code(db, seat_id)
@@ -112,7 +130,7 @@ async def test_override_pin_repo_mint_and_regenerate():
     seat_id = f"seat_o_{uuid.uuid4().hex[:12]}"
     await _ensure_schema_and_zone()
     try:
-        async with AsyncSessionLocal() as db:
+        async with _get_session_local()() as db:
             db.add(Seat(id=seat_id, name=seat_id, zone_id="z1"))
             await db.commit()
             minted = await seat_repo.auto_mint_override_pin(db, seat_id)
