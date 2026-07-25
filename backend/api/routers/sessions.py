@@ -115,7 +115,9 @@ async def extend_session_route(
     session_id: str,
     body: _ExtendBody,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
+    staff: Annotated[
+        Staff | None, Depends(get_session_seat_and_check_zone)
+    ] = None,  # noqa: B008
 ) -> SessionResponse:
     """Push a session's assigned end forward; reverts EXPIRED seats."""
     return await session_service.extend_session(
@@ -127,7 +129,9 @@ async def extend_session_route(
 async def pause_session(
     session_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
+    staff: Annotated[
+        Staff | None, Depends(get_session_seat_and_check_zone)
+    ] = None,  # noqa: B008
 ) -> SessionResponse:
     """Pause an active session (cashier+)."""
     return await session_service.pause_session(db, session_id, staff)
@@ -137,7 +141,9 @@ async def pause_session(
 async def resume_session(
     session_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
+    staff: Annotated[
+        Staff | None, Depends(get_session_seat_and_check_zone)
+    ] = None,  # noqa: B008
 ) -> SessionResponse:
     """Resume a paused session (cashier+)."""
     return await session_service.resume_session(db, session_id, staff)
@@ -156,7 +162,9 @@ async def list_active_sessions(
 async def get_session(
     session_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
+    staff: Annotated[
+        Staff | None, Depends(get_session_seat_and_check_zone)
+    ] = None,  # noqa: B008
 ) -> SessionResponse:
     """Get a single session by ID (cashier+). Zone access checked for cashiers."""
     return await session_service.get_session(db, session_id)
@@ -171,7 +179,9 @@ async def post_checkout(
     session_id: str,
     body: _CheckoutBody,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(get_session_seat_and_check_zone)] = None,  # noqa: B008
+    staff: Annotated[
+        Staff | None, Depends(get_session_seat_and_check_zone)
+    ] = None,  # noqa: B008
 ) -> InvoiceResponse:
     """Checkout and generate invoice (cashier+).
 

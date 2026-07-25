@@ -154,7 +154,9 @@ async def test_concurrent_writes_no_database_locked(tmp_path: Path) -> None:
     await asyncio.gather(*[_increment() for _ in range(50)])
 
     async with engine.begin() as conn:
-        result = await conn.execute(text("SELECT value FROM counters WHERE id = 1"))  # noqa: S608
+        result = await conn.execute(
+            text("SELECT value FROM counters WHERE id = 1")
+        )  # noqa: S608
         final = result.scalar_one()
 
     assert final == 50

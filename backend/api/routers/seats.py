@@ -130,7 +130,9 @@ async def list_seats(
 async def get_seat(
     seat_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008 – FastAPI DI idiom
-    staff: Annotated[Staff | None, Depends(get_seat_and_check_zone)] = None,  # noqa: B008
+    staff: Annotated[
+        Staff | None, Depends(get_seat_and_check_zone)
+    ] = None,  # noqa: B008
 ) -> SeatResponse:
     """Get a single seat by ID (zone access checked for cashiers)."""
     return await seat_service.get_seat(db, seat_id, staff)
@@ -216,7 +218,9 @@ async def send_seat_message(
     seat_id: str,
     body: _MessageBody,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(get_seat_and_check_zone)] = None,  # noqa: B008
+    staff: Annotated[
+        Staff | None, Depends(get_seat_and_check_zone)
+    ] = None,  # noqa: B008
 ) -> None:
     """Send a ``SHOW_MESSAGE`` command to the seat's agent (cashier+)."""
     await remote_command_service.send_message(db, seat_id, body.message, staff)
@@ -226,7 +230,9 @@ async def send_seat_message(
 async def request_seat_screenshot(
     seat_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    staff: Annotated[Staff | None, Depends(get_seat_and_check_zone)] = None,  # noqa: B008
+    staff: Annotated[
+        Staff | None, Depends(get_seat_and_check_zone)
+    ] = None,  # noqa: B008
 ) -> Response:
     """Request a screenshot from the seat's agent (cashier+). Returns JPEG bytes."""
     data = await remote_command_service.request_screenshot(db, seat_id, staff)
