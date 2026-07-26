@@ -1658,11 +1658,11 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
   - [x] Max WebSocket message size 5 MB enforced; test with > 5 MB payload â†’ connection closed
   - [x] Screenshot payloads are JPEG-only (not PNG)
 
-- [ ] **Input validation audit:**
-  - [ ] All string fields have `max_length` in Pydantic schemas
-  - [ ] All monetary fields are `int` (no `float` anywhere in schemas)
-  - [ ] All queries go through SQLAlchemy ORM â€” no raw SQL with user input (SQL injection prevention)
-  - [ ] `audit_repo.py` exposes only `create` and `list` â€” no `update` or `delete`
+- [x] **Input validation audit:**
+  - [x] All string fields have `max_length` in Pydantic schemas
+  - [x] All monetary fields are `int` (no `float` anywhere in schemas)
+  - [x] All queries go through SQLAlchemy ORM â€” no raw SQL with user input (SQL injection prevention)
+  - [x] `audit_repo.py` exposes only `create` and `list` â€” no `update` or `delete`
 
 - [ ] **Sensitive file and key security:**
   - [ ] Confirm `tools/keygen/private_key.pem` never committed: `git log --all --full-history -- tools/keygen/private_key.pem` â†’ empty
