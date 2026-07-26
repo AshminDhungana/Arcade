@@ -1652,11 +1652,11 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
 
 ---
 
-- [ ] **Agent and WebSocket security audit:**
-  - [ ] `agent_secret` not hardcoded in source: `grep -r "agent_secret" agent/src/ backend/` â€” only appears as config read
-  - [ ] `agent.config.json` in `.gitignore`; never committed
-  - [ ] Max WebSocket message size 5 MB enforced; test with > 5 MB payload â†’ connection closed
-  - [ ] Screenshot payloads are JPEG-only (not PNG)
+- [x] **Agent and WebSocket security audit:**
+  - [x] `agent_secret` not hardcoded in source: `grep -r "agent_secret" agent/src/ backend/` â€” only appears as config read
+  - [x] `agent.config.json` in `.gitignore`; never committed
+  - [x] Max WebSocket message size 5 MB enforced; test with > 5 MB payload â†’ connection closed
+  - [x] Screenshot payloads are JPEG-only (not PNG)
 
 - [ ] **Input validation audit:**
   - [ ] All string fields have `max_length` in Pydantic schemas
