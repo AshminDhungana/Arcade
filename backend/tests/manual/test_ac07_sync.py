@@ -45,9 +45,7 @@ async def monitor_dashboard_ws(
                 if payload.get("status") == "SYNCED":
                     print(f"[FOUND] SYNCED event: {json.dumps(payload, indent=2)}")
                     return payload
-            raise TimeoutError(
-                "Did not receive SYNCED event within timeout"
-            )  # noqa: EM101
+            raise TimeoutError("Did not receive SYNCED event within timeout")  # noqa: EM101
     except websockets.exceptions.ConnectionClosed:  # type: ignore[attr-defined]
         print("[ERROR] Dashboard websocket connection closed unexpectedly")
         return None

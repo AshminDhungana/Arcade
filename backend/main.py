@@ -232,9 +232,7 @@ app.include_router(ws_router.router, prefix="")
 
 
 @app.exception_handler(HTTPException)
-async def _http_exception_handler(
-    request: Request, exc: HTTPException
-) -> JSONResponse:  # noqa: ARG001
+async def _http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:  # noqa: ARG001
     """Return JSON for all HTTP exceptions."""
     return JSONResponse(
         status_code=exc.status_code,

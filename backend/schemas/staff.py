@@ -51,8 +51,6 @@ class TokenResponse(BaseSchema):
     """Response body for successful authentication."""
 
     access_token: str
-    token_type: str = (
-        "bearer"  # noqa: S105 (standard OAuth2 token type, not a password)
-    )
+    token_type: str = "bearer"  # noqa: S105 (standard OAuth2 token type, not a password)
     expires_in: int  # seconds
     staff: StaffResponse
