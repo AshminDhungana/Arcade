@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1597,6 +1597,15 @@ Comprehensive automated test coverage, end-to-end testing of all 23 SRS acceptan
   - [x] `MemberSearch.test.tsx` â€” debounced search; member card renders
   - [x] `Login.test.tsx` â€” wrong PIN shows error; 5th failure shows lockout; success stores token
   - [x] `useWebSocket.test.tsx` â€” reconnect behaviour; `seat_updated` invalidates cache â€” **9 tests in 4 test files passing**
+
+- [x] **Task: Fix E2E tests** (Playwright) (`frontend/e2e/`) â€” was 40/72 passing, now **72/72 passing**
+  - [x] Fix horizontal overflow at mobile viewports (375px, 390px, 412px)
+  - [x] Ensure all interactive elements meet 44px tap target (WCAG AA)
+  - [x] Fix Tabs horizontal scroll (`overflow-x: auto`)
+  - [x] Fix SessionDrawer mobile layout (POS stack, invoice table scroll, modal buttons)
+  - [x] Fix NavShell nav link tap targets
+  - [x] Fix Login page theme toggle and overflow
+  - [x] Fix Members page header flex-direction at <640px
 
 - [ ] **Task: Cross-browser compatibility testing** (manual)
   - [ ] Chrome (latest), Firefox (latest), Safari (macOS/iOS) â€” all pages render

@@ -63,7 +63,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-auto">
       <header className="sticky top-0 z-20 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-xl font-bold text-foreground">Arcade Dashboard</h1>

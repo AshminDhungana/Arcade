@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, test, act } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, test } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { setPrefersReducedMotion } from '../test-setup';
@@ -164,12 +164,12 @@ describe('Login', () => {
     expect(wrapper).not.toBeNull();
     expect(wrapper?.getAttribute('data-theme')).toBe('dark');
 
-    const toggle = screen.getByRole('button', { name: /switch to light theme/i });
+    const toggle = screen.getByRole('button', { name: /toggle theme \(logo\)/i });
     fireEvent.click(toggle);
 
     expect(wrapper?.getAttribute('data-theme')).toBe('light');
     expect(localStorage.getItem('arcade-login-theme')).toBe('light');
-    expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /toggle theme \(logo\)/i })).toBeInTheDocument();
   });
 
   it('renders and toggles correctly when reduced-motion is preferred', () => {
@@ -180,7 +180,7 @@ describe('Login', () => {
       expect(screen.getByLabelText(/staff id/i)).toBeInTheDocument();
       const wrapper = container.querySelector('.login-root');
       expect(wrapper?.getAttribute('data-theme')).toBe('dark');
-      fireEvent.click(screen.getByRole('button', { name: /switch to light theme/i }));
+      fireEvent.click(screen.getByRole('button', { name: /toggle theme \(logo\)/i }));
       expect(wrapper?.getAttribute('data-theme')).toBe('light');
     } finally {
       setPrefersReducedMotion(false);
@@ -198,7 +198,7 @@ describe('Login layout — centered logo above card', () => {
 
   test('logo is rendered above login card, not inside it', () => {
     renderWithRouterAndMotion();
-    const logo = screen.getByRole('button', { name: /switch to (light|dark) theme/i });
+    const logo = screen.getByRole('button', { name: /toggle theme \(logo\)/i });
     const card = screen.getByTestId('login-card');
     expect(logo).toBeInTheDocument();
     expect(card).toBeInTheDocument();
@@ -207,13 +207,13 @@ describe('Login layout — centered logo above card', () => {
 
   test('logo has correct size, variant, motion', () => {
     renderWithRouterAndMotion();
-    const logo = screen.getByRole('button', { name: /switch to (light|dark) theme/i });
+    const logo = screen.getByRole('button', { name: /toggle theme \(logo\)/i });
     expect(logo).toHaveClass('h-24', 'w-24');
   });
 
   test('theme badge button exists in card header', () => {
     renderWithRouterAndMotion();
-    const logo = screen.getByRole('button', { name: /switch to (light|dark) theme/i });
+    const logo = screen.getByRole('button', { name: /toggle theme \(logo\)/i });
     expect(logo).toBeInTheDocument();
   });
 

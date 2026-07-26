@@ -16,6 +16,7 @@ backend/venv
 docs/superpowers
 .superpowers
 .agents
+.opencode
 
 # Distribution / packaging
 .Python

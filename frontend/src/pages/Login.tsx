@@ -111,9 +111,9 @@ export default function Login() {
     return () => clearCountdown();
   }, [clearCountdown]);
 
-  return (
+return (
     <div
-      className="login-root relative min-h-screen overflow-hidden"
+      className="login-root relative min-h-screen overflow-hidden overflow-x-auto"
       data-theme={theme}
     >
       <NeonGridBackground />
@@ -123,7 +123,7 @@ export default function Login() {
         <motion.button
           type="button"
           onClick={toggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          aria-label={theme === 'dark' ? 'Toggle theme (logo)' : 'Toggle theme (logo)'}
           aria-pressed={theme === 'dark'}
           title="Toggle theme"
           whileHover={reduceMotion ? undefined : { scale: 1.04 }}

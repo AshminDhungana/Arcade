@@ -10,7 +10,7 @@ import { BroadcastTab } from '@/components/settings/BroadcastTab';
 
 export default function SettingsPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground overflow-x-auto">
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card/95 px-6 py-4 backdrop-blur">
         <h1 className="text-xl font-bold text-foreground">Settings</h1>
       </header>

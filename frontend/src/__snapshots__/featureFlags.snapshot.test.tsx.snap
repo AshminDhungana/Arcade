@@ -175,7 +175,7 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -292,7 +292,7 @@ exports[`feature flag snapshot matrix > all flags OFF 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -569,7 +569,7 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -686,7 +686,7 @@ exports[`feature flag snapshot matrix > all flags ON 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -871,7 +871,7 @@ exports[`feature flag snapshot matrix > only enable_assigned_time_limit enabled 
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -988,7 +988,7 @@ exports[`feature flag snapshot matrix > only enable_assigned_time_limit enabled 
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -1173,7 +1173,7 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -1290,7 +1290,7 @@ exports[`feature flag snapshot matrix > only enable_expense_tracking enabled 1`]
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -1475,7 +1475,7 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -1592,7 +1592,7 @@ exports[`feature flag snapshot matrix > only enable_health_monitoring enabled 1`
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -1777,7 +1777,7 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -1894,7 +1894,7 @@ exports[`feature flag snapshot matrix > only enable_inventory enabled 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -2115,7 +2115,7 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -2232,7 +2232,7 @@ exports[`feature flag snapshot matrix > only enable_members enabled 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -2417,7 +2417,7 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -2534,7 +2534,7 @@ exports[`feature flag snapshot matrix > only enable_packages enabled 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -2719,7 +2719,7 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -2836,7 +2836,7 @@ exports[`feature flag snapshot matrix > only enable_pos enabled 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -3021,7 +3021,7 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -3138,7 +3138,7 @@ exports[`feature flag snapshot matrix > only enable_reservations enabled 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -3379,7 +3379,7 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -3496,7 +3496,7 @@ exports[`feature flag snapshot matrix > only enable_tournaments enabled 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -3681,7 +3681,7 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -3798,7 +3798,7 @@ exports[`feature flag snapshot matrix > only enable_vouchers enabled 1`] = `
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -3983,7 +3983,7 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -4100,7 +4100,7 @@ exports[`feature flag snapshot matrix > only require_member_for_session enabled 
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child
@@ -4285,7 +4285,7 @@ exports[`feature flag snapshot matrix > only require_print_before_release enable
       </nav>
       <button
         aria-label="Logout"
-        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+        class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         title="Logout"
         type="button"
       >
@@ -4402,7 +4402,7 @@ exports[`feature flag snapshot matrix > only require_print_before_release enable
       </button>
     </div>
     <div
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 overflow-x-auto"
     >
       <div>
         child

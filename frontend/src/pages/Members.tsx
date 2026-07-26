@@ -103,11 +103,10 @@ export function MembersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-xl font-bold text-foreground">Members</h1>
-          <div className="flex w-full flex-1 flex-col gap-3 sm:max-w-2xl sm:flex-row sm:items-center">
+    <div className="min-h-screen bg-background overflow-x-auto">
+      <header className="sticky top-0 z-20 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="members-header">
+        <h1 className="text-xl font-bold text-foreground">Members</h1>
+        <div className="flex w-full flex-1 flex-col gap-3 sm:max-w-2xl sm:flex-row sm:items-center">
             <div className="w-full sm:flex-1 sm:max-w-md">
               <MemberSearch onSelect={handleMemberSelect} />
             </div>
@@ -116,7 +115,6 @@ export function MembersPage() {
               New Member
             </Button>
           </div>
-        </div>
       </header>
 
       <main className="mx-auto w-full max-w-7xl space-y-6 p-6">

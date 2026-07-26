@@ -88,7 +88,7 @@ export function NavShell({ children }: { children: ReactNode }) {
           onClick={handleLogout}
           aria-label="Logout"
           title="Logout"
-          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto"
+          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground mt-auto min-h-[44px] min-w-[44px]"
         >
           <Icon name="Unlock" size={16} variant="stroke" aria-hidden={true} />
         </button>
@@ -138,7 +138,7 @@ export function NavShell({ children }: { children: ReactNode }) {
             title="Toggle theme"
             whileHover={reduceMotion ? undefined : { scale: 1.04 }}
             whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-foreground transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-foreground transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background min-h-[44px] min-w-[44px]"
           >
             <motion.span
               animate={{ rotate: theme === "dark" ? 0 : 180 }}
@@ -163,14 +163,14 @@ export function NavShell({ children }: { children: ReactNode }) {
           type="button"
           onClick={handleLogout}
           aria-label="Logout"
-          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground w-full mt-auto"
+          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground w-full mt-auto min-h-[44px] min-w-[44px]"
         >
           <Icon name="Unlock" size={16} variant="stroke" aria-hidden={true} />
           <span>Logout</span>
         </button>
       </Sheet>
 
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1 overflow-x-auto">{children}</div>
     </div>
   );
 }
