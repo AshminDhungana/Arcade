@@ -1589,13 +1589,13 @@ Comprehensive automated test coverage, end-to-end testing of all 23 SRS acceptan
 
 ### Epic 8.2: Frontend and E2E Testing (ENG-B)
 
-- [ ] **Task: Write component tests** (Vitest + React Testing Library) (`frontend/src/tests/`)
-  - [ ] `SeatGrid.test.tsx` â€” renders correct count; status colour-coding
-  - [ ] `SeatCard.test.tsx` â€” status badge, elapsed timer ticking, click triggers modal
-  - [ ] `InvoicePanel.test.tsx` â€” paiseâ†’rupees display; all line items present
-  - [ ] `POSPanel.test.tsx` â€” greyed-out when `is_available=false`; click calls API
-  - [ ] `MemberSearch.test.tsx` â€” debounced search; member card renders
-  - [ ] `Login.test.tsx` â€” wrong PIN shows error; 5th failure shows lockout; success stores token
+- [x] **Task: Write component tests** (Vitest + React Testing Library) (`frontend/src/tests/`)
+  - [x] `SeatGrid.test.tsx` â€” renders correct count; status colour-coding
+  - [x] `SeatCard.test.tsx` â€” status badge, elapsed timer ticking, click triggers modal
+  - [x] `InvoicePanel.test.tsx` â€” paiseâ†’rupees display; all line items present
+  - [x] `POSPanel.test.tsx` â€” greyed-out when `is_available=false`; click calls API
+  - [x] `MemberSearch.test.tsx` â€” debounced search; member card renders
+  - [x] `Login.test.tsx` â€” wrong PIN shows error; 5th failure shows lockout; success stores token
   - [x] `useWebSocket.test.tsx` â€” reconnect behaviour; `seat_updated` invalidates cache â€” **9 tests in 4 test files passing**
 
 - [ ] **Task: Cross-browser compatibility testing** (manual)
