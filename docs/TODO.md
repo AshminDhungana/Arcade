@@ -1650,6 +1650,8 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
   - [x] `arcade.config.json` stores only hashed PINs
   - [x] Argon2id params: `time_cost=2, memory_cost=102400, parallelism=8` â€” OWASP compliant
 
+---
+
 - [ ] **Agent and WebSocket security audit:**
   - [ ] `agent_secret` not hardcoded in source: `grep -r "agent_secret" agent/src/ backend/` â€” only appears as config read
   - [ ] `agent.config.json` in `.gitignore`; never committed
