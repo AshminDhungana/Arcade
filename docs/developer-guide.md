@@ -471,7 +471,7 @@ Fix any full-table scans by adding indexes (see Phase 10: `alembic/versions/002_
 - [ ] No HIGH or CRITICAL CVEs in Python or Node.js dependencies
 - [ ] Argon2id params meet OWASP recommendations (`time_cost=2`, `memory_cost=102400`, `parallelism=8`)
 - [ ] Agent secrets unique per seat, randomly generated, not hardcoded
-- [ ] Auth audit table complete — all 40+ endpoints verified
+- [x] Auth audit table complete — all 40+ endpoints verified
 - [ ] Rate limiting: 5 failed logins → 15-minute lockout
 - [ ] Threat model documented (`docs/security/threat-model.md`)
 

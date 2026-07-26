@@ -1636,13 +1636,13 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
 
 ### Epic 9.1: Security Review (ENG-A)
 
-- [ ] **Authentication and authorisation audit:**
-  - [ ] Review every route: correct `require_admin` or `require_cashier` dependency?
-  - [ ] `token_version` validation in `get_current_staff()` â€” test stale token rejection
-  - [ ] Screenshot endpoint Admin-only (NFR-SEC-004)
-  - [ ] Audit log has no DELETE or UPDATE endpoints (NFR-SEC-005)
-  - [ ] No user or billing data in `/health` or any public endpoint (NFR-SEC-006)
-  - [ ] **Output:** `docs/security/auth-audit.md` â€” table of all routes with auth level and verified checkbox
+- [x] **Authentication and authorisation audit:**
+  - [x] Review every route: correct `require_admin` or `require_cashier` dependency?
+  - [x] `token_version` validation in `get_current_staff()` â€” test stale token rejection
+  - [x] Screenshot endpoint Admin-only (NFR-SEC-004)
+  - [x] Audit log has no DELETE or UPDATE endpoints (NFR-SEC-005)
+  - [x] No user or billing data in `/health` or any public endpoint (NFR-SEC-006)
+  - [x] **Output:** `docs/security/auth-audit.md` â€” table of all routes with auth level and verified checkbox
 
 - [ ] **Argon2id implementation audit:**
   - [ ] `grep -r "bcrypt" backend/` â†’ must return nothing
