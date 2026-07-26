@@ -1614,7 +1614,7 @@ Comprehensive automated test coverage, end-to-end testing of all 23 SRS acceptan
 
 ### Documentation Requirements (Phase 8)
 
-- [ ] `docs/developer-guide.md`: how to run tests, performance tests, acceptance criteria checklist
+- [x] `docs/developer-guide.md`: how to run tests, performance tests, acceptance criteria checklist
 
 ---
 
