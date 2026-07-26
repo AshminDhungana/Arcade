@@ -1644,11 +1644,11 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
   - [x] No user or billing data in `/health` or any public endpoint (NFR-SEC-006)
   - [x] **Output:** `docs/security/auth-audit.md` â€” table of all routes with auth level and verified checkbox
 
-- [ ] **Argon2id implementation audit:**
-  - [ ] `grep -r "bcrypt" backend/` â†’ must return nothing
-  - [ ] No plaintext PINs in any logging calls
-  - [ ] `arcade.config.json` stores only hashed PINs
-  - [ ] Argon2id params: `time_cost=2, memory_cost=102400, parallelism=8` â€” OWASP compliant
+- [x] **Argon2id implementation audit:**
+  - [x] `grep -r "bcrypt" backend/` â†’ must return nothing
+  - [x] No plaintext PINs in any logging calls
+  - [x] `arcade.config.json` stores only hashed PINs
+  - [x] Argon2id params: `time_cost=2, memory_cost=102400, parallelism=8` â€” OWASP compliant
 
 - [ ] **Agent and WebSocket security audit:**
   - [ ] `agent_secret` not hardcoded in source: `grep -r "agent_secret" agent/src/ backend/` â€” only appears as config read
