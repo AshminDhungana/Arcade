@@ -104,3 +104,51 @@ jobs:
         run: cd agent && npm ci
       - name: Run lint
         run: cd agent && npm run lint
+
+  check-sensitive-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for private keys and PEM files in git history
+        run: |
+          echo "Checking for .pem files in git history..."
+          if git log --all --full-history --name-only --pretty=format: -- "*.pem" | grep -q "\.pem$"; then
+            echo "ERROR: .pem files found in git history"
+            git log --all --full-history --name-only --pretty=format: -- "*.pem" | grep "\.pem$" | sort -u
+            exit 1
+          fi
+          echo "Checking for private_key* files in git history..."
+          if git log --all --full-history --name-only --pretty=format: -- "private_key*" | grep -q "private_key"; then
+            echo "ERROR: private_key* files found in git history"
+            git log --all --full-history --name-only --pretty=format: -- "private_key*" | grep "private_key" | sort -u
+            exit 1
+          fi
+          echo "Checking for *.key files in git history..."
+          if git log --all --full-history --name-only --pretty=format: -- "*.key" | grep -q "\.key$"; then
+            echo "ERROR: *.key files found in git history"
+            git log --all --full-history --name-only --pretty=format: -- "*.key" | grep "\.key$" | sort -u
+            exit 1
+          fi
+          echo "All sensitive file checks passed."
+
+  check-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for private keys in repository
+        run: |
+          if git ls-files | grep -E '\.pem$|private_key' | grep -v '.gitignore'; then
+            echo "ERROR: Private key files detected in repository"
+            exit 1
+          fi
+      - name: Check for secrets in staged files (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -E '\.pem$|private_key'; then
+            echo "ERROR: Private key files in PR changes"
+            exit 1
+          fi

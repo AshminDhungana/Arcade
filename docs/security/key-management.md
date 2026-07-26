@@ -1,7 +1,7 @@
 # Arcade Security - Key Management
 
-> Last updated: 2026-07-02 (Phase 1, in progress)
-> See also: `docs/PRODUCT_BRIEF.md`, `backend/licensing/verify.py`, `tools/keygen/`
+> Last updated: 2026-07-26 (Phase 9, Epic 9.1 complete)
+> See also: `docs/PRODUCT_BRIEF.md`, `backend/licensing/verify.py`, `tools/keygen/`, `.github/workflows/ci.yml`
 
 This document defines the lifecycle of the Ed25519 keypair, private key custody rules, and the offline license signing/verification flow.
 
@@ -27,7 +27,7 @@ The Ed25519 private key (`tools/keygen/private_key.pem`) is the single most sens
 
 ### Rules
 
-1. **Never commit** — The file is in `.gitignore`. CI should fail if any `.pem` or `private_key*` is detected in the repository.
+1. **Never commit** — The file is in `.gitignore`. CI fails if any `.pem` or `private_key*` is detected in the repository (see `.github/workflows/ci.yml` job `check-secrets`).
 2. **Minimal access** — Only the build/release engineer has access to the signing machine.
 3. **No cloud storage** — Do not store the key in cloud drives (Dropbox, Google Drive, etc.).
 4. **Hardware-backed storage** — Prefer a hardware token or encrypted USB drive for cold storage.
@@ -35,7 +35,10 @@ The Ed25519 private key (`tools/keygen/private_key.pem`) is the single most sens
 
 ### CI Protection
 
-The `.github/workflows/ci.yml` should include a step that checks for any `.pem` or `private_key*` file in git history. If found, the build fails.
+The `.github/workflows/ci.yml` includes a `check-secrets` job that:
+- Scans all tracked files for `.pem` or `private_key*` patterns (fails if found)
+- Scans PR diffs for the same patterns (fails if found in new changes)
+- Runs on every push to `develop`/`main` and all PRs to `main`
 
 ## License Generation
 

@@ -72,3 +72,31 @@ jobs:
           name: gitleaks-report
           path: gitleaks-report.json
           retention-days: 30
+
+  check-sensitive-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for private keys and PEM files in git history
+        run: |
+          echo "Checking for .pem files in git history..."
+          if git log --all --full-history --name-only --pretty=format: -- "*.pem" | grep -q "\.pem$"; then
+            echo "ERROR: .pem files found in git history"
+            git log --all --full-history --name-only --pretty=format: -- "*.pem" | grep "\.pem$" | sort -u
+            exit 1
+          fi
+          echo "Checking for private_key* files in git history..."
+          if git log --all --full-history --name-only --pretty=format: -- "private_key*" | grep -q "private_key"; then
+            echo "ERROR: private_key* files found in git history"
+            git log --all --full-history --name-only --pretty=format: -- "private_key*" | grep "private_key" | sort -u
+            exit 1
+          fi
+          echo "Checking for *.key files in git history..."
+          if git log --all --full-history --name-only --pretty=format: -- "*.key" | grep -q "\.key$"; then
+            echo "ERROR: *.key files found in git history"
+            git log --all --full-history --name-only --pretty=format: -- "*.key" | grep "\.key$" | sort -u
+            exit 1
+          fi
+          echo "All sensitive file checks passed."

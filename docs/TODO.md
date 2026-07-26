@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**; **Phase 9 Epic 9.1 Sensitive File & Key Security Complete (2026-07-26)**
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -137,7 +137,7 @@ Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-val
 | R-02 | Electron kiosk bypass on Wayland                          | Customers bypass kiosk overlay          | Medium      | Early validation (ARCH-02); document known gaps; recommend X11 for client PCs                            |
 | R-03 | TinyTuya local key extraction fails                       | Console power control unavailable       | Medium      | Test with real hardware early (ARCH-04); document manual fallback                                        |
 | R-04 | PyInstaller bundle fails to include all hidden imports    | Launcher crashes at customer site       | Medium      | ARCH-03 validation; use `--onedir` not `--onefile` for easier debugging                                  |
-| R-05 | Private key leaked into repository                        | License system compromised              | Critical    | `.gitignore` + CI check for `.pem` files; never commit keygen directory                                  |
+| R-05 | Private key leaked into repository                        | License system compromised              | Critical    | `.gitignore` + CI check for `.pem` files; never commit keygen directory                                  | **Mitigated (2026-07-26)** |
 | R-06 | Paise arithmetic error leads to billing discrepancy       | Customer billing disputes               | High        | All monetary fields typed as `int`; Pydantic schema validation; dedicated billing unit tests             |
 | R-07 | Agent SYNC reconciliation bug after LAN drop              | Session billing lost during outage      | High        | ARCH-06 validation; integration tests for disconnect/reconnect scenario                                  |
 | R-08 | `py-machineid` returns different ID after hardware change | License invalidated unexpectedly        | Medium      | Document hardware change process; include fallback fingerprint (hostname + MAC); test on target hardware |
@@ -1664,11 +1664,11 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
   - [x] All queries go through SQLAlchemy ORM â€” no raw SQL with user input (SQL injection prevention)
   - [x] `audit_repo.py` exposes only `create` and `list` â€” no `update` or `delete`
 
-- [ ] **Sensitive file and key security:**
-  - [ ] Confirm `tools/keygen/private_key.pem` never committed: `git log --all --full-history -- tools/keygen/private_key.pem` â†’ empty
-  - [ ] CI check added: fail build if any `*.pem` or `private_key*` file detected in repo
-  - [ ] `arcade.config.json` and `license.key` in `.gitignore`
-  - [ ] Document key custody policy in `docs/security/key-management.md`
+- [x] **Sensitive file and key security:**
+  - [x] Confirm `tools/keygen/private_key.pem` never committed: `git log --all --full-history -- tools/keygen/private_key.pem` â†’ empty
+  - [x] CI check added: fail build if any `*.pem` or `private_key*` file detected in repo
+  - [x] `arcade.config.json` and `license.key` in `.gitignore`
+  - [x] Document key custody policy in `docs/security/key-management.md`
 
 ### Epic 9.2: Dependency Vulnerability Audit (ENG-B)
 
@@ -1699,7 +1699,7 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
 
 - [ ] All NFR-SEC-001 through NFR-SEC-008 verified and checked off
 - [ ] No HIGH/CRITICAL CVEs in Python or Node.js dependencies
-- [ ] Private key never in git history
+- [x] Private key never in git history
 - [ ] Rate limiting verified under simulated brute-force (5 attempts â†’ lockout)
 - [ ] All endpoints have correct auth per audit table
 - [ ] Override: inert when `override_code_hash` absent; correct code hides overlay; wrong code no-op; audit event logged
