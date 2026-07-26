@@ -51,4 +51,15 @@ describe('MemberSearch', () => {
       expect.objectContaining({ id: 'm1', name: 'John' }),
     );
   });
+
+  it('renders member card with name and phone', async () => {
+    const onSelect = vi.fn();
+    render(<MemberSearch onSelect={onSelect} />, { wrapper: makeWrapper() });
+    const input = screen.getByPlaceholderText(/Search members/i);
+    fireEvent.change(input, { target: { value: 'jo' } });
+    await waitFor(() => expect(screen.getByText('John')).toBeInTheDocument(), {
+      timeout: 3000,
+    });
+    expect(screen.getByText('9800000001')).toBeInTheDocument();
+  });
 });

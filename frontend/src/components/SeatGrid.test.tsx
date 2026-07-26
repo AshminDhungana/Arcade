@@ -18,6 +18,7 @@ vi.mock('@/api/seats', () => ({
     data: [
       { id: 's1', name: 'PC-01', zone_id: 'z1', zone_name: 'Floor A', mac_address: null, status: 'AVAILABLE', plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0, wol_failures: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
       { id: 's2', name: 'PC-02', zone_id: 'z1', zone_name: 'Floor A', mac_address: null, status: SeatStatus.IN_USE, plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0, wol_failures: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
+      { id: 's3', name: 'PC-03', zone_id: 'z1', zone_name: 'Floor A', mac_address: null, status: SeatStatus.MAINTENANCE, plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0, wol_failures: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z' },
     ],
     isLoading: false,
     isError: false,
@@ -28,16 +29,28 @@ vi.mock('@/api/seats', () => ({
 describe('SeatGrid', () => {
   it('groups seats by zone and renders them', () => {
     render(<SeatGrid />, { wrapper: makeWrapper() });
-    // Both seats live in the same zone -> a single seat list.
+    // All seats live in the same zone -> a single seat list.
     const lists = screen.getAllByRole('list');
     expect(lists).toHaveLength(1);
     expect(screen.getByText('PC-01')).toBeInTheDocument();
     expect(screen.getByText('PC-02')).toBeInTheDocument();
+    expect(screen.getByText('PC-03')).toBeInTheDocument();
     expect(screen.getByText('Floor A')).toBeInTheDocument();
   });
 
   it('is accessible with a per-zone aria-label', () => {
     render(<SeatGrid />, { wrapper: makeWrapper() });
     expect(screen.getByLabelText('Zone Floor A')).toBeInTheDocument();
+  });
+
+  it('renders correct status colour-coding via left border classes', () => {
+    render(<SeatGrid />, { wrapper: makeWrapper() });
+    // The seat card buttons have the border-l-* classes
+    const pc01 = screen.getByText('PC-01').closest('button');
+    const pc02 = screen.getByText('PC-02').closest('button');
+    const pc03 = screen.getByText('PC-03').closest('button');
+    expect(pc01).toHaveClass('border-l-emerald-500');
+    expect(pc02).toHaveClass('border-l-orange-500');
+    expect(pc03).toHaveClass('border-l-gray-500');
   });
 });

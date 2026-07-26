@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SeatCard } from './SeatCard';
@@ -138,5 +139,39 @@ describe('SeatCard', () => {
 
     expect(window.prompt).toHaveBeenCalled();
     expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  // --- Timer & Modal Trigger Tests ---
+
+  it('shows elapsed timer that ticks for IN_USE seat', () => {
+    vi.useFakeTimers();
+    // Set fake timer to a known "now"
+    const fakeNow = new Date('2024-01-01T00:00:00Z').getTime();
+    vi.setSystemTime(fakeNow);
+    const seat = withLimit({
+      status: SeatStatus.IN_USE,
+      current_session_started_at: new Date(fakeNow).toISOString(),
+    });
+    render(<SeatCard seat={seat} onClick={vi.fn()} />, { wrapper: makeWrapper() });
+
+    // Initial render shows 00:00:00 via label
+    expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('00:00:00');
+
+    // Advance 61 seconds -> 00:01:01
+    act(() => vi.advanceTimersByTime(61000));
+    expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('00:01:01');
+
+    // Advance another 60 seconds -> 00:02:01
+    act(() => vi.advanceTimersByTime(60000));
+    expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('00:02:01');
+
+    vi.useRealTimers();
+  });
+
+  it('click triggers onClick handler (opens SeatActionModal via parent)', () => {
+    const handleClick = vi.fn();
+    render(<SeatCard seat={mockSeat} onClick={handleClick} />, { wrapper: makeWrapper() });
+    fireEvent.click(screen.getByRole('button'));
+    expect(handleClick).toHaveBeenCalledWith(mockSeat);
   });
 });
