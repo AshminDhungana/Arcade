@@ -501,6 +501,29 @@ class WebSocketManager:
                 exc_info=True,
             )
 
+        # Audit log the staff override event
+        try:
+            from backend.core.database import AsyncSessionLocal
+            from backend.models._enums import AuditAction
+            from backend.services import audit_service
+
+            async with AsyncSessionLocal() as db:
+                await audit_service.log(
+                    db,
+                    action=AuditAction.STAFF_OVERRIDE,
+                    entity_type="seat",
+                    entity_id=seat_id,
+                    staff_id=None,
+                    detail=f"staff_override by agent on seat {seat_id}",
+                )
+                await db.commit()
+        except Exception:
+            logger.warning(
+                "Failed to create audit log for STAFF_OVERRIDE on seat %s",
+                seat_id,
+                exc_info=True,
+            )
+
         return {"type": "STAFF_OVERRIDE_ACK"}
 
     async def _handle_staff_alert(

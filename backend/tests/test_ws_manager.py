@@ -612,6 +612,45 @@ class TestOverlayForcedClearing:
 
         await mgr.close_all()
 
+    async def test_handle_staff_override_creates_audit_log(self, seeded_seat) -> None:
+        """_handle_staff_override creates audit log entry with staff_id=None."""
+        from backend.core.database import AsyncSessionLocal
+        from backend.models._enums import AuditAction
+        from backend.repositories import audit_repo
+        from backend.services import seat_service
+
+        seat_id, secret = seeded_seat
+        # Pre-set overlay_forced to True
+        async with AsyncSessionLocal() as db:
+            await seat_service.set_overlay_forced(db, seat_id, True)
+
+        mgr = WebSocketManager()
+        ws = _fake_ws()
+        await mgr.connect_agent(seat_id, secret, ws)
+        dash = _fake_ws()
+        await mgr.connect_dashboard(dash)
+
+        # Send STAFF_OVERRIDE
+        await mgr.handle_agent_message(
+            seat_id,
+            {"type": "STAFF_OVERRIDE", "payload": {"staff_id": "s001"}},
+        )
+
+        # Verify audit log entry created
+        async with AsyncSessionLocal() as db:
+            logs = await audit_repo.list(
+                db, action=AuditAction.STAFF_OVERRIDE.value, entity_id=seat_id, limit=1
+            )
+            assert len(logs) == 1
+            log = logs[0]
+            assert log.action == AuditAction.STAFF_OVERRIDE
+            assert log.entity_type == "seat"
+            assert log.entity_id == seat_id
+            assert log.staff_id is None  # Agent-initiated, no staff context
+            assert f"staff_override by agent on seat {seat_id}" in log.detail
+
+        await mgr.close_all()
+
 
 async def test_wait_for_screenshot_resolves_on_result() -> None:
     """A registered waiter future resolves when resolve_screenshot is called."""
