@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
@@ -66,3 +66,8 @@ class GamingSession(Base):
         super().__init__(**kwargs)
         if self.expiry_warned is None:
             self.expiry_warned = False
+
+
+# Composite indexes for analytics query optimization
+Index("ix_sessions_started_at_status", "started_at", "status")
+Index("ix_sessions_seat_id_started_at_status", "seat_id", "started_at", "status")

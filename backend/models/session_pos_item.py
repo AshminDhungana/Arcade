@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.core.database import Base
@@ -27,3 +27,7 @@ class SessionPOSItem(Base):
     added_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
+
+
+# Composite index for analytics queries (top POS items)
+Index("ix_session_pos_items_session_id_menu_item_id", "session_id", "menu_item_id")

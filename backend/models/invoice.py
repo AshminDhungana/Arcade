@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.core.database import Base
@@ -52,3 +52,7 @@ class Invoice(Base):
         "InvoiceLineItem",
         lazy="selectin",
     )
+
+
+# Composite index for analytics queries (weekly revenue + member stats)
+Index("ix_invoices_created_at_member_id", "created_at", "member_id")
