@@ -21,6 +21,9 @@ export interface OverlayData {
 
   /** Optional event/tournament banner shown on the kiosk when set by the server. */
   eventBanner?: string;
+
+  /** Whether the staff override code is configured (shows Ctrl+Shift+O dialog). */
+  overrideCodeConfigured: boolean;
 }
 
 /** The API exposed to the renderer process via `window.electronAPI`. */
@@ -39,6 +42,9 @@ interface ElectronAPI {
 
   /** Main → Renderer: update whether a session is currently active. */
   onSessionStatus: (callback: (active: boolean) => void) => void;
+
+  /** Main → Renderer: send agent config (including override_code_hash presence). */
+  onConfig: (callback: (config: { hasOverrideCode: boolean }) => void) => void;
 
   /** Renderer → Main: request staff attention. */
   callStaff: () => void;
@@ -82,6 +88,10 @@ const api: ElectronAPI = {
     ipcRenderer.on('overlay:session-active', (_event, data) =>
       callback(data.active),
     );
+  },
+
+  onConfig: (callback) => {
+    ipcRenderer.on('agent:config', (_event, data) => callback(data));
   },
 
   callStaff: () => {

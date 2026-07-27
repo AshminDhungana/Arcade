@@ -28,6 +28,7 @@ declare global {
       onAnnouncement: (callback: (text: string, durationMs: number) => void) => void;
       onLowTimeWarning: (callback: (minutes: number) => void) => void;
       onSessionStatus: (callback: (active: boolean) => void) => void;
+      onConfig: (callback: (config: { hasOverrideCode: boolean }) => void) => void;
       callStaff: () => void;
       staffOverride: (pin: string) => void;
       openSettings: () => void;
@@ -51,6 +52,12 @@ function initKiosk(): void {
   overlay.startClock();
 
   // --- IPC Listeners from preload ---
+  let hasOverrideCode = false;
+
+  window.electronAPI.onConfig((config) => {
+    hasOverrideCode = config.hasOverrideCode;
+  });
+
   window.electronAPI.onOverlayContent((data) => {
     updateOverlay(overlay, data);
   });
@@ -93,6 +100,9 @@ function initKiosk(): void {
   let overrideDialog: HTMLDivElement | null = null;
   document.addEventListener('keydown', (event) => {
     if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'o') {
+      if (!hasOverrideCode) {
+        return; // Override not configured, ignore
+      }
       event.preventDefault();
       if (!overrideDialog) {
         overrideDialog = createStaffOverrideDialog({
@@ -126,6 +136,7 @@ function initKiosk(): void {
     callStaffEnabled: true,
     announcements: [],
     eventBanner: '',
+    overrideCodeConfigured: false,
   };
   updateOverlay(overlay, initialData);
 }

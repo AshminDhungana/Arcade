@@ -92,6 +92,11 @@ async function bootstrap(): Promise<void> {
   wsClient.connect();
   console.log('[Agent] WebSocket client connecting...');
 
+  // Send override config to renderer so it knows whether to show Ctrl+Shift+O dialog
+  platformService.sendConfigToOverlay({
+    hasOverrideCode: Boolean(config.override_code_hash),
+  });
+
   // -----------------------------------------------------------------
   // IPC handlers: renderer → main
   // -----------------------------------------------------------------

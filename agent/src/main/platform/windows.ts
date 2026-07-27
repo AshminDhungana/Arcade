@@ -29,13 +29,14 @@ export class WindowsPlatformService implements IPlatformService {
   private kioskWindow: BrowserWindow | null = null;
   private hudWindow: BrowserWindow | null = null;
   private sessionActive = false;
+  private overrideCodeConfigured = false;
 
   showKioskOverlay(content: OverlayContent): void {
     this.sessionActive = false;
     this.hideHud();
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
-      this.kioskWindow.webContents.send('overlay:update', content);
+      this.kioskWindow.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
       return;
     }
 
@@ -86,7 +87,7 @@ export class WindowsPlatformService implements IPlatformService {
     this.kioskWindow.loadFile(htmlPath);
 
     this.kioskWindow.webContents.once('did-finish-load', () => {
-      this.kioskWindow?.webContents.send('overlay:update', content);
+      this.kioskWindow?.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
     });
   }
 
@@ -153,6 +154,13 @@ export class WindowsPlatformService implements IPlatformService {
         !this.kioskWindow.isDestroyed() &&
         this.kioskWindow.isVisible(),
     );
+  }
+
+  sendConfigToOverlay(config: { hasOverrideCode: boolean }): void {
+    this.overrideCodeConfigured = config.hasOverrideCode;
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.webContents.send('agent:config', config);
+    }
   }
 
   updateTimer(timer: { elapsedSeconds: number }): void {

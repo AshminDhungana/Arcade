@@ -47,6 +47,9 @@ export class AgentWebSocketClient {
   /** Event banner fetched from the server on REGISTERED (empty = hidden). */
   public eventBanner = '';
 
+  /** Queue for STAFF_OVERRIDE events when server is offline. */
+  private overrideEventQueued = false;
+
   private persistTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -195,7 +198,14 @@ export class AgentWebSocketClient {
   private _activateOverride(): void {
     this.overrideActive = true;
     this.platform.hideKioskOverlay();
-    this.send('STAFF_OVERRIDE', { seat_id: this.config.seat_id, verified: true });
+    if (this.isConnected()) {
+      this.send('STAFF_OVERRIDE', { seat_id: this.config.seat_id, verified: true });
+      this.overrideEventQueued = false;
+    } else {
+      // Queue the event to be sent when connection is restored
+      this.overrideEventQueued = true;
+      console.log('[WS] STAFF_OVERRIDE event queued (server offline)');
+    }
     console.log('[Agent] Override activated');
   }
 
@@ -209,6 +219,7 @@ export class AgentWebSocketClient {
 
   clearOverride(): void {
     this.overrideActive = false;
+    this.overrideEventQueued = false;
   }
 
   // -------------------------------------------------------------------------
@@ -224,6 +235,15 @@ export class AgentWebSocketClient {
     void this.sendRegister();
     if (wasReconnect && this.sessionState.session_id) {
       this.sendSyncOnReconnect();
+    }
+    // Flush queued STAFF_OVERRIDE event if override is active
+    if (this.overrideActive && this.overrideEventQueued) {
+      this.send('STAFF_OVERRIDE', {
+        seat_id: this.config.seat_id,
+        verified: true,
+      });
+      this.overrideEventQueued = false;
+      console.log('[WS] Flushed queued STAFF_OVERRIDE event on reconnect');
     }
   }
 
@@ -251,6 +271,11 @@ export class AgentWebSocketClient {
         this.sessionState.started_at = payload.started_at;
       }
       if (message.type === 'SHOW_OVERLAY') {
+        // Suppress SHOW_OVERLAY when staff override is active
+        if (this.overrideActive) {
+          console.log('[WS] SHOW_OVERLAY_SUPPRESSED_BY_OVERRIDE');
+          return;
+        }
         this.sessionState.session_id = null;
         this.sessionState.started_at = null;
       }

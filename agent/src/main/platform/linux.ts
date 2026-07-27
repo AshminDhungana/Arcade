@@ -38,13 +38,14 @@ export class LinuxPlatformService implements IPlatformService {
   private kioskWindow: BrowserWindow | null = null;
   private hudWindow: BrowserWindow | null = null;
   private sessionActive = false;
+  private overrideCodeConfigured = false;
 
   showKioskOverlay(content: OverlayContent): void {
     this.sessionActive = false;
     this.hideHud();
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
-      this.kioskWindow.webContents.send('overlay:update', content);
+      this.kioskWindow.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
       return;
     }
 
@@ -173,6 +174,13 @@ export class LinuxPlatformService implements IPlatformService {
         !this.kioskWindow.isDestroyed() &&
         this.kioskWindow.isVisible(),
     );
+  }
+
+  sendConfigToOverlay(config: { hasOverrideCode: boolean }): void {
+    this.overrideCodeConfigured = config.hasOverrideCode;
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.webContents.send('agent:config', config);
+    }
   }
 
   updateTimer(timer: { elapsedSeconds: number }): void {

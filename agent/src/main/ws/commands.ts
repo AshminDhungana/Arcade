@@ -43,7 +43,7 @@ export function createCommandHandlers(
       platform.hideKioskOverlay();
     },
 
-    SHOW_OVERLAY(payload) {
+SHOW_OVERLAY(payload) {
       // Clear local cache when session ends
       store?.clearSession(payload.session_id);
       // Show the kiosk overlay to block desktop access
@@ -86,7 +86,7 @@ export function createCommandHandlers(
       // Handled by the WebSocket client state machine
     },
 
-    FORCE_OVERLAY_ON(payload) {
+FORCE_OVERLAY_ON(payload) {
       // Force-show the kiosk overlay regardless of session state
       platform.showKioskOverlay({
         cafeName: deps.getCafeName?.() || 'Arcade',

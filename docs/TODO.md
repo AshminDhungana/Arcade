@@ -1684,12 +1684,12 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
   - [x] Extend Launcher setup wizard with Step 5b â€” Override Code field (blank = disabled)
   - [x] Hash with same Argon2id parameters as PINs
 
-- [ ] **Task: Agent-side override flow** (ENG-B)
-  - [ ] Configured key combination (e.g., `Ctrl+Shift+O`) shows PIN entry dialog â€” only if `override_code_hash` set
-  - [ ] On correct code: `hideKioskOverlay()` locally; set `override_active=true`; send `STAFF_OVERRIDE` event to server
-  - [ ] While `override_active`: suppress `SHOW_OVERLAY` commands from server; log `SHOW_OVERLAY_SUPPRESSED_BY_OVERRIDE`
-  - [ ] Queue `STAFF_OVERRIDE` event if server offline; flush on reconnect
-  - [ ] Handle optional `RESET_OVERRIDE` command from server to clear flag remotely
+- [x] **Task: Agent-side override flow** (ENG-B)
+  - [x] Configured key combination (e.g., `Ctrl+Shift+O`) shows PIN entry dialog â€” only if `override_code_hash` set
+  - [x] On correct code: `hideKioskOverlay()` locally; set `override_active=true`; send `STAFF_OVERRIDE` event to server
+  - [x] While `override_active`: suppress `SHOW_OVERLAY` commands from server; log `SHOW_OVERLAY_SUPPRESSED_BY_OVERRIDE`
+  - [x] Queue `STAFF_OVERRIDE` event if server offline; flush on reconnect
+  - [x] Handle optional `RESET_OVERRIDE` command from server to clear flag remotely
 
 - [ ] **Task: Backend audit trail for override** (ENG-A)
   - [ ] `STAFF_OVERRIDE` case in `ws_manager.py` â†’ `audit_service.log()` with `staff_id=None`

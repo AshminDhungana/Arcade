@@ -25,6 +25,9 @@ export interface OverlayContent {
 
   /** Optional event/tournament banner shown on the kiosk when set by the server. */
   eventBanner?: string;
+
+  /** Whether the staff override code is configured (shows Ctrl+Shift+O dialog). */
+  overrideCodeConfigured?: boolean;
 }
 
 /**
@@ -122,6 +125,9 @@ export interface IPlatformService {
 
   /** Return whether the kiosk overlay is currently visible. */
   isKioskVisible(): boolean;
+
+  /** Send agent config to the kiosk overlay renderer. */
+  sendConfigToOverlay(config: { hasOverrideCode: boolean }): void;
 
   /** Restart the PC immediately. */
   restartPC(): Promise<void>;

@@ -40,7 +40,7 @@ describe('Command Handlers', () => {
     }
   });
 
-  it('HIDE_OVERLAY calls hideKioskOverlay', () => {
+it('HIDE_OVERLAY calls hideKioskOverlay', () => {
     handlers.HIDE_OVERLAY({ session_id: 'sess-123', started_at: '2026-06-01T10:00:00Z' });
     expect(mockPlatform.hideKioskOverlay).toHaveBeenCalled();
   });
@@ -96,6 +96,7 @@ describe('event banner', () => {
     handlers.SHOW_OVERLAY({ session_id: 's1', started_at: '2026-01-01T00:00:00Z' });
     const content = platform.showKioskOverlay.mock.calls[0][0];
     expect(content.eventBanner).toBe('Weekend Tournament');
+    expect(content.overrideCodeConfigured).toBeUndefined();
   });
 
   it('omits banner when getEventBanner returns empty', () => {
