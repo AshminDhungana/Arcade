@@ -25,18 +25,21 @@ from backend.api.deps import require_admin, require_cashier, require_zone_access
 from backend.core.database import get_db
 from backend.core.feature_flags import require_feature
 from backend.core.security import hash_pin
-from backend.core.ws_manager import manager
+from backend.core.ws_manager import Msg, manager
+from backend.models._enums import AuditAction
 from backend.models.seat import Seat
 from backend.models.staff import Staff
 from backend.repositories import seat_repo
 from backend.schemas.seat import SeatCreate, SeatResponse, SeatUpdate
 from backend.services import (
+    audit_service,
     remote_command_service,
     seat_service,
     tuya_service,
     wol_service,
 )
 from backend.services.enrollment_service import generate_enroll_code
+from backend.services.remote_command_service import _send_to_agent_or_503
 
 router = APIRouter(prefix="/seats", tags=["seats"])
 
@@ -62,6 +65,14 @@ async def get_seat_and_check_zone(
 
     # Use the zone access dependency
     return await require_zone_access(seat.zone_id, staff, db)
+
+
+async def _get_seat_or_404(db: AsyncSession, seat_id: str) -> Seat:
+    """Fetch a seat by ID or raise 404."""
+    seat = await db.get(Seat, seat_id)
+    if seat is None:
+        raise HTTPException(status_code=404, detail=f"Seat {seat_id} not found")
+    return seat
 
 
 # ---------------------------------------------------------------------------
@@ -262,6 +273,30 @@ async def force_seat_overlay(
 ) -> None:
     """Force a seat's kiosk overlay on/off (admin only)."""
     await remote_command_service.force_overlay(db, seat_id, body.show, staff)
+
+
+@router.post("/{seat_id}/reset-override", status_code=status.HTTP_204_NO_CONTENT)
+async def reset_override(
+    seat_id: str,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+) -> None:
+    """Send RESET_OVERRIDE to agent and clear forced overlay (admin only)."""
+    seat = await _get_seat_or_404(db, seat_id)
+    await _send_to_agent_or_503(
+        seat_id,
+        {"type": Msg.RESET_OVERRIDE, "payload": {}},
+    )
+    await seat_service.set_overlay_forced(db, seat_id, False)
+    await audit_service.log(
+        db,
+        action=AuditAction.RESET_OVERRIDE,
+        entity_type="seat",
+        entity_id=seat.id,
+        staff_id=staff.id if staff else None,
+        detail=f"admin reset override on seat {seat.name}",
+    )
+    await db.commit()
 
 
 @router.post(

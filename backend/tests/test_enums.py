@@ -10,6 +10,20 @@ def test_audit_action_has_package_sold():
     assert AuditAction.PACKAGE_SOLD.value == "PACKAGE_SOLD"
 
 
+def test_audit_action_has_staff_override():
+    from backend.models._enums import AuditAction
+
+    assert hasattr(AuditAction, "STAFF_OVERRIDE")
+    assert AuditAction.STAFF_OVERRIDE.value == "STAFF_OVERRIDE"
+
+
+def test_audit_action_has_reset_override():
+    from backend.models._enums import AuditAction
+
+    assert hasattr(AuditAction, "RESET_OVERRIDE")
+    assert AuditAction.RESET_OVERRIDE.value == "RESET_OVERRIDE"
+
+
 def test_invoice_print_status_enum_members():
     from backend.models._enums import InvoicePrintStatus
 

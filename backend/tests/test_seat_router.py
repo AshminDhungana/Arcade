@@ -10,6 +10,7 @@ import asyncio
 import tempfile
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 import pytest_asyncio
 from fastapi.testclient import TestClient
@@ -20,10 +21,10 @@ from backend.api.deps import get_current_staff, get_db
 from backend.core.database import Base
 from backend.core.security import hash_pin
 from backend.main import app
-from backend.models._enums import PricingModel, StaffRole
+from backend.models._enums import AuditAction, PricingModel, StaffRole
 from backend.models.staff import Staff
 from backend.models.zone import Zone
-from backend.repositories import staff_repo
+from backend.repositories import audit_repo, staff_repo
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -331,3 +332,45 @@ def test_delete_seat_success(client: TestClient, db: AsyncSession) -> None:
     # Verify it's gone
     resp = client.get(f"/api/seats/{seat_id}")
     assert resp.status_code == 404
+
+
+def test_reset_override_creates_audit_log(client: TestClient, db: AsyncSession) -> None:
+    """POST /api/seats/{id}/reset-override creates audit log with admin staff_id."""
+    asyncio.run(_ensure_zone(db))
+    resp = client.post("/api/seats", json={"name": "PC-Reset", "zone_id": "zone1"})
+    assert resp.status_code == 201
+    seat_id = resp.json()["id"]
+
+    # Set overlay_forced to True first
+    from backend.services import seat_service
+
+    asyncio.run(seat_service.set_overlay_forced(db, seat_id, True))
+
+    # Mock the WebSocket manager to avoid 503 (agent offline)
+    from backend.core.ws_manager import Msg
+    from backend.services import remote_command_service as rcs
+
+    with patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send:
+        # Call reset-override endpoint
+        resp = client.post(f"/api/seats/{seat_id}/reset-override")
+        assert resp.status_code == 204
+
+        # Verify WebSocket message was sent
+        mock_send.assert_awaited_once()
+        sent = mock_send.call_args.args[1]
+        assert sent["type"] == Msg.RESET_OVERRIDE
+        assert sent["payload"] == {}
+
+    # Verify audit log created
+    logs = asyncio.run(
+        audit_repo.list(
+            db, action=AuditAction.RESET_OVERRIDE.value, entity_id=seat_id, limit=1
+        )
+    )
+    assert len(logs) == 1
+    log = logs[0]
+    assert log.action == AuditAction.RESET_OVERRIDE
+    assert log.entity_type == "seat"
+    assert log.entity_id == seat_id
+    assert log.staff_id is not None  # Admin staff_id should be recorded
+    assert "admin reset override on seat PC-Reset" in log.detail

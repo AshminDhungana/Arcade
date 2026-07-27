@@ -155,6 +155,7 @@ class Msg:
     SHUTDOWN = "SHUTDOWN"
     FORCE_OVERLAY_ON = "FORCE_OVERLAY_ON"
     FORCE_OVERLAY_OFF = "FORCE_OVERLAY_OFF"
+    RESET_OVERRIDE = "RESET_OVERRIDE"
 
 
 # ---------------------------------------------------------------------------
