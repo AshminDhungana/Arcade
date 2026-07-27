@@ -31,10 +31,12 @@ mac:
 linux:
   target:
     - AppImage
-    - deb
+    - target: deb
+      arch:
+        - x64
+      maintainer: Ashmin Dhungana <ashmin.dhungana@example.com>
+      desktopName: arcade-agent
+      syncDesktopName: true
   category: Utility
-  maintainer: Ashmin Dhungana <ashmin.dhungana@example.com>
-  desktopName: arcade-agent
-  syncDesktopName: true
 nsis:
   oneClick: false
