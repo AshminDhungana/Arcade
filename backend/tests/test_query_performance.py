@@ -8,6 +8,7 @@ Validates:
 
 # ruff: noqa: S608 - test SQL construction with controlled datetime inputs
 
+import time
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -254,3 +255,37 @@ async def test_analytics_query_uses_indexes(
 
     has_scan = _has_full_table_scan(plan_rows)
     assert not has_scan, f"{query_name}: Full table scan detected in plan: {plan_rows}"
+
+
+# --- Test 2: Per-query latency < 500ms ---
+@pytest.mark.parametrize("query_name,query_fn,raw_args", ANALYTICS_QUERIES)
+async def test_analytics_query_under_500ms(
+    year_db: AsyncSession, query_name: str, query_fn, raw_args: dict[str, str]
+):
+    """Each analytics sub-query completes in < 500ms on representative dataset."""
+    now = datetime.now(UTC)
+    args = _resolve_time_args(raw_args, now)
+
+    # Handle _zone_utilisation which needs seats and zones
+    if query_name == "_zone_utilisation":
+        seats, zones = await _get_seats_and_zones(year_db)
+        args["seats"] = seats
+        args["zones"] = zones
+
+    start = time.perf_counter()
+    result = await query_fn(year_db, **args)
+    elapsed = time.perf_counter() - start
+
+    assert result is not None
+    assert elapsed < 0.5, f"{query_name} took {elapsed:.3f}s (expected < 0.5s)"
+
+
+# --- Test 3: Full summary regression guard < 2s ---
+async def test_full_summary_under_2s(year_db: AsyncSession):
+    """Complete get_summary() completes in < 2s (NFR-PERF-002 regression guard)."""
+    start = time.perf_counter()
+    summary = await analytics_service.get_summary(year_db)
+    elapsed = time.perf_counter() - start
+
+    assert summary is not None
+    assert elapsed < 2.0, f"Full summary took {elapsed:.3f}s (expected < 2.0s)"
