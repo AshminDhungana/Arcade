@@ -33,5 +33,8 @@ linux:
     - AppImage
     - deb
   category: Utility
+  maintainer: Ashmin Dhungana <ashmin.dhungana@example.com>
+  desktopName: arcade-agent
+  syncDesktopName: true
 nsis:
   oneClick: false
