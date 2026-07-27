@@ -1723,16 +1723,16 @@ Resolve performance bottlenecks found during Phase 8 load testing. Add database 
 
 ### Epic 10.1: Database Performance (ENG-A)
 
-- [ ] **Task: Add indexes** (`alembic/versions/002_add_indexes.py`):
+- [x] **Task: Add indexes** (`alembic/versions/5061d4ef9ce8_002_add_indexes.py`):
   - `sessions`: `(seat_id, status)`, `(status, started_at)`, `(shift_id)`, `(created_at)`
-  - `members`: `(phone)` unique
-  - `session_pos_items`: `(session_id)`
-  - `audit_log`: `(created_at, action)`
-  - `vouchers`: `(code)` unique
+  - `members`: `(phone)` unique (already existed)
+  - `session_pos_items`: `(session_id)` (already existed)
+  - `audit_log`: `(timestamp, action)` (column is `timestamp`, not `created_at`)
+  - `vouchers`: `(code)` unique (already existed)
   - `member_package_entitlements`: `(member_id, status)`
   - `reservations`: `(seat_id, reserved_from)`
-  - `invoices`: `(created_at)`
-  - `staff`: `(staff_id)` unique (if not primary key)
+  - `invoices`: `(created_at)` (already existed)
+  - `staff`: `(staff_id)` unique (already primary key)
 
 - [ ] **Task: Query plan analysis** â€” `EXPLAIN QUERY PLAN` on each analytics query; fix any full-table scans; `backend/tests/test_query_performance.py` asserts each query < 500ms on seeded 1-year dataset
 
