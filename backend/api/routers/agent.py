@@ -73,11 +73,15 @@ async def enroll_agent(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired enroll code",
         )
-    override_hash = await seat_repo.auto_mint_override_pin(db, seat_id)
+    config = get_config()
+    if config.override_code_hash:
+        override_hash: str | None = config.override_code_hash
+    else:
+        override_hash = await seat_repo.auto_mint_override_pin(db, seat_id)
     return _EnrollResponse(
         seat_id=seat.id,
         agent_secret=seat.agent_secret,
-        cafe_name=get_config().cafe_name,
+        cafe_name=config.cafe_name,
         override_code_hash=override_hash,
     )
 

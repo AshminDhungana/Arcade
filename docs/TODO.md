@@ -1672,17 +1672,17 @@ Systematic security review of all attack surfaces. Ensure all NFR-SEC requiremen
 
 ### Epic 9.2: Dependency Vulnerability Audit (ENG-B)
 
-- [ ] Python: `pip-audit -r backend/requirements.txt` â€” fix any HIGH or CRITICAL
-- [ ] Node.js: `npm audit --audit-level=high` in `frontend/` and `agent/` â€” fix any HIGH or CRITICAL
+- [x] Python: `pip-audit -r backend/requirements.txt` â€” fix any HIGH or CRITICAL
+- [x] Node.js: `npm audit --audit-level=high` in `frontend/` and `agent/` â€” fix any HIGH or CRITICAL
 - [ ] Add both to CI pipeline (already in Feature 8.1.3 â€” verify these pass)
 - [ ] **âš  RISK (R-09):** Review Chromium/Electron CVEs specifically â€” Electron bundles a specific Chromium version; update if necessary
 
 ### Epic 9.3: Staff Override Feature
 
-- [ ] **Task: Add `override_code_hash` to `agent.config.json` schema** (ENG-A)
-  - [ ] Nullable Argon2id PHC hash; absent/null = feature disabled (no trigger, no dialog)
-  - [ ] Extend Launcher setup wizard with Step 5b â€” Override Code field (blank = disabled)
-  - [ ] Hash with same Argon2id parameters as PINs
+- [x] **Task: Add `override_code_hash` to `agent.config.json` schema** (ENG-A)
+  - [x] Nullable Argon2id PHC hash; absent/null = feature disabled (no trigger, no dialog)
+  - [x] Extend Launcher setup wizard with Step 5b â€” Override Code field (blank = disabled)
+  - [x] Hash with same Argon2id parameters as PINs
 
 - [ ] **Task: Agent-side override flow** (ENG-B)
   - [ ] Configured key combination (e.g., `Ctrl+Shift+O`) shows PIN entry dialog â€” only if `override_code_hash` set

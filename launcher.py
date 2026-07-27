@@ -344,7 +344,7 @@ class SetupWizard(_BaseScreen):
             sticky="ew",
         )
 
-        self.indicator = StepIndicator(self, f, ["Café", "Staff", "Seats"])
+        self.indicator = StepIndicator(self, f, ["Café", "Staff", "Seats", "Override"])
         self.indicator.grid(
             row=1, column=0, padx=SPACING["xl"], pady=(0, SPACING["md"]), sticky="ew"
         )
@@ -365,6 +365,7 @@ class SetupWizard(_BaseScreen):
         self._cashier_id_var = ctk.StringVar(value="cashier")
         self._cashier_pin_var = ctk.StringVar()
         self._seat_count_var = ctk.StringVar(value="8")
+        self._override_code_var = ctk.StringVar()
 
         row = 0
         row = self._section(
@@ -404,6 +405,21 @@ class SetupWizard(_BaseScreen):
             2,
             "Each seat gets a unique agent secret for secure WebSocket auth.",
             [("Number of Seats", self._seat_count_var, {})],
+        )
+        row = self._section(
+            row,
+            "Staff Override Code",
+            3,
+            "Optional PIN to temporarily disable the kiosk overlay on client PCs. "
+            "Leave blank to disable this feature. Uses the same Argon2id hashing "
+            "as staff PINs.",
+            [
+                (
+                    "Override PIN",
+                    self._override_code_var,
+                    {"show": "●", "placeholder": "4–6 digits (optional)"},
+                ),
+            ],
         )
 
         ctk.CTkButton(
@@ -490,6 +506,13 @@ class SetupWizard(_BaseScreen):
                     self.controller, f"{who} PIN must be 4–6 digits", kind="error"
                 )
                 ok = False
+        # Validate override PIN (optional)
+        override_pin = self._override_code_var.get()
+        if override_pin and not (
+            override_pin.isdigit() and 4 <= len(override_pin) <= 6
+        ):
+            show_toast(self.controller, "Override PIN must be 4–6 digits", kind="error")
+            ok = False
         try:
             if int(self._seat_count_var.get()) < 1:
                 raise ValueError
@@ -532,6 +555,7 @@ class SetupWizard(_BaseScreen):
             seat_count = int(self._seat_count_var.get())
         except ValueError:
             seat_count = 8
+        override_pin = self._override_code_var.get().strip()
         config: dict[str, Any] = {
             "cafe_name": self._cafe_name_var.get()
             or payload.get("cafe_name", "Arcade"),
@@ -541,6 +565,7 @@ class SetupWizard(_BaseScreen):
             "admin_pin_hash": hash_pin(self._admin_pin_var.get() or "admin"),
             "cashier_staff_id": self._cashier_id_var.get() or "cashier",
             "cashier_pin_hash": hash_pin(self._cashier_pin_var.get() or "cashier"),
+            "override_code_hash": hash_pin(override_pin) if override_pin else None,
             "jwt_secret": secrets.token_hex(32),
             "agent_secrets": {
                 f"seat_{i + 1}": secrets.token_hex(32) for i in range(seat_count)
