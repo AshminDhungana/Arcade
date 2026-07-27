@@ -88,8 +88,8 @@ export function CheckoutPanel({ sessionId, onClose }: CheckoutPanelProps) {
     }
 
     // Elapsed seconds (accurate calculation including pauses)
-    let elapsed = 0;
     const start = new Date(session.started_at).getTime();
+    let elapsed: number;
     if (session.paused_at) {
       const pausedTime = new Date(session.paused_at).getTime();
       elapsed = Math.max(0, Math.floor((pausedTime - start) / 1000) - session.total_paused_seconds);
