@@ -6,6 +6,8 @@ Validates:
 3. Full summary completes < 2s (NFR-PERF-002 regression guard)
 """
 
+# ruff: noqa: S608 - test SQL construction with controlled datetime inputs
+
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -18,6 +20,105 @@ from sqlalchemy.pool import StaticPool
 from backend.core.database import Base
 from backend.scripts import seed_perf
 from backend.services import analytics_service
+
+
+async def _run_explain(db: AsyncSession, sql: str) -> list[dict[str, Any]]:
+    """Execute EXPLAIN QUERY PLAN and return rows as dicts."""
+    from sqlalchemy import text
+
+    result = await db.execute(text(f"EXPLAIN QUERY PLAN {sql}"))  # noqa: S608 - test SQL, controlled input
+    return [dict(row) for row in result.mappings()]
+
+
+def _build_explain_sql(query_name: str, args: dict, now: datetime) -> str:  # noqa: S608 - test SQL with controlled datetime inputs
+    """Build representative SQL for EXPLAIN based on query name and args."""
+    if query_name == "_busiest_hour":
+        since = args["since"]
+        return (
+            "SELECT strftime('%H', started_at) as hr, COUNT(*) as c "
+            f"FROM sessions "  # noqa: S608
+            f"WHERE started_at >= '{since.isoformat()}' AND status = 'COMPLETED' "  # noqa: S608
+            "GROUP BY hr"
+        )
+
+    if query_name == "_weekly_revenue":
+        start = args["start"]
+        end = args["end"]
+        return (
+            "SELECT strftime('%Y-%m-%d', created_at) as d, "
+            "COALESCE(SUM(total_paise), 0) as total "
+            f"FROM invoices "  # noqa: S608
+            f"WHERE created_at >= '{start.isoformat()}' "  # noqa: S608
+            f"AND created_at < '{end.isoformat()}' "  # noqa: S608
+            "GROUP BY d"
+        )
+
+    if query_name == "_member_registration_trend":
+        start = args["start"]
+        end = args["end"]
+        return (
+            "SELECT strftime('%Y-%m-%d', created_at) as d, COUNT(*) as c "
+            f"FROM members "  # noqa: S608
+            f"WHERE created_at >= '{start.isoformat()}' "  # noqa: S608
+            f"AND created_at < '{end.isoformat()}' "  # noqa: S608
+            "GROUP BY d"
+        )
+
+    if query_name == "_top_pos_items":
+        since = args["since"]
+        return (
+            "SELECT spi.menu_item_id, mi.name, SUM(spi.quantity) as q "
+            "FROM session_pos_items spi "
+            "JOIN sessions s ON s.id = spi.session_id "
+            "JOIN menu_items mi ON mi.id = spi.menu_item_id "
+            f"WHERE s.started_at >= '{since.isoformat()}' "  # noqa: S608
+            "AND s.status = 'COMPLETED' "
+            "GROUP BY spi.menu_item_id "
+            "ORDER BY q DESC "
+            "LIMIT 10"
+        )
+
+    if query_name == "_zone_utilisation":
+        # This query does Python aggregation, but we can test the session fetch query
+        start = args["start"]
+        return (
+            "SELECT seat_id, started_at, ended_at, total_paused_seconds "
+            "FROM sessions "
+            f"WHERE started_at >= '{start.isoformat()}' "  # noqa: S608
+            "AND status = 'COMPLETED' "
+            "AND ended_at IS NOT NULL"
+        )
+
+    if query_name == "_member_stats":
+        today_start = args["today_start"]
+        thirty_days_ago = args["thirty_days_ago"]
+        return (
+            "SELECT i.member_id, m.name, COALESCE(SUM(i.total_paise), 0) as spend "
+            "FROM invoices i "
+            "JOIN members m ON m.id = i.member_id "
+            f"WHERE i.member_id IS NOT NULL "  # noqa: S608
+            f"AND i.created_at >= '{thirty_days_ago.isoformat()}' "  # noqa: S608
+            "GROUP BY i.member_id "
+            "ORDER BY spend DESC "
+            "LIMIT 5"
+        )
+
+    if query_name == "_upcoming_reservations":
+        today_start = args["today_start"]
+        tomorrow_start = args["tomorrow_start"]
+        now_dt = args["now"]
+        return (
+            "SELECT r.id, r.seat_id, s.name, r.customer_name, r.reserved_from "
+            "FROM reservations r "
+            "JOIN seats s ON s.id = r.seat_id "
+            f"WHERE r.reserved_from >= '{today_start.isoformat()}' "  # noqa: S608
+            f"  AND r.reserved_from < '{tomorrow_start.isoformat()}' "  # noqa: S608
+            f"  AND r.reserved_from >= '{now_dt.isoformat()}' "  # noqa: S608
+            "  AND r.status IN ('PENDING', 'CONFIRMED') "
+            "ORDER BY r.reserved_from"
+        )
+
+    raise ValueError(f"Unknown query: {query_name}")
 
 
 @pytest_asyncio.fixture
@@ -147,7 +248,9 @@ async def test_analytics_query_uses_indexes(
     result = await query_fn(year_db, **args)
     assert result is not None
 
-    # TODO: Run EXPLAIN QUERY PLAN on equivalent SQL and assert
-    # _has_full_table_scan is False. This requires capturing the
-    # actual SQL from the service layer. For now, this test validates
-    # the query executes without error.
+    # Run EXPLAIN QUERY PLAN on equivalent SQL
+    explain_sql = _build_explain_sql(query_name, args, now)
+    plan_rows = await _run_explain(year_db, explain_sql)
+
+    has_scan = _has_full_table_scan(plan_rows)
+    assert not has_scan, f"{query_name}: Full table scan detected in plan: {plan_rows}"
