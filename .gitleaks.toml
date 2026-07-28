@@ -4,15 +4,13 @@
 [allowlist]
 description = "Allow specific file patterns"
 paths = [
-  "*.md",
-  "*.txt",
-  "*.json",
-  "*.toml",
-  "*.yml",
-  "*.yaml",
-  "*.lock",
-  "LICENSE*",
-  "*.license",
-  "*.md",
-  "*.txt",
+  ".*\\.md$",
+  ".*\\.txt$",
+  ".*\\.json$",
+  ".*\\.toml$",
+  ".*\\.yml$",
+  ".*\\.yaml$",
+  ".*\\.lock$",
+  "LICENSE.*",
+  ".*\\.license$",
 ]
