@@ -1784,7 +1784,7 @@ Package the system for customer distribution. Server as standalone executable (n
   - [x] Wrap `onedir` output in an NSIS installer for Windows (single installer `.exe` for end user)
   - [x] **âš  RISK (R-04):** Test on a fresh Windows VM with no Python installed â€” must reach License Activation screen (NFR-PORT-003, AC per ARCH-03)
 
-- [ ] - arcade launcer ui improvement.
+- [ ] -
 
 - [ ] **Task: Build pipeline for all OSes**
   - [ ] Windows: build on `windows-latest` GitHub Actions runner or dedicated Windows machine
