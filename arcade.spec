@@ -7,7 +7,8 @@ from pathlib import Path
 # -------------------------------------------------------------------------
 # Path setup
 # -------------------------------------------------------------------------
-ROOT = Path(__file__).parent.resolve()
+import sys
+ROOT = Path(sys.argv[0]).parent.resolve() if "__file__" not in dir() else Path(__file__).parent.resolve()
 BACKEND = ROOT / "backend"
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 ALEMBIC_DIR = ROOT / "alembic"
@@ -49,10 +50,31 @@ hiddenimports = [
     "uvicorn.protocols.websockets.auto",
     "starlette.middleware.cors",
     "customtkinter",
-    "PIL._tkinter_finder",
     "machineid",
     "tinytuya",
     "escpos",
+    "fastapi",
+    "fastapi.security",
+    "fastapi.middleware.cors",
+    "uvicorn",
+    "uvicorn.config",
+    "uvicorn.main",
+    "starlette",
+    "starlette.applications",
+    "starlette.routing",
+    "starlette.middleware",
+    "pydantic",
+    "pydantic.main",
+    "pydantic.fields",
+    "pydantic.validators",
+    "pydantic.networks",
+    "email_validator",
+    "passlib",
+    "passlib.context",
+    "passlib.handlers.argon2",
+    "python_jose",
+    "python_jose.jwt",
+    "python_jose.exceptions",
 ]
 
 # Auto-collect heavy packages
@@ -75,6 +97,7 @@ excludes = [
     "backend.tests", "backend.tests.*",
     "*.tests", "*.tests.*",
     "setuptools", "pip", "wheel", "virtualenv",
+    "*.pem", "*.key", "venv", "*.spec",
 ]
 
 # -------------------------------------------------------------------------
@@ -99,6 +122,11 @@ if _exists(ALEMBIC_INI):
 if _exists(LICENSING_PUBKEY):
     datas.append((str(LICENSING_PUBKEY), "backend/licensing/public_key.py"))
 
+# NOTE: arcade.config.json is created by SetupWizard on first run.
+# Do NOT bundle it — PyInstaller extracts data files with restrictive
+# permissions on Windows. The launcher checks for its presence to
+# decide between SetupWizard and MainScreen.
+
 # Platform-specific icons
 if sys.platform == "win32":
     icon_path = ROOT / "assets" / "icon.ico"
@@ -114,32 +142,29 @@ else:
 # -------------------------------------------------------------------------
 if sys.platform == "win32":
     from PyInstaller.utils.win32 import versioninfo
-    versioninfo.CreateVersionInfo(
-        versioninfo.FixedFileInfo(
-            filevers=tuple(map(int, VERSION.split('.'))) + (0,),
-            prodvers=tuple(map(int, VERSION.split('.'))) + (0,),
-            fileflags=0,
-            fileos=0x40004,
-            filetype=0x1,
-            filesubtype=0x0,
-        ),
-        [
-            versioninfo.StringFileInfo([
-                versioninfo.StringTable('040904B0', {
-                    'CompanyName': 'Neurotech Biratnagar',
-                    'FileDescription': 'Arcade Launcher',
-                    'FileVersion': VERSION,
-                    'InternalName': 'Arcade Launcher',
-                    'LegalCopyright': 'Copyright (C) 2026 Neurotech Biratnagar',
-                    'OriginalFilename': 'Arcade Launcher.exe',
-                    'ProductName': 'Arcade',
-                    'ProductVersion': VERSION,
-                })
-            ]),
-            versioninfo.VarFileInfo([versioninfo.VarStruct('Translation', [0x0409, 0x04B0])])
-        ],
-        str(ROOT / "file_version_info.txt")
+    vs = versioninfo.VarStruct('Translation', [0x0409, 0x04B0])
+    ss = versioninfo.StringTable('040904B0', [
+        versioninfo.StringStruct('CompanyName', 'Neurotech Biratnagar'),
+        versioninfo.StringStruct('FileDescription', 'Arcade Launcher'),
+        versioninfo.StringStruct('FileVersion', VERSION),
+        versioninfo.StringStruct('InternalName', 'Arcade Launcher'),
+        versioninfo.StringStruct('LegalCopyright', 'Copyright (C) 2026 Neurotech Biratnagar'),
+        versioninfo.StringStruct('OriginalFilename', 'Arcade Launcher.exe'),
+        versioninfo.StringStruct('ProductName', 'Arcade'),
+        versioninfo.StringStruct('ProductVersion', VERSION),
+    ])
+    sfi = versioninfo.StringFileInfo([ss])
+    vffi = versioninfo.FixedFileInfo(
+        tuple(map(int, VERSION.split('.'))) + (0,),
+        tuple(map(int, VERSION.split('.'))) + (0,),
+        0x3f, 0, 0x40004, 0x1, 0x0, (0, 0)
     )
+    vvi = versioninfo.VSVersionInfo(vffi, [sfi, versioninfo.VarFileInfo([vs])])
+    versioninfo_path = ROOT / "file_version_info.txt"
+    with open(versioninfo_path, "w", encoding="utf-8") as f:
+        f.write(str(vvi))
+else:
+    versioninfo_path = None
 
 # -------------------------------------------------------------------------
 # Analysis
@@ -189,7 +214,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=icon,
-    version="file_version_info.txt" if sys.platform == "win32" else None,
+    version=versioninfo_path,
 )
 
 # -------------------------------------------------------------------------

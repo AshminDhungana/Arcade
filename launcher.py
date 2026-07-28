@@ -1161,11 +1161,17 @@ class LauncherApp:
     def _check_and_route(self) -> None:
         result = check_license()
         if result.ok:
-            if Path("arcade.config.json").exists():
+            # Check for config file in the project root (handles PyInstaller _MEIPASS)
+            try:
+                from backend.core.config import load_config
+
+                load_config()
+                has_config = True
+            except RuntimeError:
+                has_config = False
+
+            if has_config:
                 if self._ensure_database():
-                    # _main_screen is captured inside show_screen's swap(),
-                    # which runs after the screen is built (async when
-                    # animations are on).
                     self.show_screen(MainScreen)
                     self.status.set("Database ready", "success")
             else:

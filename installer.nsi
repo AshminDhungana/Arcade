@@ -1,6 +1,6 @@
 !include "MUI2.nsh"
 
-!define PRODUCT_VERSION "1.0.0"  ; Override via `/DPRODUCT_VERSION=1.2.3` on makensis cmdline
+!define PRODUCT_VERSION "1.0.0"
 !define PRODUCT_NAME "Arcade Launcher"
 !define PRODUCT_PUBLISHER "Neurotech Biratnagar"
 !define PRODUCT_WEB_SITE "https://github.com/neurotech-biratnagar/arcade"

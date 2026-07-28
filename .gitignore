@@ -336,3 +336,4 @@ backups/
 
 # Vitest / Playwright run artifacts (frontend)
 frontend/test-results/
+Arcade-Setup-*.exe

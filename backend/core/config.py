@@ -144,8 +144,23 @@ def load_config(path: str = "arcade.config.json") -> Settings:
     # regardless of the current working directory (e.g. when running
     # pytest from inside ``backend/`` or starting uvicorn there).
     if not config_file.is_absolute():
-        project_root = Path(__file__).resolve().parent.parent.parent
-        config_file = project_root / path
+        # Check PyInstaller bundle first (sys._MEIPASS)
+        try:
+            import sys
+
+            if hasattr(sys, "_MEIPASS"):
+                meipass_file = Path(sys._MEIPASS) / path
+                if meipass_file.exists():
+                    config_file = meipass_file
+                else:
+                    project_root = Path(__file__).resolve().parent.parent.parent
+                    config_file = project_root / path
+            else:
+                project_root = Path(__file__).resolve().parent.parent.parent
+                config_file = project_root / path
+        except Exception:
+            project_root = Path(__file__).resolve().parent.parent.parent
+            config_file = project_root / path
 
     if not config_file.exists():
         msg = (
@@ -154,8 +169,37 @@ def load_config(path: str = "arcade.config.json") -> Settings:
         )
         raise RuntimeError(msg)
 
+    # Workaround for PyInstaller permission issues on Windows:
+    # data files in _MEIPASS may have restricted permissions.
+    # Try to read with fallback to copying to a temp location.
     try:
         raw = config_file.read_text(encoding="utf-8")
+    except PermissionError:
+        import shutil
+        import tempfile
+
+        try:
+            # Try to make the file readable first
+            os.chmod(config_file, 0o644)
+            raw = config_file.read_text(encoding="utf-8")
+        except (PermissionError, OSError):
+            # Fallback: try os.open with explicit flags
+            try:
+                fd = os.open(config_file, os.O_RDONLY | os.O_BINARY)
+                try:
+                    raw = os.read(fd, os.path.getsize(config_file)).decode("utf-8")
+                finally:
+                    os.close(fd)
+            except (PermissionError, OSError):
+                # Last resort: try shutil.copy to a temp location
+                tmp = Path(tempfile.gettempdir()) / f"arcade_config_{os.getpid()}.json"
+                try:
+                    shutil.copy2(config_file, tmp)
+                    raw = tmp.read_text(encoding="utf-8")
+                finally:
+                    tmp.unlink(missing_ok=True)
+
+    try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
         msg = f"Invalid JSON in arcade.config.json: {exc}"

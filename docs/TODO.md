@@ -136,7 +136,7 @@ Reference document for ARCH-03 is at ./references/ARCH-03-pyinstaller-onedir-val
 | R-01 | SQLite write contention under concurrent sessions         | Data corruption or locked errors        | Low         | WAL mode + `busy_timeout=5000`; validate in ARCH-01                                                      |
 | R-02 | Electron kiosk bypass on Wayland                          | Customers bypass kiosk overlay          | Medium      | Early validation (ARCH-02); document known gaps; recommend X11 for client PCs                            |
 | R-03 | TinyTuya local key extraction fails                       | Console power control unavailable       | Medium      | Test with real hardware early (ARCH-04); document manual fallback                                        |
-| R-04 | PyInstaller bundle fails to include all hidden imports    | Launcher crashes at customer site       | Medium      | ARCH-03 validation; use `--onedir` not `--onefile` for easier debugging                                  |
+| R-04 | PyInstaller bundle fails to include all hidden imports    | Launcher crashes at customer site       | Medium      | ARCH-03 validation; use `--onedir` not `--onefile` for easier debugging                                  | **Mitigated (2026-07-28)** |
 | R-05 | Private key leaked into repository                        | License system compromised              | Critical    | `.gitignore` + CI check for `.pem` files; never commit keygen directory                                  | **Mitigated (2026-07-26)** |
 | R-06 | Paise arithmetic error leads to billing discrepancy       | Customer billing disputes               | High        | All monetary fields typed as `int`; Pydantic schema validation; dedicated billing unit tests             |
 | R-07 | Agent SYNC reconciliation bug after LAN drop              | Session billing lost during outage      | High        | ARCH-06 validation; integration tests for disconnect/reconnect scenario                                  |
@@ -1774,15 +1774,17 @@ Package the system for customer distribution. Server as standalone executable (n
 
 ### Epic 11.1: Server Packaging (ENG-A)
 
-- [ ] **Task: Create PyInstaller spec file (`arcade.spec`)**
-  - [ ] Entry point: `launcher.py`
-  - [ ] Include: `backend/` module, `frontend/dist/` (pre-built), `alembic/` scripts, `backend/alembic.ini`
-  - [ ] Hidden imports: `aiosqlite`, `sqlalchemy.dialects.sqlite`, `alembic`, `nacl`
-  - [ ] Data files: `frontend/dist/*` â†’ `frontend/dist/`
-  - [ ] Exclude: `tools/`, `*.pem`, `*.key`, `venv/`, `backend/tests/`, `*.spec` output
-  - [ ] Use `--onedir` mode (not `--onefile`) for faster startup and easier crash debugging
-  - [ ] Wrap `onedir` output in an NSIS installer for Windows (single installer `.exe` for end user)
-  - [ ] **âš  RISK (R-04):** Test on a fresh Windows VM with no Python installed â€” must reach License Activation screen (NFR-PORT-003, AC per ARCH-03)
+- [x] **Task: Create PyInstaller spec file (`arcade.spec`)**
+  - [x] Entry point: `launcher.py`
+  - [x] Include: `backend/` module, `frontend/dist/` (pre-built), `alembic/` scripts, `backend/alembic.ini`
+  - [x] Hidden imports: `aiosqlite`, `sqlalchemy.dialects.sqlite`, `alembic`, `nacl`
+  - [x] Data files: `frontend/dist/*` â†’ `frontend/dist/`
+  - [x] Exclude: `tools/`, `*.pem`, `*.key`, `venv/`, `backend/tests/`, `*.spec` output
+  - [x] Use `--onedir` mode (not `--onefile`) for faster startup and easier crash debugging
+  - [x] Wrap `onedir` output in an NSIS installer for Windows (single installer `.exe` for end user)
+  - [x] **âš  RISK (R-04):** Test on a fresh Windows VM with no Python installed â€” must reach License Activation screen (NFR-PORT-003, AC per ARCH-03)
+
+- [ ] - arcade launcer ui improvement.
 
 - [ ] **Task: Build pipeline for all OSes**
   - [ ] Windows: build on `windows-latest` GitHub Actions runner or dedicated Windows machine
