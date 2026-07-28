@@ -63,9 +63,10 @@ jobs:
         with:
           fetch-depth: 0  # Full history for gitleaks
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v4
         with:
-          args: "detect --source . --verbose --redact --report-format json --report-path gitleaks-report.json"
+          config: .gitleaks.toml
+          args: "--verbose --redact --report-format json --report-path gitleaks-report.json"
       - name: Upload gitleaks report
         uses: actions/upload-artifact@v4
         with:

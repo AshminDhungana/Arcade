@@ -1,0 +1,20 @@
+[extend]
+# Use the default gitleaks config
+useDefault = true
+
+[allowlist]
+description = "Allow specific patterns"
+paths = [
+  "*.md",
+  "*.txt",
+  "*.json",
+  "*.toml",
+  "*.yml",
+  "*.yaml",
+  "*.lock",
+  "*.txt",
+  "*.md",
+  "LICENSE*",
+  "*.license",
+  "LICENSE*",
+]
