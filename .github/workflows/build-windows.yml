@@ -1,0 +1,115 @@
+name: Build Windows Installer
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 1.0.0)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows (onedir + NSIS)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PYTHON_VERSION: '3.12'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install NSIS
+        uses: ashleydavis/nsis-action@v1
+        with:
+          nsis-version: '3.09'
+
+      - name: Install UPX
+        run: |
+          choco install upx -y
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Verify frontend/dist exists
+        run: |
+          if (-not (Test-Path "frontend/dist/index.html")) {
+            Write-Error "frontend/dist/index.html not found after build"
+            exit 1
+          }
+
+      - name: Install Python dependencies
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt pyinstaller
+
+      - name: Build onedir bundle with PyInstaller
+        run: |
+          pyinstaller arcade.spec --clean --noconfirm
+
+      - name: Verify bundle output
+        run: |
+          if (-not (Test-Path "dist/arcade/arcade.exe")) {
+            Write-Error "dist/arcade/arcade.exe not found"
+            exit 1
+          }
+          Write-Host "Bundle size: $([math]::Round((Get-ChildItem dist/arcade -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB, 1)) MB"
+
+      - name: Build NSIS installer
+        run: |
+          $version = "${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name.TrimStart('v') }}"
+          makensis /DPRODUCT_VERSION=$version installer.nsi
+
+      - name: Verify installer output
+        run: |
+          $version = "${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name.TrimStart('v') }}"
+          $installer = "Arcade-Setup-$version.exe"
+          if (-not (Test-Path $installer)) {
+            Write-Error "$installer not found"
+            exit 1
+          }
+          Write-Host "Installer: $installer ($( [math]::Round((Get-Item $installer).Length / 1MB, 1) ) MB)"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arcade-installer-windows
+          path: Arcade-Setup-*.exe
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Arcade-Setup-*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

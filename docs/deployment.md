@@ -549,6 +549,95 @@ Ensure the backup directory is on a separate disk / RAID for production.
 
 ---
 
+## Building the Installer (Packaging)
+
+Arcade is distributed as a single NSIS installer for Windows (`Arcade-Setup-<version>.exe`). macOS and Linux distributables follow the same PyInstaller `--onedir` model.
+
+### Prerequisites (Build Machine)
+
+| Tool | Windows | macOS | Linux |
+|------|---------|-------|-------|
+| Python | 3.12 | 3.12 | 3.12 |
+| Node.js | 20 LTS | 20 LTS | 20 LTS |
+| PyInstaller | `pip install pyinstaller` | `pip install pyinstaller` | `pip install pyinstaller` |
+| NSIS | `choco install nsis` | — | — |
+| UPX | `choco install upx` | `brew install upx` | `apt install upx` |
+
+> **PyInstaller cannot cross-compile.** Build Windows on Windows, macOS on macOS, Linux on Linux. Use the CI workflow (`.github/workflows/build-windows.yml`) for Windows releases.
+
+### Build Steps (Windows)
+
+```bash
+# 1. Clone and checkout release tag
+git clone https://github.com/neurotech-biratnagar/arcade.git
+cd arcade
+git checkout v1.0.0
+
+# 2. Build frontend (REQUIRED - data files for PyInstaller)
+cd frontend
+npm ci
+npm run build
+cd ..
+
+# 3. Install Python dependencies
+cd backend
+pip install -r requirements.txt pyinstaller
+cd ..
+
+# 4. Build with PyInstaller (onedir)
+pyinstaller arcade.spec --clean --noconfirm
+# Output: dist/arcade/ (onedir bundle)
+
+# 5. Build NSIS installer
+makensis installer.nsi
+# Output: Arcade-Setup-<version>.exe
+```
+
+### Build Steps (macOS / Linux)
+
+```bash
+# 1-3. Same as Windows (build frontend, install deps)
+
+# 4. Build with PyInstaller
+pyinstaller arcade.spec --clean --noconfirm
+# Output: dist/arcade/ (onedir) or dist/arcade.app (macOS)
+
+# 5. Package for distribution
+# macOS: create-dmg dist/arcade.app   # or use electron-builder style
+# Linux: AppImage / deb / tar.gz via custom script
+```
+
+### CI Automation
+
+The GitHub Actions workflow `.github/workflows/build-windows.yml` automates the Windows build:
+
+- Triggers on tag push (`v*`) or manual dispatch
+- Runs on `windows-latest`
+- Builds frontend → PyInstaller → NSIS
+- Uploads `Arcade-Setup-<version>.exe` as artifact
+- Creates GitHub Release with installer attached
+
+### Verification Checklist (ARCH-03)
+
+Before releasing, verify on a **clean Windows VM** (no Python, no dev tools):
+
+1. Run `Arcade-Setup-<version>.exe /S` (silent install)
+2. Launch `Arcade Launcher` from Start Menu
+3. **License Activation screen** appears → Hardware ID displayed → "Browse for license.key" works
+4. Place valid `license.key` → Setup Wizard appears → complete → Main Screen appears
+5. **Start Server** → logs stream → health check passes → "Open Dashboard" enables
+6. Open dashboard → seat grid loads → WebSocket connected
+7. **Stop Server** → process terminates cleanly
+
+### Versioning
+
+Version is read from `pyproject.toml` → `project.version`. The same version is used for:
+- Windows EXE file metadata (`FileVersion`, `ProductVersion`)
+- NSIS installer filename (`Arcade-Setup-<version>.exe`)
+- GitHub Release tag
+
+---
+
 ## Cross-References
 
 - `docs/agent-setup.md` — Agent installation, auto-start, kiosk hardening, troubleshooting
