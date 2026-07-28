@@ -154,7 +154,7 @@ class StepIndicator:
         self.root = ctk.CTkFrame(master, fg_color="transparent")
         n = len(steps)
         for i in range(n * 2 - 1):
-            self.root.grid_columnconfigure(i, weight=1)
+            self.root.grid_columnconfigure(i, weight=1, minsize=80)
         for i, label in enumerate(steps):
             col = 2 * i
             if i > 0:
@@ -170,13 +170,19 @@ class StepIndicator:
                 fg_color=COLORS["bg_tertiary"],
             )
             chip.grid(row=0, column=col, sticky="ew", padx=SPACING["xs"])
+            chip.grid_propagate(False)
+            chip.grid_columnconfigure(0, weight=1, minsize=80)
             lab = ctk.CTkLabel(
                 chip,
                 text=f"{i + 1}. {label}",
                 font=fonts.get("caption"),
                 text_color=COLORS["text_secondary"],
+                anchor="w",
+                wraplength=120,
             )
-            lab.pack(expand=True)
+            lab.grid(
+                row=0, column=0, sticky="ew", padx=SPACING["sm"], pady=SPACING["xs"]
+            )
             self._chips.append(chip)
             self._labels.append(lab)
         self.set_active(0)
