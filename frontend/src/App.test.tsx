@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -11,13 +11,13 @@ import { useThemeStore } from './store/themeStore';
 // Mock the heavy page modules so these tests exercise routing only
 // (their data hooks would otherwise hit the network).
 vi.mock('./pages/Members', () => ({
-  MembersPage: () => <div>Members Page</div>,
+  default: () => <div>Members Page</div>,
 }));
 vi.mock('./pages/Settings', () => ({
   default: () => <div>Settings Page</div>,
 }));
 vi.mock('./pages/Events', () => ({
-  EventsPage: () => <div>Events Page</div>,
+  default: () => <div>Events Page</div>,
 }));
 
 const ALL_ON = {
@@ -61,16 +61,16 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
-  it('routes /members to the Members page', () => {
+  it('routes /members to the Members page', async () => {
     window.history.pushState({}, '', '/members');
     render(<App />, { wrapper: createWrapper() });
-    expect(screen.getByText('Members Page')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Members Page')).toBeInTheDocument());
   });
 
-  it('routes /settings to the Settings page', () => {
+  it('routes /settings to the Settings page', async () => {
     window.history.pushState({}, '', '/settings');
     render(<App />, { wrapper: createWrapper() });
-    expect(screen.getByText('Settings Page')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Settings Page')).toBeInTheDocument());
   });
 
   it('shows FeatureUnavailable at /members when enable_members is off', () => {
@@ -81,9 +81,9 @@ describe('App', () => {
     expect(screen.queryByText('Members Page')).not.toBeInTheDocument();
   });
 
-  it('routes /events to the Events page when enable_tournaments is on', () => {
+  it('routes /events to the Events page when enable_tournaments is on', async () => {
     window.history.pushState({}, '', '/events');
     render(<App />, { wrapper: createWrapper() });
-    expect(screen.getByText('Events Page')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Events Page')).toBeInTheDocument());
   });
 });

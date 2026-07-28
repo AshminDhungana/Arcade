@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath, URL } from 'node:url';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // FaviconIcon SVG string (inline to avoid importing broken lucide icons)
 const FaviconIcon = `<svg
@@ -23,7 +24,7 @@ const FaviconIcon = `<svg
 </svg>`;
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -39,7 +40,13 @@ export default defineConfig({
         );
       },
     },
-  ],
+    mode === 'analyze' && visualizer({
+      filename: 'dist/stats.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }) as any,
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -51,6 +58,19 @@ export default defineConfig({
       '/ws': { target: 'ws://localhost:8741', ws: true },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts')) return 'vendor-recharts';
+            if (id.includes('@tanstack/react-query')) return 'vendor-react-query';
+            if (id.includes('zustand')) return 'vendor-zustand';
+          }
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -59,4 +79,4 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
   },
-});
+}));

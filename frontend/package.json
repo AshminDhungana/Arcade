@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "analyze": "vite build --mode analyze"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -40,6 +41,7 @@
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@types/rollup": "^0.51.4",
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "@typescript-eslint/parser": "^8.19.1",
     "@vitejs/plugin-react": "^6.0.2",
@@ -49,6 +51,7 @@
     "globals": "^17.8.0",
     "jsdom": "^26.0.0",
     "prettier": "^3.4.2",
+    "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^4.3.1",
     "typescript": "~6.0.2",
     "vite": "^8.1.0",

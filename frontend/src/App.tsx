@@ -1,17 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import DashboardPage from './pages/Dashboard';
-import { MembersPage } from './pages/Members';
-import { AnalyticsPage } from './pages/Analytics';
-import { EventsPage } from './pages/Events';
-import SettingsPage from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import RequireFeature from './components/RequireFeature';
 import { useFeatureFlags } from './api/featureFlags';
 import { ToastViewport } from '@/components/ui/Toast';
 import { NavShell } from './components/NavShell';
 import { useThemeStore } from '@/store/themeStore';
+import { PageLoader } from '@/components/ui/PageLoader';
+
+const MembersPage = lazy(() => import('./pages/Members'));
+const AnalyticsPage = lazy(() => import('./pages/Analytics'));
+const EventsPage = lazy(() => import('./pages/Events'));
+const SettingsPage = lazy(() => import('./pages/Settings'));
 
 export default function App() {
   // Bootstrap feature flags from GET /api/settings on mount
@@ -43,7 +45,9 @@ export default function App() {
             <ProtectedRoute>
               <RequireFeature flag="enable_members">
                 <NavShell>
-                  <MembersPage />
+                  <Suspense fallback={<PageLoader />}>
+                    <MembersPage />
+                  </Suspense>
                 </NavShell>
               </RequireFeature>
             </ProtectedRoute>
@@ -54,7 +58,9 @@ export default function App() {
           element={
             <ProtectedRoute>
               <NavShell>
-                <AnalyticsPage />
+                <Suspense fallback={<PageLoader />}>
+                  <AnalyticsPage />
+                </Suspense>
               </NavShell>
             </ProtectedRoute>
           }
@@ -65,7 +71,9 @@ export default function App() {
             <ProtectedRoute>
               <RequireFeature flag="enable_tournaments">
                 <NavShell>
-                  <EventsPage />
+                  <Suspense fallback={<PageLoader />}>
+                    <EventsPage />
+                  </Suspense>
                 </NavShell>
               </RequireFeature>
             </ProtectedRoute>
@@ -76,7 +84,9 @@ export default function App() {
           element={
             <ProtectedRoute>
               <NavShell>
-                <SettingsPage />
+                <Suspense fallback={<PageLoader />}>
+                  <SettingsPage />
+                </Suspense>
               </NavShell>
             </ProtectedRoute>
           }

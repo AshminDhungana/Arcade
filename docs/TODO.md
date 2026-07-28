@@ -1734,17 +1734,17 @@ Resolve performance bottlenecks found during Phase 8 load testing. Add database 
   - `invoices`: `(created_at)` (already existed)
   - `staff`: `(staff_id)` unique (already primary key)
 
-- [ ] **Task: Query plan analysis** â€” `EXPLAIN QUERY PLAN` on each analytics query; fix any full-table scans; `backend/tests/test_query_performance.py` asserts each query < 500ms on seeded 1-year dataset
+- [x] **Task: Query plan analysis** â€” `EXPLAIN QUERY PLAN` on each analytics query; fix any full-table scans; `backend/tests/test_query_performance.py` asserts each query < 500ms on seeded 1-year dataset
 
-- [ ] **Task: Seed 1-year data** â€” `backend/scripts/seed_year_data.py` â€” 365 days, ~100 sessions/day, 5 POS items/session, 200 members, varied pricing
+- [x] **Task: Seed 1-year data** â€” `backend/scripts/seed_year_data.py` â€” 365 days, ~100 sessions/day, 5 POS items/session, 200 members, varied pricing
 
 ### Epic 10.2: Frontend Performance (ENG-B)
 
-- [ ] **Task: Code splitting and lazy loading**
-  - [ ] `React.lazy()` + `Suspense` for all pages except `Dashboard` and `Login`
-  - [ ] Vite `rollupOptions.manualChunks`: separate chunks for recharts, react-query, zustand
-  - [ ] Target: initial bundle < 500KB gzipped
-  - [ ] Use `vite-bundle-analyzer` to inspect chunk sizes
+- [x] **Task: Code splitting and lazy loading**
+  - [x] `React.lazy()` + `Suspense` for all pages except `Dashboard` and `Login`
+  - [x] Vite `rollupOptions.manualChunks`: separate chunks for recharts, react-query, zustand
+  - [x] Target: initial bundle < 500KB gzipped
+  - [x] Use `rollup-plugin-visualizer` to inspect chunk sizes
 
 ### Acceptance Criteria (Phase 10)
 
