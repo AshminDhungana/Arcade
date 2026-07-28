@@ -1,9 +1,8 @@
-[extend]
-# Use the default gitleaks config
-useDefault = true
+# gitleaks configuration for Arcade project
+# Using default rules with custom allowlists
 
 [allowlist]
-description = "Allow specific patterns"
+description = "Allow specific file patterns"
 paths = [
   "*.md",
   "*.txt",
@@ -12,9 +11,8 @@ paths = [
   "*.yml",
   "*.yaml",
   "*.lock",
-  "*.txt",
-  "*.md",
   "LICENSE*",
   "*.license",
-  "LICENSE*",
+  "*.md",
+  "*.txt",
 ]
