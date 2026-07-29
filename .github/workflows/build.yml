@@ -1,0 +1,279 @@
+name: Build All Platforms
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version override (e.g., 1.0.0)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_ext: zip
+            arch: x64
+            launcher_target: onedir
+            agent_target: nsis
+            node_version: '22'
+            python_version: '3.12'
+          - os: macos-latest
+            artifact_ext: tar.gz
+            arch: arm64
+            launcher_target: onedir
+            agent_target: dmg+zip
+            node_version: '22'
+            python_version: '3.12'
+          - os: ubuntu-latest
+            artifact_ext: tar.gz
+            arch: x64
+            launcher_target: onedir
+            agent_target: appimage+deb
+            node_version: '22'
+            python_version: '3.12'
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python_version }}
+      NODE_VERSION: ${{ matrix.node_version }}
+      VERSION: ${{ github.event.inputs.version || github.ref_name }}
+
+    steps:
+      # ---------------------------------------------------------
+      # Checkout & Setup
+      # ---------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+            agent/package-lock.json
+
+      - name: Install 7zip (Windows)
+        if: runner.os == 'Windows'
+        run: choco install 7zip -y
+
+      - name: Install system deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2
+
+      # ---------------------------------------------------------
+      # Build Frontend (required for Launcher datas)
+      # ---------------------------------------------------------
+      - name: Build Frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Verify frontend/dist exists
+        run: test -f frontend/dist/index.html
+
+      # ---------------------------------------------------------
+      # Build Launcher (PyInstaller)
+      # ---------------------------------------------------------
+      - name: Install Python dependencies (Launcher)
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt pyinstaller
+
+      - name: Build Launcher with PyInstaller
+        run: |
+          pyinstaller arcade.spec --clean --noconfirm
+
+      - name: Verify Launcher bundle
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            test -f dist/arcade/arcade.exe
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            test -d "dist/arcade.app"
+          else
+            test -f dist/arcade/arcade
+          fi
+
+      - name: Smoke test Launcher
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            dist/arcade/arcade.exe --self-test
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            ./dist/arcade.app/Contents/MacOS/Arcade\ Launcher --self-test
+          else
+            xvfb-run -a ./dist/arcade/arcade --self-test
+          fi
+
+      - name: Package Launcher artifact
+        id: launcher_artifact
+        run: |
+          VERSION="${{ env.VERSION }}"
+          OS="${{ matrix.os }}"
+          ARCH="${{ matrix.arch }}"
+
+          if [ "$OS" = "windows-latest" ]; then
+            cd dist
+            "C:\Program Files\7-Zip\7z.exe" a -tzip "../arcade-launcher-${VERSION}-windows-${ARCH}.zip" arcade/*
+            echo "path=../arcade-launcher-${VERSION}-windows-${ARCH}.zip" >> $GITHUB_OUTPUT
+          elif [ "$OS" = "macos-latest" ]; then
+            tar -czf "../arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" -C dist arcade.app
+            echo "path=../arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" >> $GITHUB_OUTPUT
+          else
+            tar -czf "../arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" -C dist arcade
+            echo "path=../arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" >> $GITHUB_OUTPUT
+          fi
+
+      # ---------------------------------------------------------
+      # Build Agent (electron-builder)
+      # ---------------------------------------------------------
+      - name: Install Agent dependencies
+        working-directory: agent
+        run: npm ci
+
+      - name: Build Agent
+        working-directory: agent
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            npm run build:win
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            npm run build:mac
+          else
+            npm run build:linux
+          fi
+
+      - name: Verify Agent artifacts
+        working-directory: agent
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            test -f dist/*.exe
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            test -f dist/*.dmg && test -f dist/*.zip
+          else
+            test -f dist/*.AppImage && test -f dist/*.deb
+          fi
+
+      - name: Smoke test Agent
+        working-directory: agent
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            ./dist/arcade-agent.exe --smoke-test
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            ./dist/mac*/Arcade\ Agent.app/Contents/MacOS/Arcade\ Agent --smoke-test
+          else
+            xvfb-run -a ./dist/*.AppImage --smoke-test
+          fi
+
+      - name: Package Agent artifacts
+        id: agent_artifact
+        working-directory: agent
+        run: |
+          VERSION="${{ env.VERSION }}"
+          OS="${{ matrix.os }}"
+          ARCH="${{ matrix.arch }}"
+
+          if [ "$OS" = "windows-latest" ]; then
+            cp dist/*.exe ../arcade-agent-${VERSION}-windows-${ARCH}.exe
+            echo "path=../arcade-agent-${VERSION}-windows-${ARCH}.exe" >> $GITHUB_OUTPUT
+          elif [ "$OS" = "macos-latest" ]; then
+            cp dist/*.dmg ../arcade-agent-${VERSION}-macos-${ARCH}.dmg
+            cp dist/*.zip ../arcade-agent-${VERSION}-macos-${ARCH}.zip
+            echo "paths<<EOF" >> $GITHUB_OUTPUT
+            echo "../arcade-agent-${VERSION}-macos-${ARCH}.dmg" >> $GITHUB_OUTPUT
+            echo "../arcade-agent-${VERSION}-macos-${ARCH}.zip" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            cp dist/*.AppImage ../arcade-agent-${VERSION}-linux-${ARCH}.AppImage
+            cp dist/*.deb ../arcade-agent-${VERSION}-linux-${ARCH}.deb
+            echo "paths<<EOF" >> $GITHUB_OUTPUT
+            echo "../arcade-agent-${VERSION}-linux-${ARCH}.AppImage" >> $GITHUB_OUTPUT
+            echo "../arcade-agent-${VERSION}-linux-${ARCH}.deb" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      # ---------------------------------------------------------
+      # Upload Artifacts
+      # ---------------------------------------------------------
+      - name: Upload Launcher artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arcade-launcher-${{ matrix.os }}-${{ matrix.arch }}
+          path: ${{ steps.launcher_artifact.outputs.path }}
+          retention-days: 30
+
+      - name: Upload Agent artifact(s)
+        uses: actions/upload-artifact@v4
+        with:
+          name: arcade-agent-${{ matrix.os }}-${{ matrix.arch }}
+          path: ${{ steps.agent_artifact.outputs.paths }}
+          retention-days: 30
+
+      # ---------------------------------------------------------
+      # GitHub Release (on tag push only)
+      # ---------------------------------------------------------
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            arcade-launcher-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}.*
+            arcade-agent-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}.*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------
+  # Release aggregation job (runs after all matrix jobs complete)
+  # ---------------------------------------------------------
+  release:
+    name: Aggregate Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: arcade-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find artifacts -type f -name "arcade-*" | sort
+
+      - name: Final Release (attach all)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/arcade-*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
