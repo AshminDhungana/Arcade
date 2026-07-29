@@ -12,6 +12,39 @@ import { openSetupWindow } from './setup_window.js';
 import type { IPlatformService } from './platform/types.js';
 import type { AgentConfig } from './ws/types.js';
 
+// SMOKE TEST FLAG - check before creating windows
+if (process.argv.includes('--smoke-test')) {
+  await runSmokeTest();
+  process.exit(0);
+}
+
+async function runSmokeTest(): Promise<void> {
+  console.log('[smoke-test] Starting...');
+
+  try {
+    // 1. Load platform abstraction
+    const { getPlatformService } = await import('./platform/index.js');
+    const platform = await getPlatformService();
+    if (!platform) {
+      throw new Error('PlatformService not initialized');
+    }
+    console.log('[smoke-test] PlatformService loaded:', platform.constructor.name);
+
+    // 2. Verify local storage (better-sqlite3) opens
+    const { BetterSqliteSessionStore } = await import('./storage/session_store.js');
+    const store = new BetterSqliteSessionStore(':memory:');
+    store.init();
+    store.close();
+    console.log('[smoke-test] BetterSqliteSessionStore (in-memory) opened and closed');
+
+    console.log('[smoke-test] SMOKE TEST PASSED');
+  } catch (error) {
+    console.error('[smoke-test] SMOKE TEST FAILED:', error);
+    process.exitCode = 1;
+    throw error;
+  }
+}
+
 let platformService: IPlatformService | null = null;
 let wsClient: AgentWebSocketClient | null = null;
 
