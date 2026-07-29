@@ -21,6 +21,7 @@ select = ["E", "F", "I", "UP", "B", "S"]
 "tests/launcher/**" = ["S101", "S105", "S106", "S104", "S110"]
 "launcher_ipc.py" = ["S101"]
 "tests/test_launcher_ipc.py" = ["S101"]
+"tests/test_launcher_self_test.py" = ["S101", "S603"]
 # keygen GUI + signer tests may use asserts
 "tools/keygen/**/test_*.py" = ["S101"]
 # Runtime value comes from arcade.config.json, not hardcoded

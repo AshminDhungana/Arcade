@@ -11,6 +11,7 @@ persistent shell (topbar + content + footer status bar):
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import logging
@@ -90,6 +91,49 @@ _ERROR_HEADLINES: dict[LicenseError, str] = {
 }
 
 _log = logging.getLogger(__name__)
+
+
+def run_self_test() -> int:
+    """Run CI smoke test: migrations, Tkinter init, license check.
+
+    Returns 0 on success, non-zero on failure.
+    """
+    # 1. Run migrations
+    from backend.core.startup import run_migrations
+
+    try:
+        asyncio.run(run_migrations())
+    except Exception as e:
+        print(f"SELF-TEST FAILED: migrations: {e}")
+        return 1
+
+    # 2. Verify Tkinter can initialize (headless on Linux)
+    try:
+        import tkinter as tk
+
+        root = tk.Tk()
+        root.withdraw()
+        root.destroy()
+    except Exception as e:
+        print(f"SELF-TEST FAILED: tkinter: {e}")
+        return 1
+
+    # 3. Verify license check logic runs (uses license.key in cwd)
+    try:
+        from backend.licensing.verify import LicenseError, check_license
+
+        result = check_license()
+        # In CI, we expect a test license or at least no crash
+        # Accept MISSING as "logic runs" since test env may not have license
+        if not result.ok and result.error != LicenseError.MISSING:
+            print(f"SELF-TEST FAILED: license check: {result.error}")
+            return 1
+    except Exception as e:
+        print(f"SELF-TEST FAILED: license check exception: {e}")
+        return 1
+
+    print("SELF-TEST PASSED")
+    return 0
 
 
 def _db_path() -> Path:
@@ -1195,6 +1239,13 @@ class LauncherApp:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--self-test", action="store_true", help="Run CI smoke test")
+    args = parser.parse_args()
+
+    if args.self_test:
+        sys.exit(run_self_test())
+
     ctk.set_appearance_mode("System")
     ctk.set_default_color_theme("blue")
     root = ctk.CTk()
