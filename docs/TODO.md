@@ -1827,13 +1827,13 @@ Package the system for customer distribution. Server as standalone executable (n
   - [ ] Reference: `docs/superpowers/plans/2026-07-15-agent-self-provisioning.md`
 
 ### Epic 11.2: Keygen packaging
-  - [ ] **Task: Create PyInstaller spec file (`keygen.spec`)**
-  - [ ] Entry point: `generate_license.py`
-  - [ ] Include: `tools\keygen\*`
-  - [ ] Hidden imports: `customtkinter` and others
-  - [ ] Build Directory should be inside 'tools\keygen\dist'
-  - [ ] Exclude eveything outside the tools directory.
-  - [ ] Build for Windows, macos and linux.
+  - [x] **Task: Create PyInstaller spec file (`keygen.spec`)**
+    - [x] Entry point: `generate_license.py`
+    - [x] Include: `tools\keygen\*`
+    - [x] Hidden imports: `customtkinter` and others
+    - [x] Build Directory should be inside 'tools\keygen\dist'
+    - [x] Exclude everything outside the tools directory.
+    - [x] Build for Windows, macos and linux.
 
 ### Acceptance Criteria (Phase 11)
 
