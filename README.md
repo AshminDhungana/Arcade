@@ -214,7 +214,7 @@ On server startup, active sessions are loaded from the database and agents are n
 
 ### Prerequisites
 
-- Python 3.11+ (macOS, Windows, or Linux)
+- Python 3.12+ (macOS, Windows, or Linux)
 - Node.js 20 LTS or newer
 
 ### Quick Start
@@ -262,6 +262,52 @@ On first launch, the Launcher (`python launcher.py`) will show a **License Activ
 # Run all backend and frontend tests
 make test
 ```
+
+### Build App
+
+Arcade ships with a single build script that builds the launcher/server,
+the license keygen tool, and the desktop agent — all for whatever OS
+you're running it on.
+
+> **Note:** PyInstaller and Electron cannot cross-compile. Running this
+> script on Windows produces Windows artifacts only; on macOS or Linux
+> it produces artifacts for that OS only. To get all three OS's release
+> builds in one go, use the CI matrix workflow instead
+> (`.github/workflows/build.yml`).
+
+**Prerequisites:**
+- Python 3.12.x with `pyinstaller` and `pynacl` installed (`pip install -r ./backend/requirements.txt`)
+- Node.js 20 LTS + npm
+- **Windows only, for the installer wrap:** [NSIS](https://nsis.sourceforge.io/) (`makensis` on PATH)
+
+```bash
+# Clone the repository
+git clone https://github.com/AshminDhungana/Arcade.git
+cd Arcade
+
+# Run full app build platform specific
+python build.py
+```
+Launcher app location : ./dist/arcade/
+Agent app location : ./agent/dist/
+Keygen app location: ./tools/keygen/dist/arcade-keygen/
+
+On first run, if no license keypair exists yet, the script generates one
+automatically and embeds the public key into the launcher build. On
+every later run it reuses the existing keypair — it will never silently
+regenerate it.
+
+**Useful options:**
+
+| Flag | What it does |
+|---|---|
+| `--only {frontend,launcher,agent,keygen}` | Build just one component (repeatable) |
+| `--skip-keygen` | Skip the keygen tool |
+| `--no-clean` | Keep previous build/dist folders instead of wiping them |
+| `--regenerate-keys` | Force a new keypair — **invalidates every previously issued license**, requires confirmation |
+| `--self-test` | Run launcher/agent self-checks after building |
+
+Run `python build.py --help` for the full list.
 
 
 ## Configuration

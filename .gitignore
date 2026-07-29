@@ -17,6 +17,7 @@ docs/superpowers
 .superpowers
 .agents
 .opencode
+skills-lock.json
 
 # Distribution / packaging
 .Python

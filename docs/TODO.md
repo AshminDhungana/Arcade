@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**; **Phase 9 Epic 9.1 Sensitive File & Key Security Complete (2026-07-26)**
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**; **Phase 9 Epic 9.1 Sensitive File & Key Security Complete (2026-07-26)**; **Phase 11 Epic 11.3 Unified Local Build Script Complete (2026-07-29)**
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -1843,7 +1843,7 @@ Package the system for customer distribution. Server as standalone executable (n
 - [ ] License activation flow works from packaged binary
 
 
-### Epic 11.3: Unified Local Build Script (`scripts/build.py`) (ENG-A)
+### Epic 11.3: Unified Local Build Script (`build.py`) (ENG-A)
 
 #### Objectives
 
@@ -1857,7 +1857,7 @@ official multi-OS release artifacts.
 
 #### Deliverables
 
-- `scripts/build.py` — single entry point, `python scripts/build.py`
+- `build.py` — single entry point, `python build.py`
 - Builds, for the current OS only: frontend → keys (if missing) → launcher
   → keygen (optional) → agent
 - Prints a final manifest of exact artifact paths
@@ -1867,101 +1867,100 @@ official multi-OS release artifacts.
 
 #### Task: Repo path configuration
 
-- [ ] `REPO_ROOT` resolved relative to the script's own location
-      (`Path(__file__).resolve().parents[1]`), not the caller's cwd — script
+- [x] `REPO_ROOT` resolved relative to the script's own location
+      (`Path(__file__).resolve().parent`), not the caller's cwd — script
       must work correctly when invoked from any directory
-- [ ] Config block at top of file (not scattered through the code) for:
+- [x] Config block at top of file (not scattered through the code) for:
   - `FRONTEND_DIR`, `AGENT_DIR`, `KEYGEN_DIR`
   - `GENERATE_KEYS_SCRIPT`, `PRIVATE_KEY_PATH`, `PUBLIC_KEY_MODULE`
   - `ARCADE_SPEC` (repo root), `KEYGEN_SPEC` (`tools/keygen/keygen.spec`)
   - `LAUNCHER_DIST` (repo-root `dist/`), `KEYGEN_DIST` (`tools/keygen/dist/`), `AGENT_DIST` (`agent/dist/`)
   - `NSIS_SCRIPT` — path to the `.nsi` file that wraps the launcher onedir
-    output into a Windows installer (confirm actual path/filename before
-    hardcoding — not yet nailed down)
+    output into a Windows installer (actual location: `./installer.nsi` at repo root)
 
 #### Task: Prerequisite checks (fail fast, don't stack-trace)
 
-- [ ] Before doing any work, verify tools needed for the requested
+- [x] Before doing any work, verify tools needed for the requested
       component(s) are on `PATH` / importable:
   - `node` + `npm` (frontend, agent)
   - `PyInstaller` importable in current Python env (launcher, keygen)
   - `PyNaCl` importable (needed by `generate_keys.py`)
   - `makensis` on `PATH` (Windows + launcher, only if `NSIS_SCRIPT` exists)
-- [ ] On any missing tool: print which tool is missing + an install hint
+- [x] On any missing tool: print which tool is missing + an install hint
       (e.g. `pip install pyinstaller==6.12.0`), then exit non-zero —
       never let a missing tool surface as a raw Python traceback
 
 #### Task: Ed25519 key handling (wraps existing `tools/keygen/generate_keys.py` — do not reimplement key generation)
 
-- [ ] Before building launcher or keygen (regardless of `--only`), check
+- [x] Before building launcher or keygen (regardless of `--only`), check
       `tools/keygen/private_key.pem` with `Path.exists()`
-- [ ] **Missing** → invoke `generate_keys.py` as a subprocess with the
+- [x] **Missing** → invoke `generate_keys.py` as a subprocess with the
       current Python interpreter (`sys.executable`), no stdin needed — since
       the file doesn't exist yet, the script's own internal "Continue?
       [y/N]" prompt is never triggered, so it runs straight through
       non-interactively. This single call writes both `private_key.pem`
       **and** `backend/licensing/public_key.py` — no separate patch step
-- [ ] **Present** → skip invocation entirely; log "reusing existing
+- [x] **Present** → skip invocation entirely; log "reusing existing
       keypair"; still verify `public_key.py` exists on disk and abort with
       a clear error if it doesn't (would mean a corrupted/partial state)
-- [ ] Non-zero exit code from `generate_keys.py` must abort the entire
+- [x] Non-zero exit code from `generate_keys.py` must abort the entire
       build — never proceed to package a launcher against a
       missing/stale public key
-- [ ] `--regenerate-keys` flag (**off by default**):
-  - [ ] Print an explicit warning that this invalidates every license
+- [x] `--regenerate-keys` flag (**off by default**):
+  - [x] Print an explicit warning that this invalidates every license
         issued against the current key before doing anything
-  - [ ] Require a typed `yes` confirmation (not just `y`, to avoid
+  - [x] Require a typed `yes` confirmation (not just `y`, to avoid
         accidental Enter-key mashing) before proceeding
-  - [ ] On confirm, invoke `generate_keys.py` piping `"y\n"` to stdin so it
+  - [x] On confirm, invoke `generate_keys.py` piping `"y\n"` to stdin so it
         sails past its own internal overwrite prompt without a second
         confirmation dialog
-  - [ ] On decline, abort only the key-regeneration step — rest of the
+  - [x] On decline, abort only the key-regeneration step — rest of the
         build can still proceed against the existing key
 
 #### Task: Frontend build step
 
-- [ ] `npm ci` then `npm run build` in `frontend/`
-- [ ] Clean `frontend/dist/` first unless `--no-clean`
-- [ ] Verify `frontend/dist/` actually exists after the build; abort with
+- [x] `npm ci` then `npm run build` in `frontend/`
+- [x] Clean `frontend/dist/` first unless `--no-clean`
+- [x] Verify `frontend/dist/` actually exists after the build; abort with
       a clear message if not (silent npm failures happen)
-- [ ] If `--only launcher` is passed but `frontend/dist/` is missing,
+- [x] If `--only launcher` is passed but `frontend/dist/` is missing,
       build frontend first anyway — `arcade.spec` bundles it, so launcher
       packaging cannot proceed without it
 
 #### Task: Launcher/server build step
 
-- [ ] Abort with a clear message if `arcade.spec` isn't found at the
+- [x] Abort with a clear message if `arcade.spec` isn't found at the
       configured path (this one is NOT optional — unlike keygen)
-- [ ] Clean `dist/` and `build/` at repo root first unless `--no-clean`
-- [ ] Run `python -m PyInstaller arcade.spec --clean --noconfirm` from
+- [x] Clean `dist/` and `build/` at repo root first unless `--no-clean`
+- [x] Run `python -m PyInstaller arcade.spec --clean --noconfirm` from
       repo root
-- [ ] Snapshot `dist/` file listing before and after the build; use the
+- [x] Snapshot `dist/` file listing before and after the build; use the
       diff to locate the actual onedir output folder (`dist/<app_name>/`)
       rather than hardcoding the app name, since it comes from the spec's
       internal `name=` field and shouldn't need to be duplicated here
-- [ ] Abort if PyInstaller reports success but no new files appear —
+- [x] Abort if PyInstaller reports success but no new files appear —
       catches silent/no-op builds
-- [ ] **Windows only, and only if `NSIS_SCRIPT` exists:** run `makensis`
+- [x] **Windows only, and only if `NSIS_SCRIPT` exists:** run `makensis`
       against it to wrap the onedir output into a single installer `.exe`;
       if the script doesn't exist, log that the raw onedir folder is being
       shipped instead — don't treat this as an error
 
 #### Task: Keygen tool build step (optional — matches Epic 11.2)
 
-- [ ] If `tools/keygen/keygen.spec` doesn't exist, **skip with a log
+- [x] If `tools/keygen/keygen.spec` doesn't exist, **skip with a log
       message and exit 0 for this step** — this is optional per Epic 11.2,
       not a failure
-- [ ] If it does exist: same PyInstaller build + before/after snapshot +
+- [x] If it does exist: same PyInstaller build + before/after snapshot +
       onedir-detection pattern as the launcher step, run from
       `tools/keygen/` as cwd so output lands in `tools/keygen/dist/`
       per the existing spec
 
 #### Task: Agent build step
 
-- [ ] `npm ci` then `npm run build` in `agent/` (drives electron-builder)
-- [ ] Clean `agent/dist/` first unless `--no-clean`
-- [ ] Verify `agent/dist/` exists after the build
-- [ ] Scan `agent/dist/` recursively for installer files (`.exe`, `.dmg`,
+- [x] `npm ci` then `npm run build` in `agent/` (drives electron-builder)
+- [x] Clean `agent/dist/` first unless `--no-clean`
+- [x] Verify `agent/dist/` exists after the build
+- [x] Scan `agent/dist/` recursively for installer files (`.exe`, `.dmg`,
       `.zip`, `.AppImage`, `.deb`) and list those specifically in the
       final manifest rather than just the whole dist folder
 
@@ -1975,32 +1974,32 @@ official multi-OS release artifacts.
 | `--regenerate-keys` | Force a new keypair (see key-handling task above) |
 | `--self-test` | After building, run launcher `--self-test` and agent `--smoke-test` (flags already exist per Epic 11.1/11.2 — just needs the exact built binary paths wired in) |
 
-- [ ] `--help` output must clearly document all flags (argparse default is fine)
+- [x] `--help` output must clearly document all flags (argparse default is fine)
 
 #### Task: Final manifest
 
-- [ ] After all requested steps complete, print a clean summary: one
+- [x] After all requested steps complete, print a clean summary: one
       section per component built, with the exact filesystem path(s) to
       the resulting artifact(s) — this is the actual point of the whole
       script per the original ask ("provide location where to find them")
-- [ ] If nothing was built (e.g. all skipped), say so explicitly rather
+- [x] If nothing was built (e.g. all skipped), say so explicitly rather
       than printing an empty section
 
 ---
 
 #### Acceptance Criteria (Epic 11.3)
 
-- [ ] Fresh `git clone` + `python scripts/build.py` on a machine with no
+- [x] Fresh `git clone` + `python scripts/build.py` on a machine with no
       prior state generates a keypair, builds frontend, launcher, keygen
       (if `keygen.spec` present), and agent — with zero manual steps
-- [ ] Re-running the script on the same clone does **not** regenerate keys
+- [x] Re-running the script on the same clone does **not** regenerate keys
       or prompt for anything, unless `--regenerate-keys` is explicitly passed
-- [ ] Missing tool (node/npm/PyInstaller/makensis) produces a clear,
+- [x] Missing tool (node/npm/PyInstaller/makensis) produces a clear,
       actionable error — never a raw traceback
-- [ ] `--only keygen` works correctly even when `keygen.spec` doesn't
+- [x] `--only keygen` works correctly even when `keygen.spec` doesn't
       exist yet (skips, doesn't fail)
-- [ ] Final output clearly lists where every built artifact lives
-- [ ] Script makes zero assumptions about being run from a specific
+- [x] Final output clearly lists where every built artifact lives
+- [x] Script makes zero assumptions about being run from a specific
       working directory
 
 ## Phase 12: Documentation Finalisation
