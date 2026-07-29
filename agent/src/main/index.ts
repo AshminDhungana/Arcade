@@ -1,29 +1,21 @@
-import { app, ipcMain } from 'electron';
-import * as path from 'node:path';
-import * as os from 'node:os';
-import * as fs from 'node:fs';
-import { getPlatformService } from './platform/index.js';
-import { AgentWebSocketClient } from './ws/client.js';
-import { BetterSqliteSessionStore } from './storage/session_store.js';
-import { loadAgentConfig } from './config/loader.js';
-import { discoverServer } from './discovery.js';
-import { enrollAgent } from './enroll.js';
-import { openSetupWindow } from './setup_window.js';
-import type { IPlatformService } from './platform/types.js';
-import type { AgentConfig } from './ws/types.js';
-
-// SMOKE TEST FLAG - check before creating windows
+// SMOKE TEST FLAG - check BEFORE any Electron imports
 if (process.argv.includes('--smoke-test')) {
   await runSmokeTest();
   process.exit(0);
 }
+
+import * as path from 'node:path';
+import * as os from 'node:os';
+import * as fs from 'node:fs';
+import { getPlatformService } from './platform/index.js';
+import { BetterSqliteSessionStore } from './storage/session_store.js';
+import type { IPlatformService } from './platform/types.js';
 
 async function runSmokeTest(): Promise<void> {
   console.log('[smoke-test] Starting...');
 
   try {
     // 1. Load platform abstraction
-    const { getPlatformService } = await import('./platform/index.js');
     const platform = await getPlatformService();
     if (!platform) {
       throw new Error('PlatformService not initialized');
@@ -31,7 +23,6 @@ async function runSmokeTest(): Promise<void> {
     console.log('[smoke-test] PlatformService loaded:', platform.constructor.name);
 
     // 2. Verify local storage (better-sqlite3) opens
-    const { BetterSqliteSessionStore } = await import('./storage/session_store.js');
     const store = new BetterSqliteSessionStore(':memory:');
     store.init();
     store.close();
@@ -46,9 +37,18 @@ async function runSmokeTest(): Promise<void> {
 }
 
 let platformService: IPlatformService | null = null;
-let wsClient: AgentWebSocketClient | null = null;
+let wsClient: import('./ws/client.js').AgentWebSocketClient | null = null;
 
 async function bootstrap(): Promise<void> {
+  // Import Electron-dependent modules only when actually running the app
+  const { app, ipcMain } = await import('electron');
+  const { AgentWebSocketClient } = await import('./ws/client.js');
+  const { loadAgentConfig } = await import('./config/loader.js');
+  const { discoverServer } = await import('./discovery.js');
+  const { enrollAgent } = await import('./enroll.js');
+  const { openSetupWindow } = await import('./setup_window.js');
+  type AgentConfig = import('./ws/types.js').AgentConfig;
+
   platformService = await getPlatformService();
   console.log(`[Agent] Platform service: ${platformService.constructor.name}`);
 
@@ -157,19 +157,21 @@ async function bootstrap(): Promise<void> {
   });
 }
 
-app.whenReady().then(() => {
-  bootstrap().catch((err) => {
-    console.error('[Agent] Bootstrap failed:', err);
-    process.exit(1);
+import('electron').then(({ app }) => {
+  app.whenReady().then(() => {
+    bootstrap().catch((err) => {
+      console.error('[Agent] Bootstrap failed:', err);
+      process.exit(1);
+    });
   });
-});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
+  });
 
-process.on('SIGTERM', () => {
-  console.log('[Agent] SIGTERM received, disconnecting...');
-  wsClient?.disconnect();
-  process.exit(0);
+  process.on('SIGTERM', () => {
+    console.log('[Agent] SIGTERM received, disconnecting...');
+    wsClient?.disconnect();
+    process.exit(0);
+  });
 });

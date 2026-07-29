@@ -8,6 +8,9 @@
   "homepage": "https://github.com/AshminDhungana/Arcade",
   "scripts": {
     "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && node scripts/copy-renderer-assets.mjs && electron-builder",
+    "build:win": "npm run build -- --win",
+    "build:mac": "npm run build -- --mac",
+    "build:linux": "npm run build -- --linux",
     "start": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && node scripts/copy-renderer-assets.mjs && electron .",
     "lint": "eslint src",
     "test": "vitest"
