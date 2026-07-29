@@ -1786,16 +1786,26 @@ Package the system for customer distribution. Server as standalone executable (n
 
 - [ ] -
 
-- [ ] **Task: Build pipeline for all OSes**
-  - [ ] Windows: build on `windows-latest` GitHub Actions runner or dedicated Windows machine
-  - [ ] macOS: build on `macos-latest` GitHub Actions runner or dedicated Mac
-  - [ ] Linux: build on `ubuntu-latest` GitHub Actions runner â€” verify GLIBC version matches deployment target (Ubuntu 20.04 min)
-  - [ ] All builds: verify `alembic upgrade head` runs in bundled context; Tkinter renders; license screen appears
+- [x] **Task: Build pipeline for all OSes**
+  - [x] Windows: build on `windows-latest` GitHub Actions runner or dedicated Windows machine
+  - [x] macOS: build on `macos-latest` GitHub Actions runner or dedicated Mac
+  - [x] Linux: build on `ubuntu-latest` GitHub Actions runner — verify GLIBC version matches deployment target (Ubuntu 20.04 min)
+  - [x] All builds: verify `alembic upgrade head` runs in bundled context; Tkinter renders; license screen appears
 
-- [ ] **Task: Build frontend static files for embedding**
-  - [ ] `npm run build` in `frontend/` â†’ `frontend/dist/`
-  - [ ] FastAPI serves `frontend/dist/index.html` at `/` in packaged build
-  - [ ] Verify all API calls from bundled React app reach FastAPI backend
+- [x] **Task: Unified GitHub Actions matrix workflow (`.github/workflows/build.yml`)**
+  - [x] Single workflow with `strategy.matrix` over `windows-latest`, `macos-latest`, `ubuntu-latest`
+  - [x] Each job builds all 3 components: Frontend → Launcher (PyInstaller) → Agent (electron-builder)
+  - [x] Launcher `--self-test` flag: runs migrations, verifies Tkinter, checks license logic
+  - [x] Agent `--smoke-test` flag: verifies platform abstraction, kiosk overlay import, session store
+  - [x] Artifacts: Launcher artifacts: Windows zip, macOS tar.gz, Linux tar.gz (PyInstaller onedir)
+  - [x] Agent artifacts: Windows NSIS .exe, macOS DMG+ZIP, Linux AppImage+.deb
+  - [x] GitHub Release created on tag push with all artifacts attached
+  - [x] Old per-platform workflows archived to `.github/workflows/archive/`
+
+- [x] **Task: Build frontend static files for embedding**
+  - [x] `npm run build` in `frontend/` → `frontend/dist/`
+  - [x] FastAPI serves `frontend/dist/index.html` at `/` in packaged build
+  - [x] Verify all API calls from bundled React app reach FastAPI backend
 
 ### Epic 11.2: Agent Packaging (ENG-B)
 
