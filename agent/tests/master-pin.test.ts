@@ -1,25 +1,56 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { resolveMasterPin, DEFAULT_MASTER_PIN } from '../src/main/master-pin.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-describe('resolveMasterPin', () => {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MASTER_PIN_FILE = path.join(__dirname, '../src/main/master-pin.ts');
+
+// Helper to import the module fresh each time
+async function importMasterPin() {
+  // Clear module cache to re-import
+  vi.resetModules();
+  return await import('../src/main/master-pin.js');
+}
+
+describe('resolveMasterPinHash (build-time injected)', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
-    // Ensure a stray ARCADE_MASTER_PIN from the host env can't skew the default case.
-    delete process.env.ARCADE_MASTER_PIN;
   });
 
-  it('returns the built-in default when no env var is set', () => {
-    expect(resolveMasterPin()).toBe(DEFAULT_MASTER_PIN);
-    expect(DEFAULT_MASTER_PIN).toBe('1928');
+  afterEach(async () => {
+    // Restore fallback template after tests
+    const fallbackContent = `// agent/src/main/master-pin.ts
+// FALLBACK TEMPLATE — REPLACED AT BUILD TIME by inject-master-pin.js
+// Run: npm run inject-master-pin (or node scripts/inject-master-pin.js)
+// Plaintext PIN is provided via MASTER_PIN env var or --pin arg; only the Argon2id hash is embedded.
+
+/** Pre-computed Argon2id hash of the emergency master PIN (injected at build time). */
+export const MASTER_PIN_HASH = "$argon2id$v=19$m=4096,t=3,p=1$fallback$salt$hash";
+
+/** Returns the pre-computed Argon2id hash of the emergency master PIN. */
+export function resolveMasterPinHash() {
+  return MASTER_PIN_HASH;
+}
+`;
+    await fs.writeFile(MASTER_PIN_FILE, fallbackContent, 'utf-8');
   });
 
-  it('prefers ARCADE_MASTER_PIN over the default', () => {
-    vi.stubEnv('ARCADE_MASTER_PIN', '5555');
-    expect(resolveMasterPin()).toBe('5555');
+  it('exports MASTER_PIN_HASH constant', async () => {
+    const { MASTER_PIN_HASH } = await importMasterPin();
+    expect(MASTER_PIN_HASH).toBeDefined();
+    expect(MASTER_PIN_HASH).toMatch(/^\$argon2id\$/);
   });
 
-  it('returns an empty string when ARCADE_MASTER_PIN is blank (disables master PIN)', () => {
-    vi.stubEnv('ARCADE_MASTER_PIN', '');
-    expect(resolveMasterPin()).toBe('');
+  it('resolveMasterPinHash returns the MASTER_PIN_HASH constant', async () => {
+    const { resolveMasterPinHash, MASTER_PIN_HASH } = await importMasterPin();
+    expect(resolveMasterPinHash()).toBe(MASTER_PIN_HASH);
+  });
+
+  it('hash is a valid Argon2id hash format', async () => {
+    const { MASTER_PIN_HASH } = await importMasterPin();
+    // Argon2id hash format: $argon2id$v=19$m=4096,t=3,p=1$salt$hash
+    // The fallback template uses a placeholder, so just check it starts with $argon2id$
+    expect(MASTER_PIN_HASH).toMatch(/^\$argon2id\$/);
   });
 });

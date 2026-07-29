@@ -1,19 +1,8 @@
 // agent/src/main/enroll.ts
 import os from 'node:os';
-import { hash } from '@node-rs/argon2';
 import { saveAgentConfig } from './config/loader.js';
 import type { LoadedAgentConfig } from './config/types.js';
-import { resolveMasterPin } from './master-pin.js';
-
-// Argon2id parameters used to hash the emergency master PIN at enrollment.
-// Kept in lockstep with tools/keygen/generate_keys.py so a pre-baked hash and a
-// runtime-computed hash are interchangeable (verify() reads params from the hash).
-// The algorithm defaults to Argon2id in @node-rs/argon2.
-const MASTER_PIN_HASH_OPTIONS = {
-  memoryCost: 4096,
-  timeCost: 3,
-  parallelism: 1,
-} as const;
+import { resolveMasterPinHash } from './master-pin.js';
 
 interface EnrollResponse {
   seat_id: string;
@@ -48,11 +37,9 @@ export async function enrollAgent(
   }
   const data = (await res.json()) as EnrollResponse;
 
-  // Resolve + hash the emergency master PIN (accepted only when the server is
-  // unreachable). The plaintext PIN is never persisted — only the Argon2id hash
-  // is written to agent.config.json. A blank PIN disables the master unlock.
-  const masterPin = resolveMasterPin();
-  const master_code_hash = masterPin ? await hash(masterPin, MASTER_PIN_HASH_OPTIONS) : null;
+  // Use pre-computed master PIN hash (injected at build time).
+  // The plaintext PIN is never present at runtime — only the Argon2id hash is embedded.
+  const master_code_hash = resolveMasterPinHash();
 
   const config: LoadedAgentConfig = {
     server_url: serverUrl,

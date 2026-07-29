@@ -1817,20 +1817,20 @@ Package the system for customer distribution. Server as standalone executable (n
   - [x] Create `agent/assets/icon.png` (256×256 placeholder; replace with cafe branding before release)
   - [x] Verify installer sets `chmod 600 agent.config.json` on Linux/macOS post-install
 
-- [ ] **Task: Agent self-provisioning (no hand-copied config)**
-  - [ ] Server advertises itself on LAN via UDP beacon (`backend/core/lan_discovery.py`) + `GET /api/discovery` fallback
-  - [ ] Dashboard generates a one-time, 15-min, single-use enroll code per seat (`POST /api/seats/{id}/enroll-code`, admin)
-  - [ ] Agent calls `POST /api/agent/enroll` (public, code-gated, rate-limited) → receives `seat_id` + `agent_secret` + `cafe_name`
-  - [ ] Agent writes its own `agent.config.json` on first run; reuses it on reboot (no re-enroll)
-  - [ ] First-run setup window collects the code; `Ctrl+Shift+O` staff-override PIN doubles as the in-agent Settings gate
-  - [ ] Emergency **master PIN** injected at build (`agent/src/main/master-pin.ts`, `MASTER_PIN_HASH`) — accepted only when server unreachable; never shown in UI
+- [x] **Task: Agent self-provisioning (no hand-copied config)**
+  - [x] Server advertises itself on LAN via UDP beacon (`backend/core/lan_discovery.py`) + `GET /api/discovery` fallback
+  - [x] Dashboard generates a one-time, 15-min, single-use enroll code per seat (`POST /api/seats/{id}/enroll-code`, admin)
+  - [x] Agent calls `POST /api/agent/enroll` (public, code-gated, rate-limited) → receives `seat_id` + `agent_secret` + `cafe_name`
+  - [x] Agent writes its own `agent.config.json` on first run; reuses it on reboot (no re-enroll)
+  - [x] First-run setup window collects the code; `Ctrl+Shift+O` staff-override PIN doubles as the in-agent Settings gate
+  - [x] Emergency **master PIN** injected at build (`agent/src/main/master-pin.ts`, `MASTER_PIN_HASH`) — accepted only when server unreachable; never shown in UI
   - [ ] Reference: `docs/superpowers/plans/2026-07-15-agent-self-provisioning.md`
 
-### Epic 11.2: Keygen packaging (Optional)
+### Epic 11.2: Keygen packaging
   - [ ] **Task: Create PyInstaller spec file (`keygen.spec`)**
   - [ ] Entry point: `generate_license.py`
   - [ ] Include: `tools\keygen\*`
-  - [ ] Hidden imports: `customtkinter`
+  - [ ] Hidden imports: `customtkinter` and others
   - [ ] Build Directory should be inside 'tools\keygen\dist'
   - [ ] Exclude eveything outside the tools directory.
   - [ ] Build for Windows, macos and linux.
@@ -1842,7 +1842,166 @@ Package the system for customer distribution. Server as standalone executable (n
 - [ ] First-run checklist in `docs/deployment.md` covers all SDD Â§15.4 items
 - [ ] License activation flow works from packaged binary
 
+
+### Epic 11.3: Unified Local Build Script (`scripts/build.py`) (ENG-A)
+
+#### Objectives
+
+Give a developer or on-site technician a single command that builds all
+three shippable components — launcher/server, keygen tool, agent — for
+whatever OS they're running on, from a fresh `git clone`, with zero manual
+key-handling. This is a **local convenience script**, not a CI replacement:
+it does not cross-compile, and the GitHub Actions matrix workflow
+(`.github/workflows/build.yml`) remains the authoritative source for
+official multi-OS release artifacts.
+
+#### Deliverables
+
+- `scripts/build.py` — single entry point, `python scripts/build.py`
+- Builds, for the current OS only: frontend → keys (if missing) → launcher
+  → keygen (optional) → agent
+- Prints a final manifest of exact artifact paths
+- Documented in `docs/developer-guide.md`
+
 ---
+
+#### Task: Repo path configuration
+
+- [ ] `REPO_ROOT` resolved relative to the script's own location
+      (`Path(__file__).resolve().parents[1]`), not the caller's cwd — script
+      must work correctly when invoked from any directory
+- [ ] Config block at top of file (not scattered through the code) for:
+  - `FRONTEND_DIR`, `AGENT_DIR`, `KEYGEN_DIR`
+  - `GENERATE_KEYS_SCRIPT`, `PRIVATE_KEY_PATH`, `PUBLIC_KEY_MODULE`
+  - `ARCADE_SPEC` (repo root), `KEYGEN_SPEC` (`tools/keygen/keygen.spec`)
+  - `LAUNCHER_DIST` (repo-root `dist/`), `KEYGEN_DIST` (`tools/keygen/dist/`), `AGENT_DIST` (`agent/dist/`)
+  - `NSIS_SCRIPT` — path to the `.nsi` file that wraps the launcher onedir
+    output into a Windows installer (confirm actual path/filename before
+    hardcoding — not yet nailed down)
+
+#### Task: Prerequisite checks (fail fast, don't stack-trace)
+
+- [ ] Before doing any work, verify tools needed for the requested
+      component(s) are on `PATH` / importable:
+  - `node` + `npm` (frontend, agent)
+  - `PyInstaller` importable in current Python env (launcher, keygen)
+  - `PyNaCl` importable (needed by `generate_keys.py`)
+  - `makensis` on `PATH` (Windows + launcher, only if `NSIS_SCRIPT` exists)
+- [ ] On any missing tool: print which tool is missing + an install hint
+      (e.g. `pip install pyinstaller==6.12.0`), then exit non-zero —
+      never let a missing tool surface as a raw Python traceback
+
+#### Task: Ed25519 key handling (wraps existing `tools/keygen/generate_keys.py` — do not reimplement key generation)
+
+- [ ] Before building launcher or keygen (regardless of `--only`), check
+      `tools/keygen/private_key.pem` with `Path.exists()`
+- [ ] **Missing** → invoke `generate_keys.py` as a subprocess with the
+      current Python interpreter (`sys.executable`), no stdin needed — since
+      the file doesn't exist yet, the script's own internal "Continue?
+      [y/N]" prompt is never triggered, so it runs straight through
+      non-interactively. This single call writes both `private_key.pem`
+      **and** `backend/licensing/public_key.py` — no separate patch step
+- [ ] **Present** → skip invocation entirely; log "reusing existing
+      keypair"; still verify `public_key.py` exists on disk and abort with
+      a clear error if it doesn't (would mean a corrupted/partial state)
+- [ ] Non-zero exit code from `generate_keys.py` must abort the entire
+      build — never proceed to package a launcher against a
+      missing/stale public key
+- [ ] `--regenerate-keys` flag (**off by default**):
+  - [ ] Print an explicit warning that this invalidates every license
+        issued against the current key before doing anything
+  - [ ] Require a typed `yes` confirmation (not just `y`, to avoid
+        accidental Enter-key mashing) before proceeding
+  - [ ] On confirm, invoke `generate_keys.py` piping `"y\n"` to stdin so it
+        sails past its own internal overwrite prompt without a second
+        confirmation dialog
+  - [ ] On decline, abort only the key-regeneration step — rest of the
+        build can still proceed against the existing key
+
+#### Task: Frontend build step
+
+- [ ] `npm ci` then `npm run build` in `frontend/`
+- [ ] Clean `frontend/dist/` first unless `--no-clean`
+- [ ] Verify `frontend/dist/` actually exists after the build; abort with
+      a clear message if not (silent npm failures happen)
+- [ ] If `--only launcher` is passed but `frontend/dist/` is missing,
+      build frontend first anyway — `arcade.spec` bundles it, so launcher
+      packaging cannot proceed without it
+
+#### Task: Launcher/server build step
+
+- [ ] Abort with a clear message if `arcade.spec` isn't found at the
+      configured path (this one is NOT optional — unlike keygen)
+- [ ] Clean `dist/` and `build/` at repo root first unless `--no-clean`
+- [ ] Run `python -m PyInstaller arcade.spec --clean --noconfirm` from
+      repo root
+- [ ] Snapshot `dist/` file listing before and after the build; use the
+      diff to locate the actual onedir output folder (`dist/<app_name>/`)
+      rather than hardcoding the app name, since it comes from the spec's
+      internal `name=` field and shouldn't need to be duplicated here
+- [ ] Abort if PyInstaller reports success but no new files appear —
+      catches silent/no-op builds
+- [ ] **Windows only, and only if `NSIS_SCRIPT` exists:** run `makensis`
+      against it to wrap the onedir output into a single installer `.exe`;
+      if the script doesn't exist, log that the raw onedir folder is being
+      shipped instead — don't treat this as an error
+
+#### Task: Keygen tool build step (optional — matches Epic 11.2)
+
+- [ ] If `tools/keygen/keygen.spec` doesn't exist, **skip with a log
+      message and exit 0 for this step** — this is optional per Epic 11.2,
+      not a failure
+- [ ] If it does exist: same PyInstaller build + before/after snapshot +
+      onedir-detection pattern as the launcher step, run from
+      `tools/keygen/` as cwd so output lands in `tools/keygen/dist/`
+      per the existing spec
+
+#### Task: Agent build step
+
+- [ ] `npm ci` then `npm run build` in `agent/` (drives electron-builder)
+- [ ] Clean `agent/dist/` first unless `--no-clean`
+- [ ] Verify `agent/dist/` exists after the build
+- [ ] Scan `agent/dist/` recursively for installer files (`.exe`, `.dmg`,
+      `.zip`, `.AppImage`, `.deb`) and list those specifically in the
+      final manifest rather than just the whole dist folder
+
+#### Task: CLI flags
+
+| Flag | Behavior |
+|---|---|
+| `--only {frontend,launcher,agent,keygen}` | Repeatable; builds only the given component(s); overrides `--skip-keygen` |
+| `--skip-keygen` | Skip keygen tool; ignored if `--only` is used |
+| `--no-clean` | Keep previous `dist/`/`build/` folders instead of wiping them |
+| `--regenerate-keys` | Force a new keypair (see key-handling task above) |
+| `--self-test` | After building, run launcher `--self-test` and agent `--smoke-test` (flags already exist per Epic 11.1/11.2 — just needs the exact built binary paths wired in) |
+
+- [ ] `--help` output must clearly document all flags (argparse default is fine)
+
+#### Task: Final manifest
+
+- [ ] After all requested steps complete, print a clean summary: one
+      section per component built, with the exact filesystem path(s) to
+      the resulting artifact(s) — this is the actual point of the whole
+      script per the original ask ("provide location where to find them")
+- [ ] If nothing was built (e.g. all skipped), say so explicitly rather
+      than printing an empty section
+
+---
+
+#### Acceptance Criteria (Epic 11.3)
+
+- [ ] Fresh `git clone` + `python scripts/build.py` on a machine with no
+      prior state generates a keypair, builds frontend, launcher, keygen
+      (if `keygen.spec` present), and agent — with zero manual steps
+- [ ] Re-running the script on the same clone does **not** regenerate keys
+      or prompt for anything, unless `--regenerate-keys` is explicitly passed
+- [ ] Missing tool (node/npm/PyInstaller/makensis) produces a clear,
+      actionable error — never a raw traceback
+- [ ] `--only keygen` works correctly even when `keygen.spec` doesn't
+      exist yet (skips, doesn't fail)
+- [ ] Final output clearly lists where every built artifact lives
+- [ ] Script makes zero assumptions about being run from a specific
+      working directory
 
 ## Phase 12: Documentation Finalisation
 

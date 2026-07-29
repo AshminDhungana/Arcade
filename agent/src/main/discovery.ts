@@ -1,15 +1,24 @@
 /**
  * LAN discovery client for the Arcade Agent.
  *
- * Listens for the server's UDP beacon and resolves it to a `ws://host:port`
- * URL. The HTTP `/api/discovery` fallback is intentionally deferred to the
- * settings UI task; when UDP yields nothing we return null.
+ * 1) Listens for the server's UDP beacon (port 48123) for up to timeoutMs.
+ * 2) Falls back to probing common LAN gateways via HTTP GET /api/discovery.
  */
 
 import dgram from 'node:dgram';
 
 const BEACON_PORT = 48123;
 const BEACON_MAGIC = 'ARCADE_DISCOVERY';
+
+/** Common LAN gateway IPs to probe for HTTP /api/discovery fallback. */
+const COMMON_GATEWAYS = [
+  '192.168.1.1', '192.168.0.1', '192.168.1.254', '192.168.0.254',
+  '10.0.0.1', '10.0.1.1', '10.1.1.1',
+  '172.16.0.1', '172.16.1.1',
+];
+
+const PROBE_TIMEOUT_MS = 500;
+const MAX_CONCURRENT_PROBES = 3;
 
 /**
  * Parse a server beacon message into a `ws://host:port` URL.
@@ -34,13 +43,37 @@ function beaconToWsUrl(text: string): string | null {
 }
 
 /**
+ * Probe a single gateway IP via HTTP /api/discovery.
+ *
+ * @param ip Gateway IP address to probe.
+ * @returns `ws://host:port` URL if successful, null otherwise.
+ */
+async function probeGateway(ip: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  try {
+    const res = await fetch(`http://${ip}/api/discovery`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = await res.json() as { host: string; port: number };
+    return `ws://${data.host}:${data.port}`;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
+
+/**
  * Discover the Arcade server on the LAN.
  *
- * Primary path is a UDP listen on the beacon port. On any timeout or error
- * the UDP attempt resolves to null and we fall through to the (currently
- * unimplemented) HTTP fallback, which also returns null.
+ * 1) Try UDP broadcast beacon (timeoutMs, default 4s).
+ * 2) Fallback: probe common LAN gateways via HTTP GET /api/discovery
+ *    (parallel, max 3 concurrent, 500ms timeout each).
  *
- * @param timeoutMs How long to wait for a beacon before giving up.
+ * @param timeoutMs How long to wait for a beacon before fallback.
  * @returns A `ws://host:port` URL, or null if no server was discovered.
  */
 export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
@@ -63,6 +96,12 @@ export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
   if (udp) return udp;
 
   // 2) Fallback: probe common LAN gateways via HTTP /api/discovery.
-  //    Operators on strict networks can also hard-set server_url in config.
-  return null; // UDP is the primary path; HTTP fallback added with settings UI.
+  for (let i = 0; i < COMMON_GATEWAYS.length; i += MAX_CONCURRENT_PROBES) {
+    const batch = COMMON_GATEWAYS.slice(i, i + MAX_CONCURRENT_PROBES);
+    const results = await Promise.all(batch.map(probeGateway));
+    const success = results.find((r) => r !== null);
+    if (success) return success;
+  }
+
+  return null;
 }
