@@ -3,38 +3,10 @@ productName: Arcade Agent
 copyright: Neurotech Biratnagar
 directories:
   output: dist
+  buildResources: assets
 files:
   - "dist/main/**/*"
   - "dist/renderer/**/*"
   - "package.json"
-win:
-  target:
-    - nsis
-mac:
-  category: public.app-category.utilities
-  # Per-architecture targets (not universal): the Apple Silicon macos-latest
-  # runner only installs the arm64 sharp binary, so a universal lipo step has
-  # no x64 sharp to combine and fails. Building x64 + arm64 separately avoids
-  # that. Each target emits its own dmg + zip; the CI glob captures all of them.
-  target:
-    - target: dmg
-      arch: x64
-    - target: zip
-      arch: x64
-    - target: dmg
-      arch: arm64
-    - target: zip
-      arch: arm64
-  identity: null
-  gatekeeperAssess: false
-  hardenedRuntime: false
-linux:
-  target:
-    - target: AppImage
-      arch: x64
-    - target: deb
-      arch: x64
-  category: Utility
-  maintainer: Ashmin Dhungana <ashmin.dhungana@example.com>
 nsis:
   oneClick: false

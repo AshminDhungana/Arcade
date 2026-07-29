@@ -1809,13 +1809,13 @@ Package the system for customer distribution. Server as standalone executable (n
 
 ### Epic 11.2: Agent Packaging (ENG-B)
 
-- [ ] **Task: Finalise `electron-builder.yml`**
-  - [ ] Windows: NSIS installer, target `x64`; `nsis.oneClick: false` (allow user to choose install path)
-  - [ ] macOS: `dmg` + `zip`; `mac.category = "public.app-category.utilities"`
-  - [ ] Linux: `AppImage`, `deb`; `linux.category = "Utility"`
-  - [ ] `productName: "Arcade Agent"`, `copyright: "Neurotech Biratnagar"`
-  - [ ] Create `agent/assets/icon.png` (256Ã—256 placeholder; replace with cafe branding before release)
-  - [ ] Verify installer sets `chmod 600 agent.config.json` on Linux/macOS post-install
+- [x] **Task: Finalise `electron-builder.yml`**
+  - [x] Windows: NSIS installer, target `x64`; `nsis.oneClick: false` (allow user to choose install path)
+  - [x] macOS: `dmg` + `zip`; `mac.category = "public.app-category.utilities"`
+  - [x] Linux: `AppImage`, `deb`; `linux.category = "Utility"`
+  - [x] `productName: "Arcade Agent"`, `copyright: "Neurotech Biratnagar"`
+  - [x] Create `agent/assets/icon.png` (256×256 placeholder; replace with cafe branding before release)
+  - [x] Verify installer sets `chmod 600 agent.config.json` on Linux/macOS post-install
 
 - [ ] **Task: Agent self-provisioning (no hand-copied config)**
   - [ ] Server advertises itself on LAN via UDP beacon (`backend/core/lan_discovery.py`) + `GET /api/discovery` fallback
