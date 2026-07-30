@@ -58,7 +58,7 @@ from backend.models import GamingSession, Seat
 # Constants
 # ---------------------------------------------------------------------------
 
-__version__ = "0.1.0-phase1"
+__version__ = "1.0.0"
 
 logger = logging.getLogger(__name__)
 
