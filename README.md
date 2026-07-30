@@ -6,7 +6,7 @@
 
 Sessions, billing, POS, members, PC control, and analytics — one system, zero subscriptions, zero internet dependency.
 
-[![Status](https://img.shields.io/badge/status-active--development-brightgreen)](https://github.com/AshminDhungana/Agentium)
+[![Status](https://img.shields.io/badge/status-public%20beta-blue)](https://github.com/AshminDhungana/Arcade)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Python](https://img.shields.io/badge/backend-Python%203.11%2B-3776AB?logo=python&logoColor=white)](#tech-stack)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](#tech-stack)
@@ -27,28 +27,6 @@ No internet required during operation. No subscription fees. No per-seat licensi
 
 
 ## ![[Arcade Demo]](./docs/assets/image.png)
-
----
-
-## Table of Contents
-
-- [Why Arcade](#why-arcade)
-- [Features](#features)
-- [Licensing](#licensing)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Getting Started](#getting-started)
-- [Configuration](#configuration)
-- [Feature Flags](#feature-flags)
-- [Project Structure](#project-structure)
-- [Seat Zones](#seat-zones)
-- [Pricing Models](#pricing-models)
-- [Customer Flows](#customer-flows)
-- [Console Control](#console-control)
-- [Database Migrations](#database-migrations)
-- [Build Phases](#build-phases)
-- [V2 Roadmap](#v2-roadmap)
-- [License](#license)
 
 ---
 
@@ -309,65 +287,6 @@ regenerate it.
 
 Run `python build.py --help` for the full list.
 
-
-## Configuration
-
-
-All runtime config lives in `arcade.config.json` (created by the setup wizard):
-
-```json
-{
-  "cafe_name": "Arcade",
-  "host": "192.168.1.100",
-  "port": 8000,
-  "db_path": "arcade.db",
-  "backup_dir": "backups/",
-  "backup_retain_days": 30,
-  "backup_time": "03:00",
-  "admin_staff_id": "S001",
-  "admin_pin_hash": "<argon2id_hash>",
-  "cashier_staff_id": "S002",
-  "cashier_pin_hash": "<argon2id_hash>",
-  "jwt_secret": "<random_256bit_hex>",
-  "agent_secrets": {
-    "seat_001": "c9a1b2c3d4e5f6...",
-    "seat_002": "a1b2c3d4e5f6..."
-  },
-  "tuya_devices": [
-    {
-      "seat_id": "console_01",
-      "device_id": "abc123",
-      "local_key": "key456",
-      "ip_address": "192.168.1.50",
-      "protocol_version": "3.3"
-    }
-  ],
-  "printer_type": "usb"
-}
-```
-
-Per-zone pricing, peak/off-peak schedules, menu items, packages, promotions, and feature flags are all configured in the dashboard under **Settings**.
-
----
-
-## Feature Flags
-
-Arcade is modular. Features can be toggled on or off from the Settings screen to suit any cafe size or style:
-
-| Flag                         | What it controls                 | Default |
-| ---------------------------- | -------------------------------- | ------- |
-| `enable_members`             | Member accounts, wallet, loyalty | ON      |
-| `enable_packages`            | Time bundles and day passes      | ON      |
-| `enable_pos`                 | Food & drink ordering            | ON      |
-| `enable_inventory`           | Stock tracking for POS items     | OFF     |
-| `enable_reservations`        | Advance seat reservations        | ON      |
-| `enable_vouchers`            | Prepaid voucher codes            | OFF     |
-| `enable_tournaments`         | Event and tournament mode        | OFF     |
-| `enable_expense_tracking`    | Expense log and P&L              | OFF     |
-| `enable_health_monitoring`   | PC hardware metrics from agent   | ON      |
-| `require_member_for_session` | Require member login to unlock   | OFF     |
-
-A cafe that just wants a simple timer and receipt can turn off most of these. A full esports venue turns them all on.
 
 ---
 

@@ -33,14 +33,23 @@ async def run_migrations(db_url: str | None = None) -> None:
     (relative to the repo root).  This function is asynchronous so it
     can be awaited inside the lifespan startup coroutine.
     """
+    import sys
+
     from backend.core.database import async_engine
 
-    here = Path(__file__).resolve().parent
-    alembic_ini = here.parent / "alembic.ini"
-    alembic_cfg = AlembicConfig(alembic_ini)
-    # Ensure the script directory is resolved absolutely so the call also works
-    # in CI where the working directory is the repo root.
-    alembic_cfg.set_main_option("script_location", str(here.parent / "alembic"))
+    # When frozen (PyInstaller), the alembic files are at sys._MEIPASS root
+    # When running from source, they're at backend/ relative to this file
+    if getattr(sys, "frozen", False):
+        base_path = Path(sys._MEIPASS)  # type: ignore[attr-defined]
+        alembic_ini = base_path / "alembic.ini"
+        alembic_dir = base_path / "alembic"
+    else:
+        here = Path(__file__).resolve().parent
+        alembic_ini = here.parent / "alembic.ini"
+        alembic_dir = here.parent / "alembic"
+
+    alembic_cfg = AlembicConfig(str(alembic_ini))
+    alembic_cfg.set_main_option("script_location", str(alembic_dir))
     # Use the same DB URL as the app engine to avoid path mismatches
     # (e.g., alembic.ini relative path vs. database.py absolute path).
     alembic_cfg.set_main_option("sqlalchemy.url", db_url or str(async_engine.url))

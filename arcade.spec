@@ -11,7 +11,7 @@ import sys
 ROOT = Path(sys.argv[0]).parent.resolve() if "__file__" not in dir() else Path(__file__).parent.resolve()
 BACKEND = ROOT / "backend"
 FRONTEND_DIST = ROOT / "frontend" / "dist"
-ALEMBIC_DIR = ROOT / "alembic"
+ALEMBIC_DIR = BACKEND / "alembic"
 ALEMBIC_INI = BACKEND / "alembic.ini"
 LICENSING_PUBKEY = BACKEND / "licensing" / "public_key.py"
 
@@ -75,6 +75,8 @@ hiddenimports = [
     "python_jose",
     "python_jose.jwt",
     "python_jose.exceptions",
+    "setuptools._vendor.jaraco.text",
+    "setuptools._vendor.jaraco",
 ]
 
 # Auto-collect heavy packages
