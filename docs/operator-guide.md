@@ -150,7 +150,7 @@ session timer. Act fast so the customer isn't over-billed, and so the seat is fr
    toggle over hoping the overlay responds.
 
 > If the screen is merely frozen but the game is still running, a **screenshot**
-> (`GET /api/seats/{id}/screenshot`, Cashier+) can confirm what the customer sees — but a
+> (`GET /api/seats/{id}/screenshot`, **Admin**) can confirm what the customer sees — but a
 > wedged agent returns `503` (offline) or `504` (no response within 3 s).
 
 ---
@@ -230,3 +230,300 @@ What happens over the session's life:
 This is distinct from manual **Force Overlay** (an owner action on any seat):
 assigned-time expiry is *automatic* and marks the seat `EXPIRED`, whereas a
 manual force-overlay never sets `EXPIRED` and may be on a seat with no session.
+
+---
+
+## How to Add Food/Drink Items (POS Workflow)
+
+Add menu items to an active session tab from the counter.
+
+### Steps
+
+1. From the dashboard seat grid, click the seat with an active session (`IN_USE` status).
+2. In the session modal, click the **POS** tab.
+3. Browse or search the menu items list (category filter available).
+4. Click **+** or set quantity, then **Add to Tab**.
+5. Item appears in the session's POS list with running total.
+
+### API Reference
+
+- `POST /api/pos/items` — Add item to session
+- `GET /api/pos/items/{session_id}` — List current POS items for session
+- `DELETE /api/pos/items/{pos_item_id}?session_id={id}` — Remove item
+
+### Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `400` Invalid quantity | Quantity ≤ 0 | Enter positive integer |
+| `404` Menu item not found | Item deleted after modal opened | Refresh modal |
+| `503` Feature disabled | `enable_pos` flag off | Enable in Settings → Feature Flags |
+
+### Tips
+
+- Stock quantity shows in modal; items at/below threshold show ⚠️; out of stock items are disabled
+- POS items are tied to the seat/session, not the member — they transfer if session moves
+- Use `GET /api/inventory/low-stock` (Admin) to see what needs restocking
+
+![POS Add Item](../assets/operator-pos-add-item.png)
+
+---
+
+## How to Handle a Member Checkout
+
+Process checkout for a member using wallet balance and/or package entitlement.
+
+### Steps
+
+1. From the dashboard seat grid, click the seat with an active member session.
+2. In the session modal, verify:
+   - **Member name** and **wallet balance** displayed
+   - **Active package** (if any) shows remaining minutes
+   - **Session duration** and **calculated time charge**
+3. Click **Checkout**.
+4. In the checkout modal:
+   - **Payment method** defaults to `WALLET` if balance ≥ total; change to `CASH`/`CARD` if needed
+   - **Package drawdown** shows minutes used from entitlement
+   - **Overflow billing** shows per-minute charge if package exhausted
+   - **Total** = time charge + POS items − package credit − discounts
+5. Confirm payment method and click **Complete Checkout**.
+6. Receipt prints (or PDF fallback); seat overlay shows; session status → `COMPLETED`.
+
+### API Reference
+
+- `POST /api/sessions/{session_id}/checkout` with `{"payment_method": "WALLET|CASH|CARD"}`
+
+### Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `400` Insufficient wallet | Wallet balance < total | Top up wallet or change payment method |
+| `409` Seat not in session | Session already ended | Refresh dashboard |
+| `503` Feature disabled | `enable_members` or `enable_packages` off | Enable in Settings |
+
+### Tips
+
+- Package drawdown is atomic — no race conditions with concurrent sessions
+- Loyalty points accrue on completed session (1 pt/min default)
+- Member tier discount (Bronze 0%, Silver 5%, Gold 10%) applied automatically
+- If `require_print_before_release` is ON, seat stays `IN_USE` until receipt prints
+
+![Member Checkout](../assets/operator-member-checkout.png)
+
+---
+
+## How to Restart a Frozen PC from the Dashboard
+
+Restart a wedged client PC without leaving the counter.
+
+### Steps
+
+1. On the dashboard seat grid, identify the problematic seat:
+   - Status `IN_USE` but customer reports frozen
+   - Status `OFFLINE` / `UNREACHABLE` — agent disconnected
+2. Click the seat card → **Remote Commands** → **Restart**.
+3. Confirm the restart (10-second grace delay shown).
+4. Agent receives `RESTART` command, audits `SEAT_RESTARTED`.
+5. If agent is offline (returns `503`):
+   - Try **Wake-on-LAN** (WoL) from same menu → seat goes `BOOTING`
+   - If console on Tuya plug: **Power Cycle** (Power Off → Power On)
+   - If no agent registers within 60s → seat becomes `UNREACHABLE`
+6. Once PC reboots and agent reconnects:
+   - Session still running on server (timer never stopped)
+   - **Pause session** (`PATCH /api/sessions/{id}/pause`) to stop billing during downtime
+   - Resume when customer returns, or **Checkout** to end
+
+### API Reference
+
+- `POST /api/seats/{id}/restart` (Admin) — Sends `RESTART` via WebSocket
+- `POST /api/seats/{id}/wol` (Admin) — Sends WoL magic packet
+- `POST /api/seats/{id}/power-on` (Admin, `enable_tuya` flag) — Tuya smart plug ON
+- `POST /api/seats/{id}/power-off` (Admin, `enable_tuya` flag) — Tuya smart plug OFF
+- `PATCH /api/sessions/{id}/pause` (Cashier+) — Pause billing
+- `PATCH /api/sessions/{id}/resume` (Cashier+) — Resume billing
+
+### Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `503` Agent offline | Agent process down or LAN issue | Use WoL / Tuya power cycle |
+| `409` Seat not `IN_USE` | Wrong seat selected | Verify seat ID |
+| `403` Not Admin | Cashier tried restart | Requires Admin role |
+
+### Tips
+
+- **Screenshot first** (`GET /api/seats/{id}/screenshot`, Admin) to confirm frozen state
+- `Ctrl+Alt+Del` on Windows cannot be intercepted — use dashboard restart for true freezes
+- Tuya power control is best-effort; failure logged at WARNING, not fatal
+- Session timer continues on server during restart — always pause if extended downtime
+
+![Remote Restart](../assets/operator-remote-restart.png)
+
+---
+
+## What to Do If the LAN Goes Down
+
+Arcade is designed for LAN-drop resilience — no billing data is lost.
+
+### What Happens Automatically
+
+| Component | Behavior |
+|-----------|----------|
+| **Server** | Continues running; session timers keep ticking; active sessions preserved in SQLite |
+| **Agent** | Detects WebSocket disconnect → exponential backoff reconnect (2s → 4s → … → 60s cap + jitter) |
+| **Agent Local DB** | Caches session state every 10s + on every pause/resume/end (`better-sqlite3`) |
+| **Dashboard** | Seat status shows `OFFLINE` → `BOOTING` (if WoL sent) → `IN_USE` on reconnect |
+
+### On Reconnection (SYNC Flow)
+
+1. Agent reconnects to `/ws/agent/{seat_id}?secret=...`
+2. Sends `REGISTER` with `seat_id`, `mac_address`, `hostname`
+3. Sends `SYNC` payload:
+   ```json
+   {
+     "session_id": "session_123",
+     "local_elapsed_seconds": 3600,
+     "disconnect_at": "2026-07-30T10:00:00Z",
+     "reconnect_at": "2026-07-30T10:00:30Z"
+   }
+   ```
+4. Server computes **Server Anchor Elapsed (SAE)** and reconciles:
+   - If difference ≤ 5 seconds → server value accepted
+   - If difference > 5 seconds → agent's local value used (conservative for customer)
+5. Session continues seamlessly; dashboard updates in real-time via `seat_updated` broadcast
+
+### Staff Actions During Outage
+
+- **Do not panic** — billing is preserved
+- **Do not manually end sessions** — they will reconcile automatically
+- If customer leaves during outage: note the seat, end session when LAN restored
+- Monitor dashboard for seats stuck in `BOOTING` > 60s → `UNREACHABLE` → investigate hardware
+
+### API Reference
+
+- `GET /api/seats` — Check seat statuses (`OFFLINE`, `BOOTING`, `UNREACHABLE`)
+- `POST /api/seats/{id}/wol` — Trigger WoL for unreachable seats
+
+### Tips
+
+- Test LAN resilience: unplug client PC network cable for 30s, reconnect, verify session time accurate
+- Agent health metrics stop during outage; resume on reconnect
+- `low_time_warning` (5 min) still fires based on server timer
+
+![Offline Seat](../assets/operator-offline-seat.png)
+
+---
+
+## How to Run the Nightly Backup Manually
+
+Trigger an immediate SQLite backup outside the scheduled 03:00 run.
+
+### Steps
+
+1. From the dashboard, navigate to **Settings → Backup**.
+2. Click **Run Backup Now**.
+3. Wait for completion (typically < 5 seconds).
+4. Result shows:
+   - **Backup file:** `arcade_YYYYMMDD_HHMM.db`
+   - **Pruned count:** Number of old backups deleted per retention policy
+
+### API Reference
+
+- `POST /api/backup/run` (Admin) — Returns `{"backup_file": "...", "pruned_count": N}`
+
+### Configuration (in `arcade.config.json`)
+
+```json
+{
+  "backup_dir": "backups/",
+  "backup_time": "03:00",
+  "backup_retain_days": 30
+}
+```
+
+### Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `500` Backup failed | Disk full, permissions, DB locked | Check disk space; ensure `backup_dir` writable |
+| `503` Feature disabled | Not applicable — backup always enabled | N/A |
+
+### Tips
+
+- Backup uses WAL checkpoint (TRUNCATE) → copies `arcade.db` atomically
+- Integrity verified by byte-size comparison
+- Retention pruning runs in same job (files older than `backup_retain_days` deleted)
+- Manual backup also writes `BACKUP_CREATED` and `BACKUP_PRUNED` to audit log
+- Ensure `backup_dir` is on separate disk/RAID for production
+
+![Manual Backup](../assets/operator-manual-backup.png)
+
+---
+
+## How to Add a New Staff Member
+
+Create a new cashier or admin account with Staff ID + PIN.
+
+### Steps
+
+1. From the dashboard, navigate to **Settings → Staff**.
+2. Click **Add Staff**.
+3. Fill in:
+   - **Staff ID** — Unique identifier (e.g., `S003`, `CASHIER01`)
+   - **Name** — Display name
+   - **Role** — `ADMIN` (full access) or `CASHIER` (billing/POS only)
+   - **PIN** — 4–20 characters (will be Argon2id-hashed)
+   - **Zone Assignment** (optional, Cashier only) — Restrict to specific zones
+4. Click **Save**.
+5. New staff appears in list with `is_active: true`, `token_version: 0`.
+
+### API Reference
+
+- `POST /api/staff` (Admin) — `{"name": "...", "role": "CASHIER", "is_active": true, "pin": "..."}`
+
+### Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `422` Invalid PIN | PIN < 4 or > 20 chars | Use 4–20 character PIN |
+| `403` Not Admin | Cashier tried to add staff | Requires Admin role |
+| `409` Duplicate Staff ID | Staff ID already exists | Choose unique ID |
+
+### Tips
+
+- PIN is hashed with Argon2id (OWASP params: time_cost=2, memory_cost=102400, parallelism=8) — never stored in plaintext
+- `token_version` starts at 0; increments on PIN change, deactivation, reactivation
+- Changing PIN immediately invalidates all existing JWTs for that staff member
+- Deactivate (don't delete) staff who leave — preserves audit trail
+- Cashiers must have zone assignments to access seats in those zones
+
+![Add Staff](../assets/operator-add-staff.png)
+
+---
+
+## Troubleshooting Common Issues
+
+Quick reference for counter staff.
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| **License Activation: "Hardware ID mismatch"** | `license.key` issued for different machine | Contact seller with current Hardware ID for reissued license |
+| **License Activation: "Trial expired"** | Trial license `trial_expires_at` passed | Purchase perpetual license or request trial extension |
+| **Server won't start: "Address already in use"** | Another process on port 8741 | `lsof -i :8741` / `netstat -ano \| findstr 8741` → kill process |
+| **Server won't start: "arcade.config.json not found"** | Setup wizard not completed | Run Setup Wizard (place valid `license.key` first) |
+| **Server won't start: "Permission denied: arcade.config.json"** | File readable by others | `chmod 600 arcade.config.json` (Linux/macOS); fix ACL (Windows) |
+| **Agent won't connect: "Invalid secret"** | `agent_secret` mismatch | Re-enroll agent via Dashboard → Enroll Code |
+| **Agent won't connect: "Connection refused"** | Server not running or wrong IP | Check server running; verify `server_url` in `agent.config.json` |
+| **Agent won't connect: WebSocket 1008** | `agent_secret` validation failed | Regenerate enroll code; re-enroll agent |
+| **Printer not printing** | No printer configured or wrong type | Check `printer_type` in `arcade.config.json` (usb/network); verify USB vendor/product IDs |
+| **Checkout blocked: "Print required"** | `require_print_before_release` ON, printer failed | Reprint thermal → or Print PDF → Mark Printed → or Force Close (PIN + reason) |
+| **Shift close blocked: "Unprinted invoices"** | `block_shift_close_unprinted` ON, invoices `FAILED`/`SKIPPED` | Reprint/mark printed all unprinted invoices in shift |
+| **Dashboard not loading** | Frontend build not served | Run `npm run build` in `frontend/`; restart server |
+| **Kiosk overlay not hiding** | Agent didn't receive `HIDE_OVERLAY` | Check agent WebSocket connected; restart agent |
+| **Screenshot returns 503** | Agent offline | Verify agent connected; agent must be online for screenshot |
+| **Screenshot returns 504** | Agent timeout (3s) | Agent under heavy load; retry |
+| **WoL not working** | Wrong MAC, PC not wired, BIOS disabled | Verify MAC in `arcade.config.json`; enable WoL in BIOS; use wired Ethernet |
+
+---
+
+*For issues not listed here, check the audit log (`GET /api/audit`, Admin) for recent errors, or review server logs in the Launcher.*

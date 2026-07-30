@@ -196,7 +196,7 @@ Authorization: Bearer <jwt>
 | Method | Path                          | Auth      | Body                 | Success | Notes                                   |
 | ------ | ------------------------------ | --------- | -------------------- | ------- | --------------------------------------- |
 | POST   | /api/seats/{id}/message       | Cashier+  | `{message: str}`     | 204     | Sends `SHOW_MESSAGE`; audits `MESSAGE_SENT` |
-| GET    | /api/seats/{id}/screenshot    | Cashier+  | —                    | 200 JPEG | Rate-limited 1 in-flight/seat (AC-18); 409 if busy, 504 on timeout, 503 offline |
+| GET    | /api/seats/{id}/screenshot    | **Admin**     | —                    | 200 JPEG | Rate-limited 1 in-flight/seat (AC-18); 409 if busy, 504 on timeout, 503 offline |
 | POST   | /api/seats/{id}/restart       | Admin     | —                    | 204     | Sends `RESTART`; audits `SEAT_RESTARTED` (AC-06) |
 | POST   | /api/seats/{id}/shutdown      | Admin     | —                    | 204     | Sends `SHUTDOWN`; audits `SEAT_SHUTDOWN` |
 | POST   | /api/seats/{id}/power-on      | Admin     | —                    | 204     | Tuya smart-plug ON; feature-flagged `enable_tuya`; audits `TUYA_POWER_ON`; best-effort (failure logged, not fatal) |

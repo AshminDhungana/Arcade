@@ -638,6 +638,144 @@ Version is read from `pyproject.toml` → `project.version`. The same version is
 
 ---
 
+## Generate OpenAPI Spec
+
+Export the OpenAPI 3.0 specification from a running server:
+
+```bash
+curl http://localhost:8741/openapi.json > docs/openapi.json
+```
+
+**Note:** Port `8741` is the default. If your `arcade.config.json` uses a different port, update the URL accordingly.
+
+**Verification:** Open `docs/openapi.json` and confirm:
+- All 35+ routers are present under `paths`
+- Each endpoint has correct `security` schemes (Bearer JWT for API, `agent_secret` query param for WebSocket)
+- Request/response schemas match Pydantic models
+- Error responses (400, 401, 403, 404, 409, 422, 503) documented per endpoint
+
+**Automated validation (optional):**
+```bash
+# Validate against OpenAPI 3.0 spec
+npx @redocly/openapi-cli lint docs/openapi.json
+```
+
+---
+
+## Fresh Machine Verification Checklist
+
+Follow this checklist on a clean machine (no Python, no Node.js, no prior Arcade installation) to verify the deployment process works end-to-end.
+
+### Prerequisites Verification
+
+| OS | Command | Expected |
+|----|---------|----------|
+| Windows | `python --version` | Python 3.12.x (if running from source) |
+| Windows | `node --version` | Node.js 20.x (if building agent) |
+| macOS | `python3 --version` | Python 3.12.x |
+| macOS | `brew list python-tk` | python-tk@3.12 installed |
+| Linux | `python3 --version` | Python 3.12.x |
+| Linux | `dpkg -l python3-tk` | python3-tk installed |
+
+### 1. Installer Run
+
+| OS | Action | Pass Criteria |
+|----|--------|---------------|
+| Windows | Run `Arcade-Setup-<version>.exe /S` | Silent install completes; Start Menu entry created |
+| macOS | Open `.dmg`, drag to `/Applications` | App appears in Applications; no Gatekeeper block on right-click → Open |
+| Linux (AppImage) | `chmod +x ArcadeLauncher-*.AppImage && ./ArcadeLauncher-*.AppImage` | Launcher starts; no FUSE errors |
+
+### 2. License Activation
+
+- [ ] Launcher shows **Activation Screen** (no `license.key` present)
+- [ ] **Hardware ID** displayed in copyable read-only field
+- [ ] **Browse for license.key** button opens file dialog
+- [ ] Placing valid `license.key` in app root → re-check passes
+- [ ] **Retry** button re-validates without browsing
+- [ ] Specific error shown for each `LicenseError` variant (MISSING, INVALID_SIGNATURE, HARDWARE_MISMATCH, TRIAL_EXPIRED)
+
+### 3. Setup Wizard (First Run with Valid License)
+
+- [ ] Step 1: Cafe name, server host, port accepted
+- [ ] Step 2: Admin Staff ID + PIN, Cashier Staff ID + PIN, optional Override Code
+- [ ] Step 3: Number of seats → generates `agent_secret` per seat
+- [ ] `arcade.config.json` created with:
+  - Argon2id-hashed PINs (not plaintext)
+  - `jwt_secret` (64-char hex)
+  - All `agent_secrets` (64-char hex each)
+  - File permissions `600` on macOS/Linux; ACL restricted on Windows
+- [ ] `license_status` record written to database
+
+### 4. Server Start
+
+- [ ] **Start Server** button spawns `uvicorn backend.main:app` subprocess
+- [ ] Live log display streams `stdout`/`stderr`
+- [ ] **Server status indicator** turns green
+- [ ] `GET /health` returns 200 with `{status: "ok", version, license_type, seat_count, active_sessions}`
+- [ ] No deprecation warnings in logs (no `@app.on_event`)
+
+### 5. Dashboard Access
+
+- [ ] **Open Dashboard** button opens `http://localhost:{port}` in default browser
+- [ ] Seat grid loads with all seats showing `AVAILABLE` (green)
+- [ ] WebSocket connected indicator shows connected
+- [ ] No console errors in browser devtools
+
+### 6. Agent Enrollment (Self-Provisioning)
+
+- [ ] Dashboard: Seat card → **Enroll Code** → one-time code displayed (e.g., `ABCD-EFGH`)
+- [ ] Code expires in 15 minutes, single-use
+- [ ] On gaming PC: Install and launch `ArcadeAgent`
+- [ ] Agent auto-discovers server via UDP beacon (or manual `server_url` entry)
+- [ ] Enter enroll code → **Connect**
+- [ ] Agent receives `seat_id` + `agent_secret`, writes `agent.config.json`, relaunches into kiosk
+- [ ] Kiosk overlay appears with cafe branding, "Call Staff" button
+- [ ] Dashboard shows seat `AVAILABLE` with health badge (green)
+
+### 7. Server Stop
+
+- [ ] **Stop Server** button terminates uvicorn subprocess cleanly
+- [ ] Log display shows shutdown sequence
+- [ ] Server status indicator turns red
+- [ ] Process no longer listening on port 8741
+
+### 8. Auto-Start Verification (Post-Deployment)
+
+| OS | Mechanism | Verify Command |
+|----|-----------|----------------|
+| Windows | Registry `HKCU\...\Run` | `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v ArcadeLauncher` |
+| macOS | LaunchDaemon | `sudo launchctl list \| grep arcade` |
+| Linux | systemd user | `systemctl --user status arcade-launcher` |
+
+- [ ] Reboot machine
+- [ ] Launcher starts automatically before login
+- [ ] Server starts, health check passes
+- [ ] Dashboard accessible
+
+### OS-Specific Gotchas
+
+| OS | Issue | Workaround |
+|----|-------|------------|
+| macOS | Unsigned app → Gatekeeper blocks | `sudo xattr -dr com.apple.quarantine "/Applications/Arcade Launcher.app"` |
+| macOS | Accessibility/Screen Recording re-prompted after rebuild | Grant in System Settings → Privacy & Security after each install |
+| Linux | AppImage requires FUSE | Install `libfuse2` or extract with `--appimage-extract` |
+| Windows | Windows Defender Firewall blocks port | Launcher wizard prompts; or manual `New-NetFirewallRule` |
+| Linux | Tkinter missing at build time | `sudo apt install python3-tk` on build machine |
+
+---
+
+## Quick Reference: Key File Locations
+
+| File | Location | Permissions |
+|------|----------|-------------|
+| `arcade.config.json` | App root (same dir as launcher) | `600` (Linux/macOS), ACL (Windows) |
+| `license.key` | App root | `600` |
+| `agent.config.json` | Next to agent executable | `600` |
+| `arcade.db` | `backend/` (or `db_path` from config) | `600` |
+| Backups | `backup_dir` from config (default `./backups/`) | `600` |
+
+---
+
 ## Cross-References
 
 - `docs/agent-setup.md` — Agent installation, auto-start, kiosk hardening, troubleshooting
