@@ -57,7 +57,7 @@ def test_health_schema(client: TestClient) -> None:
     resp = client.get("/health")
     data = resp.json()
     assert data["status"] == "ok"
-    assert data["version"] == "0.1.0-phase1"
+    assert data["version"] == "1.0.0"
     assert data["license_type"] == "TRIAL"
     assert "seat_count" in data
     assert "active_sessions" in data
