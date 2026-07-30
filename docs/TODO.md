@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**; **Phase 9 Epic 9.1 Sensitive File & Key Security Complete (2026-07-26)**; **Phase 11 Epic 11.3 Unified Local Build Script Complete (2026-07-29)**
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**; **Phase 9 Epic 9.1 Sensitive File & Key Security Complete (2026-07-26)**; **Phase 11 Epic 11.3 Unified Local Build Script Complete (2026-07-29)**; **Phase 12 Epic 12.1 Documentation Finalisation Complete (2026-07-30)**
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -2024,31 +2024,31 @@ All documentation complete, accurate, and customer-ready. Every `TODO` placehold
 
 ### Epic 12.1: Documentation Tasks
 
-- [ ] **Export OpenAPI spec** (ENG-A): `curl http://localhost:8000/openapi.json > docs/openapi.json`; verify all endpoints documented with correct auth, schemas, and error responses
+- [x] **Export OpenAPI spec** (ENG-A): `curl http://localhost:8741/openapi.json > docs/openapi.json`; verify all endpoints documented with correct auth, schemas, and error responses
 
-- [ ] **Finalise all docs/** (ENG-A + ENG-B split):
-  - [ ] Replace every `TODO` placeholder in `docs/*.md`
-  - [ ] Cross-check `docs/api-reference.md` vs actual implemented routes
-  - [ ] Verify `docs/deployment.md` works on a fresh machine (follow it step by step)
-  - [ ] Update `README.md` Build Phases table to reflect actual implementation status
+- [x] **Finalise all docs/** (ENG-A + ENG-B split):
+  - [x] Replace every `TODO` placeholder in `docs/*.md`
+  - [x] Cross-check `docs/api-reference.md` vs actual implemented routes
+  - [x] Verify `docs/deployment.md` works on a fresh machine (follow it step by step)
+  - [x] Update `README.md` Build Phases table to reflect actual implementation status
 
-- [ ] **Write `docs/operator-guide.md`** (ENG-B â€” non-technical language, no assumptions):
-  - [ ] How to open and close a shift
-  - [ ] How to start and end sessions (step by step with screenshots)
-  - [ ] How to add food/drink items
-  - [ ] How to handle a member checkout
-  - [ ] How to restart a frozen PC from the dashboard
-  - [ ] What to do if the LAN goes down
-  - [ ] How to run the nightly backup manually
-  - [ ] How to add a new staff member
-  - [ ] Troubleshooting common issues
+- [x] **Write `docs/operator-guide.md`** (ENG-B — non-technical language, no assumptions):
+  - [x] How to open and close a shift
+  - [x] How to start and end sessions (step by step with screenshots)
+  - [x] How to add food/drink items
+  - [x] How to handle a member checkout
+  - [x] How to restart a frozen PC from the dashboard
+  - [x] What to do if the LAN goes down
+  - [x] How to run the nightly backup manually
+  - [x] How to add a new staff member
+  - [x] Troubleshooting common issues
 
 ### Acceptance Criteria (Phase 12)
 
-- [ ] No `TODO` placeholders remain in any `.md` file
-- [ ] OpenAPI spec is accurate and exported from running server
-- [ ] New developer can follow `docs/developer-guide.md` and have working environment in 30 minutes
-- [ ] Cafe owner can follow `docs/operator-guide.md` without technical support
+- [x] No `TODO` placeholders remain in any `.md` file
+- [x] OpenAPI spec is accurate and exported from running server
+- [x] New developer can follow `docs/developer-guide.md` and have working environment in 30 minutes
+- [x] Cafe owner can follow `docs/operator-guide.md` without technical support
 
 ---
 
