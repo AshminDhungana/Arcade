@@ -3,7 +3,7 @@
 **Project:** Arcade â€” Gaming Cafe Management System
 **Version:** 2.0
 **Prepared by:** Ashmin Dhungana
-**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**; **Phase 9 Epic 9.1 Sensitive File & Key Security Complete (2026-07-26)**; **Phase 11 Epic 11.3 Unified Local Build Script Complete (2026-07-29)**; **Phase 12 Epic 12.1 Documentation Finalisation Complete (2026-07-30)**
+**Status:** Phase 0-4 Complete; Phase 5 Epic 5.1 (ENG-A) Shift Management Complete (2026-07-12); Epic 5.2 (ENG-A) Reservations Complete (2026-07-12); Epic 5.3 (ENG-A) Remote Commands — RemoteCommandService Complete (2026-07-12), Tuya console control Complete (2026-07-14); Epic 5.4 (ENG-A) Nightly Backup Complete (2026-07-14); Epic 5.5 (ENG-B) Agent Overlay Enhancements Complete (2026-07-14) — Phase 5 complete; Epic 6.1 (ENG-A) Analytics Service Complete (2026-07-14); **Epic 6.2 (ENG-A) Events / Tournament Service Complete (2026-07-15)** — Phase 6 backend complete; **Phase 6.5 (NEW, added 2026-07-15)** scoped - Session Integrity, Owner Overlay Control & Assigned-Time Enforcement - Not Started; **Epic 8.2 (ENG-B) Frontend E2E Test Fixes Complete (2026-07-26)**; **Phase 9 Epic 9.1 Sensitive File & Key Security Complete (2026-07-26)**; **Phase 11 Epic 11.3 Unified Local Build Script Complete (2026-07-29)**; **Phase 12 Epic 12.1 Documentation Finalisation Complete (2026-07-30)**; **Phase 13 Epic 13.1 Build All Production Artifacts Complete (2026-07-30)**
 **Reference Documents:** `PRODUCT_BRIEF.md`, `Arcade_SRS.md`, `Arcade_SDD.md`, `Folder_Structure.md`
 
 ---
@@ -2074,7 +2074,7 @@ Final pre-release validation, production build, license delivery process, and mo
 
 - [ ] **Version number consistency**: set identical version in `frontend/package.json`, `agent/package.json`, `launcher.py`, `backend/main.py` â†’ `1.0.0`
 
-- [ ] **Build all production artifacts** (ENG-A + ENG-B): clean build on each OS; no dev dependencies bundled; verify version is correct
+- [x] **Build all production artifacts** (ENG-A + ENG-B): clean build on each OS; no dev dependencies bundled; verify version is correct — **Complete (2026-07-30, Windows)**
 
 - [ ] **Create GitHub Release `v1.0.0`**: attach artifacts (`arcade-windows.exe`, `arcade-macos.dmg`, `arcade-linux.AppImage`, `agent-windows.exe`, `agent-macos.dmg`, `agent-linux.AppImage`, `agent-linux.deb`); write release notes
 
