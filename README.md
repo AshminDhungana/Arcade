@@ -266,9 +266,11 @@ cd Arcade
 # Run full app build platform specific
 python build.py
 ```
-Launcher app location : ./dist/arcade/
-Agent app location : ./agent/dist/
-Keygen app location: ./tools/keygen/dist/arcade-keygen/
+**App Location:**
+- Launcher : ./dist/arcade/
+- Agent : ./agent/dist/
+- Keygen : ./tools/keygen/dist/arcade-keygen/
+
 
 On first run, if no license keypair exists yet, the script generates one
 automatically and embeds the public key into the launcher build. On
