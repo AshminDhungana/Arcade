@@ -828,13 +828,14 @@ class MainScreen(_BaseScreen):
             return
         self._server_host = DEFAULT_HOST
         self._server_port = DEFAULT_PORT
-        if Path("arcade.config.json").exists():
-            try:
-                cfg = json.loads(Path("arcade.config.json").read_text(encoding="utf-8"))
-                self._server_host = cfg.get("host", DEFAULT_HOST)
-                self._server_port = int(cfg.get("port", DEFAULT_PORT))
-            except (ValueError, KeyError, json.JSONDecodeError):
-                pass
+        try:
+            from backend.core.config import load_config
+
+            cfg = load_config()
+            self._server_host = cfg.host
+            self._server_port = cfg.port
+        except (RuntimeError, ValueError, KeyError, json.JSONDecodeError):
+            pass
         self._proc = subprocess.Popen(  # noqa: S603
             [
                 sys.executable,
@@ -915,13 +916,14 @@ class MainScreen(_BaseScreen):
     def _open_dashboard(self) -> None:
         host = "localhost"
         port = DEFAULT_PORT
-        if Path("arcade.config.json").exists():
-            try:
-                cfg = json.loads(Path("arcade.config.json").read_text(encoding="utf-8"))
-                host = cfg.get("host", "localhost")
-                port = int(cfg.get("port", DEFAULT_PORT))
-            except (ValueError, KeyError, json.JSONDecodeError):
-                pass
+        try:
+            from backend.core.config import load_config
+
+            cfg = load_config()
+            host = cfg.host
+            port = cfg.port
+        except (RuntimeError, ValueError, KeyError, json.JSONDecodeError):
+            pass
         webbrowser.open(f"http://{host}:{port}")
 
 

@@ -139,28 +139,55 @@ def load_config(path: str = "arcade.config.json") -> Settings:
     """
     config_file = Path(path)
 
-    # Resolve relative paths from the project root (the directory
-    # that contains ``backend/``). This ensures the config is found
-    # regardless of the current working directory (e.g. when running
-    # pytest from inside ``backend/`` or starting uvicorn there).
+    # Resolve relative paths by checking multiple locations in priority order:
+    # 1. Absolute path (as-is)
+    # 2. PyInstaller bundle (sys._MEIPASS) - for bundled data files
+    # 3. Executable directory (sys.executable parent) - for runtime-created config in onedir mode
+    # 4. Current working directory - fallback for development and edge cases
+    # 5. Project root (parent of backend/) - for source runs
     if not config_file.is_absolute():
-        # Check PyInstaller bundle first (sys._MEIPASS)
+        candidate_paths: list[Path] = []
+
+        # 1. PyInstaller bundle (sys._MEIPASS)
         try:
             import sys
 
             if hasattr(sys, "_MEIPASS"):
-                meipass_file = Path(sys._MEIPASS) / path
-                if meipass_file.exists():
-                    config_file = meipass_file
-                else:
-                    project_root = Path(__file__).resolve().parent.parent.parent
-                    config_file = project_root / path
-            else:
-                project_root = Path(__file__).resolve().parent.parent.parent
-                config_file = project_root / path
+                candidate_paths.append(Path(sys._MEIPASS) / path)
         except Exception:
+            pass
+
+        # 2. Executable directory (for PyInstaller --onedir runtime config)
+        try:
+            import sys
+
+            if getattr(sys, "frozen", False):
+                exe_dir = Path(sys.executable).resolve().parent
+                candidate_paths.append(exe_dir / path)
+        except Exception:
+            pass
+
+        # 3. Current working directory
+        try:
+            candidate_paths.append(Path.cwd() / path)
+        except Exception:
+            pass
+
+        # 4. Project root (parent of backend/) - for source runs
+        try:
             project_root = Path(__file__).resolve().parent.parent.parent
-            config_file = project_root / path
+            candidate_paths.append(project_root / path)
+        except Exception:
+            pass
+
+        # Use the first existing path
+        for candidate in candidate_paths:
+            if candidate.exists():
+                config_file = candidate
+                break
+        else:
+            # None found - use the first candidate for error message
+            config_file = candidate_paths[0] if candidate_paths else Path(path)
 
     if not config_file.exists():
         msg = (
