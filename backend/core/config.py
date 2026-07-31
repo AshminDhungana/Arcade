@@ -7,6 +7,7 @@ into an immutable Pydantic model using Pydantic v2.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -142,43 +143,36 @@ def load_config(path: str = "arcade.config.json") -> Settings:
     # Resolve relative paths by checking multiple locations in priority order:
     # 1. Absolute path (as-is)
     # 2. PyInstaller bundle (sys._MEIPASS) - for bundled data files
-    # 3. Executable directory (sys.executable parent) - for runtime-created config in onedir mode
+    # 3. Executable directory (sys.executable parent) - for runtime-created
+    #    config in onedir mode
     # 4. Current working directory - fallback for development and edge cases
     # 5. Project root (parent of backend/) - for source runs
     if not config_file.is_absolute():
         candidate_paths: list[Path] = []
 
         # 1. PyInstaller bundle (sys._MEIPASS)
-        try:
+        with contextlib.suppress(Exception):
             import sys
 
             if hasattr(sys, "_MEIPASS"):
                 candidate_paths.append(Path(sys._MEIPASS) / path)
-        except Exception:
-            pass
 
         # 2. Executable directory (for PyInstaller --onedir runtime config)
-        try:
+        with contextlib.suppress(Exception):
             import sys
 
             if getattr(sys, "frozen", False):
                 exe_dir = Path(sys.executable).resolve().parent
                 candidate_paths.append(exe_dir / path)
-        except Exception:
-            pass
 
         # 3. Current working directory
-        try:
+        with contextlib.suppress(Exception):
             candidate_paths.append(Path.cwd() / path)
-        except Exception:
-            pass
 
         # 4. Project root (parent of backend/) - for source runs
-        try:
+        with contextlib.suppress(Exception):
             project_root = Path(__file__).resolve().parent.parent.parent
             candidate_paths.append(project_root / path)
-        except Exception:
-            pass
 
         # Use the first existing path
         for candidate in candidate_paths:
