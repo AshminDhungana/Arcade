@@ -6,7 +6,7 @@
 
 Sessions, billing, POS, members, PC control, and analytics — one system, zero subscriptions, zero internet dependency.
 
-[![Status](https://img.shields.io/badge/status-public%20beta-blue)](https://github.com/AshminDhungana/Arcade)
+[![Status](https://img.shields.io/badge/status-v1.0.0%20released-brightgreen)](https://github.com/AshminDhungana/Arcade/releases/tag/v1.0.0)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Python](https://img.shields.io/badge/backend-Python%203.11%2B-3776AB?logo=python&logoColor=white)](#tech-stack)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](#tech-stack)
@@ -423,10 +423,11 @@ alembic downgrade -1
 | **3 — Members, Packages & Promotions** | Member profiles, wallet, loyalty, time packages, day passes, voucher codes, promotions engine, per-zone pricing, staff roles (Argon2id PIN hashing, JWT with `token_version`)                                                                                                                                             | ✅ Done |
 | **4 — Operations & Experience**        | Remote PC commands, PC health monitoring, shift management, expense tracking, seat reservations, branded kiosk overlay, announcements, APScheduler nightly backup, server session recovery                                                                                                                                | ✅ Done |
 | **5 — Events & Analytics**             | Tournament/event mode, analytics dashboard, maintenance mode, configurable feature flags, screenshot rate-limiting (JPEG 80%, 1280×720)                                                                                                                                                                                   | ✅ Done |
-| **6 — Cross‑Platform Polish**          | Complete agent platform abstraction (macOS/Linux), packaging for all OSes, auto‑start scripts, kiosk hardening verification on all platforms                                                                                                                                                                              | 🟡 In Progress |
+| **6 — Cross‑Platform Polish**          | Complete agent platform abstraction (macOS/Linux), packaging for all OSes, auto‑start scripts, kiosk hardening verification on all platforms                                                                                                                                                                              | ✅ Done |
 | **7 — Growth (V2)**                    | Online booking portal, WhatsApp/SMS notifications, optional WAN remote access, multi-location                                                                                                                                                                                                                             | 🔲 Future  |
+| **13 — Production Release (v1.0.0)**   | Final AC verification, release artifacts, GitHub Release v1.0.0 published                                                                                                                                                                                                                                                 | ✅ Done |
 
-**Legend:** ✅ Done · 🟡 In Progress · 🔲 Planned · 🔲 Future
+**Legend:** ✅ Done · 🔲 Planned · 🔲 Future
 
 ---
 
