@@ -20,7 +20,6 @@ import logging
 import os
 import secrets
 import shutil
-import sqlite3
 import subprocess
 import sys
 import threading
@@ -33,6 +32,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox
 from typing import Any
+
+
+def _get_exe_dir() -> Path:
+    """Return the directory containing the running executable (or script)."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parent
 
 import customtkinter as ctk
 
@@ -348,7 +354,7 @@ class ActivationScreen(_BaseScreen):
             return
 
         src = Path(path).resolve()
-        dest = Path("license.key").resolve()
+        dest = _get_exe_dir() / "license.key"
 
         # If the selected file is already the destination, no copy needed.
         try:
@@ -1244,7 +1250,9 @@ class LauncherApp:
 
     def _check_and_route(self) -> None:
         # Check if we have an alternative license path (from a previous failed copy)
-        license_path = getattr(self, "_alt_license_path", "license.key")
+        license_path = getattr(self, "_alt_license_path", None)
+        if license_path is None:
+            license_path = str(_get_exe_dir() / "license.key")
         result = check_license(license_path)
         if result.ok:
             # If we used an alternative path, try to replace the main license.key
