@@ -26,12 +26,32 @@ class KeygenError(Exception):
     """Raised for user-facing keygen failures (e.g. missing private key)."""
 
 
+def _get_bundled_private_key_path() -> Path | None:
+    """Return the path to the bundled private_key.pem when running in PyInstaller."""
+    if getattr(sys, "frozen", False):
+        # Running in a PyInstaller bundle; sys._MEIPASS is the bundle root
+        bundled = Path(sys._MEIPASS) / "private_key.pem"
+        if bundled.exists():
+            return bundled
+    return None
+
+
 def load_private_key() -> str:
     """Load the Ed25519 private key hex from private_key.pem.
+
+    Checks the PyInstaller bundle location first, then falls back to the
+    source tree location. This allows the keygen tool to work both during
+    development and when bundled as a standalone executable.
 
     Raises:
         KeygenError: if the private key file is missing.
     """
+    # Try bundled location first (for PyInstaller executable)
+    bundled_path = _get_bundled_private_key_path()
+    if bundled_path:
+        return bundled_path.read_text().strip()
+
+    # Fall back to source tree location
     if not PRIVATE_KEY_PATH.exists():
         raise KeygenError(
             f"Private key not found at {PRIVATE_KEY_PATH}. "
