@@ -17,6 +17,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import secrets
 import shutil
 import sqlite3
@@ -343,15 +344,49 @@ class ActivationScreen(_BaseScreen):
         path = filedialog.askopenfilename(
             title="Select license.key", filetypes=[("License files", "*.key")]
         )
-        if path:
-            dest = Path("license.key")
-            try:
-                # Copy (not move): the chosen file may live on another drive,
-                # and the user should keep their original license.key.
-                shutil.copy2(path, dest)
+        if not path:
+            return
+
+        src = Path(path).resolve()
+        dest = Path("license.key").resolve()
+
+        # If the selected file is already the destination, no copy needed.
+        try:
+            if src == dest or (dest.exists() and os.path.samefile(src, dest)):
                 self.controller._check_and_route()
-            except Exception as exc:  # noqa: BLE001
-                messagebox.showerror("Error", f"Unable to copy license file:\n{exc}")
+                return
+        except OSError:
+            pass  # Fall through to copy attempt if samefile check fails
+
+        try:
+            # Copy (not move): the chosen file may live on another drive,
+            # and the user should keep their original license.key.
+            shutil.copy2(src, dest)
+            self.controller._check_and_route()
+        except PermissionError:
+            # Destination may be locked by the running executable (PyInstaller).
+            # Try a unique name in the same directory, then verify it works.
+            alt_dest = dest.with_stem(f"{dest.stem}_new")
+            try:
+                shutil.copy2(src, alt_dest)
+                # Replace the locked file on next launch by renaming at startup.
+                # For now, verify the copied file works by temporarily checking it.
+                from backend.licensing.verify import check_license
+                result = check_license(str(alt_dest))
+                if result.ok:
+                    # Store the alternative path so MainScreen can use it
+                    self.controller._alt_license_path = str(alt_dest)
+                    self.controller._check_and_route()
+                    return
+            except Exception:
+                pass
+            messagebox.showerror(
+                "Error",
+                "Unable to copy license file: the destination is locked by the running application. "
+                "Please close the launcher, place license.key next to the .exe manually, then restart.",
+            )
+        except Exception as exc:  # noqa: BLE001
+            messagebox.showerror("Error", f"Unable to copy license file:\n{exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -912,6 +947,7 @@ class LauncherApp:
         self._reduced_motion = prefers_reduced_motion()
         self.current_screen: ctk.CTkFrame | None = None
         self._main_screen: MainScreen | None = None
+        self._alt_license_path: str = "license.key"
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         self._build_topbar()
         self._build_content()
@@ -1205,8 +1241,20 @@ class LauncherApp:
     # ------------------------------------------------------------------
 
     def _check_and_route(self) -> None:
-        result = check_license()
+        # Check if we have an alternative license path (from a previous failed copy)
+        license_path = getattr(self, "_alt_license_path", "license.key")
+        result = check_license(license_path)
         if result.ok:
+            # If we used an alternative path, try to replace the main license.key
+            # on next launch by copying it over (will succeed after restart)
+            if license_path != "license.key":
+                try:
+                    shutil.copy2(license_path, "license.key")
+                    # Clean up the alternative file
+                    Path(license_path).unlink(missing_ok=True)
+                    self._alt_license_path = "license.key"
+                except Exception:
+                    pass  # Will retry on next launch
             # Check for config file in the project root (handles PyInstaller _MEIPASS)
             try:
                 from backend.core.config import load_config
