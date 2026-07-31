@@ -115,7 +115,7 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             test -f dist/arcade/arcade.exe
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-            test -d "dist/arcade.app"
+            test -f dist/arcade/Arcade\ Launcher
           else
             test -f dist/arcade/arcade
           fi
@@ -125,7 +125,7 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             dist/arcade/arcade.exe --self-test
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-            ./dist/arcade.app/Contents/MacOS/Arcade\ Launcher --self-test
+            ./dist/arcade/Arcade\ Launcher --self-test
           else
             xvfb-run -a ./dist/arcade/arcade --self-test
           fi
@@ -142,7 +142,7 @@ jobs:
             "C:\Program Files\7-Zip\7z.exe" a -tzip "../arcade-launcher-${VERSION}-windows-${ARCH}.zip" arcade/*
             echo "path=../arcade-launcher-${VERSION}-windows-${ARCH}.zip" >> $GITHUB_OUTPUT
           elif [ "$OS" = "macos-latest" ]; then
-            tar -czf "../arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" -C dist arcade.app
+            tar -czf "../arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" -C dist arcade
             echo "path=../arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" >> $GITHUB_OUTPUT
           else
             tar -czf "../arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" -C dist arcade
