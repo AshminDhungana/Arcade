@@ -229,8 +229,8 @@ class WebSocketManager:
         
         # Update seat status to OFFLINE in database
         from backend.core.database import AsyncSessionLocal
-        from backend.repositories import seat_repo
         from backend.models._enums import SeatStatus
+        from backend.repositories import seat_repo
         
         async with AsyncSessionLocal() as db:
             try:
@@ -365,8 +365,8 @@ class WebSocketManager:
         
         # Update seat status to AVAILABLE in database
         from backend.core.database import AsyncSessionLocal
-        from backend.repositories import seat_repo
         from backend.models._enums import SeatStatus
+        from backend.repositories import seat_repo
         
         async with AsyncSessionLocal() as db:
             await seat_repo.update_status(db, seat_id, SeatStatus.AVAILABLE)

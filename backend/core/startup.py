@@ -94,10 +94,10 @@ async def boot_all_seats() -> None:
 async def initialize_seat_statuses() -> None:
     """Set all seats to OFFLINE on server startup and broadcast to dashboards."""
     from backend.core.database import AsyncSessionLocal
-    from backend.repositories import seat_repo
-    from backend.models._enums import SeatStatus
     from backend.core.ws_manager import manager as ws_manager
     from backend.models import Seat
+    from backend.models._enums import SeatStatus
+    from backend.repositories import seat_repo
 
     async with AsyncSessionLocal() as db:
         seat_ids = await seat_repo.get_all_seat_ids(db)
