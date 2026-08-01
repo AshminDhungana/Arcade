@@ -666,15 +666,16 @@ class SetupWizard(_BaseScreen):
             Path("arcade.config.json").write_text(
                 json.dumps(config, indent=2), encoding="utf-8"
             )
-            _write_license_status(payload, self.license_result)
 
-            # Run migrations synchronously BEFORE seeding staff and routing.
-            # This avoids a race condition where _seed_default_staff() runs
-            # migrations in a background thread while _check_and_route()
-            # runs them again in the main thread.
+            # Run migrations FIRST so the license_status table exists
+            # before we try to write to it. This avoids "table already exists"
+            # error from Alembic trying to create a table that _write_license_status
+            # already created via raw SQLite.
             from backend.core.startup import run_migrations
 
             asyncio.run(run_migrations())
+
+            _write_license_status(payload, self.license_result)
 
             self._seed_default_staff()
             self.controller._check_and_route()
