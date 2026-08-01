@@ -47,4 +47,6 @@ SECURITY NOTES
     of the private key allows creation of unauthorized licenses.
 """
 
-ARCADE_PUBLIC_KEY_HEX: str = "e25e10ae7d0de894c72957998e2c733247c0382eb56fc4011e47fb7ae0b60f4d"
+ARCADE_PUBLIC_KEY_HEX: str = (
+    "e25e10ae7d0de894c72957998e2c733247c0382eb56fc4011e47fb7ae0b60f4d"
+)  # noqa: E501
