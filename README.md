@@ -263,7 +263,11 @@ you're running it on.
 git clone https://github.com/AshminDhungana/Arcade.git
 cd Arcade
 
-# Run full app build platform specific
+#Create and activate  virtual enviroment if required
+python -m venv venv 
+
+pip install -r ./backend/requirements.txt
+
 python build.py
 ```
 **App Location:**
