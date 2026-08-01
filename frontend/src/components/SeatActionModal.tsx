@@ -156,7 +156,18 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
           <ActionButton icon={<Settings className="h-5 w-5" />} label="Enroll Code" variant="secondary" onClick={async () => {
             try {
               const { code } = await generateEnrollCode(seat.id);
-              toast.success(`Enroll code for ${seat.name}: ${code}`);
+              toast.success(`Enroll code for ${seat.name}: ${code}`, {
+                persistent: true,
+                dismissLabel: 'Dismiss enroll code',
+                onClick: async () => {
+                  try {
+                    await navigator.clipboard.writeText(code);
+                    toast.info('Copied to clipboard!');
+                  } catch {
+                    toast.error('Failed to copy');
+                  }
+                },
+              });
             } catch (e) { toast.error((e as Error).message); }
           }} />
           <ActionButton icon={<Settings className="h-5 w-5" />} label="Regenerate Override PIN" variant="secondary" onClick={async () => {
