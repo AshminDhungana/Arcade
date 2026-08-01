@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 try:
-    from ..generate_license import PRIVATE_KEY_PATH
+    from ..generate_license import PRIVATE_KEY_PATH, _get_bundled_private_key_path
     from ..license_helpers import resolve_logo_path
     from .theme import COLORS, SPACING, make_fonts
     from .views.keys import KeysView
@@ -15,7 +15,7 @@ except ImportError:  # direct `python generate_license.py` run: no parent packag
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from generate_license import PRIVATE_KEY_PATH
+    from generate_license import PRIVATE_KEY_PATH, _get_bundled_private_key_path
     from license_helpers import resolve_logo_path
 
     from .theme import COLORS, SPACING, make_fonts
@@ -110,7 +110,7 @@ class LicenseApp:
             pady=SPACING["md"],
         )
 
-        key_ok = PRIVATE_KEY_PATH.exists()
+        key_ok = _get_bundled_private_key_path() is not None or PRIVATE_KEY_PATH.exists()
         self.key_badge = ctk.CTkLabel(
             bar,
             text="Key loaded ✓" if key_ok else "No key ⚠",
