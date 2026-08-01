@@ -14,6 +14,32 @@ from backend.models._enums import PricingModel
 
 
 @pytest.mark.asyncio
+async def test_new_seat_starts_offline():
+    """Newly created seat should start as OFFLINE, not AVAILABLE."""
+    async with AsyncSessionLocal() as db:
+        # Clean slate
+        await db.execute(text("DELETE FROM seats"))
+        await db.commit()
+        
+        # Create a zone
+        zone = await zone_repo.create(
+            db,
+            name="Test Zone",
+            rate_per_minute_paise=100,
+            rate_per_hour_paise=5000,
+            pricing_model=PricingModel.PER_MINUTE,
+        )
+        await db.commit()
+        
+        # Create test seat via repository
+        seat = await seat_repo.create(db, name="New Seat", zone_id=zone.id)
+        await db.commit()
+        
+        # Verify seat starts as OFFLINE
+        assert seat.status == SeatStatus.OFFLINE
+
+
+@pytest.mark.asyncio
 async def test_full_online_offline_cycle():
     """Test: startup sets OFFLINE -> register sets AVAILABLE -> disconnect sets OFFLINE"""
     async with AsyncSessionLocal() as db:

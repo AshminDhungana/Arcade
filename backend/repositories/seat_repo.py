@@ -30,6 +30,7 @@ async def create(
         plug_id=plug_id,
         is_console=is_console,
         notes=notes,
+        status=SeatStatus.OFFLINE,
     )
     db.add(seat)
     await db.flush()
@@ -191,3 +192,9 @@ async def auto_mint_override_pin(db: AsyncSession, seat_id: str) -> str | None:
     seat.override_code_hash = hash_pin(pin)
     await db.commit()
     return seat.override_code_hash
+
+
+async def get_all_seat_ids(db: AsyncSession) -> Sequence[str]:
+    """Return all seat IDs for startup initialization."""
+    result = await db.execute(select(Seat.id))
+    return result.scalars().all()
