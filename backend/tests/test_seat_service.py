@@ -46,7 +46,7 @@ async def db() -> AsyncGenerator[AsyncSession]:
 @pytest.fixture
 async def zone_and_seat(db: AsyncSession):
     """Create a zone and a seat, return (zone, seat)."""
-    from backend.models import PricingModel, Zone, SeatStatus
+    from backend.models import PricingModel, SeatStatus, Zone
 
     zone = Zone(
         name="Main Floor",

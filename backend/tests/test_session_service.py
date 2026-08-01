@@ -57,8 +57,8 @@ async def zone_and_seat(db: AsyncSession, staff_member):
 
     Uses the zone the staff has access to.
     """
-    from backend.repositories import zone_repo
     from backend.models import SeatStatus
+    from backend.repositories import zone_repo
 
     # Get the zone the staff member has access to
     zone_ids = await staff_zone_repo.get_zone_ids_for_staff(db, staff_member.id)

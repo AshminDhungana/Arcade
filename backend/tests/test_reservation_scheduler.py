@@ -29,7 +29,7 @@ async def db() -> AsyncGenerator[AsyncSession]:
 
 @pytest.fixture
 async def seat(db: AsyncSession) -> str:
-    from backend.models import PricingModel, Zone, SeatStatus
+    from backend.models import PricingModel, SeatStatus, Zone
 
     zone = Zone(
         name="Main",

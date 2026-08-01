@@ -46,7 +46,7 @@ async def db() -> AsyncSession:
 
 @pytest.fixture
 async def zone_and_seat_with_mac(db: AsyncSession):
-    from backend.models import PricingModel, Zone, SeatStatus
+    from backend.models import PricingModel, SeatStatus, Zone
 
     zone = Zone(
         name="Main Floor",
@@ -67,7 +67,7 @@ async def zone_and_seat_with_mac(db: AsyncSession):
 
 @pytest.fixture
 async def zone_and_seat_no_mac(db: AsyncSession):
-    from backend.models import PricingModel, Zone, SeatStatus
+    from backend.models import PricingModel, SeatStatus, Zone
 
     zone = Zone(
         name="Main Floor",
