@@ -44,3 +44,38 @@ async def test_handle_register_sets_seat_online():
     
     # Verify response
     assert result["type"] == "REGISTERED"
+
+
+@pytest.mark.asyncio
+async def test_disconnect_agent_sets_seat_offline():
+    manager = WebSocketManager()
+    
+    # Setup: create a seat in AVAILABLE status
+    async with AsyncSessionLocal() as db:
+        zone = await zone_repo.create(
+            db,
+            name="Test Zone",
+            rate_per_minute_paise=100,
+            rate_per_hour_paise=5000,
+            pricing_model=PricingModel.PER_MINUTE,
+        )
+        await db.commit()
+        seat = await seat_repo.create(db, name="Test Seat", zone_id=zone.id)
+        seat.status = SeatStatus.AVAILABLE
+        await db.commit()
+        seat_id = seat.id
+    
+    # Mock websocket connection
+    mock_ws = AsyncMock()
+    manager.agent_connections[seat_id] = mock_ws
+    
+    # Call disconnect_agent
+    await manager.disconnect_agent(seat_id)
+    
+    # Verify seat is now OFFLINE
+    async with AsyncSessionLocal() as db:
+        refreshed = await db.get(Seat, seat_id)
+        assert refreshed.status == SeatStatus.OFFLINE
+    
+    # Verify connection cleaned up
+    assert seat_id not in manager.agent_connections

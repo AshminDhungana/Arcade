@@ -226,6 +226,30 @@ class WebSocketManager:
         async with self._lock:
             self._pending_pongs.discard(seat_id)
             self.agent_connections.pop(seat_id, None)
+        
+        # Update seat status to OFFLINE in database
+        from backend.core.database import AsyncSessionLocal
+        from backend.repositories import seat_repo
+        from backend.models._enums import SeatStatus
+        
+        async with AsyncSessionLocal() as db:
+            try:
+                await seat_repo.update_status(db, seat_id, SeatStatus.OFFLINE)
+                await db.commit()
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Failed to set seat %s to OFFLINE on disconnect: %s", seat_id, e
+                )
+        
+        # Broadcast OFFLINE status to dashboards
+        await self.broadcast_to_dashboards(
+            Msg.SEAT_UPDATED,
+            {
+                "seat_id": seat_id,
+                "status": "OFFLINE",
+            },
+        )
 
     # --- Sending ------------------------------------------------------------
 
