@@ -616,16 +616,17 @@ class SetupWizard(_BaseScreen):
         return ok
 
     def _seed_default_staff(self) -> None:
-        """Best-effort: create the default admin + cashier in the DB."""
+        """Best-effort: create the default admin + cashier in the DB.
+
+        Migrations are already run by _finish() before this is called.
+        """
 
         def _run() -> None:
             from backend.core.bootstrap import ensure_default_staff
             from backend.core.config import load_config
             from backend.core.database import AsyncSessionLocal
-            from backend.core.startup import run_migrations
 
             async def _bootstrap() -> None:
-                await run_migrations()
                 async with AsyncSessionLocal() as db:
                     await ensure_default_staff(db, settings=load_config())
                     await db.commit()
@@ -666,6 +667,15 @@ class SetupWizard(_BaseScreen):
                 json.dumps(config, indent=2), encoding="utf-8"
             )
             _write_license_status(payload, self.license_result)
+
+            # Run migrations synchronously BEFORE seeding staff and routing.
+            # This avoids a race condition where _seed_default_staff() runs
+            # migrations in a background thread while _check_and_route()
+            # runs them again in the main thread.
+            from backend.core.startup import run_migrations
+
+            asyncio.run(run_migrations())
+
             self._seed_default_staff()
             self.controller._check_and_route()
         except Exception as exc:  # noqa: BLE001
