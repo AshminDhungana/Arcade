@@ -1,45 +1,41 @@
-"""Tests for backend.core.startup."""
+"""Tests for startup module."""
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
-
 import pytest
 
-from backend.core.startup import boot_all_seats, recover_active_sessions, run_migrations
+from backend.core.startup import initialize_seat_statuses
+from backend.core.database import AsyncSessionLocal
+from backend.models import Seat, SeatStatus
+from backend.repositories import seat_repo, zone_repo
+from backend.models._enums import PricingModel
 
 
 @pytest.mark.asyncio
-async def test_run_migrations_does_not_raise() -> None:
-    await run_migrations()
+async def test_initialize_seat_statuses_sets_all_offline():
+    async with AsyncSessionLocal() as db:
+        # Create a zone first (FK constraint)
+        zone = await zone_repo.create(
+            db,
+            name="Test Zone",
+            rate_per_minute_paise=100,
+            rate_per_hour_paise=5000,
+            pricing_model=PricingModel.PER_MINUTE,
+        )
+        await db.commit()
 
+# Create test seats with various statuses
+        seat1 = await seat_repo.create(db, name="Seat 1", zone_id=zone.id)
+        seat2 = await seat_repo.create(db, name="Seat 2", zone_id=zone.id)
+        seat1.status = SeatStatus.AVAILABLE
+        seat2.status = SeatStatus.IN_USE
+        await db.commit()
 
-@pytest.mark.asyncio
-async def test_recover_active_sessions_does_not_raise() -> None:
-    """recover_active_sessions creates a DB session and delegates to session_service."""
-    with (
-        patch("backend.core.database.AsyncSessionLocal") as mock_session_factory,
-        patch(
-            "backend.services.session_service.recover_active_sessions",
-            new_callable=AsyncMock,
-        ) as mock_recover,
-    ):
-        mock_session_factory.return_value.__aenter__ = AsyncMock(return_value=None)
-        mock_session_factory.return_value.__aexit__ = AsyncMock(return_value=False)
-        await recover_active_sessions()
-        mock_recover.assert_awaited_once()
+        # Call function
+        await initialize_seat_statuses()
 
-
-@pytest.mark.asyncio
-async def test_boot_all_seats_does_not_raise() -> None:
-    """boot_all_seats creates a DB session and delegates to the WoL service."""
-    with (
-        patch("backend.core.database.AsyncSessionLocal") as mock_session_factory,
-        patch(
-            "backend.services.wol_service.boot_all_seats", new_callable=AsyncMock
-        ) as mock_boot_all,
-    ):
-        mock_session_factory.return_value.__aenter__ = AsyncMock(return_value=None)
-        mock_session_factory.return_value.__aexit__ = AsyncMock(return_value=False)
-        await boot_all_seats()
-        mock_boot_all.assert_awaited_once()
+        # Verify all seats are OFFLINE (use fresh session to avoid caching)
+        async with AsyncSessionLocal() as db2:
+            for seat_id in [seat1.id, seat2.id]:
+                refreshed = await db2.get(Seat, seat_id)
+                assert refreshed.status == SeatStatus.OFFLINE

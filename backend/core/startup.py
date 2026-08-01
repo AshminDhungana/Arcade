@@ -89,3 +89,31 @@ async def boot_all_seats() -> None:
 
     async with AsyncSessionLocal() as db:
         await _wol_boot_all(db)
+
+
+async def initialize_seat_statuses() -> None:
+    """Set all seats to OFFLINE on server startup and broadcast to dashboards."""
+    from backend.core.database import AsyncSessionLocal
+    from backend.repositories import seat_repo
+    from backend.models._enums import SeatStatus
+    from backend.core.ws_manager import manager as ws_manager
+    from backend.models import Seat
+
+    async with AsyncSessionLocal() as db:
+        seat_ids = await seat_repo.get_all_seat_ids(db)
+        for seat_id in seat_ids:
+            try:
+                await seat_repo.update_status(db, seat_id, SeatStatus.OFFLINE)
+                # Broadcast to dashboards
+                seat = await db.get(Seat, seat_id)
+                if seat:
+                    await ws_manager.broadcast_to_dashboards("seat_updated", {
+                        "seat_id": seat_id,
+                        "status": "OFFLINE",
+                    })
+            except Exception as e:
+                # Log per-seat failure, continue with remaining seats
+                logger.warning(
+                    "Failed to initialize status for seat %s: %s", seat_id, e
+                )
+        await db.commit()
