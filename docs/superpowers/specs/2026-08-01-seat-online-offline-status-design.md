@@ -1,280 +1,188 @@
-# Seat Online/Offline Status — Design Spec
+# Seat Online/Offline Status Tracking — Design Spec
 
 **Date:** 2026-08-01
 **Status:** Approved
-**Author:** Ashmin
+**Author:** Assistant
 
 ---
 
-## Problem Statement
+## 1. Overview
 
-Currently, all seats default to `AVAILABLE` in the database. On server startup, only seats with active sessions get their status corrected (via `recover_active_sessions()`). Seats without active sessions remain `AVAILABLE` even when no agent is connected. This causes the dashboard to incorrectly show "Available" for PCs that are actually offline.
+Implement automatic seat online/offline status tracking so the dashboard accurately reflects which gaming stations are currently connected to the server via their agents.
 
-Additionally, when an agent disconnects (heartbeat timeout or explicit disconnect), the seat status is not updated in the database — it retains whatever status it had before.
-
----
-
-## Solution Overview
-
-Make the database the single source of truth for seat connectivity status:
-
-1. **Startup**: Mark all seats without active sessions as `OFFLINE`
-2. **Agent REGISTER**: Update seat status in DB to `AVAILABLE` (or `IN_USE`/`PAUSED` if session exists)
-3. **Agent disconnect**: Update seat status in DB to `OFFLINE` (if no active session)
-4. **WoL flow**: Unchanged (`BOOTING` → `AVAILABLE` on success, `UNREACHABLE` on timeout)
+- **Startup:** All seats initialized to `OFFLINE`
+- **Agent connects (REGISTER):** Seat → `ONLINE`
+- **Agent disconnects (clean or heartbeat timeout):** Seat → `OFFLINE`
+- **Dashboard updates:** Real-time via WebSocket `SEAT_UPDATED` broadcasts
 
 ---
 
-## Detailed Design
+## 2. Architecture
 
-### 1. Startup Initialization
+### 2.1 Components
 
-**File:** `backend/core/startup.py`
+| Component | Responsibility |
+|-----------|----------------|
+| `startup.initialize_seat_statuses()` | Boot-time: set all seats `OFFLINE`, broadcast |
+| `ws_manager._handle_register()` | Agent connects: set seat `ONLINE`, broadcast |
+| `ws_manager.disconnect_agent()` | Agent disconnects: set seat `OFFLINE`, broadcast |
+| `seat_repo.get_all_seat_ids()` | Helper for startup to fetch all seat IDs |
 
-Add new function `initialize_seat_statuses()`:
+### 2.2 Data Flow
+
+```
+Server Start
+    │
+    ▼
+initialize_seat_statuses()
+    ├─► SELECT id FROM seats
+    ├─► UPDATE seats SET status='OFFLINE'
+    └─► broadcast SEAT_UPDATED (status=OFFLINE) for each seat
+    │
+    ▼
+Agent connects → REGISTER
+    │
+    ▼
+_handle_register(seat_id)
+    ├─► UPDATE seats SET status='ONLINE'
+    └─► broadcast SEAT_UPDATED (status=ONLINE)
+    │
+    ▼
+Agent disconnects (clean / heartbeat timeout)
+    │
+    ▼
+disconnect_agent(seat_id)
+    ├─► UPDATE seats SET status='OFFLINE'
+    └─► broadcast SEAT_UPDATED (status=OFFLINE)
+```
+
+---
+
+## 3. File Changes
+
+### 3.1 `backend/core/startup.py`
 
 ```python
 async def initialize_seat_statuses() -> None:
-    """Mark all seats without active sessions as OFFLINE on startup."""
+    """Set all seats to OFFLINE on server startup and broadcast to dashboards."""
     from backend.core.database import AsyncSessionLocal
-    from backend.models._enums import SeatStatus, SessionStatus
-    from backend.repositories import seat_repo, session_repo
+    from backend.repositories import seat_repo
+    from backend.models._enums import SeatStatus
+    from backend.core.ws_manager import manager as ws_manager
+    from backend.models import Seat
 
     async with AsyncSessionLocal() as db:
-        # Get all seat IDs that have an active session
-        active_sessions = await session_repo.list_active(db)
-        active_seat_ids = {s.seat_id for s in active_sessions}
-
-        # Get all seats
-        all_seats = await seat_repo.list_all(db)
-
-        # Set seats without active sessions to OFFLINE
-        for seat in all_seats:
-            if seat.id not in active_seat_ids:
-                if seat.status != SeatStatus.OFFLINE:
-                    seat.status = SeatStatus.OFFLINE
-                    await seat_repo.update(db, seat)
+        seat_ids = await seat_repo.get_all_seat_ids(db)
+        for seat_id in seat_ids:
+            await seat_repo.update_status(db, seat_id, SeatStatus.OFFLINE)
+            # Broadcast to dashboards
+            seat = await db.get(Seat, seat_id)
+            if seat:
+                await ws_manager.broadcast_to_dashboards("seat_updated", {
+                    "seat_id": seat_id,
+                    "status": "OFFLINE",
+                })
+        await db.commit()
 ```
 
-**File:** `backend/main.py` (lifespan)
+### 3.2 `backend/main.py` (lifespan)
 
-Add call to `initialize_seat_statuses()` after `recover_active_sessions()` and before `boot_all_seats()`:
+Add call after `run_migrations()`, before `recover_active_sessions()`:
 
 ```python
-async def lifespan(app: FastAPI):
-    await run_migrations()
-    await recover_active_sessions()
-    await initialize_seat_statuses()  # NEW
-    await boot_all_seats()
-    ...
+await run_migrations()
+await initialize_seat_statuses()  # NEW
+await recover_active_sessions()
+await boot_all_seats()
 ```
 
-### 2. Agent REGISTER Handler
+### 3.3 `backend/core/ws_manager.py`
 
-**File:** `backend/core/ws_manager.py` — `_handle_register()`
-
-After broadcasting "ONLINE" to dashboards, update seat status in database:
+**`_handle_register()`** — add status update after successful auth:
 
 ```python
 async def _handle_register(self, seat_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-    # ... existing broadcast code ...
-
-    # NEW: Update seat status in DB based on session state
+    # ... existing code ...
+    # After broadcasting current REGISTER payload:
     from backend.core.database import AsyncSessionLocal
-    from backend.models._enums import SeatStatus, SessionStatus
-    from backend.repositories import seat_repo, session_repo
+    from backend.repositories import seat_repo
+    from backend.models._enums import SeatStatus
 
     async with AsyncSessionLocal() as db:
-        seat = await seat_repo.get_by_id(db, seat_id)
-        if seat is not None:
-            # Check for active session
-            active_session = await session_repo.get_active_by_seat(db, seat_id)
-            if active_session is not None:
-                new_status = (
-                    SeatStatus.PAUSED
-                    if active_session.status == SessionStatus.PAUSED
-                    else SeatStatus.IN_USE
-                )
-            else:
-                new_status = SeatStatus.AVAILABLE
-
-            if seat.status != new_status:
-                seat.status = new_status
-                await seat_repo.update(db, seat)
-
-            # Broadcast updated status to dashboards
-            await self.broadcast_to_dashboards(
-                Msg.SEAT_UPDATED,
-                {"seat_id": seat_id, "status": seat.status.value},
-            )
-
-    # ... existing WoL callback and return ...
+        await seat_repo.update_status(db, seat_id, SeatStatus.ONLINE)
+        await db.commit()
+    # ... rest unchanged ...
 ```
 
-**Note:** This replaces the `wol_success_callback` call for non-`BOOTING` seats. The `wol_success_callback` remains for the specific `BOOTING` → `AVAILABLE` transition during WoL.
-
-### 3. Agent Disconnect Handler
-
-**File:** `backend/core/ws_manager.py` — `disconnect_agent()`
+**`disconnect_agent()`** — add status update:
 
 ```python
 async def disconnect_agent(self, seat_id: str) -> None:
-    # ... existing cleanup code (screenshot futures, pending_pongs, agent_connections) ...
-
-    # NEW: Update seat status in DB to OFFLINE (if no active session)
+    # ... existing cleanup code ...
+    # After removing from agent_connections:
     from backend.core.database import AsyncSessionLocal
-    from backend.models._enums import SeatStatus, SessionStatus
-    from backend.repositories import seat_repo, session_repo
+    from backend.repositories import seat_repo
+    from backend.models._enums import SeatStatus
 
     async with AsyncSessionLocal() as db:
-        seat = await seat_repo.get_by_id(db, seat_id)
-        if seat is not None:
-            # Only set to OFFLINE if no active session
-            active_session = await session_repo.get_active_by_seat(db, seat_id)
-            if active_session is None and seat.status != SeatStatus.OFFLINE:
-                seat.status = SeatStatus.OFFLINE
-                await seat_repo.update(db, seat)
-
-                # Broadcast to dashboards
-                await self.broadcast_to_dashboards(
-                    Msg.SEAT_UPDATED,
-                    {"seat_id": seat_id, "status": SeatStatus.OFFLINE.value},
-                )
+        await seat_repo.update_status(db, seat_id, SeatStatus.OFFLINE)
+        await db.commit()
 ```
 
-**Heartbeat timeout in `_tick()`** — already removes agent from `agent_connections` and closes WebSocket. The `disconnect_agent()` call is not automatic there, so we need to ensure the DB update happens. Option: refactor `_tick()` to call `disconnect_agent()` for expired agents, or duplicate the DB update logic. **Decision:** Call `disconnect_agent()` from `_tick()` for consistency.
+**Remove `_tick()` offline logic** — since `disconnect_agent()` is called on both clean disconnect and heartbeat timeout, the explicit offline marking in `_tick()` is redundant.
+
+### 3.4 `backend/repositories/seat_repo.py`
+
+Add helper:
 
 ```python
-async def _tick(self) -> None:
-    # Step 1: Disconnect agents who didn't PONG from the PREVIOUS tick
-    expired = list(self._pending_pongs)
-    for seat_id in expired:
-        # NEW: Use disconnect_agent for proper cleanup + DB update
-        await self.disconnect_agent(seat_id)
-
-    # Step 2: Send PING to all current agents
-    ...
-```
-
-### 4. WoL Flow Compatibility
-
-The WoL flow remains unchanged:
-
-1. `boot_all_seats()` → sends magic packets, sets seats to `BOOTING`, starts 60s watchdog
-2. Watchdog timeout → sets seat to `UNREACHABLE` (if still `BOOTING`)
-3. Agent REGISTER during `BOOTING` → `wol_success_callback()` sets seat to `AVAILABLE`
-
-**With new design:**
-- Startup: All seats without active sessions → `OFFLINE`
-- `boot_all_seats()` transitions MAC seats: `OFFLINE` → `BOOTING`
-- Watchdog: `BOOTING` → `UNREACHABLE` (unchanged)
-- Agent REGISTER: `BOOTING`/`OFFLINE`/`UNREACHABLE` → `AVAILABLE` (or `IN_USE`/`PAUSED`)
-
-**Edge case:** If agent registers while seat is `UNREACHABLE` (after WoL timeout), the new `_handle_register` logic correctly transitions to `AVAILABLE`/`IN_USE`.
-
----
-
-## Data Flow Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        SERVER STARTUP                           │
-├─────────────────────────────────────────────────────────────────┤
-│  1. recover_active_sessions()                                   │
-│     - Seats with ACTIVE/PAUSED sessions → IN_USE/PAUSED        │
-│  2. initialize_seat_statuses()                                  │
-│     - All other seats → OFFLINE                                 │
-│  3. boot_all_seats()                                            │
-│     - MAC seats: OFFLINE → BOOTING (watchdog starts)           │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      AGENT CONNECTS                             │
-├─────────────────────────────────────────────────────────────────┤
-│  Agent sends REGISTER                                           │
-│  _handle_register():                                            │
-│    - Check for active session                                   │
-│    - If active: IN_USE (or PAUSED)                              │
-│    - If none: AVAILABLE                                         │
-│    - Update DB + broadcast                                      │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      AGENT DISCONNECTS                          │
-├─────────────────────────────────────────────────────────────────┤
-│  disconnect_agent() (explicit or heartbeat timeout):            │
-│    - If no active session: seat → OFFLINE                       │
-│    - Update DB + broadcast                                      │
-└─────────────────────────────────────────────────────────────────┘
+async def get_all_seat_ids(db: AsyncSession) -> Sequence[str]:
+    """Return all seat IDs for startup initialization."""
+    result = await db.execute(select(Seat.id))
+    return result.scalars().all()
 ```
 
 ---
 
-## Repository Changes Needed
+## 4. Error Handling
 
-Add new method to `session_repo.py`:
-
-```python
-async def get_active_by_seat(db: AsyncSession, seat_id: str) -> Session | None:
-    """Get active (ACTIVE or PAUSED) session for a seat."""
-    result = await db.execute(
-        select(Session).where(
-            Session.seat_id == seat_id,
-            Session.status.in_([SessionStatus.ACTIVE, SessionStatus.PAUSED])
-        )
-    )
-    return result.scalar_one_or_none()
-```
+| Scenario | Behavior |
+|----------|----------|
+| DB error during startup init | Log per-seat failure, continue with remaining seats, don't block boot |
+| DB error in `_handle_register` | Log, status will sync on next register/heartbeat |
+| DB error in `disconnect_agent` | Log, status will sync on next agent connect |
+| WebSocket broadcast fails | Log, connection cleaned up by existing logic |
 
 ---
 
-## Testing Strategy
+## 5. Testing
 
-### Unit Tests (new/modified)
-
-1. `test_startup_initializes_seats_offline()` — verify seats without active sessions start as `OFFLINE`
-2. `test_agent_register_updates_seat_status()` — verify REGISTER sets correct status based on session state
-3. `test_agent_disconnect_sets_offline()` — verify disconnect sets seat to `OFFLINE` (if no active session)
-4. `test_wol_flow_still_works()` — verify WoL: `OFFLINE` → `BOOTING` → `AVAILABLE`/`UNREACHABLE`
-5. `test_register_after_wol_timeout()` — verify REGISTER works from `UNREACHABLE` state
-
-### Integration Tests
-
-- Full startup → agent connect → agent disconnect cycle
-- WoL + agent register race conditions
-
-### Existing Tests to Update
-
-- Any tests that assume seats default to `AVAILABLE` on startup
+| Test | Description |
+|------|-------------|
+| Unit: `initialize_seat_statuses` | Creates N seats, calls init, verifies all `OFFLINE` + broadcasts |
+| Unit: `get_all_seat_ids` | Returns all seat IDs |
+| Integration: Agent connect | Connect agent → seat status `ONLINE` in DB + dashboard |
+| Integration: Agent disconnect | Disconnect agent → seat status `OFFLINE` in DB + dashboard |
+| Integration: Heartbeat timeout | Simulate missed PONG → `disconnect_agent` called → seat `OFFLINE` |
+| E2E: Server restart with active agent | Start server (seats OFFLINE), connect agent → ONLINE, restart server → OFFLINE, agent reconnects → ONLINE |
 
 ---
 
-## Rollback Plan
+## 6. Rollout Plan
 
-If issues arise:
-1. Revert `initialize_seat_statuses()` call in lifespan
-2. Revert `_handle_register()` DB update logic
-3. Revert `disconnect_agent()` DB update logic
-4. Seats will return to defaulting to `AVAILABLE` (current behavior)
-
----
-
-## Open Questions
-
-None — all design decisions confirmed during review.
+1. Add `get_all_seat_ids()` to `seat_repo.py`
+2. Add `initialize_seat_statuses()` to `startup.py`
+3. Wire into `main.py` lifespan
+4. Update `ws_manager.py` register/disconnect handlers
+5. Remove redundant `_tick()` offline logic
+6. Run tests
+7. Deploy
 
 ---
 
-## Implementation Checklist
+## 7. Out of Scope
 
-- [ ] Add `initialize_seat_statuses()` to `backend/core/startup.py`
-- [ ] Call it in `backend/main.py` lifespan
-- [ ] Add `get_active_by_seat()` to `backend/repositories/session_repo.py`
-- [ ] Update `_handle_register()` in `backend/core/ws_manager.py`
-- [ ] Update `disconnect_agent()` in `backend/core/ws_manager.py`
-- [ ] Update `_tick()` to call `disconnect_agent()` for expired agents
-- [ ] Write unit tests
-- [ ] Run integration tests
-- [ ] Verify dashboard shows correct status throughout lifecycle
+- `UNREACHABLE` status (not used per requirements)
+- Periodic reconciliation background task
+- WoL counter resets on startup
+- Agent provisioning data reset on startup
