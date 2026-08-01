@@ -2078,6 +2078,9 @@ Final pre-release validation, production build, license delivery process, and mo
 
 - [x] **Create GitHub Release `v1.0.0`**: attach artifacts (`arcade-windows.exe`, `arcade-macos.dmg`, `arcade-linux.AppImage`, `agent-windows.exe`, `agent-macos.dmg`, `agent-linux.AppImage`, `agent-linux.deb`); write release notes — **Triggered (2026-07-31): tag v1.0.0 pushed, GitHub Actions matrix build running on windows-latest/macos-latest/ubuntu-latest; release will aggregate artifacts on completion**
 
+
+- [ ] In Dashboard when we generate enroll code, the code is generate in the right bottom and it is hard to copy as well as it only appears for a short time so it is hard to copy or to read. we need to improve it so it appears untill user dismiss it and user can copy it easily. 
+
 - [ ] **First-customer license generation** (ENG-A):
   - [ ] Customer sends Hardware ID from Activation screen
   - [ ] Run keygen: `python tools/keygen/generate_license.py --hardware-id {id} --cafe-name "{name}" --license-type PERPETUAL`
