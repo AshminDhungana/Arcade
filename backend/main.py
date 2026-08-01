@@ -48,6 +48,7 @@ from backend.core.lan_discovery import (
 from backend.core.scheduler import init_scheduler, shutdown_scheduler
 from backend.core.startup import (
     boot_all_seats,
+    initialize_seat_statuses,
     recover_active_sessions,
     run_migrations,
 )
@@ -80,7 +81,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     # 3. Run pending database migrations
     await run_migrations()
 
-    # 4. Load feature flags into in-memory cache, and seed default staff
+    # 4. Initialize all seat statuses to OFFLINE
+    await initialize_seat_statuses()
+
+    # 5. Load feature flags into in-memory cache, and seed default staff
     #    (admin + cashier) on a fresh database so login works out of the box.
     async with AsyncSessionLocal() as db:
         await load_flags(db)
