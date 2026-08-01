@@ -20,6 +20,7 @@ import logging
 import os
 import secrets
 import shutil
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -39,6 +40,7 @@ def _get_exe_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
     return Path(__file__).resolve().parent
+
 
 import customtkinter as ctk
 
@@ -378,6 +380,7 @@ class ActivationScreen(_BaseScreen):
                 # Replace the locked file on next launch by renaming at startup.
                 # For now, verify the copied file works by temporarily checking it.
                 from backend.licensing.verify import check_license
+
                 result = check_license(str(alt_dest))
                 if result.ok:
                     # Store the alternative path so MainScreen can use it
@@ -658,12 +661,16 @@ class SetupWizard(_BaseScreen):
                 f"seat_{i + 1}": secrets.token_hex(32) for i in range(seat_count)
             },
         }
-        Path("arcade.config.json").write_text(
-            json.dumps(config, indent=2), encoding="utf-8"
-        )
-        _write_license_status(payload, self.license_result)
-        self._seed_default_staff()
-        self.controller._check_and_route()
+        try:
+            Path("arcade.config.json").write_text(
+                json.dumps(config, indent=2), encoding="utf-8"
+            )
+            _write_license_status(payload, self.license_result)
+            self._seed_default_staff()
+            self.controller._check_and_route()
+        except Exception as exc:  # noqa: BLE001
+            _log.exception("Setup wizard failed")
+            messagebox.showerror("Setup Failed", f"An error occurred during setup:\n{exc}")
 
 
 # ---------------------------------------------------------------------------
