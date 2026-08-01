@@ -107,10 +107,13 @@ async def initialize_seat_statuses() -> None:
                 # Broadcast to dashboards
                 seat = await db.get(Seat, seat_id)
                 if seat:
-                    await ws_manager.broadcast_to_dashboards("seat_updated", {
-                        "seat_id": seat_id,
-                        "status": "OFFLINE",
-                    })
+                    await ws_manager.broadcast_to_dashboards(
+                        "seat_updated",
+                        {
+                            "seat_id": seat_id,
+                            "status": "OFFLINE",
+                        },
+                    )
             except Exception as e:
                 # Log per-seat failure, continue with remaining seats
                 logger.warning(

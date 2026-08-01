@@ -24,7 +24,7 @@ async def test_initialize_seat_statuses_sets_all_offline():
         )
         await db.commit()
 
-# Create test seats with various statuses
+        # Create test seats with various statuses
         seat1 = await seat_repo.create(db, name="Seat 1", zone_id=zone.id)
         seat2 = await seat_repo.create(db, name="Seat 2", zone_id=zone.id)
         seat1.status = SeatStatus.AVAILABLE

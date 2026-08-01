@@ -45,7 +45,7 @@ def _settings() -> Settings:
 
 def _settings_with_secrets(seat_count: int = 3) -> Settings:
     s = _settings()
-    s.agent_secrets = {f"seat_{i+1}": f"secret-{i+1}" for i in range(seat_count)}
+    s.agent_secrets = {f"seat_{i + 1}": f"secret-{i + 1}" for i in range(seat_count)}
     return s
 
 
@@ -154,8 +154,11 @@ async def test_does_not_seed_when_seats_exist(db: AsyncSession) -> None:
 
     # Pre-existing seat
     zone = await zone_repo.create(
-        db, name="Existing Zone", rate_per_minute_paise=100, rate_per_hour_paise=6000,
-        pricing_model=PricingModel.PER_MINUTE
+        db,
+        name="Existing Zone",
+        rate_per_minute_paise=100,
+        rate_per_hour_paise=6000,
+        pricing_model=PricingModel.PER_MINUTE,
     )
     await seat_repo.create(db, name="Existing Seat", zone_id=zone.id)
     await db.commit()

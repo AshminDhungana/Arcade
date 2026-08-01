@@ -35,9 +35,9 @@ async def test_wol_magic_packet_structure(
         assert packet is not None, "Packet should be captured"
 
         # Check length: 6 bytes 0xFF + 16 * 6 bytes MAC = 6 + 96 = 102 bytes
-        assert (
-            len(packet) == 102
-        ), f"Packet length should be 102 bytes, got {len(packet)}"
+        assert len(packet) == 102, (
+            f"Packet length should be 102 bytes, got {len(packet)}"
+        )
 
         # Check first 6 bytes are 0xFF
         assert packet[:6] == b"\xff" * 6, "First 6 bytes should be 0xFF"
