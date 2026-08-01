@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from backend.core.ws_manager import WebSocketManager
+
 from backend.core.database import AsyncSessionLocal
+from backend.core.ws_manager import WebSocketManager
 from backend.models import Seat, SeatStatus
-from backend.repositories import seat_repo, zone_repo
 from backend.models._enums import PricingModel
+from backend.repositories import seat_repo, zone_repo
 
 
 @pytest.mark.asyncio
@@ -83,7 +85,8 @@ async def test_disconnect_agent_sets_seat_offline():
 
 @pytest.mark.asyncio
 async def test_tick_calls_disconnect_agent_on_timeout():
-    """Verify _tick calls disconnect_agent for expired agents (which handles OFFLINE status)."""
+    """Verify _tick calls disconnect_agent for expired
+    agents (which handles OFFLINE status)."""
     manager = WebSocketManager()
     manager.disconnect_agent = AsyncMock()
     manager.broadcast_to_dashboards = AsyncMock()

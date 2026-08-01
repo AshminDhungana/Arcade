@@ -177,8 +177,11 @@ async def test_uses_existing_zone_if_present(db: AsyncSession) -> None:
 
     # Pre-existing zone (but no seats)
     zone = await zone_repo.create(
-        db, name="Pre-existing Zone", rate_per_minute_paise=300, rate_per_hour_paise=18000,
-        pricing_model=PricingModel.FLAT_HOURLY
+        db,
+        name="Pre-existing Zone",
+        rate_per_minute_paise=300,
+        rate_per_hour_paise=18000,
+        pricing_model=PricingModel.FLAT_HOURLY,
     )
     await db.commit()
 

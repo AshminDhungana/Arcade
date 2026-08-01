@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import AsyncMock, patch
 from sqlalchemy import text
+
+from backend.core.database import AsyncSessionLocal
 from backend.core.startup import initialize_seat_statuses
 from backend.core.ws_manager import WebSocketManager
-from backend.core.database import AsyncSessionLocal
 from backend.models import Seat, SeatStatus
-from backend.repositories import seat_repo, zone_repo
 from backend.models._enums import PricingModel
+from backend.repositories import seat_repo, zone_repo
 
 
 @pytest.mark.asyncio
@@ -41,7 +43,8 @@ async def test_new_seat_starts_offline():
 
 @pytest.mark.asyncio
 async def test_full_online_offline_cycle():
-    """Test: startup sets OFFLINE -> register sets AVAILABLE -> disconnect sets OFFLINE"""
+    """Test: startup sets OFFLINE -> register sets
+    AVAILABLE -> disconnect sets OFFLINE"""
     async with AsyncSessionLocal() as db:
         # Clean slate
         await db.execute(text("DELETE FROM seats"))

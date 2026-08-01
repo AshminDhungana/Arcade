@@ -8,14 +8,13 @@ and are safe to call on every startup.
 
 from __future__ import annotations
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import Settings, get_config
 from backend.core.security import hash_pin
 from backend.models import Seat, Staff, Zone
 from backend.models._enums import PricingModel, SeatStatus, StaffRole
-from backend.repositories import staff_repo, zone_repo, seat_repo
+from backend.repositories import seat_repo, staff_repo, zone_repo
 
 _ADMIN_DEFAULT_ID = "admin"
 _ADMIN_DEFAULT_PIN = "admin"

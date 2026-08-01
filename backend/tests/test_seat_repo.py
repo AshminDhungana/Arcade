@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from backend.repositories import seat_repo, zone_repo
 from backend.core.database import AsyncSessionLocal
-from backend.models import Seat
 from backend.models._enums import PricingModel
+from backend.repositories import seat_repo, zone_repo
 
 
 @pytest.mark.asyncio
