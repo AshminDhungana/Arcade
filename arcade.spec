@@ -77,6 +77,22 @@ hiddenimports = [
     "python_jose.exceptions",
     "setuptools._vendor.jaraco.text",
     "setuptools._vendor.jaraco",
+    # Backend modules for run-server command
+    "backend.main",
+    "backend.api.routers",
+    "backend.api.routers.agent",
+    "backend.api.routers.ws",
+    "backend.core.config",
+    "backend.core.database",
+    "backend.core.feature_flags",
+    "backend.core.lan_discovery",
+    "backend.core.scheduler",
+    "backend.core.startup",
+    "backend.core.ws_manager",
+    "backend.models",
+    "backend.repositories.seat_repo",
+    "backend.core.bootstrap",
+    "backend.core.db_bootstrap",
 ]
 
 # Auto-collect heavy packages

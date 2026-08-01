@@ -860,8 +860,21 @@ class MainScreen(_BaseScreen):
             self._server_port = cfg.port
         except (RuntimeError, ValueError, KeyError, json.JSONDecodeError):
             pass
-        self._proc = subprocess.Popen(  # noqa: S603
-            [
+
+        # When frozen (PyInstaller), sys.executable is the launcher executable
+        # which doesn't accept `-m uvicorn`. Use the `run-server` subcommand instead.
+        is_frozen = getattr(sys, "frozen", False)
+        if is_frozen:
+            cmd = [
+                sys.executable,
+                "run-server",
+                "--host",
+                self._server_host,
+                "--port",
+                str(self._server_port),
+            ]
+        else:
+            cmd = [
                 sys.executable,
                 "-m",
                 "uvicorn",
@@ -870,7 +883,10 @@ class MainScreen(_BaseScreen):
                 self._server_host,
                 "--port",
                 str(self._server_port),
-            ],
+            ]
+
+        self._proc = subprocess.Popen(  # noqa: S603
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -944,7 +960,7 @@ class MainScreen(_BaseScreen):
             from backend.core.config import load_config
 
             cfg = load_config()
-            host = cfg.host
+            host = "localhost" if cfg.host == "0.0.0.0" else cfg.host
             port = cfg.port
         except (RuntimeError, ValueError, KeyError, json.JSONDecodeError):
             pass
@@ -1316,14 +1332,61 @@ class LauncherApp:
 # ---------------------------------------------------------------------------
 
 
+def _run_server(host: str, port: int) -> None:
+    """Run uvicorn server programmatically (for PyInstaller frozen executable)."""
+    import os
+    import shutil
+    import sys
+    from pathlib import Path
+    import uvicorn
+
+    exe_dir = _get_exe_dir()
+    os.chdir(exe_dir)
+
+    # If arcade.config.json is not in exe_dir, check parent directory
+    # (common in onedir builds where config is at dist/arcade.config.json)
+    config_path = exe_dir / "arcade.config.json"
+    if not config_path.exists():
+        parent_config = exe_dir.parent / "arcade.config.json"
+        if parent_config.exists():
+            os.chdir(exe_dir.parent)
+            config_path = parent_config
+
+    # Copy config to _MEIPASS if it exists (PyInstaller sets this even in onedir mode)
+    # so that load_config finds it at the expected location
+    if hasattr(sys, "_MEIPASS") and config_path.exists():
+        meipass_dir = Path(sys._MEIPASS)
+        meipass_dir.mkdir(parents=True, exist_ok=True)
+        meipass_config = meipass_dir / "arcade.config.json"
+        try:
+            shutil.copy2(config_path, meipass_config)
+        except Exception:
+            pass  # Best effort
+
+    uvicorn.run("backend.main:app", host=host, port=port, log_level="info")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--self-test", action="store_true", help="Run CI smoke test")
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+
+    # Self-test command (existing)
+    subparsers.add_parser("self-test", help="Run CI smoke test")
+
+    # Run-server command (for PyInstaller frozen executable)
+    run_server_parser = subparsers.add_parser("run-server", help="Run the uvicorn server")
+    run_server_parser.add_argument("--host", default=DEFAULT_HOST, help="Host to bind to")
+    run_server_parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Port to bind to")
+
     args = parser.parse_args()
 
-    if args.self_test:
+    if args.command == "self-test":
         sys.exit(run_self_test())
+    elif args.command == "run-server":
+        _run_server(args.host, args.port)
+        return
 
+    # Default: run the GUI launcher
     ctk.set_appearance_mode("System")
     ctk.set_default_color_theme("blue")
     root = ctk.CTk()
