@@ -108,7 +108,7 @@ async def ensure_default_zone_and_seats(
             id=seat_id,
             name=f"PC {idx}",
             zone_id=default_zone.id,
-            status=SeatStatus.AVAILABLE,
+            status=SeatStatus.OFFLINE,
             agent_secret=secret,
         )
         db.add(seat)

@@ -124,7 +124,7 @@ async def test_creates_default_zone_and_seats_from_config(db: AsyncSession) -> N
         assert seat.id == f"seat_{i}"
         assert seat.name == f"PC {i}"
         assert seat.zone_id == zone.id
-        assert seat.status == SeatStatus.AVAILABLE
+        assert seat.status == SeatStatus.OFFLINE
         assert seat.agent_secret == f"secret-{i}"
 
 
