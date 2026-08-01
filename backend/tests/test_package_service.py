@@ -349,9 +349,13 @@ class TestPackageIntegration:
             rate_per_hour_paise=6000,
             pricing_model=PricingModel.PER_MINUTE,
         )
+        from backend.models import SeatStatus
         seat = await seat_repo.create(
             db, name="Seat 1", zone_id=zone.id, mac_address="AA:BB:CC:DD:EE:FF"
         )
+        seat.status = SeatStatus.AVAILABLE
+        await db.flush()
+        await db.refresh(seat)
 
         # Assign zone to staff (cashier needs zone access)
         await staff_zone_repo.assign_zone(

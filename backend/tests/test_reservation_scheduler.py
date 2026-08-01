@@ -29,7 +29,7 @@ async def db() -> AsyncGenerator[AsyncSession]:
 
 @pytest.fixture
 async def seat(db: AsyncSession) -> str:
-    from backend.models import PricingModel, Zone
+    from backend.models import PricingModel, Zone, SeatStatus
 
     zone = Zone(
         name="Main",
@@ -40,6 +40,9 @@ async def seat(db: AsyncSession) -> str:
     db.add(zone)
     await db.flush()
     created = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
+    created.status = SeatStatus.AVAILABLE
+    await db.flush()
+    await db.refresh(created)
     return created.id
 
 

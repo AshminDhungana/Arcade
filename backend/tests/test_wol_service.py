@@ -46,7 +46,7 @@ async def db() -> AsyncSession:
 
 @pytest.fixture
 async def zone_and_seat_with_mac(db: AsyncSession):
-    from backend.models import PricingModel, Zone
+    from backend.models import PricingModel, Zone, SeatStatus
 
     zone = Zone(
         name="Main Floor",
@@ -59,12 +59,15 @@ async def zone_and_seat_with_mac(db: AsyncSession):
     seat = await seat_repo.create(
         db, name="PC-01", zone_id=zone.id, mac_address="aa:bb:cc:dd:ee:ff"
     )
+    seat.status = SeatStatus.AVAILABLE
+    await db.flush()
+    await db.refresh(seat)
     return zone, seat
 
 
 @pytest.fixture
 async def zone_and_seat_no_mac(db: AsyncSession):
-    from backend.models import PricingModel, Zone
+    from backend.models import PricingModel, Zone, SeatStatus
 
     zone = Zone(
         name="Main Floor",
@@ -75,6 +78,9 @@ async def zone_and_seat_no_mac(db: AsyncSession):
     db.add(zone)
     await db.flush()
     seat = await seat_repo.create(db, name="PC-02", zone_id=zone.id)
+    seat.status = SeatStatus.AVAILABLE
+    await db.flush()
+    await db.refresh(seat)
     return zone, seat
 
 

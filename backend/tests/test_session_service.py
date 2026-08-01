@@ -58,6 +58,7 @@ async def zone_and_seat(db: AsyncSession, staff_member):
     Uses the zone the staff has access to.
     """
     from backend.repositories import zone_repo
+    from backend.models import SeatStatus
 
     # Get the zone the staff member has access to
     zone_ids = await staff_zone_repo.get_zone_ids_for_staff(db, staff_member.id)
@@ -65,6 +66,9 @@ async def zone_and_seat(db: AsyncSession, staff_member):
     zone = await zone_repo.get_by_id(db, zone_id)
 
     seat = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
+    seat.status = SeatStatus.AVAILABLE
+    await db.flush()
+    await db.refresh(seat)
     return zone, seat
 
 
@@ -611,7 +615,11 @@ async def test_forced_overlay_accrual_parity_with_pause_resume(
         await resume_session(db, session_id=sess_a.id, staff=staff_member)
 
         # -- Session B: forced overlay on/off --
+        from backend.models import SeatStatus
         seat_b = await seat_repo.create(db, name="PC-02", zone_id=zone.id)
+        seat_b.status = SeatStatus.AVAILABLE
+        await db.flush()
+        await db.refresh(seat_b)
         sess_b = await start_session(
             db, seat_id=seat_b.id, member_id=None, staff=staff_member
         )
