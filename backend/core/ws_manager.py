@@ -338,6 +338,16 @@ class WebSocketManager:
         """
         mac_address = payload.get("mac_address", "")
         hostname = payload.get("hostname", "")
+        
+        # Update seat status to AVAILABLE in database
+        from backend.core.database import AsyncSessionLocal
+        from backend.repositories import seat_repo
+        from backend.models._enums import SeatStatus
+        
+        async with AsyncSessionLocal() as db:
+            await seat_repo.update_status(db, seat_id, SeatStatus.AVAILABLE)
+            await db.commit()
+
         await self.broadcast_to_dashboards(
             Msg.SEAT_UPDATED,
             {
