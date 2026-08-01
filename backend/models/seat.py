@@ -24,7 +24,7 @@ class Seat(Base):
     )
     mac_address: Mapped[str | None] = mapped_column(String(17))
     status: Mapped[SeatStatus] = mapped_column(
-        StrEnumColumn(SeatStatus, 15), nullable=False, default=SeatStatus.AVAILABLE
+        StrEnumColumn(SeatStatus, 15), nullable=False, default=SeatStatus.OFFLINE
     )
     plug_id: Mapped[str | None] = mapped_column(String(255))
     is_console: Mapped[bool] = mapped_column(default=False)

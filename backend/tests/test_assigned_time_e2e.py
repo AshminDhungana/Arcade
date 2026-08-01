@@ -72,7 +72,12 @@ async def seat(db: AsyncSession):
     )
     db.add(zone)
     await db.flush()
-    return await seat_repo.create(db, name="PC-01", zone_id=zone.id)
+    seat = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
+    # Seat is created OFFLINE; set to AVAILABLE to simulate agent connected
+    seat.status = SeatStatus.AVAILABLE
+    await db.commit()
+    await db.refresh(seat)
+    return seat
 
 
 @pytest.fixture(autouse=True)
