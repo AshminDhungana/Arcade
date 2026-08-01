@@ -44,6 +44,7 @@ async def test_start_session_calls_tuya_power_on(_tuya_db: AsyncSession) -> None
     _tuya_db.add(zone)
     await _tuya_db.flush()
     from backend.models import SeatStatus
+
     seat = await seat_repo.create(_tuya_db, name="PC-01", zone_id=zone.id)
     seat.status = SeatStatus.AVAILABLE
     await _tuya_db.flush()
@@ -99,6 +100,7 @@ async def test_start_session_continues_when_tuya_raises(
     _tuya_db.add(zone)
     await _tuya_db.flush()
     from backend.models import SeatStatus
+
     seat = await seat_repo.create(_tuya_db, name="PC-02", zone_id=zone.id)
     seat.status = SeatStatus.AVAILABLE
     await _tuya_db.flush()

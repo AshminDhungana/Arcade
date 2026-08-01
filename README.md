@@ -264,7 +264,7 @@ git clone https://github.com/AshminDhungana/Arcade.git
 cd Arcade
 
 # Create and activate virtual enviroment if required
-python -m venv venv 
+python -m venv venv
 
 pip install -r ./backend/requirements.txt
 

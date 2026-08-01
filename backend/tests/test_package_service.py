@@ -350,6 +350,7 @@ class TestPackageIntegration:
             pricing_model=PricingModel.PER_MINUTE,
         )
         from backend.models import SeatStatus
+
         seat = await seat_repo.create(
             db, name="Seat 1", zone_id=zone.id, mac_address="AA:BB:CC:DD:EE:FF"
         )

@@ -616,6 +616,7 @@ async def test_forced_overlay_accrual_parity_with_pause_resume(
 
         # -- Session B: forced overlay on/off --
         from backend.models import SeatStatus
+
         seat_b = await seat_repo.create(db, name="PC-02", zone_id=zone.id)
         seat_b.status = SeatStatus.AVAILABLE
         await db.flush()

@@ -110,7 +110,9 @@ class LicenseApp:
             pady=SPACING["md"],
         )
 
-        key_ok = _get_bundled_private_key_path() is not None or PRIVATE_KEY_PATH.exists()
+        key_ok = (
+            _get_bundled_private_key_path() is not None or PRIVATE_KEY_PATH.exists()
+        )
         self.key_badge = ctk.CTkLabel(
             bar,
             text="Key loaded ✓" if key_ok else "No key ⚠",

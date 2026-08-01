@@ -82,6 +82,7 @@ async def zone(db: AsyncSession) -> Zone:
 async def seat(db: AsyncSession, zone: Zone) -> Seat:
     """Create and return a seat in the zone."""
     from backend.models import SeatStatus
+
     seat = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
     seat.status = SeatStatus.AVAILABLE
     await db.commit()

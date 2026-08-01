@@ -61,6 +61,7 @@ async def sample_zone(db: AsyncSession) -> Zone:
 @pytest_asyncio.fixture
 async def sample_seat(db: AsyncSession, sample_zone: Zone) -> Seat:
     from backend.models import SeatStatus
+
     seat = await seat_repo.create(
         db, name="Seat 1", zone_id=sample_zone.id, mac_address="AA:BB:CC:DD:EE:FF"
     )

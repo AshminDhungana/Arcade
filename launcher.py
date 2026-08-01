@@ -34,14 +34,6 @@ from pathlib import Path
 from tkinter import filedialog, messagebox
 from typing import Any
 
-
-def _get_exe_dir() -> Path:
-    """Return the directory containing the running executable (or script)."""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
-    return Path(__file__).resolve().parent
-
-
 import customtkinter as ctk
 
 from backend.core.security import hash_pin
@@ -65,6 +57,14 @@ from launcher_widgets import (
     screen_title,
     show_toast,
 )
+
+
+def _get_exe_dir() -> Path:
+    """Return the directory containing the running executable (or script)."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parent
+
 
 # Default bind address/port for the Arcade server. Overridable per-install
 # via the setup wizard; kept here as the single source of truth so the
@@ -388,11 +388,14 @@ class ActivationScreen(_BaseScreen):
                     self.controller._check_and_route()
                     return
             except Exception:
-                pass
+                _log.exception("Failed to copy license to alternative location")
             messagebox.showerror(
                 "Error",
-                "Unable to copy license file: the destination is locked by the running application. "
-                "Please close the launcher, place license.key next to the .exe manually, then restart.",
+                (
+                    "Unable to copy license file: the destination is locked by the "
+                    "running application. Please close the launcher, place "
+                    "license.key next to the .exe manually, then restart."
+                ),
             )
         except Exception as exc:  # noqa: BLE001
             messagebox.showerror("Error", f"Unable to copy license file:\n{exc}")
@@ -681,7 +684,9 @@ class SetupWizard(_BaseScreen):
             self.controller._check_and_route()
         except Exception as exc:  # noqa: BLE001
             _log.exception("Setup wizard failed")
-            messagebox.showerror("Setup Failed", f"An error occurred during setup:\n{exc}")
+            messagebox.showerror(
+                "Setup Failed", f"An error occurred during setup:\n{exc}"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -1298,7 +1303,10 @@ class LauncherApp:
                     Path(license_path).unlink(missing_ok=True)
                     self._alt_license_path = "license.key"
                 except Exception:
-                    pass  # Will retry on next launch
+                    _log.exception(
+                        "Failed to copy license to main location, "
+                        "will retry on next launch"
+                    )
             # Check for config file in the project root (handles PyInstaller _MEIPASS)
             try:
                 from backend.core.config import load_config
@@ -1338,6 +1346,7 @@ def _run_server(host: str, port: int) -> None:
     import shutil
     import sys
     from pathlib import Path
+
     import uvicorn
 
     exe_dir = _get_exe_dir()
@@ -1361,7 +1370,7 @@ def _run_server(host: str, port: int) -> None:
         try:
             shutil.copy2(config_path, meipass_config)
         except Exception:
-            pass  # Best effort
+            _log.exception("Failed to copy config to _MEIPASS, best effort")
 
     uvicorn.run("backend.main:app", host=host, port=port, log_level="info")
 
@@ -1374,9 +1383,15 @@ def main() -> None:
     subparsers.add_parser("self-test", help="Run CI smoke test")
 
     # Run-server command (for PyInstaller frozen executable)
-    run_server_parser = subparsers.add_parser("run-server", help="Run the uvicorn server")
-    run_server_parser.add_argument("--host", default=DEFAULT_HOST, help="Host to bind to")
-    run_server_parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Port to bind to")
+    run_server_parser = subparsers.add_parser(
+        "run-server", help="Run the uvicorn server"
+    )
+    run_server_parser.add_argument(
+        "--host", default=DEFAULT_HOST, help="Host to bind to"
+    )
+    run_server_parser.add_argument(
+        "--port", type=int, default=DEFAULT_PORT, help="Port to bind to"
+    )
 
     args = parser.parse_args()
 

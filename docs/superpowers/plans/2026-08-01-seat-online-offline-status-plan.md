@@ -200,11 +200,11 @@ from fastapi import FastAPI
 @pytest.mark.asyncio
 async def test_lifespan_calls_initialize_seat_statuses():
     app = FastAPI(lifespan=lifespan)
-    
+
     with patch("backend.main.initialize_seat_statuses", new_callable=AsyncMock) as mock_init:
         async with lifespan(app):
             pass
-        
+
         mock_init.assert_awaited_once()
 ```
 
@@ -272,29 +272,29 @@ from backend.repositories import seat_repo
 @pytest.mark.asyncio
 async def test_handle_register_sets_seat_online():
     manager = WebSocketManager()
-    
+
     # Setup: create a seat in OFFLINE status
     async with AsyncSessionLocal() as db:
         seat = await seat_repo.create(db, name="Test Seat", zone_id="zone1")
         seat.status = SeatStatus.OFFLINE
         await db.commit()
         seat_id = seat.id
-    
+
     # Mock websocket
     mock_ws = AsyncMock()
-    
+
     # Call _handle_register
     with patch("backend.core.ws_manager.manager", manager):
         result = await manager._handle_register(seat_id, {
             "mac_address": "aa:bb:cc:dd:ee:ff",
             "hostname": "test-pc"
         })
-    
+
     # Verify seat is now ONLINE
     async with AsyncSessionLocal() as db:
         refreshed = await db.get(Seat, seat_id)
         assert refreshed.status == SeatStatus.ONLINE
-    
+
     # Verify response
     assert result["type"] == "REGISTERED"
 ```
@@ -319,12 +319,12 @@ async def _handle_register(
     """
     mac_address = payload.get("mac_address", "")
     hostname = payload.get("hostname", "")
-    
+
     # Update seat status to ONLINE in database
     from backend.core.database import AsyncSessionLocal
     from backend.repositories import seat_repo
     from backend.models._enums import SeatStatus
-    
+
     async with AsyncSessionLocal() as db:
         await seat_repo.update_status(db, seat_id, SeatStatus.ONLINE)
         await db.commit()
@@ -380,26 +380,26 @@ from backend.repositories import seat_repo
 @pytest.mark.asyncio
 async def test_disconnect_agent_sets_seat_offline():
     manager = WebSocketManager()
-    
+
     # Setup: create a seat in ONLINE status
     async with AsyncSessionLocal() as db:
         seat = await seat_repo.create(db, name="Test Seat", zone_id="zone1")
         seat.status = SeatStatus.ONLINE
         await db.commit()
         seat_id = seat.id
-    
+
     # Mock websocket connection
     mock_ws = AsyncMock()
     manager.agent_connections[seat_id] = mock_ws
-    
+
     # Call disconnect_agent
     await manager.disconnect_agent(seat_id)
-    
+
     # Verify seat is now OFFLINE
     async with AsyncSessionLocal() as db:
         refreshed = await db.get(Seat, seat_id)
         assert refreshed.status == SeatStatus.OFFLINE
-    
+
     # Verify connection cleaned up
     assert seat_id not in manager.agent_connections
 ```
@@ -426,12 +426,12 @@ async def disconnect_agent(self, seat_id: str) -> None:
     async with self._lock:
         self._pending_pongs.discard(seat_id)
         self.agent_connections.pop(seat_id, None)
-    
+
     # Update seat status to OFFLINE in database
     from backend.core.database import AsyncSessionLocal
     from backend.repositories import seat_repo
     from backend.models._enums import SeatStatus
-    
+
     async with AsyncSessionLocal() as db:
         try:
             await seat_repo.update_status(db, seat_id, SeatStatus.OFFLINE)
@@ -441,7 +441,7 @@ async def disconnect_agent(self, seat_id: str) -> None:
             logging.getLogger(__name__).warning(
                 "Failed to set seat %s to OFFLINE on disconnect: %s", seat_id, e
             )
-    
+
     # Broadcast OFFLINE status to dashboards
     await self.broadcast_to_dashboards(
         Msg.SEAT_UPDATED,
@@ -489,15 +489,15 @@ async def test_tick_does_not_broadcast_offline():
     """Verify _tick no longer broadcasts OFFLINE status (handled by disconnect_agent)."""
     manager = WebSocketManager()
     manager.broadcast_to_dashboards = AsyncMock()
-    
+
     # Add a fake agent connection
     mock_ws = AsyncMock()
     manager.agent_connections["seat1"] = mock_ws
     manager._pending_pongs.add("seat1")
-    
+
     # Call _tick
     await manager._tick()
-    
+
     # Verify no OFFLINE broadcast was sent
     offline_calls = [
         call for call in manager.broadcast_to_dashboards.call_args_list
@@ -632,36 +632,36 @@ async def test_full_online_offline_cycle():
         # Clean slate
         await db.execute("DELETE FROM seats")
         await db.commit()
-        
+
         # Create test seat
         seat = await seat_repo.create(db, name="Integration Seat", zone_id="zone1")
         seat.status = SeatStatus.ONLINE  # Simulate previous state
         await db.commit()
         seat_id = seat.id
-    
+
     # 1. Startup initialization - should set to OFFLINE
     await initialize_seat_statuses()
-    
+
     async with AsyncSessionLocal() as db:
         refreshed = await db.get(Seat, seat_id)
         assert refreshed.status == SeatStatus.OFFLINE
-    
+
     # 2. Agent connects - REGISTER should set ONLINE
     manager = WebSocketManager()
-    
+
     with patch("backend.core.ws_manager.manager", manager):
         await manager._handle_register(seat_id, {
             "mac_address": "aa:bb:cc:dd:ee:ff",
             "hostname": "test-pc"
         })
-    
+
     async with AsyncSessionLocal() as db:
         refreshed = await db.get(Seat, seat_id)
         assert refreshed.status == SeatStatus.ONLINE
-    
+
     # 3. Agent disconnects - should set OFFLINE
     await manager.disconnect_agent(seat_id)
-    
+
     async with AsyncSessionLocal() as db:
         refreshed = await db.get(Seat, seat_id)
         assert refreshed.status == SeatStatus.OFFLINE
