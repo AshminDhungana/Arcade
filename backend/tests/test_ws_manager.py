@@ -79,3 +79,22 @@ async def test_disconnect_agent_sets_seat_offline():
     
     # Verify connection cleaned up
     assert seat_id not in manager.agent_connections
+
+
+@pytest.mark.asyncio
+async def test_tick_calls_disconnect_agent_on_timeout():
+    """Verify _tick calls disconnect_agent for expired agents (which handles OFFLINE status)."""
+    manager = WebSocketManager()
+    manager.disconnect_agent = AsyncMock()
+    manager.broadcast_to_dashboards = AsyncMock()
+    
+    # Add a fake agent connection
+    mock_ws = AsyncMock()
+    manager.agent_connections["seat1"] = mock_ws
+    manager._pending_pongs.add("seat1")
+    
+    # Call _tick
+    await manager._tick()
+    
+    # Verify disconnect_agent was called for the expired seat
+    manager.disconnect_agent.assert_awaited_once_with("seat1")

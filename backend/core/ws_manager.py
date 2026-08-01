@@ -617,12 +617,8 @@ class WebSocketManager:
         # Step 1: Disconnect agents who didn't PONG from the PREVIOUS tick
         expired = list(self._pending_pongs)
         for seat_id in expired:
-            ws = self.agent_connections.pop(seat_id, None)
-            if ws is not None:
-                try:
-                    await ws.close(code=1001, reason="heartbeat timeout")
-                except Exception:
-                    logger.debug("Failed to close agent websocket on heartbeat timeout")
+            # Call disconnect_agent which handles cleanup, DB update, and broadcast
+            await self.disconnect_agent(seat_id)
 
         # Step 2: Send PING to all current agents
         current_agents = list(self.agent_connections.items())
@@ -632,7 +628,8 @@ class WebSocketManager:
                 await ws.send_json(ws_envelope(Msg.PING, {}))
                 self._pending_pongs.add(seat_id)
             except Exception:
-                self.agent_connections.pop(seat_id, None)
+                # Connection failed, disconnect_agent will handle cleanup
+                await self.disconnect_agent(seat_id)
 
     async def close_all(self) -> None:
         if self._heartbeat_task is not None:
