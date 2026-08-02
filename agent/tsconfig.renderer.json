@@ -8,7 +8,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist/renderer",
-    "rootDir": "src/renderer"
+    "rootDir": "src/renderer",
+    "types": ["node"]
   },
   "include": ["src/renderer/**/*.ts"],
   "exclude": ["src/renderer/**/*.test.ts"]

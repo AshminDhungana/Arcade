@@ -21,6 +21,10 @@ export interface HandlerDeps {
   getCafeName?: () => string;
   /** Optional event/tournament banner from the server. */
   getEventBanner?: () => string;
+  /** Server WebSocket URL (for settings panel). */
+  serverUrl?: string;
+  /** Agent secret (for settings panel). */
+  agentSecret?: string;
 }
 
 /**
@@ -53,6 +57,9 @@ SHOW_OVERLAY(payload) {
         callStaffEnabled: true,
         sessionActive: false,
         eventBanner: deps.getEventBanner?.() || '',
+        serverUrl: deps.serverUrl,
+        seatId: deps.seatId,
+        agentSecret: deps.agentSecret,
       });
     },
 
@@ -96,6 +103,9 @@ FORCE_OVERLAY_ON(payload) {
         remainingTime: undefined,
         lowTimeWarning: false,
         eventBanner: deps.getEventBanner?.() || '',
+        serverUrl: deps.serverUrl,
+        seatId: deps.seatId,
+        agentSecret: deps.agentSecret,
       });
     },
 

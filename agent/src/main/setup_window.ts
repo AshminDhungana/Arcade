@@ -14,7 +14,7 @@ export function openSetupWindow(
     frame: true,
     resizable: false,
     webPreferences: {
-      devTools: false,
+      devTools: true,
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,

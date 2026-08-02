@@ -8,6 +8,7 @@
 import { KioskOverlay } from './components/kiosk-overlay.js';
 import { createLowTimeModal, showModal, hideModal } from './components/low-time-warning.js';
 import { createStaffOverrideDialog } from './components/staff-override-dialog.js';
+import { createSettingsPanel } from './components/settings-panel.js';
 import type { OverlayData, ElectronAPI } from './types.js';
 
 /** Format elapsed seconds as HH:MM:SS (hours can exceed 99). */
@@ -37,12 +38,14 @@ function initKiosk(): void {
 
   // --- IPC Listeners from preload ---
   let hasOverrideCode = false;
+  let currentConfig: OverlayData | null = null;
 
   window.electronAPI.onConfig((config) => {
     hasOverrideCode = config.hasOverrideCode;
   });
 
   window.electronAPI.onOverlayContent((data: OverlayData) => {
+    currentConfig = data;
     overlay.setCafeName(data.cafeName, data.cafeLogo);
     overlay.setEventBanner(data.eventBanner);
     overlay.setSessionActive(data.sessionActive);
@@ -102,11 +105,30 @@ function initKiosk(): void {
   // --- Call staff button ---
   overlay.onCallStaff(() => {
     window.electronAPI.callStaff();
+    overlay.showCallStaffConfirmation();
   });
 
-  // --- Settings button ---
-  overlay.onSettings(() => {
-    window.electronAPI.openSettings();
+  // --- Settings button → in-overlay panel ---
+  overlay.onSettingsPanel(() => {
+    if (!currentConfig) {
+      overlay.showAnnouncement('Settings unavailable', 2000);
+      return;
+    }
+    const panel = createSettingsPanel({
+      config: {
+        serverUrl: currentConfig.serverUrl || 'Unknown',
+        seatId: currentConfig.seatId || 'Unknown',
+        agentSecret: currentConfig.agentSecret || '',
+      },
+      onReEnroll: () => {
+        window.electronAPI.openSettings(); // triggers re-enroll flow
+      },
+      onClose: () => {
+        hideModal(panel);
+        (panel as any)._cleanup?.();
+      },
+    });
+    showModal(panel);
   });
 }
 

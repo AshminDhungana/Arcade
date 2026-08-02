@@ -51,12 +51,14 @@ async function bootstrap(): Promise<void> {
 
   platformService = await getPlatformService();
   console.log(`[Agent] Platform service: ${platformService.constructor.name}`);
+  console.log('[Agent] Bootstrap started, process.execPath:', process.execPath);
 
   // Load agent.config.json from the same directory as the executable.
   // In production it's next to the .exe; in dev we fall back to cwd.
   const fromExe = path.join(path.dirname(process.execPath), 'agent.config.json');
   const fromCwd = path.join(process.cwd(), 'agent.config.json');
   const configPath = fs.existsSync(fromExe) ? fromExe : fromCwd;
+  console.log('[Agent] Config path:', configPath, 'exists:', fs.existsSync(configPath));
 
   if (!fs.existsSync(configPath)) {
     // ---- First-run: no local config → show setup window ----
@@ -68,7 +70,9 @@ async function bootstrap(): Promise<void> {
     // written. The relaunch is instead placed in the 'agent:enroll' IPC
     // handler (below), AFTER enrollAgent() succeeds and the renderer is
     // signalled via 'enroll:done'.
+    console.log('[Agent] First-run mode: opening setup window');
     const setupWin = openSetupWindow(() => {});
+    console.log('[Agent] Setup window created, registering IPC handler');
     ipcMain.handle('agent:enroll', async (_e, code: string) => {
       try {
         console.log('[main] Enrollment started with code:', code);

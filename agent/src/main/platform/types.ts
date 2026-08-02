@@ -28,6 +28,15 @@ export interface OverlayContent {
 
   /** Whether the staff override code is configured (shows Ctrl+Shift+O dialog). */
   overrideCodeConfigured?: boolean;
+
+  /** Server WebSocket URL (for settings panel). */
+  serverUrl?: string;
+
+  /** Seat ID (for settings panel). */
+  seatId?: string;
+
+  /** Agent secret (masked in settings panel). */
+  agentSecret?: string;
 }
 
 /**

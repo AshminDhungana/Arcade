@@ -34,12 +34,12 @@ function parseWsUrl(wsUrl: string): { host: string; port: number } | null {
   }
 }
 
-/** Probe a single IP:port via HTTP /api/discovery. */
+/** Probe a single IP:port via HTTP /api/agent/discovery. */
 async function probeHostPort(host: string, port: number): Promise<string | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
   try {
-    const res = await fetch(`http://${host}:${port}/api/discovery`, {
+    const res = await fetch(`http://${host}:${port}/api/agent/discovery`, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     });
@@ -75,7 +75,7 @@ function beaconToWsUrl(text: string): string | null {
   }
 }
 
-/** Probe a single gateway IP via HTTP /api/discovery on port 80. */
+/** Probe a single gateway IP via HTTP /api/agent/discovery on port 80. */
 async function probeGateway(ip: string): Promise<string | null> {
   return probeHostPort(ip, 80);
 }
