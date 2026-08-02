@@ -84,14 +84,14 @@ def header(title: str) -> None:
 
 
 def run(
-    cmd: list[str], cwd: Path, step_name: str, input_text: str | None = None
+    cmd: list[str], cwd: Path, step_name: str, input_text: str | None = None, env: dict | None = None
 ) -> None:
     """Run a subprocess, streaming its output, and abort the build on failure."""
     print(f"  $ {' '.join(cmd)}   (cwd: {cwd})")
     # On Windows, npm/node are .cmd files - use shell=True to resolve them
     use_shell = IS_WINDOWS and cmd[0] in ("npm", "node", "npx", "makensis")
     # S603: cmd is a controlled list of known commands, not user input
-    result = subprocess.run(cmd, cwd=cwd, text=True, input=input_text, shell=use_shell)  # noqa: S603
+    result = subprocess.run(cmd, cwd=cwd, text=True, input=input_text, shell=use_shell, env=env)  # noqa: S603
     if result.returncode != 0:
         print(f"\n[FAIL] {step_name} (exit code {result.returncode})")
         sys.exit(1)
