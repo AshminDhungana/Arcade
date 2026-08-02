@@ -87,12 +87,6 @@ export class KioskOverlay {
     callStaffBtn.addEventListener('click', () => this.callStaffCb?.());
     this.railEl.appendChild(callStaffBtn);
 
-    const settingsBtn = document.createElement('button');
-    settingsBtn.className = 'kiosk-btn secondary';
-    settingsBtn.textContent = 'Settings';
-    settingsBtn.addEventListener('click', () => this.settingsPanelCb?.());
-    this.railEl.appendChild(settingsBtn);
-
     this.container.appendChild(this.railEl);
   }
 
@@ -180,19 +174,9 @@ export class KioskOverlay {
     this.showAnnouncement('✓ Staff notified', 3000);
   }
 
-  /** Callback for settings button (opens in-overlay panel). */
-  onSettingsPanel(cb: () => void): void {
-    this.settingsPanelCb = cb;
-  }
-
   /** Callback for call-staff button. */
   onCallStaff(cb: () => void): void {
     this.callStaffCb = cb;
-  }
-
-  /** Callback for settings button (legacy). */
-  onSettings(cb: () => void): void {
-    this.settingsCb = cb;
   }
 
   /** Tear down the component. */
@@ -204,8 +188,6 @@ export class KioskOverlay {
   }
 
   private callStaffCb: (() => void) | null = null;
-  private settingsPanelCb: (() => void) | null = null;
-  private settingsCb: (() => void) | null = null; // legacy, keep for compat
 
   private updateClock(): void {
     const now = new Date();

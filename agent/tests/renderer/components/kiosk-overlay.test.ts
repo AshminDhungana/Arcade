@@ -81,6 +81,17 @@ describe('KioskOverlay branding', () => {
   });
 });
 
+describe('KioskOverlay rail', () => {
+  it('has no Settings button in rail', () => {
+    const root = document.createElement('div');
+    new KioskOverlay(root);
+    const rail = root.querySelector('.kiosk-rail');
+    const buttons = rail?.querySelectorAll('button');
+    expect(buttons?.length).toBe(1);
+    expect(buttons?.[0].textContent).toBe('Call Staff');
+  });
+});
+
 describe('KioskOverlay.setEventBanner', () => {
   it('shows the banner with text', () => {
     const root = document.createElement('div');
