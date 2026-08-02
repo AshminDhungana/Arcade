@@ -70,17 +70,36 @@ async function probeGateway(ip: string): Promise<string | null> {
 }
 
 /**
+ * Probe a candidate server URL via HTTP /api/discovery to verify it's reachable.
+ * Returns the verified ws:// URL or null if unreachable.
+ */
+async function verifyServerUrl(wsUrl: string): Promise<string | null> {
+  try {
+    const httpUrl = wsUrl.replace(/^ws:/, 'http:') + '/api/discovery';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+    const res = await fetch(httpUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) return wsUrl;
+  } catch {
+    // ignore - will fall through to next candidate
+  }
+  return null;
+}
+
+/**
  * Discover the Arcade server on the LAN.
  *
- * 1) Try UDP broadcast beacon (timeoutMs, default 4s).
+ * 1) Try UDP broadcast beacon (timeoutMs, default 4s), then verify via HTTP.
  * 2) Fallback: probe common LAN gateways via HTTP GET /api/discovery
  *    (parallel, max 3 concurrent, 500ms timeout each).
+ * 3) Fallback: try localhost (for same-machine testing when server returns 0.0.0.0)
  *
  * @param timeoutMs How long to wait for a beacon before fallback.
  * @returns A `ws://host:port` URL, or null if no server was discovered.
  */
 export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
-  // 1) Try UDP broadcast beacon.
+  // 1) Try UDP broadcast beacon, then verify the returned URL works.
   const udp = await new Promise<string | null>((resolve) => {
     const sock = dgram.createSocket('udp4');
     let done = false;
@@ -96,7 +115,12 @@ export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
     sock.on('error', () => finish(null));
     sock.bind(BEACON_PORT);
   });
-  if (udp) return udp;
+  if (udp) {
+    const verified = await verifyServerUrl(udp);
+    if (verified) return verified;
+    // UDP beacon gave a URL but it's not reachable (e.g. LAN IP blocked by firewall).
+    // Fall through to other discovery methods.
+  }
 
   // 2) Fallback: probe common LAN gateways via HTTP /api/discovery.
   for (let i = 0; i < COMMON_GATEWAYS.length; i += MAX_CONCURRENT_PROBES) {

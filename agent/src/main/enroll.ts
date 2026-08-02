@@ -4,6 +4,8 @@ import { saveAgentConfig } from './config/loader.js';
 import type { LoadedAgentConfig } from './config/types.js';
 import { resolveMasterPinHash } from './master-pin.js';
 
+const ENROLL_TIMEOUT_MS = 10000;
+
 interface EnrollResponse {
   seat_id: string;
   agent_secret: string;
@@ -22,15 +24,31 @@ export async function enrollAgent(
   // enroll HTTP call (server_url stays as-is in the persisted config).
   const scheme = serverUrl.startsWith('wss://') ? 'https://' : 'http://';
   const base = scheme + serverUrl.slice(serverUrl.indexOf('://') + 3).replace(/\/$/, '');
-  const res = await fetch(`${base}/api/agent/enroll`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      code,
-      mac_address: '',
-      hostname: os.hostname(),
-    }),
-  });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ENROLL_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/agent/enroll`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        mac_address: '',
+        hostname: os.hostname(),
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Enrollment request timed out (10s)');
+    }
+    throw err;
+  }
+  clearTimeout(timeout);
+
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
     throw new Error(`Enrollment failed (${res.status}): ${detail}`);
