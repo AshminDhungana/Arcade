@@ -156,3 +156,27 @@ class TestAuthZoning:
             },
         )
         assert resp.status_code == 403
+
+
+class TestList:
+    async def test_list_menu_items(self, client: AsyncClient) -> None:
+        # Create a few items
+        await client.post(
+            "/api/menu-items", json={"name": "Item 1", "price_paise": 1000}
+        )
+        await client.post(
+            "/api/menu-items", json={"name": "Item 2", "price_paise": 2000}
+        )
+
+        resp = await client.get("/api/menu-items")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) >= 2
+        assert all("id" in item for item in data)
+        assert all("updated_at" in item for item in data)
+
+    async def test_list_empty(self, client: AsyncClient) -> None:
+        # List when no items exist
+        resp = await client.get("/api/menu-items")
+        assert resp.status_code == 200
+        assert resp.json() == []

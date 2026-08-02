@@ -3,6 +3,7 @@
 Routes::
 
     POST   /api/menu-items        -> create menu item (Admin)
+    GET    /api/menu-items        -> list all (Admin)
     GET    /api/menu-items/{id}   -> get one (Admin)
     PUT    /api/menu-items/{id}   -> update (Admin)
     DELETE /api/menu-items/{id}   -> delete (Admin)
@@ -62,6 +63,20 @@ async def create_menu_item(
         is_available=body.is_available,
     )
     return _to_response(created)
+
+
+@router.get(
+    "",
+    response_model=list[MenuItemResponse],
+    summary="List all menu items",
+)
+async def list_menu_items(
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    _staff: Annotated[None, Depends(require_admin)] = None,  # noqa: B008
+) -> list[MenuItemResponse]:
+    """List all menu items. Admin only."""
+    items = await inventory_repo.list(db)
+    return [_to_response(item) for item in items]
 
 
 @router.get(
