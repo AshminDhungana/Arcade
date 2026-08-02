@@ -75,18 +75,24 @@ export function createLowTimeModal(options: LowTimeWarningOptions): HTMLDivEleme
   return modal;
 }
 
-/** Show a modal element (assumes it's already in the DOM). */
+/** Show a modal element (appends to body if not already in DOM). */
 export function showModal(el: HTMLDivElement): void {
+  if (!el.parentNode) {
+    document.body.appendChild(el);
+  }
   el.style.display = 'flex';
   // Force reflow so the opacity transition takes effect
   void el.offsetWidth;
   el.classList.add('visible');
 }
 
-/** Hide a modal element with an opacity transition. */
+/** Hide a modal element with an opacity transition and remove from DOM. */
 export function hideModal(el: HTMLDivElement): void {
   el.classList.remove('visible');
   setTimeout(() => {
     el.style.display = 'none';
+    if (el.parentNode) {
+      el.parentNode.removeChild(el);
+    }
   }, 300);
 }
