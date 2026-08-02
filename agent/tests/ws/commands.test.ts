@@ -50,6 +50,9 @@ it('HIDE_OVERLAY calls hideKioskOverlay', () => {
     expect(mockPlatform.showKioskOverlay).toHaveBeenCalledWith({
       cafeName: 'Arcade', announcements: [], callStaffEnabled: true, sessionActive: false,
       eventBanner: '',
+      serverUrl: undefined,
+      seatId: 'seat_001',
+      agentSecret: undefined,
     });
   });
 

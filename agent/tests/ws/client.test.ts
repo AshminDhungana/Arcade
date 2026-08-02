@@ -176,6 +176,9 @@ describe('AgentWebSocketClient', () => {
         callStaffEnabled: true,
         sessionActive: false,
         eventBanner: '',
+        serverUrl: 'ws://192.168.1.100:8000',
+        seatId: 'seat_001',
+        agentSecret: 'test-secret-123',
       });
     }
   });
