@@ -96,6 +96,27 @@ function initKiosk(): void {
           onCancel: () => {
             overrideDialog = null;
           },
+          onSettings: () => {
+            if (!currentConfig) {
+              overlay.showAnnouncement('Settings unavailable', 2000);
+              return;
+            }
+            const panel = createSettingsPanel({
+              config: {
+                serverUrl: currentConfig.serverUrl || 'Unknown',
+                seatId: currentConfig.seatId || 'Unknown',
+                agentSecret: currentConfig.agentSecret || '',
+              },
+              onReEnroll: () => {
+                window.electronAPI.openSettings(); // triggers re-enroll flow
+              },
+              onClose: () => {
+                hideModal(panel);
+                (panel as HTMLDivElement & { _cleanup?: () => void })._cleanup?.();
+              },
+            });
+            showModal(panel);
+          },
         });
       }
       showModal(overrideDialog);
@@ -103,33 +124,6 @@ function initKiosk(): void {
   });
 
   // --- Call staff button ---
-  overlay.onCallStaff(() => {
-    window.electronAPI.callStaff();
-    overlay.showCallStaffConfirmation();
-  });
-
-  // --- Settings button → in-overlay panel ---
-  overlay.onSettingsPanel(() => {
-    if (!currentConfig) {
-      overlay.showAnnouncement('Settings unavailable', 2000);
-      return;
-    }
-    const panel = createSettingsPanel({
-      config: {
-        serverUrl: currentConfig.serverUrl || 'Unknown',
-        seatId: currentConfig.seatId || 'Unknown',
-        agentSecret: currentConfig.agentSecret || '',
-      },
-      onReEnroll: () => {
-        window.electronAPI.openSettings(); // triggers re-enroll flow
-      },
-      onClose: () => {
-        hideModal(panel);
-        (panel as HTMLDivElement & { _cleanup?: () => void })._cleanup?.();
-      },
-    });
-    showModal(panel);
-  });
 }
 
 // ---------------------------------------------------------------------------
