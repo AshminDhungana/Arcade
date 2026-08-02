@@ -83,17 +83,42 @@ body {
 }
 .kiosk-status .ok { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: var(--glow) var(--accent); }
 
-.call-staff-btn {
-  position: absolute;
-  right: 4vw;
-  bottom: 4vh;
-  font-family: var(--font-display); font-weight: 600; font-size: .9rem;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
-  background: transparent; border: 1.5px solid var(--accent);
-  border-radius: 10px; padding: .7rem 1.6rem; cursor: pointer;
-  box-shadow: var(--glow) rgba(34, 211, 238, .25); transition: background .2s, color .2s;
+/* --- Button base + variants --- */
+.kiosk-btn {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: .9rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border-radius: 10px;
+  padding: .7rem 1.6rem;
+  cursor: pointer;
+  box-shadow: var(--glow) rgba(34, 211, 238, .25);
+  transition: background .2s, color .2s;
 }
-.call-staff-btn:hover { background: var(--accent); color: var(--bg-0); }
+
+/* Primary — Call Staff */
+.kiosk-btn.primary {
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+}
+.kiosk-btn.primary:hover {
+  background: var(--accent);
+  color: var(--bg-0);
+}
+
+/* Secondary — Settings */
+.kiosk-btn.secondary {
+  color: var(--text-2);
+  background: transparent;
+  border: 1.5px solid var(--border);
+}
+.kiosk-btn.secondary:hover {
+  background: var(--bg-2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 /* Announcement (reused by HUD) */
 .announcement-banner {
