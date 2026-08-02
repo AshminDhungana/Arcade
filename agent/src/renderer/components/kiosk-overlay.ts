@@ -73,13 +73,26 @@ export class KioskOverlay {
 
     this.container.appendChild(this.centerEl);
 
-    // Bottom rail: status
+    // Bottom rail: status + buttons
     this.railEl = document.createElement('div');
     this.railEl.className = 'kiosk-rail';
     const railStatus = document.createElement('div');
     railStatus.className = 'kiosk-status';
     railStatus.innerHTML = '<span class="ok"></span><span>Online</span>';
     this.railEl.appendChild(railStatus);
+
+    const callStaffBtn = document.createElement('button');
+    callStaffBtn.className = 'kiosk-btn primary';
+    callStaffBtn.textContent = 'Call Staff';
+    callStaffBtn.addEventListener('click', () => this.callStaffCb?.());
+    this.railEl.appendChild(callStaffBtn);
+
+    const settingsBtn = document.createElement('button');
+    settingsBtn.className = 'kiosk-btn secondary';
+    settingsBtn.textContent = 'Settings';
+    settingsBtn.addEventListener('click', () => this.settingsPanelCb?.());
+    this.railEl.appendChild(settingsBtn);
+
     this.container.appendChild(this.railEl);
   }
 
@@ -147,6 +160,41 @@ export class KioskOverlay {
     return this.clockInterval !== null;
   }
 
+  /** Show a temporary announcement toast. */
+  showAnnouncement(text: string, durationMs = 3000): void {
+    let toast = this.container.querySelector('.kiosk-toast') as HTMLDivElement;
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'kiosk-toast';
+      this.container.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.style.display = 'block';
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, durationMs);
+  }
+
+  /** Show a brief confirmation that staff was notified. */
+  showCallStaffConfirmation(): void {
+    this.showAnnouncement('✓ Staff notified', 3000);
+  }
+
+  /** Callback for settings button (opens in-overlay panel). */
+  onSettingsPanel(cb: () => void): void {
+    this.settingsPanelCb = cb;
+  }
+
+  /** Callback for call-staff button. */
+  onCallStaff(cb: () => void): void {
+    this.callStaffCb = cb;
+  }
+
+  /** Callback for settings button (legacy). */
+  onSettings(cb: () => void): void {
+    this.settingsCb = cb;
+  }
+
   /** Tear down the component. */
   destroy(): void {
     this.stopClock();
@@ -154,6 +202,10 @@ export class KioskOverlay {
       this.container.parentNode.removeChild(this.container);
     }
   }
+
+  private callStaffCb: (() => void) | null = null;
+  private settingsPanelCb: (() => void) | null = null;
+  private settingsCb: (() => void) | null = null; // legacy, keep for compat
 
   private updateClock(): void {
     const now = new Date();
