@@ -37,6 +37,7 @@ tools/keygen/, an optional NSIS script for the Windows installer wrap, etc).
 from __future__ import annotations
 
 import argparse
+import os
 import platform
 import shutil
 import subprocess
