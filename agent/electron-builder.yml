@@ -1,6 +1,7 @@
 appId: com.neurotech.arcade.agent
 productName: Arcade Agent
 copyright: Neurotech Biratnagar
+publish: null
 directories:
   output: dist
   buildResources: assets
