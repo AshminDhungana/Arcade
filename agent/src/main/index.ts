@@ -80,9 +80,12 @@ async function bootstrap(): Promise<void> {
           health_interval_seconds: 60,
         });
         setupWin.webContents.send('enroll:done');
-        app.relaunch();
-        app.exit(0);
-        return { ok: true }; // unreachable after exit(0); kept for type completeness
+        // Return success first, then schedule relaunch/exit to allow IPC response to send
+        setImmediate(() => {
+          app.relaunch();
+          app.exit(0);
+        });
+        return { ok: true };
       } catch (err) {
         return { ok: false, error: (err as Error).message };
       }
