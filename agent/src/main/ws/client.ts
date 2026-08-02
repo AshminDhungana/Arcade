@@ -102,10 +102,20 @@ export class AgentWebSocketClient {
     const url = this.buildWsUrl();
     try {
       this.ws = new WebSocket(url);
-      this.ws.onopen = () => this.handleOpen();
+      const connectionTimeout = setTimeout(() => {
+        if (this.state === 'connecting' && this.ws) {
+          console.warn('[WS] Connection timeout (10s) — closing socket');
+          this.ws.close();
+        }
+      }, 10_000);
+
+      this.ws.onopen = () => {
+        clearTimeout(connectionTimeout);
+        this.handleOpen();
+      };
       this.ws.onmessage = (event) => this.handleMessage(event);
       this.ws.onclose = (event) => this.handleClose(event);
-      this.ws.onerror = () => this.handleError();
+      this.ws.onerror = (event) => this.handleError(event);
     } catch {
       this.scheduleReconnect();
     }
@@ -322,7 +332,6 @@ export class AgentWebSocketClient {
   }
 
   private handleClose(_event: CloseEvent): void {
-    const wasOpen = this.state === 'open';
     if (this.sessionState.session_id) {
       // Track disconnect time for SYNC on reconnect
       this.sessionState.local_elapsed =
@@ -333,13 +342,12 @@ export class AgentWebSocketClient {
     this.state = 'disconnected';
     this.clearAllTimers();
     this.ws = null;
-    if (wasOpen) {
-      this.scheduleReconnect();
-    }
+    // Always schedule reconnect on close, not just after a successful connection
+    this.scheduleReconnect();
   }
 
-  private handleError(): void {
-    console.error('[WS] WebSocket error');
+  private handleError(event?: ErrorEvent): void {
+    console.error('[WS] WebSocket error:', event?.message || event);
     this.state = 'disconnected';
     this.clearAllTimers();
     this.ws = null;
