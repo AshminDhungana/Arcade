@@ -103,3 +103,17 @@
   font-family: var(--font-display); font-weight: 600; font-size: 2.2rem;
   color: var(--warn); font-variant-numeric: tabular-nums; margin-top: .5rem;
 }
+
+/* ---- Settings panel fields ---- */
+.settings-field {
+  margin-bottom: 1rem; text-align: left;
+}
+.settings-field label {
+  display: block; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: .25rem;
+}
+.settings-value {
+  font-family: var(--font-ui); font-size: .9rem; color: var(--text-1);
+  background: var(--bg-2); padding: .5rem .75rem; border-radius: 6px;
+  border: 1px solid var(--border); word-break: break-all;
+}
