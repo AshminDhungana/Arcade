@@ -63,9 +63,12 @@ async def _beacon_loop() -> None:
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.setblocking(False)
     payload = _BEACON_MAGIC + b"|" + json.dumps(discovery_payload()).encode()
+    # Also send on loopback for same-machine discovery (agent on same host)
+    loopback_addr = ("127.0.0.1", _BEACON_PORT)
     while True:
         try:
             sock.sendto(payload, ("<broadcast>", _BEACON_PORT))
+            sock.sendto(payload, loopback_addr)
         except OSError:
             pass
         await asyncio.sleep(3)

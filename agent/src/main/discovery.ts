@@ -3,6 +3,7 @@
  *
  * 1) Listens for the server's UDP beacon (port 48123) for up to timeoutMs.
  * 2) Falls back to probing common LAN gateways via HTTP GET /api/discovery.
+ * 3) Falls back to localhost (for same-machine testing).
  */
 
 import dgram from 'node:dgram';
@@ -22,6 +23,35 @@ const LOCALHOST_FALLBACKS = ['127.0.0.1', 'localhost'];
 
 const PROBE_TIMEOUT_MS = 500;
 const MAX_CONCURRENT_PROBES = 3;
+
+/** Extract host:port from a ws:// URL. */
+function parseWsUrl(wsUrl: string): { host: string; port: number } | null {
+  try {
+    const url = new URL(wsUrl);
+    return { host: url.hostname, port: url.port ? parseInt(url.port, 10) : 80 };
+  } catch {
+    return null;
+  }
+}
+
+/** Probe a single IP:port via HTTP /api/discovery. */
+async function probeHostPort(host: string, port: number): Promise<string | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  try {
+    const res = await fetch(`http://${host}:${port}/api/discovery`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = await res.json() as { host: string; port: number };
+    return `ws://${data.host}:${data.port}`;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
 
 /**
  * Parse a server beacon message into a `ws://host:port` URL.
@@ -45,28 +75,9 @@ function beaconToWsUrl(text: string): string | null {
   }
 }
 
-/**
- * Probe a single gateway IP via HTTP /api/discovery.
- *
- * @param ip Gateway IP address to probe.
- * @returns `ws://host:port` URL if successful, null otherwise.
- */
+/** Probe a single gateway IP via HTTP /api/discovery on port 80. */
 async function probeGateway(ip: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-  try {
-    const res = await fetch(`http://${ip}/api/discovery`, {
-      signal: controller.signal,
-      headers: { Accept: 'application/json' },
-    });
-    clearTimeout(timeout);
-    if (!res.ok) return null;
-    const data = await res.json() as { host: string; port: number };
-    return `ws://${data.host}:${data.port}`;
-  } catch {
-    clearTimeout(timeout);
-    return null;
-  }
+  return probeHostPort(ip, 80);
 }
 
 /**
@@ -74,26 +85,18 @@ async function probeGateway(ip: string): Promise<string | null> {
  * Returns the verified ws:// URL or null if unreachable.
  */
 async function verifyServerUrl(wsUrl: string): Promise<string | null> {
-  try {
-    const httpUrl = wsUrl.replace(/^ws:/, 'http:') + '/api/discovery';
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-    const res = await fetch(httpUrl, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (res.ok) return wsUrl;
-  } catch {
-    // ignore - will fall through to next candidate
-  }
-  return null;
+  const parsed = parseWsUrl(wsUrl);
+  if (!parsed) return null;
+  return probeHostPort(parsed.host, parsed.port);
 }
 
 /**
  * Discover the Arcade server on the LAN.
  *
  * 1) Try UDP broadcast beacon (timeoutMs, default 4s), then verify via HTTP.
- * 2) Fallback: probe common LAN gateways via HTTP GET /api/discovery
+ *    If beacon gives a LAN IP but it's not reachable, try localhost:port immediately.
+ * 2) Fallback: probe common LAN gateways AND localhost in parallel via HTTP GET /api/discovery
  *    (parallel, max 3 concurrent, 500ms timeout each).
- * 3) Fallback: try localhost (for same-machine testing when server returns 0.0.0.0)
  *
  * @param timeoutMs How long to wait for a beacon before fallback.
  * @returns A `ws://host:port` URL, or null if no server was discovered.
@@ -115,25 +118,45 @@ export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
     sock.on('error', () => finish(null));
     sock.bind(BEACON_PORT);
   });
+  let beaconPort: number | null = null;
   if (udp) {
     const verified = await verifyServerUrl(udp);
     if (verified) return verified;
     // UDP beacon gave a URL but it's not reachable (e.g. LAN IP blocked by firewall).
+    // Extract the port and try localhost with that port immediately (same-machine scenario).
+    const parsed = parseWsUrl(udp);
+    if (parsed) {
+      beaconPort = parsed.port;
+      const localhostResult = await probeHostPort('127.0.0.1', beaconPort);
+      if (localhostResult) return localhostResult;
+    }
     // Fall through to other discovery methods.
   }
 
-  // 2) Fallback: probe common LAN gateways via HTTP /api/discovery.
-  for (let i = 0; i < COMMON_GATEWAYS.length; i += MAX_CONCURRENT_PROBES) {
-    const batch = COMMON_GATEWAYS.slice(i, i + MAX_CONCURRENT_PROBES);
-    const results = await Promise.all(batch.map(probeGateway));
-    const success = results.find((r) => r !== null);
-    if (success) return success;
+  // 2) Fallback: probe common LAN gateways AND localhost in parallel.
+  // Build all candidates: gateways on port 80 + localhost on beacon port (if known) + localhost on default port
+  const candidates: Array<{ host: string; port: number }> = [];
+
+  // Add gateway IPs (probe on port 80)
+  for (const ip of COMMON_GATEWAYS) {
+    candidates.push({ host: ip, port: 80 });
   }
 
-  // 3) Fallback: try localhost (for same-machine testing when server returns 0.0.0.0)
-  for (const ip of LOCALHOST_FALLBACKS) {
-    const result = await probeGateway(ip);
-    if (result) return result;
+  // Add localhost with beacon port (if we got one from UDP beacon)
+  if (beaconPort) {
+    candidates.push({ host: '127.0.0.1', port: beaconPort });
+  }
+
+  // Add localhost with default server port (8742) and common alternatives
+  candidates.push({ host: '127.0.0.1', port: 8742 });
+  candidates.push({ host: 'localhost', port: 8742 });
+
+  // Probe in batches of MAX_CONCURRENT_PROBES
+  for (let i = 0; i < candidates.length; i += MAX_CONCURRENT_PROBES) {
+    const batch = candidates.slice(i, i + MAX_CONCURRENT_PROBES);
+    const results = await Promise.all(batch.map(c => probeHostPort(c.host, c.port)));
+    const success = results.find((r) => r !== null);
+    if (success) return success;
   }
 
   return null;
