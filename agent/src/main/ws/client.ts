@@ -346,8 +346,8 @@ export class AgentWebSocketClient {
     this.scheduleReconnect();
   }
 
-  private handleError(event?: ErrorEvent): void {
-    console.error('[WS] WebSocket error:', event?.message || event);
+  private handleError(event: Event): void {
+    console.error('[WS] WebSocket error:', (event as ErrorEvent)?.message || event);
     this.state = 'disconnected';
     this.clearAllTimers();
     this.ws = null;
