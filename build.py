@@ -41,6 +41,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -123,6 +124,23 @@ def onedir_root_for(new_files: list[Path], dist_dir: Path) -> Path:
             if parent.parent == dist_dir:
                 return parent
     return new_files[0]
+
+
+def rmtree_retry(path: Path, max_attempts: int = 5, delay: float = 0.5) -> None:
+    """Remove a directory tree with retries for Windows file locking issues."""
+    for attempt in range(max_attempts):
+        try:
+            if path.exists():
+                shutil.rmtree(path)
+            return
+        except PermissionError:
+            if attempt == max_attempts - 1:
+                raise
+            time.sleep(delay)
+        except OSError:
+            if attempt == max_attempts - 1:
+                raise
+            time.sleep(delay)
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +226,7 @@ def build_frontend(no_clean: bool) -> None:
     header("Building frontend (React + Vite)")
     dist = FRONTEND_DIR / "dist"
     if not no_clean and dist.exists():
-        shutil.rmtree(dist)
+        rmtree_retry(dist)
 
     run(["npm", "ci"], cwd=FRONTEND_DIR, step_name="frontend npm ci")
     run(["npm", "run", "build"], cwd=FRONTEND_DIR, step_name="frontend build")
@@ -237,7 +255,7 @@ def build_launcher(no_clean: bool) -> None:
     if not no_clean:
         for stale in (LAUNCHER_DIST, REPO_ROOT / "build"):
             if stale.exists():
-                shutil.rmtree(stale)
+                rmtree_retry(stale)
 
     before = snapshot(LAUNCHER_DIST)
     run(
@@ -329,7 +347,7 @@ def build_keygen(no_clean: bool) -> None:
     if not no_clean:
         for stale in (KEYGEN_DIST, KEYGEN_DIR / "build"):
             if stale.exists():
-                shutil.rmtree(stale)
+                rmtree_retry(stale)
 
     before = snapshot(KEYGEN_DIST)
     run(
@@ -384,7 +402,7 @@ def build_keygen(no_clean: bool) -> None:
 def build_agent(no_clean: bool) -> None:
     header("Building agent (Electron)")
     if not no_clean and AGENT_DIST.exists():
-        shutil.rmtree(AGENT_DIST)
+        rmtree_retry(AGENT_DIST)
 
     run(["npm", "ci"], cwd=AGENT_DIR, step_name="agent npm ci")
     run(

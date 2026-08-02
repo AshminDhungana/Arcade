@@ -59,7 +59,7 @@ class Settings(BaseModel):
     # Default matches launcher.py DEFAULT_PORT (0.0.0.0:8741). The setup wizard
     # always writes an explicit port into arcade.config.json, so this is only a
     # fallback for pre-setup tooling that builds Settings() directly.
-    port: int = Field(default=8741, ge=1, le=65535)
+    port: int = Field(default=8742, ge=1, le=65535)
 
     # ──Database / Storage ────────────────────────────────────────────
     db_path: str = "./arcade.db"

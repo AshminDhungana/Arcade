@@ -70,7 +70,7 @@ def _get_exe_dir() -> Path:
 # via the setup wizard; kept here as the single source of truth so the
 # wizard default, fallbacks, and placeholders can't drift apart.
 DEFAULT_HOST = "0.0.0.0"
-DEFAULT_PORT = 8741
+DEFAULT_PORT = 8742
 
 # ---------------------------------------------------------------------------
 # Error messages (SDD Section 16.7)

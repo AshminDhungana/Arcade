@@ -54,8 +54,8 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:8741',
-      '/ws': { target: 'ws://localhost:8741', ws: true },
+      '/api': 'http://localhost:8742',
+      '/ws': { target: 'ws://localhost:8742', ws: true },
     },
   },
   build: {
