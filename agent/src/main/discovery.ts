@@ -17,6 +17,9 @@ const COMMON_GATEWAYS = [
   '172.16.0.1', '172.16.1.1',
 ];
 
+/** Localhost fallbacks for same-machine testing when server returns 0.0.0.0. */
+const LOCALHOST_FALLBACKS = ['127.0.0.1', 'localhost'];
+
 const PROBE_TIMEOUT_MS = 500;
 const MAX_CONCURRENT_PROBES = 3;
 
@@ -101,6 +104,12 @@ export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
     const results = await Promise.all(batch.map(probeGateway));
     const success = results.find((r) => r !== null);
     if (success) return success;
+  }
+
+  // 3) Fallback: try localhost (for same-machine testing when server returns 0.0.0.0)
+  for (const ip of LOCALHOST_FALLBACKS) {
+    const result = await probeGateway(ip);
+    if (result) return result;
   }
 
   return null;
