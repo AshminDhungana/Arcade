@@ -9,7 +9,7 @@ import { KioskOverlay } from './components/kiosk-overlay.js';
 import { createLowTimeModal, showModal, hideModal } from './components/low-time-warning.js';
 import { createStaffOverrideDialog } from './components/staff-override-dialog.js';
 import { createSettingsPanel } from './components/settings-panel.js';
-import type { OverlayData, ElectronAPI } from './types.js';
+import type { OverlayData } from './types.js';
 
 /** Format elapsed seconds as HH:MM:SS (hours can exceed 99). */
 function formatElapsed(totalSeconds: number): string {
@@ -125,7 +125,7 @@ function initKiosk(): void {
       },
       onClose: () => {
         hideModal(panel);
-        (panel as any)._cleanup?.();
+        (panel as HTMLDivElement & { _cleanup?: () => void })._cleanup?.();
       },
     });
     showModal(panel);

@@ -46,7 +46,7 @@ export async function enrollAgent(
     clearTimeout(timeout);
     if (err instanceof DOMException && err.name === 'AbortError') {
       console.error('[enrollAgent] Enrollment request timed out');
-      throw new Error('Enrollment request timed out (10s)');
+      throw new Error('Enrollment request timed out (10s)', { cause: err });
     }
     console.error('[enrollAgent] Enrollment fetch error:', err);
     throw err;

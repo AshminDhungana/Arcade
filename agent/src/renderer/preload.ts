@@ -5,45 +5,81 @@
  * a controlled API on `window.electronAPI` that the renderer can use to
  * communicate with the main process.  No Node.js APIs are exposed to the
  * renderer directly.
- *
- * Uses CommonJS require for Electron sandbox compatibility.
  */
 
-const { contextBridge, ipcRenderer } = require('electron');
+import { contextBridge, ipcRenderer } from 'electron';
+import type { OverlayData } from './types.js';
+
+interface IpcEvent extends Event {
+  sender: unknown;
+}
+
+interface OverlayUpdateData {
+  cafeName?: string;
+  cafeLogo?: string;
+  eventBanner?: string;
+  sessionActive?: boolean;
+  remainingTime?: number;
+  overrideCodeConfigured?: boolean;
+  serverUrl?: string;
+  seatId?: string;
+  agentSecret?: string;
+}
+
+interface TimerUpdateData {
+  elapsedSeconds: number;
+}
+
+interface AnnouncementData {
+  text: string;
+  durationMs: number;
+}
+
+interface LowTimeData {
+  minutes: number;
+}
+
+interface SessionActiveData {
+  active: boolean;
+}
+
+interface ConfigData {
+  hasOverrideCode: boolean;
+}
 
 // ---------------------------------------------------------------------------
 // Expose the controlled API to the renderer
 // ---------------------------------------------------------------------------
 
 const api = {
-  onOverlayContent: (callback: (data: any) => void) => {
-    ipcRenderer.on('overlay:update', (_event: any, data: any) => callback(data));
+  onOverlayContent: (callback: (data: OverlayData) => void) => {
+    ipcRenderer.on('overlay:update', (_event: IpcEvent, data: OverlayUpdateData) => callback(data));
   },
 
-  onTimerUpdate: (callback: (data: any) => void) => {
-    ipcRenderer.on('overlay:timer', (_event: any, data: any) => callback(data));
+  onTimerUpdate: (callback: (data: TimerUpdateData) => void) => {
+    ipcRenderer.on('overlay:timer', (_event: IpcEvent, data: TimerUpdateData) => callback(data));
   },
 
   onAnnouncement: (callback: (text: string, durationMs: number) => void) => {
-    ipcRenderer.on('overlay:announcement', (_event: any, data: any) =>
+    ipcRenderer.on('overlay:announcement', (_event: IpcEvent, data: AnnouncementData) =>
       callback(data.text, data.durationMs),
     );
   },
 
   onLowTimeWarning: (callback: (minutes: number) => void) => {
-    ipcRenderer.on('overlay:low-time', (_event: any, data: any) =>
+    ipcRenderer.on('overlay:low-time', (_event: IpcEvent, data: LowTimeData) =>
       callback(data.minutes),
     );
   },
 
   onSessionStatus: (callback: (active: boolean) => void) => {
-    ipcRenderer.on('overlay:session-active', (_event: any, data: any) =>
+    ipcRenderer.on('overlay:session-active', (_event: IpcEvent, data: SessionActiveData) =>
       callback(data.active),
     );
   },
 
-  onConfig: (callback: (data: any) => void) => {
-    ipcRenderer.on('agent:config', (_event: any, data: any) => callback(data));
+  onConfig: (callback: (data: ConfigData) => void) => {
+    ipcRenderer.on('agent:config', (_event: IpcEvent, data: ConfigData) => callback(data));
   },
 
   callStaff: () => {

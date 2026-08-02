@@ -18,9 +18,6 @@ const COMMON_GATEWAYS = [
   '172.16.0.1', '172.16.1.1',
 ];
 
-/** Localhost fallbacks for same-machine testing when server returns 0.0.0.0. */
-const LOCALHOST_FALLBACKS = ['127.0.0.1', 'localhost'];
-
 const PROBE_TIMEOUT_MS = 500;
 const MAX_CONCURRENT_PROBES = 3;
 
@@ -75,10 +72,7 @@ function beaconToWsUrl(text: string): string | null {
   }
 }
 
-/** Probe a single gateway IP via HTTP /api/agent/discovery on port 80. */
-async function probeGateway(ip: string): Promise<string | null> {
-  return probeHostPort(ip, 80);
-}
+
 
 /**
  * Probe a candidate server URL via HTTP /api/discovery to verify it's reachable.

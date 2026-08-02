@@ -88,7 +88,7 @@ export function createSettingsPanel(options: SettingsPanelOptions): HTMLDivEleme
   document.addEventListener('keydown', handleEsc);
 
   // Store cleanup function on element for caller
-  (modal as any)._cleanup = () => document.removeEventListener('keydown', handleEsc);
+  (modal as HTMLDivElement & { _cleanup?: () => void })._cleanup = () => document.removeEventListener('keydown', handleEsc);
 
   return modal;
 }
