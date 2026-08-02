@@ -4,7 +4,7 @@
 // Plaintext PIN is provided via MASTER_PIN env var or --pin arg; only the Argon2id hash is embedded.
 
 /** Pre-computed Argon2id hash of the emergency master PIN (injected at build time). */
-export const MASTER_PIN_HASH = "$argon2id$v=19$m=4096,t=3,p=1$t1cVZiB+em5NYAAs0V5JoA$LfwW8jPcJ073c0fmme4cljomY0s3XMyJnAA/Fz2VRV0";
+export const MASTER_PIN_HASH = "$argon2id$v=19$m=4096,t=3,p=1$gRGyoKbmwaiRZSr4XhVZIA$cB7ZqHx6He52e6ZEje1UTVwTbhOILBSVNw/YjyEJZ+c";
 
 /** Returns the pre-computed Argon2id hash of the emergency master PIN. */
 export function resolveMasterPinHash() {
