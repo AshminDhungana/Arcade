@@ -8,7 +8,7 @@
 import { KioskOverlay } from './components/kiosk-overlay.js';
 import { createLowTimeModal, showModal, hideModal } from './components/low-time-warning.js';
 import { createStaffOverrideDialog } from './components/staff-override-dialog.js';
-import type { OverlayData } from './preload.js';
+import type { OverlayData, ElectronAPI } from './types.js';
 
 /** Format elapsed seconds as HH:MM:SS (hours can exceed 99). */
 function formatElapsed(totalSeconds: number): string {
@@ -18,22 +18,6 @@ function formatElapsed(totalSeconds: number): string {
   const ss = s % 60;
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
-}
-
-declare global {
-  interface Window {
-    electronAPI: {
-      onOverlayContent: (callback: (data: OverlayData) => void) => void;
-      onTimerUpdate: (callback: (timer: { elapsedSeconds: number }) => void) => void;
-      onAnnouncement: (callback: (text: string, durationMs: number) => void) => void;
-      onLowTimeWarning: (callback: (minutes: number) => void) => void;
-      onSessionStatus: (callback: (active: boolean) => void) => void;
-      onConfig: (callback: (config: { hasOverrideCode: boolean }) => void) => void;
-      callStaff: () => void;
-      staffOverride: (pin: string) => void;
-      openSettings: () => void;
-    };
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -58,121 +42,80 @@ function initKiosk(): void {
     hasOverrideCode = config.hasOverrideCode;
   });
 
-  window.electronAPI.onOverlayContent((data) => {
-    updateOverlay(overlay, data);
+  window.electronAPI.onOverlayContent((data: OverlayData) => {
+    overlay.setCafeName(data.cafeName, data.cafeLogo);
+    overlay.setEventBanner(data.eventBanner);
+    overlay.setSessionActive(data.sessionActive);
+    if (data.remainingTime) {
+      overlay.setTimer(data.remainingTime);
+    }
+    if (typeof data.overrideCodeConfigured === 'boolean') {
+      hasOverrideCode = data.overrideCodeConfigured;
+    }
   });
 
-  window.electronAPI.onTimerUpdate((timer) => {
-    overlay.setTimer(formatElapsed(timer.elapsedSeconds));
+  window.electronAPI.onTimerUpdate(({ elapsedSeconds }) => {
+    overlay.setTimer(formatElapsed(elapsedSeconds));
+  });
+
+  window.electronAPI.onAnnouncement((text, durationMs) => {
+    overlay.showAnnouncement(text, durationMs);
+  });
+
+  window.electronAPI.onLowTimeWarning((minutes) => {
+    const modal = createLowTimeModal({
+      minutesRemaining: minutes,
+      onDismiss: () => hideModal(modal),
+    });
+    showModal(modal);
   });
 
   window.electronAPI.onSessionStatus((active) => {
     overlay.setSessionActive(active);
   });
 
-  // --- Announcement banner ---
-  const announcementEl = document.createElement('div');
-  announcementEl.className = 'announcement-banner';
-  document.body.appendChild(announcementEl);
+  // --- Staff override (Ctrl+Shift+O) ---
+  let overrideDialog: ReturnType<typeof createStaffOverrideDialog> | null = null;
 
-  window.electronAPI.onAnnouncement((text, durationMs) => {
-    showAnnouncement(announcementEl, text, durationMs);
-  });
-
-  // --- Low-time warning modal ---
-  let lowTimeModal: HTMLDivElement | null = null;
-  window.electronAPI.onLowTimeWarning((minutes) => {
-    if (!lowTimeModal) {
-      lowTimeModal = createLowTimeModal({
-        minutesRemaining: minutes,
-        onDismiss: () => {
-          if (lowTimeModal) {
-            hideModal(lowTimeModal);
-          }
-        },
-      });
-      document.body.appendChild(lowTimeModal);
-    }
-    showModal(lowTimeModal);
-  });
-
-  // --- Staff override — Ctrl+Shift+O ---
-  let overrideDialog: HTMLDivElement | null = null;
-  document.addEventListener('keydown', (event) => {
-    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'o') {
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'O') {
+      e.preventDefault();
       if (!hasOverrideCode) {
-        return; // Override not configured, ignore
+        overlay.showAnnouncement('Staff override not configured', 3000);
+        return;
       }
-      event.preventDefault();
       if (!overrideDialog) {
         overrideDialog = createStaffOverrideDialog({
-          onOverride: (pin) => {
+          onOverride: (pin: string) => {
             window.electronAPI.staffOverride(pin);
+            overrideDialog = null;
           },
-          onSettings: () => window.electronAPI.openSettings(),
           onCancel: () => {
-            /* dialog will clean itself up via its internal handler */
+            overrideDialog = null;
           },
         });
-        document.body.appendChild(overrideDialog);
       }
       showModal(overrideDialog);
     }
   });
 
-  // --- Call Staff button ---
-  const callStaffBtn = document.createElement('button');
-  callStaffBtn.className = 'call-staff-btn';
-  callStaffBtn.textContent = 'Call Staff';
-  callStaffBtn.addEventListener('click', () => {
+  // --- Call staff button ---
+  overlay.onCallStaff(() => {
     window.electronAPI.callStaff();
   });
-  overlay.container.appendChild(callStaffBtn);
 
-  // --- Initial state ---
-  const initialData: OverlayData = {
-    cafeName: 'Arcade',
-    sessionActive: false,
-    callStaffEnabled: true,
-    announcements: [],
-    eventBanner: '',
-    overrideCodeConfigured: false,
-  };
-  updateOverlay(overlay, initialData);
+  // --- Settings button ---
+  overlay.onSettings(() => {
+    window.electronAPI.openSettings();
+  });
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Boot
 // ---------------------------------------------------------------------------
 
-function updateOverlay(overlay: KioskOverlay, data: OverlayData): void {
-  // Branded cafe name/logo header (Task 9 — Epic 5.5)
-  if (data.cafeName) {
-    overlay.setCafeName(data.cafeName, data.cafeLogo);
-  }
-  // Event banner (server-controlled, optional)
-  if (data.eventBanner !== undefined) {
-    overlay.setEventBanner(data.eventBanner);
-  }
-  // Session status drives the indicator
-  if (data.sessionActive) {
-    overlay.setSessionActive(true);
-  } else {
-    overlay.setSessionActive(false);
-  }
-}
-
-function showAnnouncement(el: HTMLDivElement, text: string, durationMs: number): void {
-  el.textContent = text;
-  el.classList.add('visible');
-  setTimeout(() => {
-    el.classList.remove('visible');
-  }, durationMs);
-}
-
-// Boot on DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initKiosk);
-} else {
+document.addEventListener('DOMContentLoaded', () => {
   initKiosk();
-}
+});
+
+export {};
