@@ -142,3 +142,75 @@ describe('KioskOverlay.setEventBanner', () => {
     expect(label()).toBe('OPEN');
   });
 });
+
+describe('KioskOverlay fallback behavior', () => {
+  let parent: HTMLDivElement;
+  let overlay: KioskOverlay;
+
+  beforeEach(() => {
+    parent = document.createElement('div');
+    document.body.appendChild(parent);
+    overlay = new KioskOverlay(parent);
+  });
+
+  afterEach(() => {
+    overlay.destroy();
+    document.body.innerHTML = '';
+  });
+
+  it('shows "Arcade" in center by default (before any setCafeName)', () => {
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand).not.toBeNull();
+    expect(brand!.textContent).toBe('Arcade');
+  });
+
+  it('setArcadeName updates fallback and displays it when no cafe name set', () => {
+    overlay.setArcadeName('My Arcade');
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand!.textContent).toBe('My Arcade');
+  });
+
+  it('setCafeName with non-empty name displays that name (overrides fallback)', () => {
+    overlay.setArcadeName('Fallback');
+    overlay.setCafeName('Neon Cafe');
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand!.textContent).toBe('Neon Cafe');
+  });
+
+  it('setCafeName with empty name falls back to arcadeName', () => {
+    overlay.setArcadeName('Fallback');
+    overlay.setCafeName('');
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand!.textContent).toBe('Fallback');
+  });
+
+  it('setCafeName with only whitespace falls back to arcadeName', () => {
+    overlay.setArcadeName('Fallback');
+    overlay.setCafeName('   ');
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand!.textContent).toBe('Fallback');
+  });
+
+  it('setCafeName with logo and name displays both', () => {
+    overlay.setCafeName('Neon Cafe', 'logo.png');
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand!.textContent).toBe('Neon Cafe');
+    expect(brand!.querySelector('img')).not.toBeNull();
+    expect(brand!.querySelector('img')!.src).toContain('logo.png');
+  });
+
+  it('setCafeName with logo only (empty name) shows logo + fallback name', () => {
+    overlay.setArcadeName('Fallback');
+    overlay.setCafeName('', 'logo.png');
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand!.textContent).toBe('Fallback');
+    expect(brand!.querySelector('img')).not.toBeNull();
+  });
+
+  it('calling setArcadeName after setCafeName with server name does NOT override server name', () => {
+    overlay.setCafeName('Server Cafe');
+    overlay.setArcadeName('New Fallback');
+    const brand = parent.querySelector('.cafe-brand');
+    expect(brand!.textContent).toBe('Server Cafe');
+  });
+});

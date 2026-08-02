@@ -28,6 +28,11 @@ export class KioskOverlay {
   private readonly railEl: HTMLDivElement;
   private clockInterval: ReturnType<typeof setInterval> | null = null;
 
+  // NEW: Fallback name (default "Arcade")
+  private arcadeName = 'Arcade';
+  // NEW: Track server-provided cafe name
+  private currentCafeName = '';
+
   constructor(parent: HTMLElement) {
     this.container = document.createElement('div');
     this.container.className = 'kiosk-overlay';
@@ -51,6 +56,10 @@ export class KioskOverlay {
 
     this.cafeBrandEl = document.createElement('div');
     this.cafeBrandEl.className = 'cafe-brand';
+    // Initialize with fallback name
+    const span = document.createElement('span');
+    span.textContent = this.arcadeName;
+    this.cafeBrandEl.appendChild(span);
     this.centerEl.appendChild(this.cafeBrandEl);
 
     this.bannerEl = document.createElement('div');
@@ -126,17 +135,30 @@ export class KioskOverlay {
 
   /** Render the branded cafe name/logo header. */
   setCafeName(name: string, logo?: string): void {
+    this.currentCafeName = (name || '').trim();
     this.cafeBrandEl.replaceChildren();
     if (logo) {
       const img = document.createElement('img');
       img.src = logo;
       img.className = 'cafe-logo';
-      img.alt = name;
+      img.alt = this.currentCafeName || this.arcadeName;
       this.cafeBrandEl.appendChild(img);
     }
     const span = document.createElement('span');
-    span.textContent = name;
+    span.textContent = this.currentCafeName || this.arcadeName;
     this.cafeBrandEl.appendChild(span);
+  }
+
+  /** NEW: Set the fallback name (default 'Arcade'). */
+  setArcadeName(name: string): void {
+    this.arcadeName = name || 'Arcade';
+    // If no server name has been set, update display immediately
+    if (!this.currentCafeName) {
+      this.cafeBrandEl.replaceChildren();
+      const span = document.createElement('span');
+      span.textContent = this.arcadeName;
+      this.cafeBrandEl.appendChild(span);
+    }
   }
 
   /** Show the server-provided event banner, or hide it when empty/unset. */
