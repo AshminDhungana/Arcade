@@ -71,7 +71,9 @@ async function bootstrap(): Promise<void> {
     const setupWin = openSetupWindow(() => {});
     ipcMain.handle('agent:enroll', async (_e, code: string) => {
       try {
+        console.log('[main] Enrollment started with code:', code);
         const serverUrl = await discoverServer();
+        console.log('[main] Discovered server URL:', serverUrl);
         if (!serverUrl) {
           return { ok: false, error: 'Server not found on LAN. Check the server is running.' };
         }
@@ -79,6 +81,7 @@ async function bootstrap(): Promise<void> {
           reconnect_max_seconds: 60,
           health_interval_seconds: 60,
         });
+        console.log('[main] Enrollment successful, sending enroll:done');
         setupWin.webContents.send('enroll:done');
         // Return success first, then schedule relaunch/exit to allow IPC response to send
         setImmediate(() => {
@@ -87,6 +90,7 @@ async function bootstrap(): Promise<void> {
         });
         return { ok: true };
       } catch (err) {
+        console.error('[main] Enrollment error:', err);
         return { ok: false, error: (err as Error).message };
       }
     });

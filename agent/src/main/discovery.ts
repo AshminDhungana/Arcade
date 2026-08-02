@@ -102,6 +102,7 @@ async function verifyServerUrl(wsUrl: string): Promise<string | null> {
  * @returns A `ws://host:port` URL, or null if no server was discovered.
  */
 export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
+  console.log('[discoverServer] Starting discovery...');
   // 1) Try UDP broadcast beacon, then verify the returned URL works.
   const udp = await new Promise<string | null>((resolve) => {
     const sock = dgram.createSocket('udp4');
@@ -113,24 +114,46 @@ export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
       sock.close();
       resolve(url);
     };
-    const timer = setTimeout(() => finish(null), timeoutMs);
-    sock.on('message', (msg: Buffer) => finish(beaconToWsUrl(msg.toString())));
-    sock.on('error', () => finish(null));
+    const timer = setTimeout(() => {
+      console.log('[discoverServer] UDP beacon timeout');
+      finish(null);
+    }, timeoutMs);
+    sock.on('message', (msg: Buffer) => {
+      const url = beaconToWsUrl(msg.toString());
+      console.log('[discoverServer] Received beacon:', url);
+      finish(url);
+    });
+    sock.on('error', (err) => {
+      console.error('[discoverServer] UDP socket error:', err);
+      finish(null);
+    });
     sock.bind(BEACON_PORT);
   });
   let beaconPort: number | null = null;
   if (udp) {
+    console.log('[discoverServer] Verifying beacon URL:', udp);
     const verified = await verifyServerUrl(udp);
-    if (verified) return verified;
+    if (verified) {
+      console.log('[discoverServer] Verified:', verified);
+      return verified;
+    }
+    console.log('[discoverServer] Beacon URL verification failed, trying localhost fallback');
     // UDP beacon gave a URL but it's not reachable (e.g. LAN IP blocked by firewall).
     // Extract the port and try localhost with that port immediately (same-machine scenario).
     const parsed = parseWsUrl(udp);
     if (parsed) {
       beaconPort = parsed.port;
+      console.log('[discoverServer] Trying localhost:' + beaconPort);
       const localhostResult = await probeHostPort('127.0.0.1', beaconPort);
-      if (localhostResult) return localhostResult;
+      if (localhostResult) {
+        console.log('[discoverServer] Localhost fallback succeeded:', localhostResult);
+        return localhostResult;
+      }
+      console.log('[discoverServer] Localhost fallback failed');
     }
     // Fall through to other discovery methods.
+  } else {
+    console.log('[discoverServer] No UDP beacon received');
   }
 
   // 2) Fallback: probe common LAN gateways AND localhost in parallel.
@@ -151,13 +174,18 @@ export async function discoverServer(timeoutMs = 4000): Promise<string | null> {
   candidates.push({ host: '127.0.0.1', port: 8742 });
   candidates.push({ host: 'localhost', port: 8742 });
 
+  console.log('[discoverServer] Probing candidates:', candidates.map(c => `${c.host}:${c.port}`).join(', '));
   // Probe in batches of MAX_CONCURRENT_PROBES
   for (let i = 0; i < candidates.length; i += MAX_CONCURRENT_PROBES) {
     const batch = candidates.slice(i, i + MAX_CONCURRENT_PROBES);
     const results = await Promise.all(batch.map(c => probeHostPort(c.host, c.port)));
     const success = results.find((r) => r !== null);
-    if (success) return success;
+    if (success) {
+      console.log('[discoverServer] Found server:', success);
+      return success;
+    }
   }
 
+  console.log('[discoverServer] Discovery failed - no server found');
   return null;
 }

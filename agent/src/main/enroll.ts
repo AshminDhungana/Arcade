@@ -25,6 +25,8 @@ export async function enrollAgent(
   const scheme = serverUrl.startsWith('wss://') ? 'https://' : 'http://';
   const base = scheme + serverUrl.slice(serverUrl.indexOf('://') + 3).replace(/\/$/, '');
 
+  console.log('[enrollAgent] Enrolling with server:', base, 'code:', code);
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), ENROLL_TIMEOUT_MS);
 
@@ -43,17 +45,22 @@ export async function enrollAgent(
   } catch (err) {
     clearTimeout(timeout);
     if (err instanceof DOMException && err.name === 'AbortError') {
+      console.error('[enrollAgent] Enrollment request timed out');
       throw new Error('Enrollment request timed out (10s)');
     }
+    console.error('[enrollAgent] Enrollment fetch error:', err);
     throw err;
   }
   clearTimeout(timeout);
 
+  console.log('[enrollAgent] Response status:', res.status);
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
+    console.error('[enrollAgent] Enrollment failed:', res.status, detail);
     throw new Error(`Enrollment failed (${res.status}): ${detail}`);
   }
   const data = (await res.json()) as EnrollResponse;
+  console.log('[enrollAgent] Enrollment successful:', data.seat_id);
 
   // Use pre-computed master PIN hash (injected at build time).
   // The plaintext PIN is never present at runtime — only the Argon2id hash is embedded.
