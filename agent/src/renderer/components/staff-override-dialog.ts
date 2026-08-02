@@ -43,16 +43,21 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
       <div class="modal-actions">
         <button class="modal-btn secondary" id="override-cancel">Cancel</button>
         <button class="modal-btn primary" id="override-confirm">Override</button>
-        <button class="modal-btn" id="override-settings">Settings</button>
+        <button class="modal-btn" id="override-settings" disabled>Settings</button>
       </div>
     </div>
   `;
 
   let pin = '';
   const display = modal.querySelector<HTMLDivElement>('#pin-display')!;
+  const settingsBtn = modal.querySelector<HTMLButtonElement>('#override-settings')!;
 
   const updateDisplay = (): void => {
     display.textContent = pin.replace(/./g, '●');
+  };
+
+  const enableSettings = (): void => {
+    settingsBtn.disabled = false;
   };
 
   // Numeric keypad handler
@@ -62,6 +67,7 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
     } else if (key === '✓') {
       if (pin.length > 0) {
         options.onOverride(pin);
+        enableSettings();
         pin = '';
         updateDisplay();
       }
@@ -90,6 +96,7 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
   modal.querySelector<HTMLButtonElement>('#override-confirm')?.addEventListener('click', () => {
     if (pin.length > 0) {
       options.onOverride(pin);
+      enableSettings();
       pin = '';
       updateDisplay();
     }
@@ -97,7 +104,9 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
 
   // Settings button
   modal.querySelector<HTMLButtonElement>('#override-settings')?.addEventListener('click', () => {
-    options.onSettings?.();
+    if (!settingsBtn.disabled) {
+      options.onSettings?.();
+    }
   });
 
   return modal;

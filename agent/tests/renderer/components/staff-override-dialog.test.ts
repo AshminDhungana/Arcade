@@ -67,4 +67,30 @@ describe('createStaffOverrideDialog', () => {
     // Old emoji must be gone.
     expect(modal.querySelector('.modal-title')?.textContent).not.toContain('🔐');
   });
+
+  it('Settings button is disabled until correct PIN entered', () => {
+    const onOverride = vi.fn();
+    const onSettings = vi.fn();
+    const modal = createStaffOverrideDialog({ onOverride, onSettings });
+    document.body.appendChild(modal);
+
+    const settingsBtn = modal.querySelector<HTMLButtonElement>('#override-settings');
+    expect(settingsBtn?.disabled).toBe(true);
+
+    // Enter PIN: 1, 2, 3, 4
+    modal.querySelector<HTMLButtonElement>('[data-key="1"]')?.click();
+    modal.querySelector<HTMLButtonElement>('[data-key="2"]')?.click();
+    modal.querySelector<HTMLButtonElement>('[data-key="3"]')?.click();
+    modal.querySelector<HTMLButtonElement>('[data-key="4"]')?.click();
+    modal.querySelector<HTMLButtonElement>('[data-key="✓"]')?.click();
+
+    // Settings button should now be enabled
+    expect(settingsBtn?.disabled).toBe(false);
+
+    // Click Settings button
+    settingsBtn?.click();
+    expect(onSettings).toHaveBeenCalled();
+
+    document.body.innerHTML = '';
+  });
 });
