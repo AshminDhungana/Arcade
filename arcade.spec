@@ -72,11 +72,9 @@ hiddenimports = [
     "passlib",
     "passlib.context",
     "passlib.handlers.argon2",
-    "python_jose",
-    "python_jose.jwt",
-    "python_jose.exceptions",
-    "setuptools._vendor.jaraco.text",
-    "setuptools._vendor.jaraco",
+    "jose",
+    "jose.jwt",
+    "jose.exceptions",
     # Backend modules for run-server command
     "backend.main",
     "backend.api.routers",
@@ -116,6 +114,15 @@ excludes = [
     "*.tests", "*.tests.*",
     "setuptools", "pip", "wheel", "virtualenv",
     "*.pem", "*.key", "venv", "*.spec",
+    "alembic.testing", "alembic.testing.*",
+    "sqlalchemy.testing", "sqlalchemy.testing.*",
+    "pydantic.experimental",
+    "importlib_resources",
+    "pkg_resources",
+    "pysqlite2",
+    "MySQLdb",
+    "setuptools._vendor",
+    "setuptools._vendor.*",
 ]
 
 # -------------------------------------------------------------------------
