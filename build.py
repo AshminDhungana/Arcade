@@ -404,9 +404,16 @@ def build_agent(no_clean: bool) -> None:
     if not no_clean and AGENT_DIST.exists():
         rmtree_retry(AGENT_DIST)
 
-    run(["npm", "ci"], cwd=AGENT_DIR, step_name="agent npm ci")
+    # Disable electron-builder auto-discovery of code signing identities
+    env = os.environ.copy()
+    env["CSC_IDENTITY_AUTO_DISCOVERY"] = "false"
+
+    run(["npm", "ci"], cwd=AGENT_DIR, step_name="agent npm ci", env=env)
     run(
-        ["npm", "run", "build"], cwd=AGENT_DIR, step_name="agent electron-builder build"
+        ["npm", "run", "build"],
+        cwd=AGENT_DIR,
+        step_name="agent electron-builder build",
+        env=env,
     )
 
     if not AGENT_DIST.exists():
