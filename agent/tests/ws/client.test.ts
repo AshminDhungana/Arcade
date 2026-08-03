@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { IPlatformService } from '../../src/main/platform/types.js';
 import type { AgentConfig } from '../../src/main/ws/types.js';
 import { AgentWebSocketClient } from '../../src/main/ws/client.js';
+import { ipcRenderer } from 'electron';
 
 // ---------------------------------------------------------------------------
 // Mock WebSocket
@@ -59,6 +60,15 @@ class MockWebSocket {
 }
 
 vi.stubGlobal('WebSocket', MockWebSocket);
+
+// Mock ipcRenderer
+vi.mock('electron', () => ({
+  ipcRenderer: {
+    send: vi.fn(),
+    on: vi.fn(),
+    invoke: vi.fn(),
+  },
+}));
 
 // ---------------------------------------------------------------------------
 // Test
@@ -206,5 +216,21 @@ describe('AgentWebSocketClient', () => {
 
   it('send returns false when not connected', () => {
     expect(client.send('PING', {})).toBe(false);
+  });
+
+  it('emits staff-alert-ack IPC when STAFF_ALERT_ACK received', async () => {
+    client.connect();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = (client as any).ws as MockWebSocket | null;
+    if (ws) {
+      ws._simulateMessage({
+        type: 'STAFF_ALERT_ACK',
+        payload: {},
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(ipcRenderer.send).toHaveBeenCalledWith('staff-alert-ack');
+    }
   });
 });

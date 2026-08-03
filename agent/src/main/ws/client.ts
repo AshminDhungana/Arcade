@@ -20,6 +20,7 @@ import { saveAgentConfig } from '../config/loader.js';
 import type { LoadedAgentConfig } from '../config/types.js';
 import os from 'node:os';
 import { verify } from '@node-rs/argon2';
+import { ipcRenderer } from 'electron';
 
 type ConnectionState = 'connecting' | 'open' | 'closing' | 'disconnected';
 
@@ -314,6 +315,12 @@ export class AgentWebSocketClient {
         if (payload.event_banner) {
           this.eventBanner = payload.event_banner;
         }
+        return;
+      }
+
+      // Handle STAFF_ALERT_ACK from server - forward to renderer for toast notification
+      if (message.type === 'STAFF_ALERT_ACK') {
+        ipcRenderer.send('staff-alert-ack');
         return;
       }
 
