@@ -62,11 +62,11 @@ export function SeatCard({ seat, onClick }: SeatCardProps) {
     <button
       type="button"
       onClick={() => onClick(seat)}
-      className={`w-full text-left rounded-lg border border-slate-700 border-l-4 ${borderColor[seat.status] ?? 'border-l-slate-400'} bg-slate-800 p-4 shadow-sm hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900`}
+      className={`w-full text-left rounded-lg border border-border border-l-4 ${borderColor[seat.status] ?? 'border-l-slate-400'} bg-card p-4 shadow-sm hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-background`}
       aria-label={`Seat ${seat.name}, status ${seat.status}`}
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-white">{seat.name}</h3>
+        <h3 className="text-base font-semibold text-card-foreground">{seat.name}</h3>
         <div className="flex items-center gap-2">
           <SeatStatusBadge status={seat.status} />
           {seat.overlay_forced && (
@@ -81,7 +81,7 @@ export function SeatCard({ seat, onClick }: SeatCardProps) {
         </div>
       </div>
 
-      <div className="mt-2 flex items-center justify-between text-sm text-slate-400">
+      <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
         <span>{seat.is_console ? 'Console' : 'PC'}</span>
         <div className="flex items-center gap-2">
           {canAddTime && (

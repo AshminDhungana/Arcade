@@ -72,24 +72,24 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
       aria-modal="true"
       aria-labelledby="seat-modal-title"
     >
-      <div className="w-full max-w-md rounded-lg bg-slate-800 p-6 shadow-xl border border-slate-700">
+      <div className="w-full max-w-md rounded-lg bg-card p-6 shadow-xl border border-border">
         <header className="mb-4 flex items-center justify-between">
-          <h2 id="seat-modal-title" className="text-xl font-bold text-white">
+          <h2 id="seat-modal-title" className="text-xl font-bold text-card-foreground">
             {seat.name}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-card-foreground"
             aria-label="Close modal"
           >
             <span className="text-xl leading-none" aria-hidden="true">×</span>
           </button>
         </header>
 
-        <section className="mb-4 space-y-2 text-sm text-slate-300">
-          <p>Status: <span className="text-white font-medium">{seat.status.replace('_', ' ')}</span></p>
-          <p>Zone: <span className="text-white">{seat.zone_name ?? seat.zone_id}</span></p>
+        <section className="mb-4 space-y-2 text-sm text-muted-foreground">
+          <p>Status: <span className="text-card-foreground font-medium">{seat.status.replace('_', ' ')}</span></p>
+          <p>Zone: <span className="text-card-foreground">{seat.zone_name ?? seat.zone_id}</span></p>
           {seat.notes && <p data-testid="seat-notes">Note: {seat.notes}</p>}
         </section>
 
@@ -99,13 +99,13 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
               <div className="col-span-2 space-y-2">
                 <MemberSearch onSelect={setMember} placeholder="Search members by name or phone…" />
                 {member && (
-                  <div className="flex items-center gap-2 rounded-lg bg-slate-700 px-3 py-2">
-                    <User className="h-4 w-4 text-slate-400" />
-                    <span className="font-medium text-slate-200">{member.name}</span>
+                  <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-secondary-foreground">{member.name}</span>
                     <button
                       type="button"
                       onClick={() => setMember(null)}
-                      className="ml-auto text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-0.5"
+                      className="ml-auto text-muted-foreground hover:text-card-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-0.5"
                       aria-label="Clear selected member"
                     >
                       <X className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
               {assignedTimeEnabled && (
                 <div className="col-span-2">
                   <label
-                    className="block text-xs font-medium text-slate-400"
+                    className="block text-xs font-medium text-muted-foreground"
                     htmlFor="assign-time-limit"
                   >
                     Assign time limit (minutes)
@@ -127,7 +127,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
                     value={assignedMinutes}
                     onChange={(e) => setAssignedMinutes(e.target.value)}
                     placeholder="e.g. 120"
-                    className="mt-1 w-full rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-white"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-card-foreground"
                   />
                 </div>
               )}
@@ -211,10 +211,10 @@ interface ActionButtonProps {
 }
 
 function ActionButton({ icon, label, variant, onClick, disabled, children }: ActionButtonProps) {
-  const base = 'flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800';
+  const base = 'flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background';
   const styles = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed',
-    secondary: 'bg-slate-700 text-slate-200 hover:bg-slate-600 focus:ring-slate-400 disabled:bg-slate-700/50 disabled:cursor-not-allowed',
+    primary: 'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary disabled:bg-primary/50 disabled:cursor-not-allowed',
+    secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary-foreground/20 disabled:bg-secondary/50 disabled:cursor-not-allowed',
     emerald: 'bg-emerald-600 text-white hover:bg-emerald-500 focus:ring-emerald-500 disabled:bg-emerald-600/50 disabled:cursor-not-allowed',
   };
 

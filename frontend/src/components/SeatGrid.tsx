@@ -69,8 +69,8 @@ export function SeatGrid() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center text-slate-400" role="status" aria-label="Loading seats">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-700 border-t-blue-500"></div>
+      <div className="flex h-64 items-center justify-center text-muted-foreground" role="status" aria-label="Loading seats">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-blue-500"></div>
         <span className="ml-3">Loading seats…</span>
       </div>
     );
@@ -78,9 +78,9 @@ export function SeatGrid() {
 
   if (isError) {
     return (
-      <div className="rounded-lg bg-red-900/20 p-4 text-red-300 border border-red-800" role="alert">
+      <div className="rounded-lg bg-destructive/20 p-4 text-destructive-foreground border border-destructive/50" role="alert">
         <p className="font-medium">Failed to load seats</p>
-        <p className="text-sm text-red-400 mt-1">{error?.message ?? 'Unknown error'}</p>
+        <p className="text-sm text-destructive/80 mt-1">{error?.message ?? 'Unknown error'}</p>
       </div>
     );
   }
