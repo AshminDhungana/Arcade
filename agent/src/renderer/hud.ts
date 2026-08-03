@@ -179,6 +179,11 @@ function initHud(): void {
     setTimeout(() => { el.classList.remove('visible'); el.remove(); }, durationMs);
   });
 
+  // Listen for STAFF_ALERT_ACK from main process (sent when server confirms staff alert)
+  window.electronAPI.onStaffAlertAck(() => {
+    showToast('✓ Staff notified');
+  });
+
   // Track hover state on the button for hover-extension
   let isHoveringButton = false;
   callBtn?.addEventListener('mouseenter', () => { isHoveringButton = true; });

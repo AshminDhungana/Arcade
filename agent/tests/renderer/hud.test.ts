@@ -215,3 +215,29 @@ describe('HUD transient behavior', () => {
     expect(btn.style.display).toBe('none');
   });
 });
+
+describe('STAFF_ALERT_ACK toast', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('shows "Staff notified" toast when onStaffAlertAck fires', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    vi.resetModules();
+    const localHandlers = mockElectronAPI();
+    await import('../../src/renderer/hud.js');
+    localHandlers.session('active');
+
+    // Trigger the callback registered by onStaffAlertAck
+    localHandlers.staffAlertAck?.();
+
+    const toast = document.querySelector('.hud-toast') as HTMLDivElement;
+    expect(toast.textContent).toBe('✓ Staff notified');
+    expect(toast.style.display).toBe('block');
+
+    vi.advanceTimersByTime(3000);
+    expect(toast.style.opacity).toBe('0');
+  });
+});
