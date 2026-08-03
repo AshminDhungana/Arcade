@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Loader2, Pause, Play, Power, Settings, ShoppingCart, Heart, User, X, Lock, Unlock } from 'lucide-react';
 import { MemberSearch } from './MemberSearch';
 import { useStartSession } from '@/api/sessions';
-import { generateEnrollCode, regenerateOverridePin, forceOverlay } from '@/api/seats';
+import { generateEnrollCode, regenerateOverridePin, forceOverlay, useSeat } from '@/api/seats';
 import { toast } from '@/store/toastStore';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import type { Member } from '@/types/members';
@@ -25,10 +25,16 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
   const memberRequired = useFeatureFlagStore((s) => s.flags.require_member_for_session);
   const assignedTimeEnabled = useFeatureFlagStore((s) => s.flags.enable_assigned_time_limit);
 
+  // Use useSeat hook for real-time data with prop as initialData
+  const { data: seatData } = useSeat(seat.id, { initialData: seat });
+
+  // Use seatData (fresh from query) or fall back to seat prop
+  const currentSeat = seatData ?? seat;
+
   const handleStartSession = () => {
     const parsed = assignedMinutes.trim() === '' ? null : Number(assignedMinutes);
     startSession.mutate(
-      { seat_id: seat.id, member_id: member?.id ?? null, assigned_minutes: parsed },
+      { seat_id: currentSeat.id, member_id: member?.id ?? null, assigned_minutes: parsed },
       {
         onSuccess: () => {
           toast.success('Session started');
@@ -44,7 +50,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
   const handleForceOverlayOn = async () => {
     setForceOverlayLoading('on');
     try {
-      await forceOverlay(seat.id, true);
+      await forceOverlay(currentSeat.id, true);
       toast.success('Force overlay ON');
     } catch (e) {
       toast.error((e as Error).message);
@@ -56,7 +62,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
   const handleForceOverlayOff = async () => {
     setForceOverlayLoading('off');
     try {
-      await forceOverlay(seat.id, false);
+      await forceOverlay(currentSeat.id, false);
       toast.success('Force overlay OFF');
     } catch (e) {
       toast.error((e as Error).message);
@@ -75,7 +81,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
       <div className="w-full max-w-md rounded-lg bg-card p-6 shadow-xl border border-border">
         <header className="mb-4 flex items-center justify-between">
           <h2 id="seat-modal-title" className="text-xl font-bold text-card-foreground">
-            {seat.name}
+            {currentSeat.name}
           </h2>
           <button
             type="button"
@@ -88,13 +94,13 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
         </header>
 
         <section className="mb-4 space-y-2 text-sm text-muted-foreground">
-          <p>Status: <span className="text-card-foreground font-medium">{seat.status.replace('_', ' ')}</span></p>
-          <p>Zone: <span className="text-card-foreground">{seat.zone_name ?? seat.zone_id}</span></p>
-          {seat.notes && <p data-testid="seat-notes">Note: {seat.notes}</p>}
+          <p>Status: <span className="text-card-foreground font-medium">{currentSeat.status.replace('_', ' ')}</span></p>
+          <p>Zone: <span className="text-card-foreground">{currentSeat.zone_name ?? currentSeat.zone_id}</span></p>
+          {currentSeat.notes && <p data-testid="seat-notes">Note: {currentSeat.notes}</p>}
         </section>
 
         <nav aria-label="Seat actions" className="grid grid-cols-2 gap-2">
-          {seat.status === 'AVAILABLE' && (
+          {currentSeat.status === 'AVAILABLE' && (
             <>
               <div className="col-span-2 space-y-2">
                 <MemberSearch onSelect={setMember} placeholder="Search members by name or phone…" />
@@ -143,10 +149,10 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
               </ActionButton>
             </>
           )}
-          {seat.status === 'IN_USE' && (
+          {currentSeat.status === 'IN_USE' && (
             <ActionButton icon={<Pause className="h-5 w-5" />} label="Pause Session" variant="secondary" />
           )}
-          {seat.status === 'PAUSED' && (
+          {currentSeat.status === 'PAUSED' && (
             <ActionButton icon={<Play className="h-5 w-5" />} label="Resume Session" variant="secondary" />
           )}
           <ActionButton icon={<ShoppingCart className="h-5 w-5" />} label="Checkout" variant="emerald" />
@@ -155,8 +161,8 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
           <ActionButton icon={<Settings className="h-5 w-5" />} label="Maintenance" variant="secondary" />
           <ActionButton icon={<Settings className="h-5 w-5" />} label="Enroll Code" variant="secondary" onClick={async () => {
             try {
-              const { code } = await generateEnrollCode(seat.id);
-              toast.success(`Enroll code for ${seat.name}: ${code}`, {
+              const { code } = await generateEnrollCode(currentSeat.id);
+              toast.success(`Enroll code for ${currentSeat.name}: ${code}`, {
                 persistent: true,
                 dismissLabel: 'Dismiss enroll code',
                 onClick: async () => {
@@ -172,8 +178,8 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
           }} />
           <ActionButton icon={<Settings className="h-5 w-5" />} label="Regenerate Override PIN" variant="secondary" onClick={async () => {
             try {
-              const { override_pin } = await regenerateOverridePin(seat.id);
-              toast.success(`New override PIN for ${seat.name}: ${override_pin} (shown once)`);
+              const { override_pin } = await regenerateOverridePin(currentSeat.id);
+              toast.success(`New override PIN for ${currentSeat.name}: ${override_pin} (shown once)`);
             } catch (e) { toast.error((e as Error).message); }
           }} />
           {/* Force Overlay buttons — available for all statuses */}

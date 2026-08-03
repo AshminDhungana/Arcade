@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import type { Member } from '@/types/members';
+import type { UseQueryResult } from '@tanstack/react-query';
 
 const ALL_FLAGS = {
   enable_members: false, enable_packages: false, enable_pos: false,
@@ -47,9 +48,45 @@ vi.mock('@/api/seats', () => ({
   forceOverlay: vi.fn().mockResolvedValue(undefined),
   generateEnrollCode: vi.fn().mockResolvedValue({ code: 'TEST123', expires_at: '2024-01-01T00:00:00Z' }),
   regenerateOverridePin: vi.fn().mockResolvedValue({ override_pin: '123456' }),
+  useSeat: vi.fn(),
 }));
 
 const { forceOverlay } = await import('@/api/seats');
+const { useSeat } = await import('@/api/seats');
+
+// Helper to create a mock UseQueryResult
+function createMockQueryResult<T>(
+  data: T | undefined,
+  isLoading: boolean,
+  isError: boolean,
+  error: Error | null
+): UseQueryResult<T, Error> {
+  return {
+    data,
+    isLoading,
+    isError,
+    error,
+    isPending: isLoading,
+    isSuccess: !isLoading && !isError && data !== undefined,
+    isFetched: !isLoading,
+    isFetching: false,
+    isRefetching: false,
+    isStale: false,
+    status: isLoading ? 'pending' : (isError ? 'error' : 'success'),
+    fetchStatus: 'idle',
+    failureCount: 0,
+    failureReason: null,
+    refetch: vi.fn(),
+    isLoadingError: isError && isLoading,
+    isRefetchError: false,
+    isPlaceholderData: false,
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: error ? Date.now() : 0,
+    errorUpdateCount: error ? 1 : 0,
+    fetchFailureCount: 0,
+    fetchFailureReason: null,
+  } as unknown as UseQueryResult<T, Error>;
+}
 
 const mockSeat: Seat = {
   id: 'seat-1',
@@ -80,6 +117,8 @@ describe('SeatActionModal', () => {
   beforeEach(() => {
     useAuthStore.setState({ accessToken: 'tok' });
     lastMutate = vi.fn();
+    // Default mock for useSeat - returns the prop seat as data
+    vi.mocked(useSeat).mockReturnValue(createMockQueryResult(mockSeat, false, false, null));
   });
 
   afterEach(() => {
@@ -113,6 +152,7 @@ describe('SeatActionModal', () => {
 
   it('shows Pause Session button for IN_USE seats', () => {
     const inUseSeat = { ...mockSeat, status: SeatStatus.IN_USE };
+    vi.mocked(useSeat).mockReturnValue(createMockQueryResult(inUseSeat, false, false, null));
     render(<SeatActionModal seat={inUseSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
     expect(screen.getByText('Pause Session')).toBeInTheDocument();
   });
@@ -188,5 +228,48 @@ describe('SeatActionModal', () => {
       { seat_id: 'seat-1', member_id: null, assigned_minutes: 120 },
       expect.any(Object),
     );
+  });
+});
+
+describe('SeatActionModal auto-update', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthStore.setState({ accessToken: 'tok' });
+  });
+
+  it('uses useSeat hook with seat.id and initialData from prop', () => {
+    vi.mocked(useSeat).mockReturnValue(createMockQueryResult(mockSeat, false, false, null));
+
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+
+    expect(vi.mocked(useSeat)).toHaveBeenCalledWith('seat-1', { initialData: mockSeat });
+  });
+
+  it('renders seat data from useSeat hook when status updates', () => {
+    const updatedSeat = { ...mockSeat, status: SeatStatus.IN_USE };
+    vi.mocked(useSeat).mockReturnValue(createMockQueryResult(updatedSeat, false, false, null));
+
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+
+    expect(screen.getByText('IN USE')).toBeInTheDocument();
+  });
+
+  it('falls back to prop data when useSeat returns error', () => {
+    vi.mocked(useSeat).mockReturnValue(createMockQueryResult<Seat>(undefined, false, true, new Error('Not found')));
+
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+
+    // Should still render using initialData/prop data
+    expect(screen.getByText('PC-01')).toBeInTheDocument();
+    expect(screen.getByText('AVAILABLE')).toBeInTheDocument();
+  });
+
+  it('renders immediately with initialData while useSeat is loading', () => {
+    vi.mocked(useSeat).mockReturnValue(createMockQueryResult(mockSeat, true, false, null));
+
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+
+    // initialData should render immediately, no loading spinner for the seat data itself
+    expect(screen.getByText('PC-01')).toBeInTheDocument();
   });
 });

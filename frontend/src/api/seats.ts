@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import type { Seat } from '@/types/seat';
 import { useAuthStore } from '@/store/authStore';
 
@@ -105,12 +105,13 @@ export function useSeats() {
 }
 
 /** React Query hook for a single seat. */
-export function useSeat(seatId: string) {
+export function useSeat(seatId: string, options?: Omit<UseQueryOptions<Seat, Error>, 'queryKey' | 'queryFn'>) {
   return useQuery({
     queryKey: ['seat', seatId],
     queryFn: () => fetchSeat(seatId),
     enabled: seatId != null && seatId !== '',
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    ...options,
   });
 }
