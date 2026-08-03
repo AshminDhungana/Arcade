@@ -40,18 +40,22 @@ vi.mock('electron', async () => {
 });
 
 // exec is used via promisify, so the mock must call its callback.
-vi.mock('child_process', () => ({
-  exec: vi.fn().mockImplementation((_, optionsOrCallback, maybeCallback) => {
-    const callback =
-      typeof optionsOrCallback === 'function'
-        ? optionsOrCallback
-        : maybeCallback;
-    if (callback) {
-      callback(null, 'stdout', 'stderr');
-    }
-    return undefined;
-  }),
-}));
+vi.mock('child_process', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    exec: vi.fn().mockImplementation((_, optionsOrCallback, maybeCallback) => {
+      const callback =
+        typeof optionsOrCallback === 'function'
+          ? optionsOrCallback
+          : maybeCallback;
+      if (callback) {
+        callback(null, 'stdout', 'stderr');
+      }
+      return undefined;
+    }),
+  };
+});
 
 vi.mock('sharp', () => {
   return {
