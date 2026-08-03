@@ -154,7 +154,7 @@ describe('HUD transient behavior', () => {
     expect(btn.style.display).toBe('none');
   });
 
-  it('shows Call Staff for 10s when the mouse enters the corner', async () => {
+  it('shows Call Staff for 5s when the mouse enters the corner', async () => {
     vi.useFakeTimers();
     document.body.innerHTML = '<div id="app"></div>';
     vi.resetModules();
@@ -164,10 +164,54 @@ describe('HUD transient behavior', () => {
     vi.advanceTimersByTime(35000); // past INTRO
     const btn = document.querySelector('.call-staff-btn') as HTMLElement;
     expect(btn.style.display).toBe('none');
-    // hover the hot corner (bottom-right 64x64)
+    // hover the hot corner (bottom-right 12%)
     window.dispatchEvent(new MouseEvent('mousemove', { clientX: innerWidth - 10, clientY: innerHeight - 10 }));
     expect(btn.style.display).not.toBe('none');
-    vi.advanceTimersByTime(10000);
+    // Should show "Call Staff available" toast
+    const toast = document.querySelector('.hud-toast') as HTMLDivElement;
+    expect(toast?.textContent).toBe('✓ Call Staff available');
+    vi.advanceTimersByTime(5000);
+    expect(btn.style.display).toBe('none');
+  });
+
+  it('extends Call Staff visibility while hovering over button', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    vi.resetModules();
+    handlers = mockElectronAPI();
+    await import('../../src/renderer/hud.js');
+    handlers.session('active');
+    vi.advanceTimersByTime(35000); // past INTRO
+    const btn = document.querySelector('.call-staff-btn') as HTMLElement;
+    expect(btn.style.display).toBe('none');
+    // hover the hot corner
+    window.dispatchEvent(new MouseEvent('mousemove', { clientX: innerWidth - 10, clientY: innerHeight - 10 }));
+    expect(btn.style.display).not.toBe('none');
+    // Hover over the button
+    btn.dispatchEvent(new MouseEvent('mouseenter'));
+    // Advance 5s - button should still be visible because we're hovering
+    vi.advanceTimersByTime(5000);
+    expect(btn.style.display).not.toBe('none');
+    // Leave button
+    btn.dispatchEvent(new MouseEvent('mouseleave'));
+    // Advance 5s - now should hide
+    vi.advanceTimersByTime(5000);
+    expect(btn.style.display).toBe('none');
+  });
+
+  it('does not show Call Staff when phase is ENDED', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    vi.resetModules();
+    handlers = mockElectronAPI();
+    await import('../../src/renderer/hud.js');
+    // Start active then end session to set phase to ENDED
+    handlers.session('active');
+    handlers.session('ended');
+    const btn = document.querySelector('.call-staff-btn') as HTMLElement;
+    expect(btn.style.display).toBe('none');
+    // hover the hot corner
+    window.dispatchEvent(new MouseEvent('mousemove', { clientX: innerWidth - 10, clientY: innerHeight - 10 }));
     expect(btn.style.display).toBe('none');
   });
 });

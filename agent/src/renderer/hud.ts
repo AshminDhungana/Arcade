@@ -179,15 +179,31 @@ function initHud(): void {
     setTimeout(() => { el.classList.remove('visible'); el.remove(); }, durationMs);
   });
 
-  // Corner hot-zone (bottom-right 64x64) → show Call Staff for 10s
+  // Track hover state on the button for hover-extension
+  let isHoveringButton = false;
+  callBtn?.addEventListener('mouseenter', () => { isHoveringButton = true; });
+  callBtn?.addEventListener('mouseleave', () => { isHoveringButton = false; });
+
+  // Corner hot-zone (bottom-right 12%) → show Call Staff for 5s with hover extension
   let hoverTimer: ReturnType<typeof setTimeout> | null = null;
+  function scheduleHide() {
+    if (hoverTimer) clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(checkAndHide, 5000);
+  }
+  function checkAndHide() {
+    if (!isHoveringButton && callBtn) {
+      callBtn.style.display = 'none';
+    } else if (isHoveringButton) {
+      hoverTimer = setTimeout(checkAndHide, 500); // Re-check while hovering
+    }
+  }
   window.addEventListener('mousemove', (e) => {
     if (e.clientX > innerWidth * (1 - HOVER_ZONE) && e.clientY > innerHeight * (1 - HOVER_ZONE)) {
       if (callBtn && callBtn.style.display === 'none' && phase !== 'ENDED') {
         callBtn.style.display = 'block';
         reveal(callBtn, 80);
-        if (hoverTimer) clearTimeout(hoverTimer);
-        hoverTimer = setTimeout(() => { if (callBtn) callBtn.style.display = 'none'; }, 10000);
+        showToast('✓ Call Staff available');
+        scheduleHide();
       }
     }
   });
