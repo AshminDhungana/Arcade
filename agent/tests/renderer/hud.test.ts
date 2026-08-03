@@ -287,3 +287,44 @@ describe('Call Staff full flow', () => {
     expect(toast.textContent).toBe('✓ Staff notified');
   });
 });
+
+describe('HUD rail container', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('creates hud-rail container at bottom with correct positioning', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    vi.resetModules();
+    const localHandlers = mockElectronAPI();
+    await import('../../src/renderer/hud.js');
+    localHandlers.session('active');
+
+    const rail = document.querySelector('.hud-rail') as HTMLDivElement;
+    expect(rail).toBeTruthy();
+    const computedStyle = getComputedStyle(rail);
+    expect(computedStyle.position).toBe('fixed');
+    expect(computedStyle.bottom).toBe('4vh');
+    expect(computedStyle.left).toBe('4vw');
+    expect(computedStyle.right).toBe('4vw');
+    expect(computedStyle.display).toBe('flex');
+    expect(computedStyle.alignItems).toBe('center');
+    expect(computedStyle.justifyContent).toBe('flex-end');
+  });
+
+  it('places call-staff-btn inside hud-rail', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    vi.resetModules();
+    const localHandlers = mockElectronAPI();
+    await import('../../src/renderer/hud.js');
+    localHandlers.session('active');
+
+    const rail = document.querySelector('.hud-rail') as HTMLDivElement;
+    const callBtn = document.querySelector('.call-staff-btn') as HTMLButtonElement;
+
+    expect(callBtn.parentElement).toBe(rail);
+  });
+});

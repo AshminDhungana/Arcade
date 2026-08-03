@@ -40,6 +40,32 @@ body {
 }
 .call-staff-btn:hover { background: var(--accent); color: var(--bg-0); }
 
+/* Rail container matching kiosk overlay's .kiosk-rail */
+.hud-rail {
+  position: fixed;
+  bottom: 4vh;
+  left: 4vw;
+  right: 4vw;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* button on right side like kiosk */
+  pointer-events: none; /* click-through except button */
+  z-index: 100;
+}
+
+/* Button inside rail gets pointer-events: auto from its own style */
+.hud-rail .call-staff-btn {
+  position: static; /* no longer absolute */
+  pointer-events: auto;
+  margin: 0; /* reset any margins */
+}
+
+/* Override the old absolute positioning for call-staff-btn when inside rail */
+.hud-rail .call-staff-btn {
+  right: auto;
+  bottom: auto;
+}
+
 /* Announcement lower-third */
 .announcement-banner {
   position: fixed; left: 4vw; bottom: 12vh; max-width: 60%;

@@ -7,6 +7,7 @@ import { createLowTimeModal, showModal, hideModal } from './components/low-time-
 let phase: HudPhase = 'ENDED';
 let timerEl: HTMLDivElement | null = null;
 let callBtn: HTMLButtonElement | null = null;
+let railEl: HTMLDivElement | null = null;
 let introTimerId: ReturnType<typeof setTimeout> | null = null;
 let callStaffTimerId: ReturnType<typeof setTimeout> | null = null;
 let urgentCountdownStop: (() => void) | null = null;
@@ -63,18 +64,25 @@ function showIntro(): void {
     reveal(timerEl);
     timerEl.textContent = formatElapsed(0);
   }
+  if (railEl) {
+    railEl.style.display = 'flex';
+  }
   if (callBtn) {
     callBtn.style.display = 'block';
     reveal(callBtn, 80);
   }
   // INTRO timer ~5s
   introTimerId = setTimeout(() => setPhase('AMBIENT', 'intro-timeout'), 5000);
-  // Call Staff visible for 30s
-  callStaffTimerId = setTimeout(() => { if (callBtn) callBtn.style.display = 'none'; }, 30000);
+  // Call Staff visible for 30s (hides rail and button)
+  callStaffTimerId = setTimeout(() => { 
+    if (railEl) railEl.style.display = 'none'; 
+    if (callBtn) callBtn.style.display = 'none';
+  }, 30000);
 }
 
 function hideAll(): void {
   if (timerEl) timerEl.style.display = 'none';
+  if (railEl) railEl.style.display = 'none';
   if (callBtn) callBtn.style.display = 'none';
   if (introTimerId) clearTimeout(introTimerId);
   if (callStaffTimerId) clearTimeout(callStaffTimerId);
@@ -102,6 +110,9 @@ function showUrgent(): void {
       timerEl!.textContent = formatMMSS(rem);
       pulseTimer(timerEl!);
     });
+  }
+  if (railEl) {
+    railEl.style.display = 'flex';
   }
   if (callBtn) {
     callBtn.style.display = 'block';
@@ -141,12 +152,26 @@ function initHud(): void {
   timerEl.style.display = 'none';
   app.appendChild(timerEl);
 
+  // --- Add rail container matching kiosk overlay ---
+  railEl = document.createElement('div');
+  railEl.className = 'hud-rail';
+  railEl.style.position = 'fixed';
+  railEl.style.bottom = '4vh';
+  railEl.style.left = '4vw';
+  railEl.style.right = '4vw';
+  railEl.style.display = 'none'; // hidden by default, shown by hot-zone
+  railEl.style.alignItems = 'center';
+  railEl.style.justifyContent = 'flex-end';
+  railEl.style.pointerEvents = 'none';
+  railEl.style.zIndex = '100';
+  app.appendChild(railEl);
+
   callBtn = document.createElement('button');
   callBtn.className = 'call-staff-btn';
   callBtn.textContent = 'Call Staff';
-  callBtn.style.display = 'none';
+  callBtn.style.display = 'none'; // button hidden inside rail initially
   callBtn.addEventListener('click', () => window.electronAPI.callStaff());
-  app.appendChild(callBtn);
+  railEl.appendChild(callBtn);
 
   // Preload low-time modal CSS via component (already included)
 
@@ -189,24 +214,28 @@ function initHud(): void {
   callBtn?.addEventListener('mouseenter', () => { isHoveringButton = true; });
   callBtn?.addEventListener('mouseleave', () => { isHoveringButton = false; });
 
-  // Corner hot-zone (bottom-right 12%) → show Call Staff for 5s with hover extension
+  // Corner hot-zone (bottom-right 12%) → show rail for 5s with hover extension
   let hoverTimer: ReturnType<typeof setTimeout> | null = null;
   function scheduleHide() {
     if (hoverTimer) clearTimeout(hoverTimer);
     hoverTimer = setTimeout(checkAndHide, 5000);
   }
   function checkAndHide() {
-    if (!isHoveringButton && callBtn) {
-      callBtn.style.display = 'none';
+    if (!isHoveringButton && railEl) {
+      railEl.style.display = 'none';
+      if (callBtn) callBtn.style.display = 'none';
     } else if (isHoveringButton) {
       hoverTimer = setTimeout(checkAndHide, 500); // Re-check while hovering
     }
   }
   window.addEventListener('mousemove', (e) => {
     if (e.clientX > innerWidth * (1 - HOVER_ZONE) && e.clientY > innerHeight * (1 - HOVER_ZONE)) {
-      if (callBtn && callBtn.style.display === 'none' && phase !== 'ENDED') {
-        callBtn.style.display = 'block';
-        reveal(callBtn, 80);
+      if (railEl && railEl.style.display === 'none' && phase !== 'ENDED') {
+        railEl.style.display = 'flex';
+        if (callBtn) {
+          callBtn.style.display = 'block';
+          reveal(callBtn, 80);
+        }
         showToast('✓ Call Staff available');
         scheduleHide();
       }
