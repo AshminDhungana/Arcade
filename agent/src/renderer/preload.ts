@@ -107,6 +107,10 @@ const api = {
 
   openSettings: () => ipcRenderer.send('agent:open-settings'),
 
+  onStaffAlertAck: (callback: () => void) => {
+    ipcRenderer.on('staff-alert-ack', (_event: IpcRendererEvent) => callback());
+  },
+
   enroll: (code: string) =>
     ipcRenderer.invoke('agent:enroll', code),
 };
