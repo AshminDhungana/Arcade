@@ -10,9 +10,91 @@ function mockElectronAPI() {
     onOverlayContent: () => {},
     onSessionStatus: (cb: any) => { handlers['session'] = cb; },
     callStaff: vi.fn(),
+    onStaffAlertAck: (cb: any) => { handlers['staffAlertAck'] = cb; },
   };
   return handlers;
 }
+
+describe('HUD toast notifications', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('showToast creates toast element with message', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    // Mock electronAPI before importing hud
+    (window as any).electronAPI = {
+      onTimerUpdate: vi.fn(),
+      onAnnouncement: vi.fn(),
+      onLowTimeWarning: vi.fn(),
+      onOverlayContent: vi.fn(),
+      onSessionStatus: vi.fn(),
+      callStaff: vi.fn(),
+      onStaffAlertAck: vi.fn(),
+    };
+    const { showToast } = await import('../../src/renderer/hud.js');
+
+    showToast('Test message', 3000);
+
+    const toast = document.querySelector('.hud-toast') as HTMLDivElement;
+    expect(toast).toBeTruthy();
+    expect(toast.textContent).toBe('Test message');
+    expect(toast.style.display).toBe('block');
+    expect(toast.style.opacity).toBe('1');
+  });
+
+  it('showToast auto-dismisses after duration', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    (window as any).electronAPI = {
+      onTimerUpdate: vi.fn(),
+      onAnnouncement: vi.fn(),
+      onLowTimeWarning: vi.fn(),
+      onOverlayContent: vi.fn(),
+      onSessionStatus: vi.fn(),
+      callStaff: vi.fn(),
+      onStaffAlertAck: vi.fn(),
+    };
+    const { showToast } = await import('../../src/renderer/hud.js');
+
+    showToast('Test message', 3000);
+
+    vi.advanceTimersByTime(3000);
+
+    const toast = document.querySelector('.hud-toast') as HTMLDivElement;
+    expect(toast.style.opacity).toBe('0');
+
+    vi.advanceTimersByTime(300); // fade out transition
+
+    expect(toast.style.display).toBe('none');
+  });
+
+  it('showToast reuses existing toast element', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    (window as any).electronAPI = {
+      onTimerUpdate: vi.fn(),
+      onAnnouncement: vi.fn(),
+      onLowTimeWarning: vi.fn(),
+      onOverlayContent: vi.fn(),
+      onSessionStatus: vi.fn(),
+      callStaff: vi.fn(),
+      onStaffAlertAck: vi.fn(),
+    };
+    const { showToast } = await import('../../src/renderer/hud.js');
+
+    showToast('First', 3000);
+    const firstToast = document.querySelector('.hud-toast');
+
+    showToast('Second', 3000);
+    const secondToast = document.querySelector('.hud-toast');
+
+    expect(firstToast).toBe(secondToast);
+    expect(secondToast?.textContent).toBe('Second');
+  });
+});
 
 describe('HUD renderer (legacy)', () => {
   let handlers: Record<string, (...a: any[]) => void>;

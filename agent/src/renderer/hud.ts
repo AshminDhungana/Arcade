@@ -15,6 +15,22 @@ let lowTimeModal: HTMLDivElement | null = null;
 const HOVER_ZONE = 0.12; // bottom-right hotzone size (fraction of viewport)
 let pendingLowTimeMinutes = 5;
 
+function showToast(message: string, durationMs = 3000): void {
+  let toast = document.querySelector('.hud-toast') as HTMLDivElement;
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.className = 'hud-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.display = 'block';
+  toast.style.opacity = '1';
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => { toast.style.display = 'none'; }, 300);
+  }, durationMs);
+}
+
 function setPhase(next: HudPhase, event: HudEvent): void {
   phase = nextHudPhase(phase, event);
   applyPhase();
@@ -189,4 +205,4 @@ if (typeof document !== 'undefined') {
   }
 }
 
-export { initHud };
+export { initHud, showToast };

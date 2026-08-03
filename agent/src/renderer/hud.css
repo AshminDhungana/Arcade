@@ -51,3 +51,22 @@ body {
   transition: opacity .5s ease, transform .5s ease; pointer-events: none;
 }
 .announcement-banner.visible { opacity: 1; transform: none; }
+
+/* Toast notifications — shown briefly for Call Staff available / Staff notified */
+.hud-toast {
+  position: fixed;
+  right: 4vw;
+  bottom: 12vh;
+  background: rgba(5, 6, 9, .9);
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  padding: .6rem 1.1rem;
+  font-family: var(--font-ui);
+  font-size: .85rem;
+  color: var(--text-1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+  opacity: 0;
+  transition: opacity .3s ease;
+  pointer-events: none;
+  z-index: 1000;
+}
