@@ -132,16 +132,10 @@ async function bootstrap(): Promise<void> {
   const sessionStore = new BetterSqliteSessionStore(dbPath);
   sessionStore.init();
 
-  wsClient = new AgentWebSocketClient(config, platformService, sessionStore, configPath, (event, data) => {
+  wsClient = new AgentWebSocketClient(config, platformService, sessionStore, configPath, (event, _data) => {
     if (event === 'staff-alert-ack') {
       // Forward to both kiosk and HUD windows
-      const win = platformService as any;
-      if (win.kioskWindow && !win.kioskWindow.isDestroyed()) {
-        win.kioskWindow.webContents.send('staff-alert-ack');
-      }
-      if (win.hudWindow && !win.hudWindow.isDestroyed()) {
-        win.hudWindow.webContents.send('staff-alert-ack');
-      }
+      platformService.sendToOverlayAndHud('staff-alert-ack');
     }
   });
   wsClient.connect();

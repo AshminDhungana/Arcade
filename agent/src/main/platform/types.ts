@@ -138,6 +138,12 @@ export interface IPlatformService {
   /** Send agent config to the kiosk overlay renderer. */
   sendConfigToOverlay(config: { hasOverrideCode: boolean }): void;
 
+  /**
+   * Send a message to both the kiosk overlay and HUD windows.
+   * Used for events that should reach both overlay types.
+   */
+  sendToOverlayAndHud(channel: string, data?: unknown): void;
+
   /** Restart the PC immediately. */
   restartPC(): Promise<void>;
 

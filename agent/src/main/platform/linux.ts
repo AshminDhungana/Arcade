@@ -183,6 +183,15 @@ export class LinuxPlatformService implements IPlatformService {
     }
   }
 
+  sendToOverlayAndHud(channel: string, data?: unknown): void {
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.webContents.send(channel, data);
+    }
+    if (this.hudWindow && !this.hudWindow.isDestroyed()) {
+      this.hudWindow.webContents.send(channel, data);
+    }
+  }
+
   updateTimer(timer: { elapsedSeconds: number }): void {
     const win = this.sessionActive ? this.hudWindow : this.kioskWindow;
     if (win && !win.isDestroyed()) {
