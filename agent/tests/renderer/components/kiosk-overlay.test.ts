@@ -141,6 +141,44 @@ describe('KioskOverlay.setEventBanner', () => {
     overlay.setSessionActive(false);
     expect(label()).toBe('OPEN');
   });
+
+  it('shows all content (bug, center, rail) when sessionActive=true', () => {
+    const root = document.createElement('div');
+    const overlay = new KioskOverlay(root);
+
+    // Initial state - overlay shows content when sessionActive=false (default)
+    expect(root.querySelector('.kiosk-bug')).toBeTruthy();
+    expect(root.querySelector('.kiosk-center')).toBeTruthy();
+    expect(root.querySelector('.kiosk-rail')).toBeTruthy();
+    expect(root.querySelector('.kiosk-btn.primary')).toBeTruthy();
+
+    // Set sessionActive=true - all content should still be visible
+    overlay.setSessionActive(true);
+
+    expect(root.querySelector('.kiosk-bug')).toBeTruthy();
+    expect(root.querySelector('.kiosk-center')).toBeTruthy();
+    expect(root.querySelector('.kiosk-rail')).toBeTruthy();
+    expect(root.querySelector('.kiosk-btn.primary')).toBeTruthy();
+  });
+
+  it('updates status pill to LIVE when sessionActive=true', () => {
+    const root = document.createElement('div');
+    const overlay = new KioskOverlay(root);
+    overlay.setSessionActive(true);
+    const label = root.querySelector('.status-pill .label');
+    expect(label?.textContent).toBe('LIVE');
+    expect(root.querySelector('.status-pill')?.classList.contains('live')).toBe(true);
+  });
+
+  it('updates status pill to OPEN when sessionActive=false', () => {
+    const root = document.createElement('div');
+    const overlay = new KioskOverlay(root);
+    overlay.setSessionActive(true);
+    overlay.setSessionActive(false);
+    const label = root.querySelector('.status-pill .label');
+    expect(label?.textContent).toBe('OPEN');
+    expect(root.querySelector('.status-pill')?.classList.contains('live')).toBe(false);
+  });
 });
 
 describe('KioskOverlay fallback behavior', () => {
