@@ -241,3 +241,49 @@ describe('STAFF_ALERT_ACK toast', () => {
     expect(toast.style.opacity).toBe('0');
   });
 });
+
+describe('Call Staff full flow', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('hot-zone → click → ACK shows both toasts', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="app"></div>';
+    vi.resetModules();
+    const localHandlers = mockElectronAPI();
+    await import('../../src/renderer/hud.js');
+    localHandlers.session('active');
+    // Advance past INTRO phase (30s) so button is hidden
+    vi.advanceTimersByTime(35000);
+
+    const callBtn = document.querySelector('.call-staff-btn') as HTMLButtonElement;
+    expect(callBtn.style.display).toBe('none');
+
+    // 1. Hot-zone trigger (use same coordinates as existing test)
+    const hoverEvent = new MouseEvent('mousemove', {
+      clientX: innerWidth - 10,
+      clientY: innerHeight - 10,
+    });
+    window.dispatchEvent(hoverEvent);
+
+    expect(callBtn.style.display).toBe('block');
+    let toast = document.querySelector('.hud-toast') as HTMLDivElement;
+    expect(toast.textContent).toBe('✓ Call Staff available');
+
+    // 2. User clicks button
+    callBtn.click();
+
+    // Verify callStaff IPC was called
+    const { electronAPI } = (window as any);
+    expect(electronAPI.callStaff).toHaveBeenCalled();
+
+    // 3. Simulate STAFF_ALERT_ACK from server
+    localHandlers.staffAlertAck?.();
+
+    // Should show "Staff notified" toast
+    toast = document.querySelector('.hud-toast') as HTMLDivElement;
+    expect(toast.textContent).toBe('✓ Staff notified');
+  });
+});
