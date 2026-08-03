@@ -20,7 +20,7 @@ import { saveAgentConfig } from '../config/loader.js';
 import type { LoadedAgentConfig } from '../config/types.js';
 import os from 'node:os';
 import { verify } from '@node-rs/argon2';
-import { ipcRenderer } from 'electron';
+
 
 type ConnectionState = 'connecting' | 'open' | 'closing' | 'disconnected';
 
@@ -52,13 +52,16 @@ export class AgentWebSocketClient {
   private overrideEventQueued = false;
 
   private persistTimer: ReturnType<typeof setInterval> | null = null;
+  private onRendererEvent?: (event: string, data?: unknown) => void;
 
   constructor(
     private readonly config: AgentConfig,
     private readonly platform: IPlatformService,
     private readonly store?: SessionStore,
     private readonly configPath: string = '',
+    onRendererEvent?: (event: string, data?: unknown) => void,
   ) {
+    this.onRendererEvent = onRendererEvent;
     this.commandHandlers = createCommandHandlers(platform, {
       seatId: config.seat_id,
       serverUrl: config.server_url,
@@ -320,7 +323,7 @@ export class AgentWebSocketClient {
 
       // Handle STAFF_ALERT_ACK from server - forward to renderer for toast notification
       if (message.type === 'STAFF_ALERT_ACK') {
-        ipcRenderer.send('staff-alert-ack');
+        this.onRendererEvent?.('staff-alert-ack');
         return;
       }
 

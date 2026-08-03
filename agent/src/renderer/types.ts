@@ -26,6 +26,7 @@ export interface ElectronAPI {
   staffOverride: (pin: string) => void;
   openSettings: () => void;
   enroll: (code: string) => Promise<{ ok: boolean; error?: string }>;
+  onStaffAlertAck: (callback: () => void) => void;
 }
 
 declare global {
