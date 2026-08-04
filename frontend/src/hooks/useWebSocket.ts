@@ -9,6 +9,7 @@ import type {
   AnnouncementPayload,
   AlertPayload,
 } from '@/types/ws';
+import type { Seat, SeatStatus } from '@/types/seat';
 
 // ---------------------------------------------------------------------------
 // Constants (mirrors agent behaviour)
@@ -179,17 +180,29 @@ function handleMessage(
 
       // Optimistically update the single-seat cache for immediate UI feedback
       if (seatId) {
-        queryClient.setQueryData<Seat>(['seat', seatId], (old) => {
+        queryClient.setQueryData<Seat>(['seat', seatId], (old: Seat | undefined) => {
           if (!old) return old;
-          return { ...old, ...payload, id: seatId };
+          return {
+            ...old,
+            ...payload,
+            id: seatId,
+            status: (payload.status as SeatStatus) ?? old.status,
+          } as Seat;
         });
       }
 
       // Also update the seat list cache if the payload has enough info
-      queryClient.setQueryData<Seat[]>(['seats'], (old) => {
+      queryClient.setQueryData<Seat[]>(['seats'], (old: Seat[] | undefined) => {
         if (!old || !seatId) return old;
         return old.map((seat) =>
-          seat.id === seatId ? { ...seat, ...payload, id: seatId } : seat
+          seat.id === seatId
+            ? ({
+                ...seat,
+                ...payload,
+                id: seatId,
+                status: (payload.status as SeatStatus) ?? seat.status,
+              } as Seat)
+            : seat
         );
       });
 
