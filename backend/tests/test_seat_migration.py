@@ -63,6 +63,6 @@ def test_no_model_columns_drifted_after_head(tmp_path: Path) -> None:
         }
     for table, columns in Base.metadata.tables.items():
         for col in columns.columns:
-            assert col.name in existing.get(table, set()), (
-                f"Drifted column missing from DB: {table}.{col.name}"
-            )
+            assert col.name in existing.get(
+                table, set()
+            ), f"Drifted column missing from DB: {table}.{col.name}"

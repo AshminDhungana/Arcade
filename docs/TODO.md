@@ -1,6 +1,6 @@
 # Todo
 
-- [ ] When Kisko overlay is off , we have a feature that displayes call staff button when we hover the mouse at the bottom end. the problem is that, the button when clicked acts as a hollow what is behind the button gets click and their is no notifaction for the button clicking. The expected behaviour is that, when pressed the button should clicked and its indendent function should proceed. 
+- [ ] When Kisko overlay is off , we have a feature that displayes call staff button when we hover the mouse at the bottom end. the problem is that, the button when clicked acts as a hollow what is behind the button gets click and their is no notifaction for the button clicking. The expected behaviour is that, when pressed the button should clicked and its indendent function should proceed.
 
 ## Task 2: Extra "Call Staff Available" notification shows up when it shouldn't
 
@@ -22,5 +22,3 @@
 - [ ] With overlay off, hovering the bottom-right corner shows only the Call Staff button.
 - [ ] The "Call Staff Available" notification does not render in this state.
 - [ ] Confirm the notification is still shown correctly in whatever state it *is* meant for (so this fix doesn't just delete it globally) — flag if unsure where else it's used.
-
-

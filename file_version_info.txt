@@ -37,7 +37,7 @@ VSVersionInfo(
         StringStruct('OriginalFilename', 'Arcade Launcher.exe'),
         StringStruct('ProductName', 'Arcade'),
         StringStruct('ProductVersion', '1.0.0')])
-      ]), 
+      ]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]
 )

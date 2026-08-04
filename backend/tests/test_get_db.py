@@ -170,9 +170,9 @@ async def test_get_db_commits_on_successful_exit() -> None:
                     .all()
                 )
 
-        assert len(rows) == 1, (
-            "expected the Staff row to persist after get_db() exited normally"
-        )
+        assert (
+            len(rows) == 1
+        ), "expected the Staff row to persist after get_db() exited normally"
         assert rows[0].name == "Committer"
         assert rows[0].role.value == "CASHIER"
     finally:
@@ -208,9 +208,9 @@ async def test_get_db_rolls_back_on_handler_error() -> None:
                 raise RuntimeError("boom")
 
             exc = await _run_get_db_like_fastapi(handler)
-            assert isinstance(exc, RuntimeError), (
-                "RuntimeError should have propagated out of get_db()"
-            )
+            assert isinstance(
+                exc, RuntimeError
+            ), "RuntimeError should have propagated out of get_db()"
             assert str(exc) == "boom"
 
             # Open a NEW session on the same engine — the rolled-back row

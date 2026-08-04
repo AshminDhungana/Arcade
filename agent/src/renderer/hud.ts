@@ -74,8 +74,8 @@ function showIntro(): void {
   // INTRO timer ~5s
   introTimerId = setTimeout(() => setPhase('AMBIENT', 'intro-timeout'), 5000);
   // Call Staff visible for 30s (hides rail and button)
-  callStaffTimerId = setTimeout(() => { 
-    if (railEl) railEl.style.display = 'none'; 
+  callStaffTimerId = setTimeout(() => {
+    if (railEl) railEl.style.display = 'none';
     if (callBtn) callBtn.style.display = 'none';
   }, 30000);
 }

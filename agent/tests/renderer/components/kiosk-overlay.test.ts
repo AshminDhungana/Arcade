@@ -293,9 +293,9 @@ describe('KioskOverlay call staff button visibility', () => {
   it('hovering trigger zone shows button', () => {
     const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
     const btn = root.querySelector('.kiosk-btn.primary') as HTMLElement;
-    
+
     trigger.dispatchEvent(new MouseEvent('mouseenter'));
-    
+
     expect(btn.classList.contains('visible')).toBe(true);
     expect(window.getComputedStyle(btn).opacity).toBe('1');
   });
@@ -303,29 +303,29 @@ describe('KioskOverlay call staff button visibility', () => {
   it('button auto-hides after 3s when mouse leaves trigger', async () => {
     const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
     const btn = root.querySelector('.kiosk-btn.primary') as HTMLElement;
-    
+
     trigger.dispatchEvent(new MouseEvent('mouseenter'));
     expect(btn.classList.contains('visible')).toBe(true);
-    
+
     trigger.dispatchEvent(new MouseEvent('mouseleave'));
-    
+
     // Wait for auto-hide
     await new Promise(r => setTimeout(r, 3100));
-    
+
     expect(btn.classList.contains('visible')).toBe(false);
   });
 
   it('hovering button cancels auto-hide', async () => {
     const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
     const btn = root.querySelector('.kiosk-btn.primary') as HTMLElement;
-    
+
     trigger.dispatchEvent(new MouseEvent('mouseenter'));
     btn.dispatchEvent(new MouseEvent('mouseenter'));
     trigger.dispatchEvent(new MouseEvent('mouseleave'));
-    
+
     // Wait longer than auto-hide delay
     await new Promise(r => setTimeout(r, 3100));
-    
+
     // Button should still be visible
     expect(btn.classList.contains('visible')).toBe(true);
   });
@@ -333,12 +333,12 @@ describe('KioskOverlay call staff button visibility', () => {
   it('click fires callback, shows toast, hides button', () => {
     const cb = vi.fn();
     overlay.onCallStaff(cb);
-    
+
     const btn = root.querySelector('.kiosk-btn.primary') as HTMLButtonElement;
     btn.classList.add('visible'); // simulate visible
-    
+
     btn.click();
-    
+
     expect(cb).toHaveBeenCalledTimes(1);
     // Toast assertion - check announcement appears
     const toast = root.querySelector('.kiosk-toast') as HTMLElement;
@@ -350,9 +350,9 @@ describe('KioskOverlay call staff button visibility', () => {
   it('destroy clears hide timer', () => {
     const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
     trigger.dispatchEvent(new MouseEvent('mouseenter'));
-    
+
     overlay.destroy();
-    
+
     // Timer should be cleared - no error thrown
     // If timer wasn't cleared, it would try to access destroyed DOM
   });

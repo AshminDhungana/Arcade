@@ -10,7 +10,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 describe('Agent smoke test', () => {
   it('should exit with code 0 when --smoke-test flag is passed', async () => {
     const distPath = path.resolve(__dirname, '../dist/main/index.js')
-    
+
     // Skip if dist doesn't exist (requires build first)
     if (!fs.existsSync(distPath)) {
       vi.skip('dist not built - run npm run build first')

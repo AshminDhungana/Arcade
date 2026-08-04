@@ -35,10 +35,10 @@ function initKiosk(): void {
 
   // --- Core overlay ---
   const overlay = new KioskOverlay(app);
-  
+
   // NEW: Set fallback name immediately on init
   overlay.setArcadeName('Arcade');
-  
+
   overlay.startClock();
 
   // --- IPC Listeners from preload ---
