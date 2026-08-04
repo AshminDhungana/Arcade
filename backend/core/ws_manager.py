@@ -349,8 +349,6 @@ class WebSocketManager:
         Accepts the REGISTER payload and broadcasts the agent's online status
         to all dashboard clients.
         """
-        mac_address = payload.get("mac_address", "")
-        hostname = payload.get("hostname", "")
 
         # Update seat status to AVAILABLE in database
         from backend.core.database import AsyncSessionLocal

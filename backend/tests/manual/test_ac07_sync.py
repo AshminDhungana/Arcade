@@ -27,6 +27,7 @@ from httpx import AsyncClient
 
 async def monitor_dashboard_ws(
     base_url: str,
+    session_id: str | None = None,
     timeout_seconds: float = 60.0,
 ) -> dict | None:
     """Connect to the dashboard websocket and wait for a SYNCED event."""
@@ -42,7 +43,11 @@ async def monitor_dashboard_ws(
                     continue
                 data = json.loads(msg)
                 payload = data.get("payload", {})
-                if payload.get("session_id") == session_id and "chosen_elapsed_seconds" in payload:
+                payload_session_id = payload.get("session_id")
+                if (
+                    payload_session_id == session_id
+                    and "chosen_elapsed_seconds" in payload
+                ):
                     print(f"[FOUND] SYNC event: {json.dumps(payload, indent=2)}")
                     return payload
             raise TimeoutError("Did not receive SYNCED event within timeout")  # noqa: EM101
@@ -105,7 +110,9 @@ def main() -> int:
 
     # Step 1: Monitor dashboard websocket for SYNCED event
     print("[STEP 1] Monitoring dashboard websocket for SYNCED event...")
-    sync_event = asyncio.run(monitor_dashboard_ws(args.base_url, args.timeout))
+    sync_event = asyncio.run(
+        monitor_dashboard_ws(args.base_url, args.session_id, args.timeout)
+    )
 
     if sync_event is None:
         print("[FAIL] Did not receive SYNCED event. AC-07 test failed.")
