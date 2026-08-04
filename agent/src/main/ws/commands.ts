@@ -95,13 +95,12 @@ SHOW_OVERLAY(payload) {
 
 FORCE_OVERLAY_ON(payload) {
       // Force-show the kiosk overlay regardless of session state
+      // Match SHOW_OVERLAY structure exactly for consistent UI rendering
       platform.showKioskOverlay({
         cafeName: deps.getCafeName?.() || 'Arcade',
         announcements: [],
         callStaffEnabled: true,
         sessionActive: !!payload.session_id,
-        remainingTime: undefined,
-        lowTimeWarning: false,
         eventBanner: deps.getEventBanner?.() || '',
         serverUrl: deps.serverUrl,
         seatId: deps.seatId,
