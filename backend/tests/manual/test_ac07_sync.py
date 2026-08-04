@@ -42,8 +42,8 @@ async def monitor_dashboard_ws(
                     continue
                 data = json.loads(msg)
                 payload = data.get("payload", {})
-                if payload.get("status") == "SYNCED":
-                    print(f"[FOUND] SYNCED event: {json.dumps(payload, indent=2)}")
+                if payload.get("session_id") == session_id and "chosen_elapsed_seconds" in payload:
+                    print(f"[FOUND] SYNC event: {json.dumps(payload, indent=2)}")
                     return payload
             raise TimeoutError("Did not receive SYNCED event within timeout")  # noqa: EM101
     except websockets.exceptions.ConnectionClosed:  # type: ignore[attr-defined]

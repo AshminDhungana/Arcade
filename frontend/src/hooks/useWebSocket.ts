@@ -177,10 +177,24 @@ function handleMessage(
       const payload = message.payload as SeatUpdatedPayload;
       const seatId = payload.id ?? payload.seat_id;
 
-      // Invalidate the seat list so the grid refetches
-      queryClient.invalidateQueries({ queryKey: ['seats'] });
+      // Optimistically update the single-seat cache for immediate UI feedback
+      if (seatId) {
+        queryClient.setQueryData<Seat>(['seat', seatId], (old) => {
+          if (!old) return old;
+          return { ...old, ...payload, id: seatId };
+        });
+      }
 
-      // If we have a specific seat ID, also invalidate its detail cache
+      // Also update the seat list cache if the payload has enough info
+      queryClient.setQueryData<Seat[]>(['seats'], (old) => {
+        if (!old || !seatId) return old;
+        return old.map((seat) =>
+          seat.id === seatId ? { ...seat, ...payload, id: seatId } : seat
+        );
+      });
+
+      // Invalidate to trigger background refetch for consistency
+      queryClient.invalidateQueries({ queryKey: ['seats'] });
       if (seatId) {
         queryClient.invalidateQueries({ queryKey: ['seat', seatId] });
       }

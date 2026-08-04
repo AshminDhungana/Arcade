@@ -233,24 +233,12 @@ class WebSocketManager:
         from backend.repositories import seat_repo
 
         async with AsyncSessionLocal() as db:
-            try:
-                await seat_repo.update_status(db, seat_id, SeatStatus.OFFLINE)
+            seat = await seat_repo.get_by_id(db, seat_id)
+            if seat:
+                seat.status = SeatStatus.OFFLINE
                 await db.commit()
-            except Exception as e:
-                import logging
-
-                logging.getLogger(__name__).warning(
-                    "Failed to set seat %s to OFFLINE on disconnect: %s", seat_id, e
-                )
-
-        # Broadcast OFFLINE status to dashboards
-        await self.broadcast_to_dashboards(
-            Msg.SEAT_UPDATED,
-            {
-                "seat_id": seat_id,
-                "status": "OFFLINE",
-            },
-        )
+                from backend.services.seat_service import _broadcast_seat_update
+                await _broadcast_seat_update(db, seat)
 
     # --- Sending ------------------------------------------------------------
 
@@ -370,18 +358,13 @@ class WebSocketManager:
         from backend.repositories import seat_repo
 
         async with AsyncSessionLocal() as db:
-            await seat_repo.update_status(db, seat_id, SeatStatus.AVAILABLE)
-            await db.commit()
-
-        await self.broadcast_to_dashboards(
-            Msg.SEAT_UPDATED,
-            {
-                "seat_id": seat_id,
-                "status": "ONLINE",
-                "mac_address": mac_address,
-                "hostname": hostname,
-            },
-        )
+            seat = await seat_repo.get_by_id(db, seat_id)
+            if seat:
+                seat.status = SeatStatus.AVAILABLE
+                await db.commit()
+                # Broadcast full seat data for consistent dashboard updates
+                from backend.services.seat_service import _broadcast_seat_update
+                await _broadcast_seat_update(db, seat)
         # Notify WoL service that an agent registered (may be a WoL success)
         from backend.services.wol_service import wol_success_callback as _wol_callback
 
@@ -464,7 +447,6 @@ class WebSocketManager:
             Msg.SEAT_UPDATED,
             {
                 "seat_id": seat_id,
-                "status": "SYNCED",
                 "session_id": session_id,
                 "local_elapsed_seconds": local_elapsed,
                 "server_anchor_elapsed": sae_seconds,

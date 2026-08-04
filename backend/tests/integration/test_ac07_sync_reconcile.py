@@ -186,7 +186,7 @@ async def test_sync_broadcasts_synced_status_to_dashboards(
     assert len(broadcasts) > 0
     broadcast = broadcasts[-1]
     assert broadcast["event"] == "seat_updated"
-    assert broadcast["payload"]["status"] == "SYNCED"
+    assert "status" not in broadcast["payload"]
     assert "chosen_elapsed_seconds" in broadcast["payload"]
     assert "drift" in broadcast["payload"]
     assert "action" in broadcast["payload"]
