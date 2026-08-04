@@ -119,9 +119,9 @@ async def test_checkout_time_charge_package_pos_receipt(
     # Total is what customer pays: overflow charge + POS (package already pre-paid)
     expected_total = expected_time_charge + expected_pos_total
 
-    assert (
-        invoice.time_charge_paise == expected_time_charge
-    ), f"Expected {expected_time_charge}, got {invoice.time_charge_paise}"
+    assert invoice.time_charge_paise == expected_time_charge, (
+        f"Expected {expected_time_charge}, got {invoice.time_charge_paise}"
+    )
     assert invoice.package_credit_used_paise == expected_package_credit
     assert invoice.pos_total_paise == expected_pos_total
     assert invoice.total_paise == expected_total

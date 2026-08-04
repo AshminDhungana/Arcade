@@ -238,6 +238,7 @@ class WebSocketManager:
                 seat.status = SeatStatus.OFFLINE
                 await db.commit()
                 from backend.services.seat_service import _broadcast_seat_update
+
                 await _broadcast_seat_update(db, seat)
 
     # --- Sending ------------------------------------------------------------
@@ -362,6 +363,7 @@ class WebSocketManager:
                 await db.commit()
                 # Broadcast full seat data for consistent dashboard updates
                 from backend.services.seat_service import _broadcast_seat_update
+
                 await _broadcast_seat_update(db, seat)
         # Notify WoL service that an agent registered (may be a WoL success)
         from backend.services.wol_service import wol_success_callback as _wol_callback

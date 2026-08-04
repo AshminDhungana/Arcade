@@ -86,9 +86,9 @@ def test_table_names() -> None:
         "zones": Zone,
     }
     for name, model in expected.items():
-        assert (
-            getattr(model, "__tablename__", None) == name
-        ), f"Expected {model.__name__}.__tablename__ == '{name}'"
+        assert getattr(model, "__tablename__", None) == name, (
+            f"Expected {model.__name__}.__tablename__ == '{name}'"
+        )
     print(f"  All {len(expected)} table names correct ✅")
 
 
