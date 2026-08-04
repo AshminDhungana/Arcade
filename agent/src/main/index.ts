@@ -135,7 +135,7 @@ async function bootstrap(): Promise<void> {
   wsClient = new AgentWebSocketClient(config, platformService, sessionStore, configPath, (event, _data) => {
     if (event === 'staff-alert-ack') {
       // Forward to both kiosk and HUD windows
-      platformService.sendToOverlayAndHud('staff-alert-ack');
+      platformService!.sendToOverlayAndHud('staff-alert-ack');
     }
   });
   wsClient.connect();
@@ -160,6 +160,12 @@ async function bootstrap(): Promise<void> {
 
   ipcMain.on('staff-override', (_event, pin: string) => {
     void wsClient?.triggerStaffOverride(pin);
+  });
+
+  ipcMain.handle('verify-settings-pin', async (_event, pin: string) => {
+    if (!wsClient) return false;
+    const result = await wsClient.triggerSettingsPinVerify(pin);
+    return result;
   });
 
   // Open the setup window in "edit" mode. Reuses the setup window for v1

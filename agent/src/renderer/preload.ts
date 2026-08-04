@@ -105,6 +105,9 @@ const api = {
     ipcRenderer.send('staff-override', pin);
   },
 
+  verifySettingsPin: (pin: string) =>
+    ipcRenderer.invoke('verify-settings-pin', pin),
+
   openSettings: () => ipcRenderer.send('agent:open-settings'),
 
   onStaffAlertAck: (callback: () => void) => {

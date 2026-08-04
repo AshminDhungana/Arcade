@@ -211,6 +211,21 @@ export class AgentWebSocketClient {
     return false;
   }
 
+  /**
+   * Verify a PIN against the stored override_code_hash.
+   * Unlike triggerStaffOverride, this does NOT activate override or hide overlay.
+   * Returns true if PIN matches.
+   */
+  async triggerSettingsPinVerify(pin: string): Promise<boolean> {
+    const overrideHash = this.config.override_code_hash;
+    if (!overrideHash) return false;
+    try {
+      return await verify(overrideHash, pin);
+    } catch {
+      return false;
+    }
+  }
+
   private _activateOverride(): void {
     this.overrideActive = true;
     this.platform.hideKioskOverlay();

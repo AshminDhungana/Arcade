@@ -129,3 +129,14 @@ body {
   opacity: 0; transition: opacity .5s ease; pointer-events: none;
 }
 .announcement-banner.visible { opacity: 1; }
+
+/* Modal shake animation for wrong PIN */
+.modal-content.shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}

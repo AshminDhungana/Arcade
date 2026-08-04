@@ -27,6 +27,7 @@ export interface ElectronAPI {
   openSettings: () => void;
   enroll: (code: string) => Promise<{ ok: boolean; error?: string }>;
   onStaffAlertAck: (callback: () => void) => void;
+  verifySettingsPin: (pin: string) => Promise<boolean>;
 }
 
 declare global {

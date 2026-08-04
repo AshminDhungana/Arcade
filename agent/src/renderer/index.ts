@@ -8,6 +8,7 @@
 import { KioskOverlay } from './components/kiosk-overlay.js';
 import { createLowTimeModal, showModal, hideModal } from './components/low-time-warning.js';
 import { createStaffOverrideDialog } from './components/staff-override-dialog.js';
+import { createSettingsPinDialog } from './components/settings-pin-dialog.js';
 import { createSettingsPanel } from './components/settings-panel.js';
 import type { OverlayData } from './types.js';
 
@@ -105,21 +106,37 @@ function initKiosk(): void {
               overlay.showAnnouncement('Settings unavailable', 2000);
               return;
             }
-            const panel = createSettingsPanel({
-              config: {
-                serverUrl: currentConfig.serverUrl || 'Unknown',
-                seatId: currentConfig.seatId || 'Unknown',
-                agentSecret: currentConfig.agentSecret || '',
+            const serverUrl = currentConfig.serverUrl ?? '';
+            const seatId = currentConfig.seatId ?? '';
+            const agentSecret = currentConfig.agentSecret ?? '';
+            // Show Settings PIN dialog
+            const pinDialog = createSettingsPinDialog({
+              onVerify: async (pin: string) => {
+                const success = await window.electronAPI.verifySettingsPin(pin);
+                return success;
               },
-              onReEnroll: () => {
-                window.electronAPI.openSettings(); // triggers re-enroll flow
+              onCancel: () => {
+                // PIN dialog cancelled, return to override dialog
               },
-              onClose: () => {
-                hideModal(panel);
-                (panel as HTMLDivElement & { _cleanup?: () => void })._cleanup?.();
+              onSuccess: () => {
+                // Create and show Settings panel
+                const settingsPanel = createSettingsPanel({
+                  config: {
+                    serverUrl,
+                    seatId,
+                    agentSecret,
+                  },
+                  onReEnroll: () => {
+                    window.electronAPI.enroll('');
+                  },
+                  onClose: () => {
+                    // Settings panel closed, return to kiosk overlay
+                  },
+                });
+                showModal(settingsPanel);
               },
             });
-            showModal(panel);
+            showModal(pinDialog);
           },
         });
       }
@@ -128,6 +145,14 @@ function initKiosk(): void {
   });
 
   // --- Call staff button ---
+  overlay.onCallStaff(() => {
+    window.electronAPI.callStaff();
+  });
+
+  // --- Staff alert ACK (from server) ---
+  window.electronAPI.onStaffAlertAck?.(() => {
+    overlay.showCallStaffConfirmation();
+  });
 }
 
 // ---------------------------------------------------------------------------
