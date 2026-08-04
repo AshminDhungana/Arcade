@@ -1,8 +1,5 @@
 # Todo
 
-## Quick Fixes
-- [ ] Move the Call Staff button a little higher in the kisko overlay, as it is currently touching/overlapping the Windows taskbar start menu. And also the area where when mouse hover will make the button visible should be at the very edge of the screen, not above the button, at the very edge of the right botton when mouse is placed then the button shows. it should be such that when playing games user will not trigger the show of the button. 
-
 ## Task 2: Extra "Call Staff Available" notification shows up when it shouldn't
 
 **Current behavior**

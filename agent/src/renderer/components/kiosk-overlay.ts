@@ -26,7 +26,12 @@ export class KioskOverlay {
   private readonly sessionIndicator: HTMLDivElement;
   private readonly bannerEl: HTMLDivElement;
   private readonly railEl: HTMLDivElement;
+  private readonly triggerZone: HTMLDivElement;
+  private readonly callStaffBtn: HTMLButtonElement;
   private clockInterval: ReturnType<typeof setInterval> | null = null;
+  private buttonVisible = false;
+  private hideTimer: ReturnType<typeof setTimeout> | null = null;
+  private isMouseOverButton = false;
 
   // NEW: Fallback name (default "Arcade")
   private arcadeName = 'Arcade';
@@ -37,6 +42,11 @@ export class KioskOverlay {
     this.container = document.createElement('div');
     this.container.className = 'kiosk-overlay';
     parent.appendChild(this.container);
+
+    // Hot-corner trigger zone
+    this.triggerZone = document.createElement('div');
+    this.triggerZone.className = 'kiosk-trigger-zone';
+    this.container.appendChild(this.triggerZone);
 
     // Top bug: product wordmark + OPEN/LIVE status pill
     this.bugEl = document.createElement('div');
@@ -93,10 +103,27 @@ export class KioskOverlay {
     const callStaffBtn = document.createElement('button');
     callStaffBtn.className = 'kiosk-btn primary';
     callStaffBtn.textContent = 'Call Staff';
-    callStaffBtn.addEventListener('click', () => this.callStaffCb?.());
+    callStaffBtn.addEventListener('click', () => {
+      this.callStaffCb?.();
+      this.showCallStaffConfirmation();
+      this.hideButton();
+    });
+    this.callStaffBtn = callStaffBtn;
     this.railEl.appendChild(callStaffBtn);
 
     this.container.appendChild(this.railEl);
+
+    // Event listeners for hot-corner trigger
+    this.triggerZone.addEventListener('mouseenter', () => this.showButton());
+    this.triggerZone.addEventListener('mouseleave', () => this.scheduleHide());
+    this.callStaffBtn.addEventListener('mouseenter', () => {
+      this.isMouseOverButton = true;
+      this.clearHideTimer();
+    });
+    this.callStaffBtn.addEventListener('mouseleave', () => {
+      this.isMouseOverButton = false;
+      this.scheduleHide();
+    });
   }
 
   /** Start the live clock (updates every second). */
@@ -196,6 +223,30 @@ export class KioskOverlay {
     this.showAnnouncement('✓ Staff notified', 3000);
   }
 
+  private showButton(): void {
+    this.buttonVisible = true;
+    this.callStaffBtn.classList.add('visible');
+    this.clearHideTimer();
+  }
+
+  private hideButton(): void {
+    this.buttonVisible = false;
+    this.callStaffBtn.classList.remove('visible');
+  }
+
+  private scheduleHide(): void {
+    if (this.isMouseOverButton) return;
+    this.clearHideTimer();
+    this.hideTimer = setTimeout(() => this.hideButton(), 3000);
+  }
+
+  private clearHideTimer(): void {
+    if (this.hideTimer !== null) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+  }
+
   /** Callback for call-staff button. */
   onCallStaff(cb: () => void): void {
     this.callStaffCb = cb;
@@ -204,6 +255,7 @@ export class KioskOverlay {
   /** Tear down the component. */
   destroy(): void {
     this.stopClock();
+    this.clearHideTimer();
     if (this.container.parentNode) {
       this.container.parentNode.removeChild(this.container);
     }

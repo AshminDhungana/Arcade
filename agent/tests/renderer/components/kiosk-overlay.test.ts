@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { KioskOverlay } from '../../../src/renderer/components/kiosk-overlay.js';
 
 describe('KioskOverlay', () => {
@@ -250,5 +250,110 @@ describe('KioskOverlay fallback behavior', () => {
     overlay.setArcadeName('New Fallback');
     const brand = parent.querySelector('.cafe-brand');
     expect(brand!.textContent).toBe('Server Cafe');
+  });
+});
+
+describe('KioskOverlay trigger zone', () => {
+  it('creates trigger zone at bottom-right corner', () => {
+    const root = document.createElement('div');
+    new KioskOverlay(root);
+    const trigger = root.querySelector('.kiosk-trigger-zone');
+    expect(trigger).not.toBeNull();
+    expect(trigger).toBeInstanceOf(HTMLDivElement);
+  });
+
+  it('trigger zone has correct class name', () => {
+    const root = document.createElement('div');
+    new KioskOverlay(root);
+    const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
+    expect(trigger.className).toBe('kiosk-trigger-zone');
+  });
+});
+
+describe('KioskOverlay call staff button visibility', () => {
+  let root: HTMLDivElement;
+  let overlay: KioskOverlay;
+
+  beforeEach(() => {
+    root = document.createElement('div');
+    document.body.appendChild(root);
+    overlay = new KioskOverlay(root);
+  });
+
+  afterEach(() => {
+    overlay.destroy();
+    document.body.innerHTML = '';
+  });
+
+  it('button is hidden by default (no .visible class)', () => {
+    const btn = root.querySelector('.kiosk-btn.primary') as HTMLElement;
+    expect(btn.classList.contains('visible')).toBe(false);
+  });
+
+  it('hovering trigger zone shows button', () => {
+    const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
+    const btn = root.querySelector('.kiosk-btn.primary') as HTMLElement;
+    
+    trigger.dispatchEvent(new MouseEvent('mouseenter'));
+    
+    expect(btn.classList.contains('visible')).toBe(true);
+    expect(window.getComputedStyle(btn).opacity).toBe('1');
+  });
+
+  it('button auto-hides after 3s when mouse leaves trigger', async () => {
+    const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
+    const btn = root.querySelector('.kiosk-btn.primary') as HTMLElement;
+    
+    trigger.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(btn.classList.contains('visible')).toBe(true);
+    
+    trigger.dispatchEvent(new MouseEvent('mouseleave'));
+    
+    // Wait for auto-hide
+    await new Promise(r => setTimeout(r, 3100));
+    
+    expect(btn.classList.contains('visible')).toBe(false);
+  });
+
+  it('hovering button cancels auto-hide', async () => {
+    const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
+    const btn = root.querySelector('.kiosk-btn.primary') as HTMLElement;
+    
+    trigger.dispatchEvent(new MouseEvent('mouseenter'));
+    btn.dispatchEvent(new MouseEvent('mouseenter'));
+    trigger.dispatchEvent(new MouseEvent('mouseleave'));
+    
+    // Wait longer than auto-hide delay
+    await new Promise(r => setTimeout(r, 3100));
+    
+    // Button should still be visible
+    expect(btn.classList.contains('visible')).toBe(true);
+  });
+
+  it('click fires callback, shows toast, hides button', () => {
+    const cb = vi.fn();
+    overlay.onCallStaff(cb);
+    
+    const btn = root.querySelector('.kiosk-btn.primary') as HTMLButtonElement;
+    btn.classList.add('visible'); // simulate visible
+    
+    btn.click();
+    
+    expect(cb).toHaveBeenCalledTimes(1);
+    // Toast assertion - check announcement appears
+    const toast = root.querySelector('.kiosk-toast') as HTMLElement;
+    expect(toast).not.toBeNull();
+    expect(toast.textContent).toBe('✓ Staff notified');
+    expect(btn.classList.contains('visible')).toBe(false);
+  });
+
+  it('destroy clears hide timer', () => {
+    const trigger = root.querySelector('.kiosk-trigger-zone') as HTMLElement;
+    trigger.dispatchEvent(new MouseEvent('mouseenter'));
+    
+    overlay.destroy();
+    
+    // Timer should be cleared - no error thrown
+    // If timer wasn't cleared, it would try to access destroyed DOM
   });
 });

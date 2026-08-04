@@ -74,9 +74,36 @@ body {
 
 /* Bottom rail */
 .kiosk-rail {
-  position: absolute; bottom: 4vh; left: 4vw; right: 4vw;
+  position: absolute; bottom: 10vh; left: 4vw; right: 4vw;
   display: flex; align-items: center; justify-content: space-between;
 }
+
+/* Hot-corner trigger zone */
+.kiosk-trigger-zone {
+  position: fixed;
+  bottom: 0; right: 0;
+  width: 20px; height: 20px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+/* Call Staff button — hidden by default, fixed position */
+.kiosk-btn.primary {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  position: fixed;
+  bottom: 10vh;
+  right: 4vw;
+  z-index: 101;
+}
+
+/* Visible state */
+.kiosk-btn.primary.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .kiosk-status {
   font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2);
   display: flex; align-items: center; gap: .5rem;
