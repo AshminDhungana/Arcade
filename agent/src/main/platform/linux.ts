@@ -45,6 +45,7 @@ export class LinuxPlatformService implements IPlatformService {
     this.hideHud();
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
+      this.kioskWindow.webContents.send('overlay:set-minimal', false);
       this.kioskWindow.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
       return;
     }
@@ -113,13 +114,9 @@ export class LinuxPlatformService implements IPlatformService {
   }
 
   hideKioskOverlay(): void {
-    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
-      this.kioskWindow.hide();
-      this.kioskWindow.destroy();
-    }
-    this.kioskWindow = null;
     this.sessionActive = true;
     this.showHud();
+    this.kioskWindow?.webContents.send('overlay:set-minimal', true);
   }
 
   showHud(): void {

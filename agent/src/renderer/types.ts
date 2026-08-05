@@ -28,6 +28,7 @@ export interface ElectronAPI {
   enroll: (code: string) => Promise<{ ok: boolean; error?: string }>;
   onStaffAlertAck: (callback: () => void) => void;
   verifySettingsPin: (pin: string) => Promise<boolean>;
+  onSetMinimal: (callback: (enabled: boolean) => void) => void;
 }
 
 declare global {
