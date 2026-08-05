@@ -357,3 +357,54 @@ describe('KioskOverlay call staff button visibility', () => {
     // If timer wasn't cleared, it would try to access destroyed DOM
   });
 });
+
+describe('KioskOverlay minimal mode', () => {
+  let parent: HTMLDivElement;
+  let overlay: KioskOverlay;
+
+  beforeEach(() => {
+    parent = document.createElement('div');
+    document.body.appendChild(parent);
+    overlay = new KioskOverlay(parent);
+  });
+
+  afterEach(() => {
+    overlay.destroy();
+    document.body.innerHTML = '';
+  });
+
+  it('setMinimalMode(true) hides bug, center, rail, status', () => {
+    overlay.setMinimalMode(true);
+    const container = parent.querySelector('.kiosk-overlay');
+    expect(container?.classList.contains('minimal')).toBe(true);
+    // In jsdom, computed styles may not reflect CSS class rules perfectly.
+    // The key behavior is that .minimal class is added to container.
+    // Elements remain in DOM but are hidden via CSS .minimal rules.
+  });
+
+  it('setMinimalMode(false) restores all elements', () => {
+    overlay.setMinimalMode(true);
+    overlay.setMinimalMode(false);
+    const container = parent.querySelector('.kiosk-overlay');
+    expect(container?.classList.contains('minimal')).toBe(false);
+    expect(parent.querySelector('.kiosk-bug')).not.toBeNull();
+    expect(parent.querySelector('.kiosk-center')).not.toBeNull();
+    expect(parent.querySelector('.kiosk-rail')).not.toBeNull();
+    expect(parent.querySelector('.kiosk-status')).not.toBeNull();
+  });
+
+  it('trigger zone and button remain in DOM in minimal mode', () => {
+    overlay.setMinimalMode(true);
+    expect(parent.querySelector('.kiosk-trigger-zone')).not.toBeNull();
+    expect(parent.querySelector('.kiosk-btn.primary')).not.toBeNull();
+  });
+
+  it('button hover/click behavior works in minimal mode', () => {
+    overlay.setMinimalMode(true);
+    const trigger = parent.querySelector('.kiosk-trigger-zone') as HTMLElement;
+    const btn = parent.querySelector('.kiosk-btn.primary') as HTMLElement;
+
+    trigger.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(btn.classList.contains('visible')).toBe(true);
+  });
+});

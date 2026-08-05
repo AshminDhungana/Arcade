@@ -252,6 +252,15 @@ export class KioskOverlay {
     this.callStaffCb = cb;
   }
 
+  /** Toggle minimal mode — hides full overlay content, keeps trigger zone + button. */
+  setMinimalMode(enabled: boolean): void {
+    if (enabled) {
+      this.container.classList.add('minimal');
+    } else {
+      this.container.classList.remove('minimal');
+    }
+  }
+
   /** Tear down the component. */
   destroy(): void {
     this.stopClock();

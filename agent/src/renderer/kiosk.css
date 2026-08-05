@@ -167,3 +167,15 @@ body {
   25% { transform: translateX(-8px); }
   75% { transform: translateX(8px); }
 }
+
+/* Minimal mode — hide full overlay content, keep trigger zone + call staff button */
+.kiosk-overlay.minimal .kiosk-bug,
+.kiosk-overlay.minimal .kiosk-center,
+.kiosk-overlay.minimal .kiosk-rail,
+.kiosk-overlay.minimal .kiosk-status {
+  display: none;
+}
+
+/* Trigger zone and button remain visible in minimal mode — no extra rules needed */
+/* .kiosk-trigger-zone already display: block */
+/* .kiosk-btn.primary visibility controlled by .visible class */
