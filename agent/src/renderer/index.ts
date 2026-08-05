@@ -153,6 +153,11 @@ function initKiosk(): void {
   window.electronAPI.onStaffAlertAck?.(() => {
     overlay.showCallStaffConfirmation();
   });
+
+  // --- Minimal mode toggle ---
+  window.electronAPI.onSetMinimal((enabled) => {
+    overlay.setMinimalMode(enabled);
+  });
 }
 
 // ---------------------------------------------------------------------------

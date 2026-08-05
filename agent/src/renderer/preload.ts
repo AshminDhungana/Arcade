@@ -114,6 +114,10 @@ const api = {
     ipcRenderer.on('staff-alert-ack', (_event: IpcRendererEvent) => callback());
   },
 
+  onSetMinimal: (callback: (enabled: boolean) => void) => {
+    ipcRenderer.on('overlay:set-minimal', (_event: IpcRendererEvent, enabled: boolean) => callback(enabled));
+  },
+
   enroll: (code: string) =>
     ipcRenderer.invoke('agent:enroll', code),
 };
