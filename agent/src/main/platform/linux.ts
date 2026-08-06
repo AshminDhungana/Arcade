@@ -116,6 +116,7 @@ export class LinuxPlatformService implements IPlatformService {
   hideKioskOverlay(): void {
     this.sessionActive = true;
     this.showHud();
+    this.kioskWindow?.hide();
     this.kioskWindow?.webContents.send('overlay:set-minimal', true);
   }
 

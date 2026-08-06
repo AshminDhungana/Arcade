@@ -212,4 +212,35 @@ describe('LinuxPlatformService', () => {
       expect.stringContaining('Wayland detected'),
     );
   });
+
+  it('showKioskOverlay -> hideKioskOverlay -> showKioskOverlay preserves window', () => {
+    // First show — creates window
+    service.showKioskOverlay({
+      cafeName: 'Test',
+      announcements: [],
+      callStaffEnabled: true,
+      sessionActive: false,
+    });
+    const firstWindow = (service as any).kioskWindow;
+    expect(firstWindow).not.toBeNull();
+
+    // Hide — sends minimal, does NOT destroy
+    service.hideKioskOverlay();
+    expect(firstWindow.isDestroyed()).toBe(false);
+    expect((service as any).kioskWindow).toBe(firstWindow);
+    expect(mockWebContents.send).toHaveBeenCalledWith('overlay:set-minimal', true);
+
+    // Show again — reuses same window, sends minimal=false
+    vi.clearAllMocks();
+    service.showKioskOverlay({
+      cafeName: 'Test',
+      announcements: [],
+      callStaffEnabled: true,
+      sessionActive: true,
+    });
+    expect((service as any).kioskWindow).toBe(firstWindow);
+    expect(firstWindow.show).toHaveBeenCalled();
+    expect(mockWebContents.send).toHaveBeenCalledWith('overlay:set-minimal', false);
+    expect(mockWebContents.send).toHaveBeenCalledWith('overlay:update', expect.objectContaining({ sessionActive: true }));
+  });
 });

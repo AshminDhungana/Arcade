@@ -6,14 +6,11 @@ import { createLowTimeModal, showModal, hideModal } from './components/low-time-
 
 let phase: HudPhase = 'ENDED';
 let timerEl: HTMLDivElement | null = null;
-let callBtn: HTMLButtonElement | null = null;
-let railEl: HTMLDivElement | null = null;
 let introTimerId: ReturnType<typeof setTimeout> | null = null;
 let callStaffTimerId: ReturnType<typeof setTimeout> | null = null;
 let urgentCountdownStop: (() => void) | null = null;
 let lowTimeModal: HTMLDivElement | null = null;
 
-const HOVER_ZONE = 0.12; // bottom-right hotzone size (fraction of viewport)
 let pendingLowTimeMinutes = 5;
 
 function showToast(message: string, durationMs = 3000): void {
@@ -64,26 +61,16 @@ function showIntro(): void {
     reveal(timerEl);
     timerEl.textContent = formatElapsed(0);
   }
-  if (railEl) {
-    railEl.style.display = 'flex';
-  }
-  if (callBtn) {
-    callBtn.style.display = 'block';
-    reveal(callBtn, 80);
-  }
   // INTRO timer ~5s
   introTimerId = setTimeout(() => setPhase('AMBIENT', 'intro-timeout'), 5000);
   // Call Staff visible for 30s (hides rail and button)
   callStaffTimerId = setTimeout(() => {
-    if (railEl) railEl.style.display = 'none';
-    if (callBtn) callBtn.style.display = 'none';
+    // Handled by kiosk overlay
   }, 30000);
 }
 
 function hideAll(): void {
   if (timerEl) timerEl.style.display = 'none';
-  if (railEl) railEl.style.display = 'none';
-  if (callBtn) callBtn.style.display = 'none';
   if (introTimerId) clearTimeout(introTimerId);
   if (callStaffTimerId) clearTimeout(callStaffTimerId);
   if (urgentCountdownStop) urgentCountdownStop();
@@ -110,13 +97,6 @@ function showUrgent(): void {
       timerEl!.textContent = formatMMSS(rem);
       pulseTimer(timerEl!);
     });
-  }
-  if (railEl) {
-    railEl.style.display = 'flex';
-  }
-  if (callBtn) {
-    callBtn.style.display = 'block';
-    reveal(callBtn, 80);
   }
   // low-time modal
   if (!lowTimeModal) {
@@ -152,26 +132,8 @@ function initHud(): void {
   timerEl.style.display = 'none';
   app.appendChild(timerEl);
 
-  // --- Add rail container matching kiosk overlay ---
-  railEl = document.createElement('div');
-  railEl.className = 'hud-rail';
-  railEl.style.position = 'fixed';
-  railEl.style.bottom = '4vh';
-  railEl.style.left = '4vw';
-  railEl.style.right = '4vw';
-  railEl.style.display = 'none'; // hidden by default, shown by hot-zone
-  railEl.style.alignItems = 'center';
-  railEl.style.justifyContent = 'flex-end';
-  railEl.style.pointerEvents = 'none';
-  railEl.style.zIndex = '100';
-  app.appendChild(railEl);
-
-  callBtn = document.createElement('button');
-  callBtn.className = 'call-staff-btn';
-  callBtn.textContent = 'Call Staff';
-  callBtn.style.display = 'none'; // button hidden inside rail initially
-  callBtn.addEventListener('click', () => window.electronAPI.callStaff());
-  railEl.appendChild(callBtn);
+  // Call Staff button is handled by the kiosk overlay (minimal mode) which is not click-through.
+  // No separate button needed in HUD.
 
   // Preload low-time modal CSS via component (already included)
 
@@ -207,39 +169,6 @@ function initHud(): void {
   // Listen for STAFF_ALERT_ACK from main process (sent when server confirms staff alert)
   window.electronAPI.onStaffAlertAck(() => {
     showToast('✓ Staff notified');
-  });
-
-  // Track hover state on the button for hover-extension
-  let isHoveringButton = false;
-  callBtn?.addEventListener('mouseenter', () => { isHoveringButton = true; });
-  callBtn?.addEventListener('mouseleave', () => { isHoveringButton = false; });
-
-  // Corner hot-zone (bottom-right 12%) → show rail for 5s with hover extension
-  let hoverTimer: ReturnType<typeof setTimeout> | null = null;
-  function scheduleHide() {
-    if (hoverTimer) clearTimeout(hoverTimer);
-    hoverTimer = setTimeout(checkAndHide, 5000);
-  }
-  function checkAndHide() {
-    if (!isHoveringButton && railEl) {
-      railEl.style.display = 'none';
-      if (callBtn) callBtn.style.display = 'none';
-    } else if (isHoveringButton) {
-      hoverTimer = setTimeout(checkAndHide, 500); // Re-check while hovering
-    }
-  }
-  window.addEventListener('mousemove', (e) => {
-    if (e.clientX > innerWidth * (1 - HOVER_ZONE) && e.clientY > innerHeight * (1 - HOVER_ZONE)) {
-      if (railEl && railEl.style.display === 'none' && phase !== 'ENDED') {
-        railEl.style.display = 'flex';
-        if (callBtn) {
-          callBtn.style.display = 'block';
-          reveal(callBtn, 80);
-        }
-        showToast('✓ Call Staff available');
-        scheduleHide();
-      }
-    }
   });
 
   // C1 fix: HUD window is created only when a session starts (showHud() called from hideKioskOverlay()).

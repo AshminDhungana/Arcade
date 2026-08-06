@@ -1,6 +1,28 @@
 # Todo
 
-- [ ] When Kisko overlay is off , we have a feature that displayes call staff button when we hover the mouse at the bottom end. the problem is that, the button when clicked acts as a hollow what is behind the button gets click and their is no notifaction for the button clicking. The expected behaviour is that, when pressed the button should clicked and its indendent function should proceed.
+## Kiosk Overlay OFF — Call Staff Button Behavior
+
+- [ ] **Kiosk overlay OFF state**: When the kiosk overlay setting is toggled off, hide all overlay UI elements except the Call Staff button, in every scenario (session start, mid-session, during gameplay, etc.)
+
+- [ ] **Call Staff button visibility**
+  - [ ] Button is hidden by default when overlay is off
+  - [ ] Button appears only when the user moves the mouse to the right edge of the screen
+  - [ ] Reuse the existing mouse-to-edge detection logic already implemented in the overlay — do not reimplement, just make it available/triggerable when overlay is off
+
+- [ ] **Call Staff button functionality**
+  - [ ] When visible, button must be fully clickable
+  - [ ] Clicking it triggers the same "call staff" action as when the overlay is on
+  - [ ] No difference in call-staff behavior/output between overlay-on and overlay-off states — only visibility/presentation changes
+
+- [ ] **Regression checks**
+  - [ ] Confirm no other overlay elements (menus, banners, controls, etc.) render or become interactable while overlay is off
+  - [ ] Confirm button reveal/hide on mouse movement works consistently while user is actively playing/using the system (not just at idle/session start)
+  - [ ] Confirm toggling overlay back ON restores full overlay UI as before
+
+**Notes:**
+- Mouse-edge-reveal logic already exists in the overlay component — this task is about detaching/exposing that specific piece of functionality so it still runs independently when the rest of the overlay is suppressed.
+- Treat this as a visibility/composition change, not new logic — the call button's trigger detection and click handler should be shared/reused, not duplicated.
+
 
 ## Task 2: Extra "Call Staff Available" notification shows up when it shouldn't
 

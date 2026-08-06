@@ -167,9 +167,9 @@ describe('HUD transient behavior', () => {
     // hover the hot corner (bottom-right 12%)
     window.dispatchEvent(new MouseEvent('mousemove', { clientX: innerWidth - 10, clientY: innerHeight - 10 }));
     expect(btn.style.display).not.toBe('none');
-    // Should show "Call Staff available" toast
+    // Should NOT show "Call Staff available" toast (fixed: only show button, no toast)
     const toast = document.querySelector('.hud-toast') as HTMLDivElement;
-    expect(toast?.textContent).toBe('✓ Call Staff available');
+    expect(toast).toBeNull();
     vi.advanceTimersByTime(5000);
     expect(btn.style.display).toBe('none');
   });
@@ -269,8 +269,9 @@ describe('Call Staff full flow', () => {
     window.dispatchEvent(hoverEvent);
 
     expect(callBtn.style.display).toBe('block');
+    // No "Call Staff available" toast should appear on hover
     let toast = document.querySelector('.hud-toast') as HTMLDivElement;
-    expect(toast.textContent).toBe('✓ Call Staff available');
+    expect(toast).toBeNull();
 
     // 2. User clicks button
     callBtn.click();

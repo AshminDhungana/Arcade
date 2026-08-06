@@ -96,9 +96,11 @@ function initKiosk(): void {
         overrideDialog = createStaffOverrideDialog({
           onOverride: (pin: string) => {
             window.electronAPI.staffOverride(pin);
+            hideModal(overrideDialog!);
             overrideDialog = null;
           },
           onCancel: () => {
+            hideModal(overrideDialog!);
             overrideDialog = null;
           },
           onSettings: () => {
