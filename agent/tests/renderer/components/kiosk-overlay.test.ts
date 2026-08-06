@@ -82,13 +82,12 @@ describe('KioskOverlay branding', () => {
 });
 
 describe('KioskOverlay rail', () => {
-  it('has no Settings button in rail', () => {
+  it('has no buttons in rail (Call Staff button is in container)', () => {
     const root = document.createElement('div');
     new KioskOverlay(root);
     const rail = root.querySelector('.kiosk-rail');
     const buttons = rail?.querySelectorAll('button');
-    expect(buttons?.length).toBe(1);
-    expect(buttons?.[0].textContent).toBe('Call Staff');
+    expect(buttons?.length).toBe(0);
   });
 });
 

@@ -109,8 +109,9 @@ export class KioskOverlay {
       this.hideButton();
     });
     this.callStaffBtn = callStaffBtn;
-    this.railEl.appendChild(callStaffBtn);
+    this.container.appendChild(callStaffBtn);
 
+    this.railEl.appendChild(railStatus);
     this.container.appendChild(this.railEl);
 
     // Event listeners for hot-corner trigger
