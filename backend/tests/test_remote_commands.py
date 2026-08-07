@@ -625,3 +625,36 @@ async def test_retry_on_sqlite_busy(
             await rcs.force_overlay(db, seat.id, True, staff_member)
 
     assert call_count["n"] == 3  # Initial + 2 retries
+
+
+# ---------------------------------------------------------------------------
+# Staff override sends FORCE_OVERLAY_OFF (Task 3)
+# ---------------------------------------------------------------------------
+
+
+async def test_staff_override_sends_force_overlay_off(
+    db: AsyncSession, zone_and_seat
+) -> None:
+    """STAFF_OVERRIDE message triggers FORCE_OVERLAY_OFF to agent."""
+    from backend.core.ws_manager import Msg, manager as ws_manager
+    from backend.services import seat_service
+    from backend.core.database import AsyncSessionLocal
+
+    _, seat = zone_and_seat
+    # Set overlay_forced = True first
+    await seat_service.set_overlay_forced(db, seat.id, True)
+
+    # Patch AsyncSessionLocal to use the test's db session
+    async def mock_session():
+        yield db
+
+    with patch.object(ws_manager, "send_to_agent", new=AsyncMock()) as mock_send:
+        with patch("backend.core.ws_manager.AsyncSessionLocal", mock_session):
+            # Simulate agent sending STAFF_OVERRIDE
+            await ws_manager._handle_staff_override(seat.id, {"pin": "1234"})
+
+    # Verify FORCE_OVERLAY_OFF was sent to agent
+    mock_send.assert_awaited_once()
+    sent = mock_send.call_args.args[1]
+    assert sent["type"] == Msg.FORCE_OVERLAY_OFF
+    assert sent["payload"] == {}

@@ -494,7 +494,7 @@ class WebSocketManager:
     ) -> dict[str, Any]:
         """Handle agent STAFF_OVERRIDE message.
 
-        Broadcasts an alert to all dashboard clients.
+        Broadcasts an alert to all dashboard clients and clears overlay_forced.
         """
         await self.broadcast_to_dashboards(
             Msg.ALERT,
@@ -518,6 +518,15 @@ class WebSocketManager:
                 seat_id,
                 exc_info=True,
             )
+
+        # NEW: Notify agent to hide overlay (match Force Overlay Off path)
+        try:
+            await self.send_to_agent(seat_id, {
+                "type": Msg.FORCE_OVERLAY_OFF,
+                "payload": {}
+            })
+        except AgentOfflineError:
+            pass  # Agent already offline; overlay_forced already cleared in DB
 
         # Audit log the staff override event
         try:
