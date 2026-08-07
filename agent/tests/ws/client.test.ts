@@ -3,6 +3,11 @@ import type { IPlatformService } from '../../src/main/platform/types.js';
 import type { AgentConfig } from '../../src/main/ws/types.js';
 import { AgentWebSocketClient } from '../../src/main/ws/client.js';
 import { ipcRenderer } from 'electron';
+import { verify } from '@node-rs/argon2';
+
+vi.mock('@node-rs/argon2', () => ({
+  verify: vi.fn(),
+}));
 
 // ---------------------------------------------------------------------------
 // Mock WebSocket
@@ -232,5 +237,23 @@ describe('AgentWebSocketClient', () => {
 
       expect(ipcRenderer.send).toHaveBeenCalledWith('staff-alert-ack');
     }
+  });
+
+  it('triggerStaffOverride calls hideKioskOverlay when PIN verifies', async () => {
+    vi.mocked(verify).mockResolvedValue(true);
+
+    client.connect();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const clientWithOverride = new AgentWebSocketClient(
+      { ...config, override_code_hash: 'hashed-pin' },
+      mockPlatform
+    );
+    clientWithOverride.connect();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const result = await clientWithOverride.triggerStaffOverride('1234');
+    expect(result).toBe('override');
+    expect(mockPlatform.hideKioskOverlay).toHaveBeenCalled();
   });
 });
