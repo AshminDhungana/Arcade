@@ -82,6 +82,17 @@ COMMAND_DELAY_SECONDS = 10  # restart/shutdown grace (SDD §9.3)
 _screenshot_inflight: set[str] = set()
 _screenshot_inflight_lock = asyncio.Lock()
 
+# Per-seat command mutex to serialize overlay operations and prevent SQLite contention
+_seat_locks: dict[str, asyncio.Lock] = {}
+_seat_locks_lock = asyncio.Lock()
+
+
+async def _get_seat_lock(seat_id: str) -> asyncio.Lock:
+    async with _seat_locks_lock:
+        if seat_id not in _seat_locks:
+            _seat_locks[seat_id] = asyncio.Lock()
+        return _seat_locks[seat_id]
+
 
 async def _send_to_agent_or_503(seat_id: str, command: dict[str, object]) -> None:
     """Send a command to the agent, mapping offline → 503."""
@@ -323,6 +334,17 @@ async def force_overlay(
         HTTPException(404): If the seat does not exist.
         HTTPException(503): If the agent is offline.
     """
+    lock = await _get_seat_lock(seat_id)
+    async with lock:
+        return await _force_overlay_inner(db, seat_id, show, staff)
+
+
+async def _force_overlay_inner(
+    db: AsyncSession,
+    seat_id: str,
+    show: bool,
+    staff: Staff | None = None,
+) -> None:
     seat = await _get_seat_or_404(db, seat_id)
 
     # Read-only: find any in-progress session on this seat.

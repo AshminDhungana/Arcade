@@ -558,3 +558,39 @@ async def test_bulk_force_overlay_records_offline(
         result = await rcs.bulk_force_overlay(db, True, None)
     assert result["succeeded"] == []
     assert result["failed"] == [{"seat_id": avail.id, "detail": "Agent offline"}]
+
+
+# ---------------------------------------------------------------------------
+# Per-seat mutex (Task 1)
+# ---------------------------------------------------------------------------
+
+
+async def test_seat_lock_serializes_commands(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """Concurrent force_overlay calls for same seat execute sequentially."""
+    from backend.services import remote_command_service as rcs
+    from backend.core.ws_manager import Msg
+
+    _, seat = zone_and_seat
+    execution_order = []
+
+    async def tracking_send(*args, **kwargs):
+        execution_order.append("send")
+        await asyncio.sleep(0.05)  # Simulate work
+        execution_order.append("done")
+
+    with patch.object(rcs.ws_manager, "send_to_agent", new=tracking_send):
+        # Fire 3 concurrent requests
+        await asyncio.gather(
+            rcs.force_overlay(db, seat.id, True, staff_member),
+            rcs.force_overlay(db, seat.id, False, staff_member),
+            rcs.force_overlay(db, seat.id, True, staff_member),
+        )
+
+    # All 3 should complete; sends should be sequential (not overlapping)
+    assert len(execution_order) == 6
+    # Pattern: send, done, send, done, send, done (no interleaving)
+    for i in range(0, 6, 2):
+        assert execution_order[i] == "send"
+        assert execution_order[i + 1] == "done"
