@@ -168,12 +168,20 @@ body {
   75% { transform: translateX(8px); }
 }
 
-/* Minimal mode — hide full overlay content, keep trigger zone + call staff button */
+/* Minimal mode — transparent background, click-through except trigger zone + call staff button */
+.kiosk-overlay.minimal {
+  background: transparent;
+  pointer-events: none;
+}
 .kiosk-overlay.minimal .kiosk-bug,
 .kiosk-overlay.minimal .kiosk-center,
 .kiosk-overlay.minimal .kiosk-rail,
 .kiosk-overlay.minimal .kiosk-status {
   display: none;
+}
+.kiosk-overlay.minimal .kiosk-trigger-zone,
+.kiosk-overlay.minimal .kiosk-btn.primary {
+  pointer-events: auto;
 }
 
 /* Trigger zone and button remain visible in minimal mode — no extra rules needed */

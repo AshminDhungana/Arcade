@@ -90,45 +90,35 @@ export interface IPlatformService {
   showKioskOverlay(content: OverlayContent): void;
 
   /**
-   * Hide and destroy the kiosk overlay window, if it exists.
+   * Hide the kiosk overlay window (switch to minimal mode), if it exists.
    *
-   * After hiding, the kiosk overlay is completely destroyed. A subsequent call
-   * to `showKioskOverlay` will create a fresh window.
+   * The kiosk window stays visible but enters minimal mode (transparent,
+   * click-through except for hot corner trigger zone and Call Staff button).
+   * A subsequent call to `showKioskOverlay` will restore full overlay mode.
    */
   hideKioskOverlay(): void;
 
   /**
-   * Show (or create) the transparent, always-on-top HUD window that
-   * overlays the live game during a session (ticker, low-time, messages).
-   */
-  showHud(): void;
-
-  /** Hide and destroy the HUD window, if it exists. */
-  hideHud(): void;
-
-  /**
-   * Show the low-time warning in the active window (HUD during a session,
-   * kiosk when idle).
+   * Show the low-time warning in the kiosk overlay window.
    */
   showLowTimeWarning(minutes: number): void;
 
   /**
-   * Update the visible timer display on the active overlay (HUD during a
-   * session, kiosk when idle) with the elapsed session time in seconds.
+   * Update the visible timer display on the kiosk overlay with the elapsed
+   * session time in seconds.
    *
    * `elapsedSeconds` is wall-clock seconds since session start (agent-local;
    * survives LAN drops). Epic 6.5.4 will extend this to include
    * `assignedEndAt`/`remainingSeconds` without changing this call site.
    *
-   * Must be called after `showKioskOverlay`/`showHud`. No-op if the relevant
-   * window is not visible.
+   * Must be called after `showKioskOverlay`. No-op if the window is not visible.
    */
   updateTimer(timer: { elapsedSeconds: number }): void;
 
   /**
-   * Announce a message on the active overlay for a given duration (milliseconds).
+   * Announce a message on the kiosk overlay for a given duration (milliseconds).
    *
-   * No-op if the relevant window is not visible.
+   * No-op if the window is not visible.
    */
   sendAnnouncement(text: string, durationMs: number): void;
 
@@ -139,8 +129,8 @@ export interface IPlatformService {
   sendConfigToOverlay(config: { hasOverrideCode: boolean }): void;
 
   /**
-   * Send a message to both the kiosk overlay and HUD windows.
-   * Used for events that should reach both overlay types.
+   * Send a message to the kiosk overlay window.
+   * Used for events that should reach the overlay.
    */
   sendToOverlayAndHud(channel: string, data?: unknown): void;
 

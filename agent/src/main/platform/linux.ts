@@ -36,13 +36,11 @@ export function isWayland(): boolean {
 
 export class LinuxPlatformService implements IPlatformService {
   private kioskWindow: BrowserWindow | null = null;
-  private hudWindow: BrowserWindow | null = null;
   private sessionActive = false;
   private overrideCodeConfigured = false;
 
   showKioskOverlay(content: OverlayContent): void {
     this.sessionActive = false;
-    this.hideHud();
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
       this.kioskWindow.webContents.send('overlay:set-minimal', false);
@@ -59,6 +57,8 @@ export class LinuxPlatformService implements IPlatformService {
       frame: false,
       closable: false,
       skipTaskbar: true,
+      transparent: true,
+      backgroundColor: '#00000000',
       webPreferences: {
         devTools: false,
         contextIsolation: true,
@@ -115,54 +115,9 @@ export class LinuxPlatformService implements IPlatformService {
 
   hideKioskOverlay(): void {
     this.sessionActive = true;
-    this.showHud();
-    this.kioskWindow?.hide();
-    this.kioskWindow?.webContents.send('overlay:set-minimal', true);
-  }
-
-  showHud(): void {
-    if (this.hudWindow && !this.hudWindow.isDestroyed()) {
-      this.hudWindow.show();
-      return;
-    }
-    const preloadPath = path.join(__dirname, '../../renderer/preload.js');
-    const win = new BrowserWindow({
-      fullscreen: true,
-      transparent: true,
-      frame: false,
-      alwaysOnTop: true,
-      closable: false,
-      skipTaskbar: true,
-      focusable: false,
-      webPreferences: {
-        devTools: false,
-        contextIsolation: true,
-        sandbox: true,
-        nodeIntegration: false,
-        preload: preloadPath,
-      },
-    });
-    win.setIgnoreMouseEvents(true, { forward: true });
-    win.on('closed', () => {
-      this.hudWindow = null;
-    });
-    const htmlPath = path.join(__dirname, '../../renderer/hud.html');
-    win.loadFile(htmlPath);
-    this.hudWindow = win;
-  }
-
-  hideHud(): void {
-    if (this.hudWindow && !this.hudWindow.isDestroyed()) {
-      this.hudWindow.hide();
-      this.hudWindow.destroy();
-    }
-    this.hudWindow = null;
-  }
-
-  showLowTimeWarning(minutes: number): void {
-    const win = this.sessionActive ? this.hudWindow : this.kioskWindow;
-    if (win && !win.isDestroyed()) {
-      win.webContents.send('overlay:low-time', { minutes });
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.show();
+      this.kioskWindow.webContents.send('overlay:set-minimal', true);
     }
   }
 
@@ -185,24 +140,25 @@ export class LinuxPlatformService implements IPlatformService {
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.webContents.send(channel, data);
     }
-    if (this.hudWindow && !this.hudWindow.isDestroyed()) {
-      this.hudWindow.webContents.send(channel, data);
-    }
   }
 
   updateTimer(timer: { elapsedSeconds: number }): void {
-    const win = this.sessionActive ? this.hudWindow : this.kioskWindow;
-    if (win && !win.isDestroyed()) {
-      win.webContents.send('overlay:timer', {
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.webContents.send('overlay:timer', {
         elapsedSeconds: timer.elapsedSeconds,
       });
     }
   }
 
   sendAnnouncement(text: string, durationMs: number): void {
-    const win = this.sessionActive ? this.hudWindow : this.kioskWindow;
-    if (win && !win.isDestroyed()) {
-      win.webContents.send('overlay:announcement', { text, durationMs });
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.webContents.send('overlay:announcement', { text, durationMs });
+    }
+  }
+
+  showLowTimeWarning(minutes: number): void {
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.webContents.send('overlay:low-time', { minutes });
     }
   }
 
