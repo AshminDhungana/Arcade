@@ -1,46 +1,17 @@
 # Todo
 
-## Kiosk Overlay OFF — Call Staff Button Behavior
+## Force Overlay Behavior
+- [ ] Fix Force Overlay ON state — currently only a timer flashes in the center and disappears; it should show the **full overlay** (background + all overlay elements)
+- [ ] Fix overlay dismissal logic — when overlay is closed via **server command** or **staff override**, only the **Call Staff** button (and its click handler) should remain on screen
+- [ ] chek the implemented hover-to-reveal for Call Staff button — button stays hidden by default; when the user moves the mouse to the **top-bottom corner**, the button should fade/slide in and be clickable. This feature is implemented previously.
 
-- [ ] **Kiosk overlay OFF state**: When the kiosk overlay setting is toggled off, hide all overlay UI elements except the Call Staff button, in every scenario (session start, mid-session, during gameplay, etc.)
+## 503 Errors on Rapid Overlay Toggle
+- [ ] Reproduce: repeatedly toggling Force Overlay on/off triggers `503 Service Unavailable` on `POST /api/seats/seat_1/overlay`
+- [ ] Check cascading impact — `GET /api/members` also returns `503` during/after this (likely shared connection pool, worker, or DB lock exhaustion)
+- [ ] Identify root cause — probable race condition from overlapping/rapid-fire requests hitting the same seat resource without debounce or lock handling
+- [ ] Add fix: debounce the toggle on the client (disable button briefly after click) and/or add request queuing or a mutex per seat on the server
+- [ ] Add graceful error handling so a 503 doesn't leave overlay state out of sync between client and server
 
-- [ ] **Call Staff button visibility**
-  - [ ] Button is hidden by default when overlay is off
-  - [ ] Button appears only when the user moves the mouse to the right edge of the screen
-  - [ ] Reuse the existing mouse-to-edge detection logic already implemented in the overlay — do not reimplement, just make it available/triggerable when overlay is off
+---
 
-- [ ] **Call Staff button functionality**
-  - [ ] When visible, button must be fully clickable
-  - [ ] Clicking it triggers the same "call staff" action as when the overlay is on
-  - [ ] No difference in call-staff behavior/output between overlay-on and overlay-off states — only visibility/presentation changes
-
-- [ ] **Regression checks**
-  - [ ] Confirm no other overlay elements (menus, banners, controls, etc.) render or become interactable while overlay is off
-  - [ ] Confirm button reveal/hide on mouse movement works consistently while user is actively playing/using the system (not just at idle/session start)
-  - [ ] Confirm toggling overlay back ON restores full overlay UI as before
-
-**Notes:**
-- Mouse-edge-reveal logic already exists in the overlay component — this task is about detaching/exposing that specific piece of functionality so it still runs independently when the rest of the overlay is suppressed.
-- Treat this as a visibility/composition change, not new logic — the call button's trigger detection and click handler should be shared/reused, not duplicated.
-
-
-## Task 2: Extra "Call Staff Available" notification shows up when it shouldn't
-
-
-**Current behavior**
-- Kiosk overlay is **off**.
-- User moves mouse to the bottom-right corner.
-- The Call Staff button appears (correct) **but** a "Call Staff Available" notification also appears above it (not correct).
-
-**Expected behavior**
-- Only the Call Staff button should appear on hover. The "Call Staff Available" notification should not be shown in this state.
-
-**Steps to reproduce**
-1. Ensure kiosk overlay is off.
-2. Hover mouse over bottom-right corner of the screen.
-3. Observe: Call Staff button + "Call Staff Available" notification both appear.
-
-**Acceptance criteria**
-- [ ] With overlay off, hovering the bottom-right corner shows only the Call Staff button.
-- [ ] The "Call Staff Available" notification does not render in this state.
-- [ ] Confirm the notification is still shown correctly in whatever state it *is* meant for (so this fix doesn't just delete it globally) — flag if unsure where else it's used.
+**Reference (from logs):** repeated `POST /api/seats/seat_1/overlay` calls returning `503` right after a `204 No Content` success, with `/api/members` also failing intermittently — worth checking if these share a resource/session in the backend.
