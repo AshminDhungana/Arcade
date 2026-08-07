@@ -15,6 +15,7 @@ import asyncio
 import logging
 import re
 import shutil
+import sys
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,9 @@ def _resolve_backup_dir(backup_dir: str | Path) -> Path:
     p = Path(backup_dir)
     if p.is_absolute():
         return p
+    # When frozen (PyInstaller), resolve relative to executable directory
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent / p
     project_root = Path(__file__).resolve().parent.parent.parent
     return project_root / p
 

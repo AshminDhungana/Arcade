@@ -148,7 +148,14 @@ def run_self_test() -> int:
 
 
 def _db_path() -> Path:
-    return Path(__file__).with_suffix("").parent / "backend" / "arcade.db"
+    """Return the path to the arcade.db file.
+
+    When frozen (PyInstaller), use the executable directory.
+    Otherwise, use the project backend directory.
+    """
+    if getattr(sys, "frozen", False):
+        return _get_exe_dir() / "arcade.db"
+    return Path(__file__).resolve().parent / "backend" / "arcade.db"
 
 
 def _write_license_status(
@@ -1407,7 +1414,10 @@ def main() -> None:
     root = ctk.CTk()
     app = LauncherApp(root)
     app._check_and_route()
-    app.run()
+    # If _check_and_route destroyed the root (e.g., user cancelled DB dialog),
+    # don't call mainloop on a destroyed window.
+    if root.winfo_exists():
+        app.run()
 
 
 if __name__ == "__main__":

@@ -39,7 +39,7 @@ from backend.api.routers import agent as agent_router
 from backend.api.routers import routers as api_routers
 from backend.api.routers import ws as ws_router
 from backend.core.config import get_config, load_config
-from backend.core.database import AsyncSessionLocal, async_engine
+from backend.core.database import AsyncSessionLocal, async_engine, reinitialize_engine
 from backend.core.feature_flags import load_flags
 from backend.core.lan_discovery import (
     start_discovery_beacon,
@@ -73,18 +73,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     """Application lifespan: startup and shutdown."""
     # --- STARTUP ---------------------------------------------------------
     # 1. Validate config — fails fast if arcade.config.json is missing or bad.
-    _ = load_config()
+    config = load_config()
 
-    # 2. WAL health check
+    # 2. Reinitialize database engine with the configured db_path
+    reinitialize_engine(config.database_url)
+
+    # 3. WAL health check
     await _verify_database_wal()
 
-    # 3. Run pending database migrations
+    # 4. Run pending database migrations
     await run_migrations()
 
-    # 4. Initialize all seat statuses to OFFLINE
+    # 5. Initialize all seat statuses to OFFLINE
     await initialize_seat_statuses()
 
-    # 5. Load feature flags into in-memory cache, and seed default staff
+    # 6. Load feature flags into in-memory cache, and seed default staff
     #    (admin + cashier) on a fresh database so login works out of the box.
     async with AsyncSessionLocal() as db:
         await load_flags(db)

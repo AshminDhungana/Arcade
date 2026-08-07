@@ -13,6 +13,7 @@ References:
 from __future__ import annotations
 
 import os
+import sys
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
@@ -28,10 +29,17 @@ from sqlalchemy.orm import DeclarativeBase
 # The DB path is configurable via ARCADE_DB_PATH so the test suite can point
 # at an isolated database instead of dropping/creating the developer's
 # arcade.db. Defaults to backend/arcade.db when the variable is unset.
+# When frozen (PyInstaller), use the executable directory.
+def _get_default_db_path() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent / "arcade.db"
+    return Path(__file__).resolve().parent.parent / "arcade.db"
+
+
 _DB_PATH = Path(
     os.environ.get(
         "ARCADE_DB_PATH",
-        str(Path(__file__).resolve().parent.parent / "arcade.db"),
+        str(_get_default_db_path()),
     )
 )
 async_engine = create_async_engine(
@@ -72,6 +80,50 @@ AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy ORM models."""
+
+
+# ---------------------------------------------------------------------------
+# Engine reinitialization (for config-driven DB path)
+# ---------------------------------------------------------------------------
+
+
+def reinitialize_engine(db_url: str) -> None:
+    """Replace the global async_engine and AsyncSessionLocal with a new engine.
+
+    Called during FastAPI lifespan after loading arcade.config.json so the
+    engine uses the configured db_path instead of the default.
+    """
+    global async_engine, AsyncSessionLocal
+
+    # Dispose the old engine to close all connections
+    import asyncio
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # Schedule disposal for after the current task
+            loop.create_task(async_engine.dispose())
+        else:
+            asyncio.run(async_engine.dispose())
+    except Exception:
+        pass  # Best effort
+
+    async_engine = create_async_engine(db_url, echo=False)
+
+    # Re-attach the pragma event listener to the new engine
+    @event.listens_for(async_engine.sync_engine, "connect")
+    def _set_pragma(conn: Any, _: Any) -> None:
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA journal_mode = WAL")
+        cursor.execute("PRAGMA busy_timeout = 5000")
+        cursor.execute("PRAGMA synchronous = NORMAL")
+        cursor.execute("PRAGMA foreign_keys = ON")
+        cursor.execute("PRAGMA mmap_size = 134217728")
+        cursor.execute("PRAGMA cache_size = -32000")
+        cursor.execute("PRAGMA wal_autocheckpoint = 1000")
+        cursor.close()
+
+    AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
 # ---------------------------------------------------------------------------
