@@ -570,7 +570,6 @@ async def test_seat_lock_serializes_commands(
 ) -> None:
     """Concurrent force_overlay calls for same seat execute sequentially."""
     from backend.services import remote_command_service as rcs
-    from backend.core.ws_manager import Msg
 
     _, seat = zone_and_seat
     execution_order = []
@@ -604,10 +603,12 @@ async def test_seat_lock_serializes_commands(
 async def test_retry_on_sqlite_busy(
     db: AsyncSession, zone_and_seat, staff_member
 ) -> None:
-    """force_overlay retries on OperationalError (database locked) during DB commit and succeeds."""
+    """force_overlay retries on OperationalError (database locked)
+    during DB commit and succeeds."""
+    from sqlalchemy.exc import OperationalError
+
     from backend.services import remote_command_service as rcs
     from backend.services import seat_service
-    from sqlalchemy.exc import OperationalError
 
     _, seat = zone_and_seat
     call_count = {"n": 0}
@@ -636,9 +637,9 @@ async def test_staff_override_sends_force_overlay_off(
     db: AsyncSession, zone_and_seat
 ) -> None:
     """STAFF_OVERRIDE message triggers FORCE_OVERLAY_OFF to agent."""
-    from backend.core.ws_manager import Msg, manager as ws_manager
+    from backend.core.ws_manager import Msg
+    from backend.core.ws_manager import manager as ws_manager
     from backend.services import seat_service
-    from backend.core.database import AsyncSessionLocal
 
     _, seat = zone_and_seat
     # Set overlay_forced = True first

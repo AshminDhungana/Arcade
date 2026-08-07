@@ -395,7 +395,6 @@ def test_rapid_toggle_10_times_returns_204(
     seat_id = resp.json()["id"]
 
     # Mock agent as online
-    from backend.core.ws_manager import Msg
     from backend.services import remote_command_service as rcs
 
     with patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send:
@@ -405,7 +404,9 @@ def test_rapid_toggle_10_times_returns_204(
                 f"/api/seats/{seat_id}/overlay",
                 json={"show": i % 2 == 0},  # Alternate on/off
             )
-            assert resp.status_code == 204, f"Request {i} failed: {resp.status_code} {resp.text}"
+            assert (
+                resp.status_code == 204
+            ), f"Request {i} failed: {resp.status_code} {resp.text}"
 
         # Verify all 10 commands sent
         assert mock_send.await_count == 10

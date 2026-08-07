@@ -14,24 +14,30 @@ from __future__ import annotations
 
 import asyncio
 import os
-import random
+import secrets
 import sys
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
+T = TypeVar("T")
+
 # ---------------------------------------------------------------------------
 # Retry helper for SQLite busy/locked errors
 # ---------------------------------------------------------------------------
 
 
-async def _with_retry(coro_func, retries: int = 3, base_delay: float = 0.1):
-    """Execute coroutine function with exponential backoff retry on SQLite busy/locked."""
+async def _with_retry(
+    coro_func: Callable[[], Awaitable[T]],
+    retries: int = 3,
+    base_delay: float = 0.1,
+) -> T:
+    """Execute coroutine with exponential backoff retry on SQLite busy/locked."""
     for attempt in range(retries):
         try:
             return await coro_func()
@@ -39,14 +45,19 @@ async def _with_retry(coro_func, retries: int = 3, base_delay: float = 0.1):
             if "database is locked" in str(e) or "SQLITE_BUSY" in str(e):
                 if attempt == retries - 1:
                     raise
-                await asyncio.sleep(base_delay * (2 ** attempt) + random.uniform(0, 0.05))
+                # Jitter for retry backoff; not cryptographic, so random is acceptable
+                await asyncio.sleep(
+                    base_delay * (2**attempt) + secrets.randbelow(50) / 1000
+                )
             else:
                 raise
+    raise RuntimeError("Retry loop exhausted without return or raise")
 
 
 # ---------------------------------------------------------------------------
 # Async engine with aiosqlite driver
 # ---------------------------------------------------------------------------
+
 
 # The DB path is configurable via ARCADE_DB_PATH so the test suite can point
 # at an isolated database instead of dropping/creating the developer's
@@ -119,8 +130,6 @@ def reinitialize_engine(db_url: str) -> None:
     global async_engine, AsyncSessionLocal
 
     # Dispose the old engine to close all connections
-    import asyncio
-
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
@@ -128,10 +137,14 @@ def reinitialize_engine(db_url: str) -> None:
             loop.create_task(async_engine.dispose())
         else:
             asyncio.run(async_engine.dispose())
-    except Exception:
-        pass  # Best effort
+    except Exception as e:  # pragma: no cover - best effort cleanup
+        import logging
 
-    async_engine = create_async_engine(db_url, echo=False, connect_args={"isolation_level": "IMMEDIATE"})
+        logging.debug("Engine disposal failed: %s", e)
+
+    async_engine = create_async_engine(
+        db_url, echo=False, connect_args={"isolation_level": "IMMEDIATE"}
+    )
 
     # Re-attach the pragma event listener to the new engine
     @event.listens_for(async_engine.sync_engine, "connect")

@@ -383,7 +383,7 @@ async def _force_overlay_inner(
 
     now = datetime.now(UTC)
 
-    async def _do_db_work():
+    async def _do_db_work() -> None:
         if begin_pause and session is not None:
             session_service._begin_pause(session, now)
             await session_repo.update(db, session)
@@ -403,7 +403,9 @@ async def _force_overlay_inner(
         await audit_service.log(
             db,
             action=(
-                AuditAction.OVERLAY_FORCED_ON if show else AuditAction.OVERLAY_FORCED_OFF
+                AuditAction.OVERLAY_FORCED_ON
+                if show
+                else AuditAction.OVERLAY_FORCED_OFF
             ),
             entity_type="seat",
             entity_id=seat.id,
