@@ -91,6 +91,11 @@ it('HIDE_OVERLAY calls hideKioskOverlay', () => {
     handlers.FORCE_OVERLAY_ON({ session_id: 'sess-123' });
     expect(mockPlatform.sendToOverlayAndHud).toHaveBeenCalledWith('overlay:set-minimal', false);
   });
+
+  it('FORCE_OVERLAY_OFF calls hideKioskOverlay', () => {
+    handlers.FORCE_OVERLAY_OFF({});
+    expect(mockPlatform.hideKioskOverlay).toHaveBeenCalled();
+  });
 });
 
 describe('event banner', () => {
