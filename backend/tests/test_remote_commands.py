@@ -594,3 +594,34 @@ async def test_seat_lock_serializes_commands(
     for i in range(0, 6, 2):
         assert execution_order[i] == "send"
         assert execution_order[i + 1] == "done"
+
+
+# ---------------------------------------------------------------------------
+# SQLite retry logic (Task 2)
+# ---------------------------------------------------------------------------
+
+
+async def test_retry_on_sqlite_busy(
+    db: AsyncSession, zone_and_seat, staff_member
+) -> None:
+    """force_overlay retries on OperationalError (database locked) during DB commit and succeeds."""
+    from backend.services import remote_command_service as rcs
+    from backend.services import seat_service
+    from sqlalchemy.exc import OperationalError
+
+    _, seat = zone_and_seat
+    call_count = {"n": 0}
+
+    original_set_overlay = seat_service.set_overlay_forced
+
+    async def flaky_set_overlay(*args, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] < 3:
+            raise OperationalError("database is locked", None, None)
+        return await original_set_overlay(*args, **kwargs)
+
+    with patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()):
+        with patch.object(seat_service, "set_overlay_forced", new=flaky_set_overlay):
+            await rcs.force_overlay(db, seat.id, True, staff_member)
+
+    assert call_count["n"] == 3  # Initial + 2 retries

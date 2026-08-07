@@ -24,6 +24,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core import feature_flags
+from backend.core.database import _with_retry
 from backend.core.ws_manager import AgentOfflineError, Msg
 from backend.core.ws_manager import manager as ws_manager
 from backend.models._enums import AuditAction, SeatStatus, SessionStatus
@@ -382,32 +383,35 @@ async def _force_overlay_inner(
 
     now = datetime.now(UTC)
 
-    if begin_pause and session is not None:
-        session_service._begin_pause(session, now)
-        await session_repo.update(db, session)
-        seat.status = SeatStatus.PAUSED
-        await seat_repo.update(db, seat)
-        await _broadcast_seat_updated(seat, session.id)
+    async def _do_db_work():
+        if begin_pause and session is not None:
+            session_service._begin_pause(session, now)
+            await session_repo.update(db, session)
+            seat.status = SeatStatus.PAUSED
+            await seat_repo.update(db, seat)
+            await _broadcast_seat_updated(seat, session.id)
 
-    if resume_pause and session is not None:
-        session_service._accrue_pause(session, now)
-        session.status = SessionStatus.ACTIVE
-        await session_repo.update(db, session)
-        seat.status = SeatStatus.IN_USE
-        await seat_repo.update(db, seat)
-        await _broadcast_seat_updated(seat, session.id)
+        if resume_pause and session is not None:
+            session_service._accrue_pause(session, now)
+            session.status = SessionStatus.ACTIVE
+            await session_repo.update(db, session)
+            seat.status = SeatStatus.IN_USE
+            await seat_repo.update(db, seat)
+            await _broadcast_seat_updated(seat, session.id)
 
-    await seat_service.set_overlay_forced(db, seat_id, show)
-    await audit_service.log(
-        db,
-        action=(
-            AuditAction.OVERLAY_FORCED_ON if show else AuditAction.OVERLAY_FORCED_OFF
-        ),
-        entity_type="seat",
-        entity_id=seat.id,
-        staff_id=staff.id if staff else None,
-        detail=f"overlay forced={'on' if show else 'off'}",
-    )
+        await seat_service.set_overlay_forced(db, seat_id, show)
+        await audit_service.log(
+            db,
+            action=(
+                AuditAction.OVERLAY_FORCED_ON if show else AuditAction.OVERLAY_FORCED_OFF
+            ),
+            entity_type="seat",
+            entity_id=seat.id,
+            staff_id=staff.id if staff else None,
+            detail=f"overlay forced={'on' if show else 'off'}",
+        )
+
+    await _with_retry(_do_db_work)
 
 
 # ---------------------------------------------------------------------------
