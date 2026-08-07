@@ -133,7 +133,7 @@ def onedir_root_for(new_files: list[Path], dist_dir: Path) -> Path:
     return new_files[0]
 
 
-def rmtree_retry(path: Path, max_attempts: int = 5, delay: float = 0.5) -> None:
+def rmtree_retry(path: Path, max_attempts: int = 10, delay: float = 1.0) -> None:
     """Remove a directory tree with retries for Windows file locking issues."""
     for attempt in range(max_attempts):
         try:
@@ -142,12 +142,112 @@ def rmtree_retry(path: Path, max_attempts: int = 5, delay: float = 0.5) -> None:
             return
         except PermissionError:
             if attempt == max_attempts - 1:
-                raise
+                if IS_WINDOWS:
+                    _force_remove_windows(path)
+                else:
+                    raise
             time.sleep(delay)
         except OSError:
             if attempt == max_attempts - 1:
-                raise
+                if IS_WINDOWS:
+                    _force_remove_windows(path)
+                else:
+                    raise
             time.sleep(delay)
+
+
+def _force_remove_windows(path: Path) -> None:
+    """Force remove a directory on Windows by killing locking processes first."""
+    import subprocess
+
+    # Kill any electron/node processes that might be locking files
+    for proc_name in [
+        "electron.exe",
+        "node.exe",
+        "npm.cmd",
+        "npx.cmd",
+        "Arcade Agent.exe",
+        "Arcade Agent",
+    ]:
+        try:
+            subprocess.run(  # noqa: S603,S607
+                ["taskkill", "/F", "/IM", proc_name],  # noqa: S607
+                check=False,
+                capture_output=True,
+                timeout=10,
+            )
+        except Exception:  # noqa: S110
+            pass
+    # Also use PowerShell to kill by process name (handles spaces better)
+    try:
+        subprocess.run(  # noqa: S603,S607
+            [  # noqa: S607
+                "powershell",
+                "-Command",
+                "Stop-Process -Name 'Arcade Agent' "
+                "-Force -ErrorAction SilentlyContinue",
+            ],
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+    except Exception:  # noqa: S110
+        pass
+    time.sleep(1.0)
+
+    # Try rmdir
+    try:
+        subprocess.run(  # noqa: S603,S607
+            ["cmd", "/c", "rmdir", "/s", "/q", str(path)],  # noqa: S607
+            check=False,
+            capture_output=True,
+            timeout=30,
+        )
+    except Exception:  # noqa: S110
+        pass
+
+    # Try PowerShell Remove-Item as fallback (more reliable on Windows)
+    try:
+        ps_path = str(path).replace("'", "''")
+        subprocess.run(  # noqa: S603,S607
+            [  # noqa: S607
+                "powershell",
+                "-Command",
+                f"Remove-Item -Path '{ps_path}' "
+                "-Recurse -Force -ErrorAction SilentlyContinue",
+            ],
+            check=False,
+            capture_output=True,
+            timeout=30,
+        )
+    except Exception:  # noqa: S110
+        pass
+
+    # Try robocopy mirror to empty dir trick
+    try:
+        empty_dir = path.parent / (path.name + "_empty")
+        empty_dir.mkdir(exist_ok=True)
+        subprocess.run(  # noqa: S603,S607
+            ["robocopy", "/mir", str(empty_dir), str(path), "/r:0", "/w:0"],  # noqa: S607
+            check=False,
+            capture_output=True,
+            timeout=30,
+        )
+        subprocess.run(  # noqa: S603,S607
+            ["cmd", "/c", "rmdir", "/s", "/q", str(empty_dir)],  # noqa: S607
+            check=False,
+            capture_output=True,
+        )
+        subprocess.run(  # noqa: S603,S607
+            ["cmd", "/c", "rmdir", "/s", "/q", str(path)],  # noqa: S607
+            check=False,
+            capture_output=True,
+        )
+    except Exception:  # noqa: S110
+        pass
+
+    if path.exists():
+        raise PermissionError(f"Could not remove {path} after force attempts")
 
 
 # ---------------------------------------------------------------------------
