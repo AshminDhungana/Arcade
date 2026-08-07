@@ -32,9 +32,10 @@ export class WindowsPlatformService implements IPlatformService {
 
   showKioskOverlay(content: OverlayContent): void {
     this.sessionActive = false;
+    const sendMinimal = false; // Full mode for new sessions
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
-      this.kioskWindow.webContents.send('overlay:set-minimal', false);
+      this.kioskWindow.webContents.send('overlay:set-minimal', sendMinimal);
       this.kioskWindow.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
       return;
     }
@@ -88,15 +89,21 @@ export class WindowsPlatformService implements IPlatformService {
     this.kioskWindow.loadFile(htmlPath);
 
     this.kioskWindow.webContents.once('did-finish-load', () => {
+      this.kioskWindow?.webContents.send('overlay:set-minimal', sendMinimal);
       this.kioskWindow?.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
     });
   }
 
   hideKioskOverlay(): void {
+    console.log('[Platform:Windows] hideKioskOverlay: START');
     this.sessionActive = true;
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      console.log('[Platform:Windows] hideKioskOverlay: window exists, sending overlay:set-minimal=true');
       this.kioskWindow.show();
       this.kioskWindow.webContents.send('overlay:set-minimal', true);
+      console.log('[Platform:Windows] hideKioskOverlay: message sent');
+    } else {
+      console.warn('[Platform:Windows] hideKioskOverlay: kioskWindow is null or destroyed!');
     }
   }
 
