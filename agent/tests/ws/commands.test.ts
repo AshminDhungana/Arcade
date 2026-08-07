@@ -81,10 +81,9 @@ it('HIDE_OVERLAY calls hideKioskOverlay', () => {
     expect(mockPlatform.showLowTimeWarning).toHaveBeenCalledWith(5);
   });
 
-  it('RESET_OVERRIDE is a no-op', () => {
+  it('RESET_OVERRIDE calls hideKioskOverlay', () => {
     handlers.RESET_OVERRIDE({});
-    expect(mockPlatform.hideKioskOverlay).not.toHaveBeenCalled();
-    expect(mockPlatform.showKioskOverlay).not.toHaveBeenCalled();
+    expect(mockPlatform.hideKioskOverlay).toHaveBeenCalled();
   });
 });
 

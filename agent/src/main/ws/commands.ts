@@ -89,8 +89,8 @@ SHOW_OVERLAY(payload) {
     },
 
     RESET_OVERRIDE(_payload) {
-      // Clears the staff override flag
-      // Handled by the WebSocket client state machine
+      // Clears the staff override flag and hides the kiosk overlay
+      platform.hideKioskOverlay();
     },
 
 FORCE_OVERLAY_ON(payload) {
