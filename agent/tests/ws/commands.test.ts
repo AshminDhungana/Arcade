@@ -25,6 +25,7 @@ describe('Command Handlers', () => {
       showHud: vi.fn(),
       hideHud: vi.fn(),
       showLowTimeWarning: vi.fn(),
+      sendToOverlayAndHud: vi.fn(),
     };
     handlers = createCommandHandlers(mockPlatform, { seatId: 'seat_001' });
   });
@@ -84,6 +85,11 @@ it('HIDE_OVERLAY calls hideKioskOverlay', () => {
   it('RESET_OVERRIDE calls hideKioskOverlay', () => {
     handlers.RESET_OVERRIDE({});
     expect(mockPlatform.hideKioskOverlay).toHaveBeenCalled();
+  });
+
+  it('FORCE_OVERLAY_ON explicitly disables minimal mode', () => {
+    handlers.FORCE_OVERLAY_ON({ session_id: 'sess-123' });
+    expect(mockPlatform.sendToOverlayAndHud).toHaveBeenCalledWith('overlay:set-minimal', false);
   });
 });
 

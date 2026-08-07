@@ -106,6 +106,8 @@ FORCE_OVERLAY_ON(payload) {
         seatId: deps.seatId,
         agentSecret: deps.agentSecret,
       });
+      // Explicitly ensure minimal mode is OFF
+      platform.sendToOverlayAndHud('overlay:set-minimal', false);
     },
 
     FORCE_OVERLAY_OFF(_payload) {
