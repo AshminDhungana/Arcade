@@ -227,11 +227,8 @@ export class AgentWebSocketClient {
   }
 
   private _activateOverride(): void {
-    console.log('[Agent] _activateOverride: START');
     this.overrideActive = true;
-    console.log('[Agent] _activateOverride: calling platform.hideKioskOverlay()');
     this.platform.hideKioskOverlay();
-    console.log('[Agent] _activateOverride: platform.hideKioskOverlay() returned');
     if (this.isConnected()) {
       this.send('STAFF_OVERRIDE', { seat_id: this.config.seat_id, verified: true });
       this.overrideEventQueued = false;

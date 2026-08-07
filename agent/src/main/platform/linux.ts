@@ -116,13 +116,10 @@ export class LinuxPlatformService implements IPlatformService {
   }
 
   hideKioskOverlay(): void {
-    console.log('[Platform:Linux] hideKioskOverlay: START');
     this.sessionActive = true;
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
-      console.log('[Platform:Linux] hideKioskOverlay: window exists, sending overlay:set-minimal=true');
       this.kioskWindow.show();
       this.kioskWindow.webContents.send('overlay:set-minimal', true);
-      console.log('[Platform:Linux] hideKioskOverlay: message sent');
     } else {
       console.warn('[Platform:Linux] hideKioskOverlay: kioskWindow is null or destroyed!');
     }

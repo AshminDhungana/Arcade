@@ -255,7 +255,6 @@ export class KioskOverlay {
 
   /** Toggle minimal mode — hides full overlay content, keeps trigger zone + button. */
   setMinimalMode(enabled: boolean): void {
-    console.log('[KioskOverlay] setMinimalMode:', enabled);
     if (enabled) {
       this.container.classList.add('minimal');
     } else {
@@ -263,7 +262,6 @@ export class KioskOverlay {
     }
     // Force reflow to ensure CSS applies immediately
     this.container.offsetHeight;
-    console.log('[KioskOverlay] minimal class applied:', this.container.classList.contains('minimal'));
   }
 
   /** Tear down the component. */

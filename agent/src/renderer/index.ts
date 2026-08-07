@@ -158,7 +158,6 @@ function initKiosk(): void {
 
   // --- Minimal mode toggle ---
   window.electronAPI.onSetMinimal((enabled) => {
-    console.log('[Renderer] onSetMinimal:', enabled);
     overlay.setMinimalMode(enabled);
   });
 }

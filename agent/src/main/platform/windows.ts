@@ -95,13 +95,10 @@ export class WindowsPlatformService implements IPlatformService {
   }
 
   hideKioskOverlay(): void {
-    console.log('[Platform:Windows] hideKioskOverlay: START');
     this.sessionActive = true;
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
-      console.log('[Platform:Windows] hideKioskOverlay: window exists, sending overlay:set-minimal=true');
       this.kioskWindow.show();
       this.kioskWindow.webContents.send('overlay:set-minimal', true);
-      console.log('[Platform:Windows] hideKioskOverlay: message sent');
     } else {
       console.warn('[Platform:Windows] hideKioskOverlay: kioskWindow is null or destroyed!');
     }
