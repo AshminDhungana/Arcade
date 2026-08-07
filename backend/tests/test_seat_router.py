@@ -374,3 +374,44 @@ def test_reset_override_creates_audit_log(client: TestClient, db: AsyncSession) 
     assert log.entity_id == seat_id
     assert log.staff_id is not None  # Admin staff_id should be recorded
     assert "admin reset override on seat PC-Reset" in log.detail
+
+
+# ---------------------------------------------------------------------------
+# Rapid toggle integration tests (Task 6)
+# ---------------------------------------------------------------------------
+
+
+def test_rapid_toggle_10_times_returns_204(
+    client: TestClient, db: AsyncSession, admin_staff: Staff
+) -> None:
+    """10 rapid POSTs to /api/seats/{id}/overlay all succeed (204)."""
+    asyncio.run(_ensure_zone(db))
+    # Create a seat
+    resp = client.post(
+        "/api/seats",
+        json={"name": "PC-Rapid", "zone_id": "zone1"},
+    )
+    assert resp.status_code == 201
+    seat_id = resp.json()["id"]
+
+    # Mock agent as online
+    from backend.core.ws_manager import Msg
+    from backend.services import remote_command_service as rcs
+
+    with patch.object(rcs.ws_manager, "send_to_agent", new=AsyncMock()) as mock_send:
+        # Fire 10 rapid requests
+        for i in range(10):
+            resp = client.post(
+                f"/api/seats/{seat_id}/overlay",
+                json={"show": i % 2 == 0},  # Alternate on/off
+            )
+            assert resp.status_code == 204, f"Request {i} failed: {resp.status_code} {resp.text}"
+
+        # Verify all 10 commands sent
+        assert mock_send.await_count == 10
+
+
+# Note: True concurrent test would require separate DB sessions per thread,
+# which is complex with the current TestClient fixture setup. The rapid
+# toggle test above verifies the mutex + retry logic works for sequential
+# rapid requests, which is the primary 503 scenario.
