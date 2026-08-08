@@ -126,8 +126,17 @@ def reinitialize_engine(db_url: str) -> None:
 
     Called during FastAPI lifespan after loading arcade.config.json so the
     engine uses the configured db_path instead of the default.
+
+    ``ARCADE_DB_PATH`` (the test suite's isolation override) wins over the
+    configured path, so reinitialization never points the app at a different
+    database than the one the tests created.
     """
     global async_engine, AsyncSessionLocal
+
+    # Test-suite override: keep the engine on the isolated test database.
+    env_path = os.environ.get("ARCADE_DB_PATH")
+    if env_path:
+        db_url = f"sqlite+aiosqlite:///{env_path}"
 
     # Dispose the old engine to close all connections
     try:

@@ -24,7 +24,6 @@ from fastapi import WebSocket
 from sqlalchemy import select
 
 from backend.core.config import get_config
-from backend.core.database import AsyncSessionLocal
 from backend.models.settings import AppSettings
 
 # ---------------------------------------------------------------------------
@@ -200,6 +199,7 @@ class WebSocketManager:
     # --- Agents ------------------------------------------------------------
 
     async def connect_agent(self, seat_id: str, secret: str, ws: WebSocket) -> bool:
+        from backend.core.database import AsyncSessionLocal
         from backend.repositories import seat_repo
 
         async with AsyncSessionLocal() as db:
@@ -414,6 +414,7 @@ class WebSocketManager:
             }
 
         # --- DB + Reconciliation ---
+        from backend.core.database import AsyncSessionLocal
         from backend.models import SessionStatus
         from backend.repositories import session_repo
 
@@ -605,7 +606,17 @@ class WebSocketManager:
     # --- Lifecycle ----------------------------------------------------------
 
     async def _start_heartbeat(self) -> None:
-        if self._heartbeat_task is None or self._heartbeat_task.done():
+        task = self._heartbeat_task
+        if (
+            task is None
+            or task.done()
+            or task.get_loop() is not asyncio.get_running_loop()
+        ):
+            if task is not None and not task.done():
+                try:
+                    task.cancel()
+                except RuntimeError:
+                    pass  # task is bound to a closed event loop; drop it
             self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
 
     async def _heartbeat_loop(self) -> None:
@@ -635,10 +646,16 @@ class WebSocketManager:
                 await self.disconnect_agent(seat_id)
 
     async def close_all(self) -> None:
-        if self._heartbeat_task is not None:
-            self._heartbeat_task.cancel()
+        task = self._heartbeat_task
+        self._heartbeat_task = None
+        if (
+            task is not None
+            and not task.done()
+            and task.get_loop() is asyncio.get_running_loop()
+        ):
+            task.cancel()
             try:
-                await self._heartbeat_task
+                await task
             except asyncio.CancelledError:
                 pass
 

@@ -12,6 +12,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 
 # ---------------------------------------------------------------------------
 # Isolate the test database from the developer's arcade.db.
@@ -114,3 +115,22 @@ def _stamp_alembic_head() -> None:
     alembic_cfg.set_main_option("script_location", str(here.parent / "alembic"))
     alembic_cfg.set_main_option("sqlalchemy.url", str(async_engine.url))
     alembic_command.stamp(alembic_cfg, "head")
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _close_ws_manager_after_test() -> None:
+    """Tear down singleton background tasks after each test.
+
+    Tests that drive ``ws_manager.connect_agent``/``connect_dashboard`` or
+    ``wol_service`` wake-ups directly leave the manager's heartbeat task and
+    WoL watchdog tasks running on the current test loop. Without a close, the
+    pending tasks outlive the loop and, once a later test drops the reference,
+    asyncio warns "Task was destroyed but it is pending!". Tearing down after
+    every test keeps the singleton state clean across the whole suite.
+    """
+    yield
+    from backend.core.ws_manager import manager
+    from backend.services.wol_service import shutdown_watchdogs
+
+    await manager.close_all()
+    await shutdown_watchdogs()

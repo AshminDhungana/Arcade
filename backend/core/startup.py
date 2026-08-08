@@ -91,6 +91,13 @@ async def boot_all_seats() -> None:
         await _wol_boot_all(db)
 
 
+async def shutdown_watchdogs() -> None:
+    """Cancel all pending WoL watchdog tasks."""
+    from backend.services.wol_service import shutdown_watchdogs as _shutdown_watchdogs
+
+    await _shutdown_watchdogs()
+
+
 async def initialize_seat_statuses() -> None:
     """Set all seats to OFFLINE on server startup and broadcast to dashboards."""
     from backend.core.database import AsyncSessionLocal

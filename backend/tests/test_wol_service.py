@@ -89,14 +89,7 @@ async def _clean_watchdogs():
     yield
     from backend.services import wol_service
 
-    for task in list(wol_service._watchdogs.values()):
-        if not task.done():
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
-    wol_service._watchdogs.clear()
+    await wol_service.shutdown_watchdogs()
 
 
 # ---------------------------------------------------------------------------

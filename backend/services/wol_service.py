@@ -11,7 +11,6 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.core.database import AsyncSessionLocal
 from backend.core.ws_manager import manager as ws_manager
 from backend.models._enums import AuditAction, SeatStatus
 from backend.models.seat import Seat
@@ -32,8 +31,30 @@ _watchdogs: dict[str, asyncio.Task[None]] = {}
 def _cancel_watchdog(seat_id: str) -> None:
     """Cancel and remove an active watchdog for *seat_id*."""
     task = _watchdogs.pop(seat_id, None)
-    if task is not None:
+    if task is not None and not task.done():
+        try:
+            task.cancel()
+        except RuntimeError:
+            pass  # task is bound to a closed event loop; drop it
+
+
+async def shutdown_watchdogs() -> None:
+    """Cancel all active watchdogs.
+
+    Tasks bound to the current event loop are cancelled and awaited; tasks
+    bound to a different (already closed) loop can never tick again, so they
+    are simply dropped to keep the module state clean across app restarts.
+    """
+    loop = asyncio.get_running_loop()
+    for seat_id, task in list(_watchdogs.items()):
+        _watchdogs.pop(seat_id, None)
+        if task.done() or task.get_loop() is not loop:
+            continue
         task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -185,6 +206,8 @@ async def _watchdog(
     if db is not None:
         await _check(db)
     else:
+        from backend.core.database import AsyncSessionLocal
+
         async with AsyncSessionLocal() as db:
             await _check(db)
 
@@ -303,5 +326,7 @@ async def wol_success_callback(seat_id: str, *, db: AsyncSession | None = None) 
     if db is not None:
         await _check(db)
     else:
+        from backend.core.database import AsyncSessionLocal
+
         async with AsyncSessionLocal() as db:
             await _check(db)

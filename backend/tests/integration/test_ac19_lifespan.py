@@ -36,7 +36,12 @@ def isolated_lifespan_db():
 
         importlib.reload(backend.core.database)
         importlib.reload(backend.main)
-        db_path.unlink(missing_ok=True)
+        try:
+            db_path.unlink(missing_ok=True)
+        except PermissionError:
+            # Windows: a pooled aiosqlite connection may still hold the file.
+            # It lives in the OS temp dir, so leaving it behind is harmless.
+            pass
 
 
 async def test_lifespan_startup_no_deprecation_warnings():

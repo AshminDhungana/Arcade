@@ -39,7 +39,6 @@ from backend.api.routers import agent as agent_router
 from backend.api.routers import routers as api_routers
 from backend.api.routers import ws as ws_router
 from backend.core.config import get_config, load_config
-from backend.core.database import AsyncSessionLocal, async_engine, reinitialize_engine
 from backend.core.feature_flags import load_flags
 from backend.core.lan_discovery import (
     start_discovery_beacon,
@@ -51,6 +50,7 @@ from backend.core.startup import (
     initialize_seat_statuses,
     recover_active_sessions,
     run_migrations,
+    shutdown_watchdogs,
 )
 from backend.core.ws_manager import manager as ws_manager
 from backend.models import GamingSession, Seat
@@ -71,6 +71,15 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     """Application lifespan: startup and shutdown."""
+    # Resolved lazily so the boot sequence always uses the CURRENT engine and
+    # session factory — ``reinitialize_engine`` below replaces them, and any
+    # reference captured at import time would stay bound to the old engine.
+    from backend.core.database import (
+        AsyncSessionLocal,
+        async_engine,
+        reinitialize_engine,
+    )
+
     # --- STARTUP ---------------------------------------------------------
     # 1. Validate config — fails fast if arcade.config.json is missing or bad.
     config = load_config()
@@ -121,6 +130,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     # --- SHUTDOWN ---------------------------------------------------------
     shutdown_scheduler(scheduler)
     await ws_manager.close_all()
+    await shutdown_watchdogs()
     stop_discovery_beacon()
     await async_engine.dispose()
     logger.info("Arcade server — shutdown complete")
@@ -138,6 +148,8 @@ async def _verify_database_wal() -> None:
         RuntimeError: If ``PRAGMA journal_mode`` does not return ``'wal'``.
     """
     from sqlalchemy import text
+
+    from backend.core.database import async_engine
 
     async with async_engine.begin() as conn:
         result = await conn.execute(text("PRAGMA journal_mode"))
@@ -294,6 +306,8 @@ async def health() -> dict[str, Any]:
         dict: ``status``, ``version``, ``license_type``, ``uptime``,
         ``seat_count``, ``active_sessions``.
     """
+    from backend.core.database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         seat_count_result = await db.execute(select(Seat))
         seat_count = len(seat_count_result.scalars().all())
