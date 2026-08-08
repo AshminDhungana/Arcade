@@ -299,8 +299,13 @@ export class KioskOverlay {
       this.showButton();
       this.setHotspot(true);
     } else if (!this.isMouseOverButton) {
-      this.setHotspot(false);
+      // Keep click-through disabled while the button is visible so the user
+      // can move from the hot zone onto the button and click it. The hotspot
+      // is cleared by hideButton() (auto-hide timer or after a click).
       this.scheduleHide();
+      if (!this.buttonVisible) {
+        this.setHotspot(false);
+      }
     }
   };
 
