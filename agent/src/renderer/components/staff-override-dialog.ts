@@ -2,10 +2,12 @@
  * Staff override PIN dialog — pure DOM helper.
  *
  * Renders a numeric keypad for PIN entry.  On confirm, calls the
- * `onOverride` callback with the entered PIN.
+ * `onOverride` callback with the entered PIN.  Supports physical-keyboard
+ * entry via `bindPinKeyboard` (digits, Backspace, Enter, Escape).
  */
 
 import { ARCADE_ICON_SVG } from '../icon.js';
+import { bindPinKeyboard } from './pin-keyboard.js';
 
 export interface StaffOverrideOptions {
   onOverride: (pin: string) => void;
@@ -55,16 +57,32 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
     display.textContent = pin.replace(/./g, '●');
   };
 
+  // Physical-keyboard cleanup, assigned below; used by submit/closeModal.
+  let keyboardCleanup: () => void = () => {};
+
+  const submit = (): void => {
+    if (pin.length === 0) return;
+    options.onOverride(pin);
+    pin = '';
+    updateDisplay();
+    keyboardCleanup();
+  };
+
+  const closeModal = (): void => {
+    pin = '';
+    updateDisplay();
+    keyboardCleanup();
+    options.onCancel?.();
+    modal.classList.remove('visible');
+    modal.style.display = 'none';
+  };
+
   // Numeric keypad handler
   const handleKey = (key: string): void => {
     if (key === 'C') {
       pin = '';
     } else if (key === '✓') {
-      if (pin.length > 0) {
-        options.onOverride(pin);
-        pin = '';
-        updateDisplay();
-      }
+      submit();
       return;
     } else {
       pin += key;
@@ -72,28 +90,28 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
     updateDisplay();
   };
 
+  // Physical-keyboard entry
+  keyboardCleanup = bindPinKeyboard(modal, {
+    onDigit: (digit) => handleKey(digit),
+    onBackspace: () => {
+      pin = pin.slice(0, -1);
+      updateDisplay();
+    },
+    onSubmit: submit,
+    onCancel: closeModal,
+  });
+  (modal as HTMLDivElement & { _cleanup?: () => void })._cleanup = keyboardCleanup;
+
   // Wire keypad buttons
   modal.querySelectorAll<HTMLButtonElement>('.pin-pad button').forEach((btn) => {
     btn.addEventListener('click', () => handleKey(btn.dataset.key || ''));
   });
 
   // Cancel button
-  modal.querySelector<HTMLButtonElement>('#override-cancel')?.addEventListener('click', () => {
-    pin = '';
-    options.onCancel?.();
-    modal.classList.remove('visible');
-    modal.style.display = 'none';
-    updateDisplay();
-  });
+  modal.querySelector<HTMLButtonElement>('#override-cancel')?.addEventListener('click', closeModal);
 
   // Confirm button
-  modal.querySelector<HTMLButtonElement>('#override-confirm')?.addEventListener('click', () => {
-    if (pin.length > 0) {
-      options.onOverride(pin);
-      pin = '';
-      updateDisplay();
-    }
-  });
+  modal.querySelector<HTMLButtonElement>('#override-confirm')?.addEventListener('click', submit);
 
   // Settings button
   modal.querySelector<HTMLButtonElement>('#override-settings')?.addEventListener('click', () => {
