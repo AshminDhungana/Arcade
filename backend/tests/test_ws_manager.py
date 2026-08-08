@@ -100,3 +100,24 @@ async def test_tick_calls_disconnect_agent_on_timeout():
 
     # Verify disconnect_agent was called for the expired seat
     manager.disconnect_agent.assert_awaited_once_with("seat1")
+
+
+@pytest.mark.asyncio
+async def test_handle_staff_alert_broadcasts_message_and_acks():
+    manager = WebSocketManager()
+    manager.broadcast_to_dashboards = AsyncMock()
+
+    result = await manager._handle_staff_alert(
+        "seat-123", {"timestamp": "2026-08-08T10:00:00Z"}
+    )
+
+    manager.broadcast_to_dashboards.assert_awaited_once_with(
+        "alert",
+        {
+            "type": "STAFF_ALERT",
+            "seat_id": "seat-123",
+            "message": "Staff assistance requested",
+            "timestamp": "2026-08-08T10:00:00Z",
+        },
+    )
+    assert result == {"type": "STAFF_ALERT_ACK"}

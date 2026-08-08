@@ -562,7 +562,12 @@ class WebSocketManager:
         """
         await self.broadcast_to_dashboards(
             Msg.ALERT,
-            {"type": "STAFF_ALERT", "seat_id": seat_id, **payload},
+            {
+                "type": "STAFF_ALERT",
+                "seat_id": seat_id,
+                "message": "Staff assistance requested",
+                **payload,
+            },
         )
         return {"type": "STAFF_ALERT_ACK"}
 
