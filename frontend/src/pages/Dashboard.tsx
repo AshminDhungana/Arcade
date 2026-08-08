@@ -7,6 +7,7 @@ import { toast } from '@/store/toastStore';
 import { Lock } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { StaffAlertModal } from '@/components/StaffAlertModal';
 
 function ConnectionBadge({
   status,
@@ -89,6 +90,8 @@ export default function DashboardPage() {
         <UnprintedInvoices />
         <SeatGrid />
       </main>
+
+      <StaffAlertModal />
     </div>
   );
 }

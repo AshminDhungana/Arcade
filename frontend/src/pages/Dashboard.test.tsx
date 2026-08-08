@@ -29,6 +29,10 @@ vi.mock('@/api/seats', () => ({
   bulkForceOverlay: vi.fn(),
 }));
 
+import { useAlertStore } from '@/store/alertStore';
+
+vi.mock('@/lib/chime', () => ({ playStaffAlertChime: vi.fn() }));
+
 const makeWrapper = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return ({ children }: { children: ReactNode }) => (
@@ -43,6 +47,7 @@ describe('DashboardPage', () => {
       staff: { id: 's1', name: 'Admin User', role: 'ADMIN', is_active: true },
       isAuthenticated: true,
     });
+    useAlertStore.setState({ alerts: [] });
     vi.clearAllMocks();
   });
 
@@ -79,5 +84,20 @@ describe('DashboardPage', () => {
     render(<DashboardPage />, { wrapper: makeWrapper() });
     fireEvent.click(screen.getByRole('button', { name: /lock all idle seats/i }));
     await waitFor(() => expect(bulkForceOverlay).toHaveBeenCalledWith(true));
+  });
+
+  it('shows the staff alert modal when an alert is queued', () => {
+    useAlertStore.getState().push({
+      type: 'STAFF_ALERT',
+      seat_id: 'seat-1',
+      message: 'Staff assistance requested',
+      timestamp: '2026-08-08T10:00:00Z',
+    });
+
+    render(<DashboardPage />, { wrapper: makeWrapper() });
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('Staff assistance requested');
+    expect(dialog).toHaveTextContent('Seat: seat-1');
   });
 });
