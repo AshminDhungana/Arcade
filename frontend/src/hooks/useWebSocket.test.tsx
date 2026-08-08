@@ -3,6 +3,9 @@ import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useWebSocket } from './useWebSocket';
+import { useAlertStore } from '@/store/alertStore';
+
+vi.mock('@/lib/chime', () => ({ playStaffAlertChime: vi.fn() }));
 
 // ---------------------------------------------------------------------------
 // Mock WebSocket
@@ -76,6 +79,7 @@ const createWrapper = (client: QueryClient) =>
 describe('useWebSocket', () => {
   beforeEach(() => {
     MockWebSocket.reset();
+    useAlertStore.setState({ alerts: [] });
   });
 
   afterEach(() => {
@@ -121,5 +125,43 @@ describe('useWebSocket', () => {
 
     const lastInstance = MockWebSocket.instances[MockWebSocket.instances.length - 1];
     expect(lastInstance.url).toBe('ws://localhost:3000/ws/dashboard');
+  });
+
+  it('pushes an alert event into the alert store', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+    renderHook(() => useWebSocket(), { wrapper: createWrapper(client) });
+
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    ws.triggerMessage({
+      type: 'alert',
+      payload: {
+        type: 'STAFF_ALERT',
+        seat_id: 'seat-9',
+        message: 'Staff assistance requested',
+      },
+      timestamp: '2026-08-08T10:00:00Z',
+    });
+
+    await vi.waitFor(() => {
+      const { alerts } = useAlertStore.getState();
+      expect(alerts).toHaveLength(1);
+      expect(alerts[0].seat_id).toBe('seat-9');
+      expect(alerts[0].message).toBe('Staff assistance requested');
+      expect(alerts[0].timestamp).toBe('2026-08-08T10:00:00Z');
+    });
+  });
+
+  it('drops alert events without a seat_id', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+    renderHook(() => useWebSocket(), { wrapper: createWrapper(client) });
+
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    ws.triggerMessage({
+      type: 'alert',
+      payload: { type: 'STAFF_ALERT', message: 'Staff assistance requested' },
+      timestamp: '2026-08-08T10:00:00Z',
+    });
+
+    expect(useAlertStore.getState().alerts).toHaveLength(0);
   });
 });

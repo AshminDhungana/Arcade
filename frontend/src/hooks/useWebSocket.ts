@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useHealthStore } from '@/store/healthStore';
+import { useAlertStore } from '@/store/alertStore';
 import type {
   WSMessage,
   WSStatus,
@@ -239,8 +240,13 @@ function handleMessage(
 
     case 'alert': {
       const payload = message.payload as AlertPayload;
-      console.warn('Alert:', payload.type, payload.message, payload.seat_id);
-      // Future: display alert banner in UI
+      if (!payload.seat_id) break;
+      useAlertStore.getState().push({
+        type: payload.type,
+        seat_id: payload.seat_id,
+        message: payload.message,
+        timestamp: message.timestamp,
+      });
       break;
     }
 
