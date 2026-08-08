@@ -88,6 +88,7 @@ export function showModal(el: HTMLDivElement): void {
 
 /** Hide a modal element with an opacity transition and remove from DOM. */
 export function hideModal(el: HTMLDivElement): void {
+  (el as HTMLDivElement & { _cleanup?: () => void })._cleanup?.();
   el.classList.remove('visible');
   setTimeout(() => {
     el.style.display = 'none';

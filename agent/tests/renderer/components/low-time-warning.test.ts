@@ -58,4 +58,18 @@ describe('showModal / hideModal', () => {
 
     document.body.innerHTML = '';
   });
+
+  it('calls _cleanup when present on hide', () => {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    const cleanup = vitest.fn();
+    (modal as HTMLDivElement & { _cleanup?: () => void })._cleanup = cleanup;
+    document.body.appendChild(modal);
+
+    showModal(modal);
+    hideModal(modal);
+
+    expect(cleanup).toHaveBeenCalled();
+    document.body.innerHTML = '';
+  });
 });
