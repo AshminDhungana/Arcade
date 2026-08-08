@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import si from 'systeminformation';
 import os from 'os';
 import type { IPlatformService, OverlayContent, SystemInfo } from './types.js';
+import { isTestMode } from './safety.js';
 
 const execAsync = promisify(exec);
 
@@ -155,10 +156,12 @@ export class WindowsPlatformService implements IPlatformService {
   }
 
   async restartPC(): Promise<void> {
+    if (isTestMode()) return;
     await execAsync('shutdown /r /t 0');
   }
 
   async shutdownPC(): Promise<void> {
+    if (isTestMode()) return;
     await execAsync('shutdown /s /t 0');
   }
 
@@ -193,11 +196,13 @@ export class WindowsPlatformService implements IPlatformService {
   }
 
   async enableAutoStart(): Promise<void> {
+    if (isTestMode()) return;
     const command = `reg.exe add "${AUTO_START_KEY}" /v "${APP_NAME}" /d "${process.execPath}" /f`;
     await execAsync(command);
   }
 
   async disableAutoStart(): Promise<void> {
+    if (isTestMode()) return;
     const command = `reg.exe delete "${AUTO_START_KEY}" /v "${APP_NAME}" /f`;
     await execAsync(command);
   }

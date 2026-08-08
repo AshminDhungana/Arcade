@@ -132,14 +132,14 @@ describe('LinuxPlatformService', () => {
     }
   });
 
-  it('calls systemctl reboot on restartPC', async () => {
+  it('never runs systemctl reboot under test mode (restart-proof)', async () => {
     await service.restartPC();
-    expect(exec).toHaveBeenCalledWith('systemctl reboot', expect.any(Function));
+    expect(exec).not.toHaveBeenCalled();
   });
 
-  it('calls systemctl poweroff on shutdownPC', async () => {
+  it('never runs systemctl poweroff under test mode (restart-proof)', async () => {
     await service.shutdownPC();
-    expect(exec).toHaveBeenCalledWith('systemctl poweroff', expect.any(Function));
+    expect(exec).not.toHaveBeenCalled();
   });
 
   it('returns a Buffer from captureScreenshot', async () => {
@@ -152,25 +152,15 @@ describe('LinuxPlatformService', () => {
     await expect(service.captureScreenshot()).rejects.toThrow(/Screenshot unavailable/);
   });
 
-  it('writes the XDG autostart .desktop file on enableAutoStart', async () => {
+  it('never writes the XDG autostart .desktop file under test mode', async () => {
     await service.enableAutoStart();
-    expect(mockFs.mkdir).toHaveBeenCalledWith(
-      expect.stringContaining('autostart'),
-      { recursive: true },
-    );
-    expect(mockFs.writeFile).toHaveBeenCalledWith(
-      expect.stringContaining('arcade-agent.desktop'),
-      expect.stringContaining('[Desktop Entry]'),
-      { mode: 0o644 },
-    );
+    expect(mockFs.mkdir).not.toHaveBeenCalled();
+    expect(mockFs.writeFile).not.toHaveBeenCalled();
   });
 
-  it('removes the .desktop file on disableAutoStart', async () => {
+  it('never removes the .desktop file under test mode', async () => {
     await service.disableAutoStart();
-    expect(mockFs.rm).toHaveBeenCalledWith(
-      expect.stringContaining('arcade-agent.desktop'),
-      { force: true },
-    );
+    expect(mockFs.rm).not.toHaveBeenCalled();
   });
 
   it('getSystemInfo returns the expected shape', async () => {

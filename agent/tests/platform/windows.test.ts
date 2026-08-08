@@ -116,14 +116,14 @@ describe('WindowsPlatformService', () => {
     }
   });
 
-  it('calls shutdown /r /t 0 on restartPC', async () => {
+  it('never runs shutdown /r /t 0 under test mode (restart-proof)', async () => {
     await service.restartPC();
-    expect(exec).toHaveBeenCalledWith('shutdown /r /t 0', expect.any(Function));
+    expect(exec).not.toHaveBeenCalled();
   });
 
-  it('calls shutdown /s /t 0 on shutdownPC', async () => {
+  it('never runs shutdown /s /t 0 under test mode (restart-proof)', async () => {
     await service.shutdownPC();
-    expect(exec).toHaveBeenCalledWith('shutdown /s /t 0', expect.any(Function));
+    expect(exec).not.toHaveBeenCalled();
   });
 
   it('returns a Buffer from captureScreenshot', async () => {
@@ -136,20 +136,14 @@ describe('WindowsPlatformService', () => {
     await expect(service.captureScreenshot()).rejects.toThrow(/No screen sources available/);
   });
 
-  it('writes the registry key on enableAutoStart', async () => {
+  it('never writes the registry key under test mode', async () => {
     await service.enableAutoStart();
-    expect(exec).toHaveBeenCalledWith(
-      expect.stringContaining('reg.exe add'),
-      expect.any(Function),
-    );
+    expect(exec).not.toHaveBeenCalled();
   });
 
-  it('removes the registry key on disableAutoStart', async () => {
+  it('never removes the registry key under test mode', async () => {
     await service.disableAutoStart();
-    expect(exec).toHaveBeenCalledWith(
-      expect.stringContaining('reg.exe delete'),
-      expect.any(Function),
-    );
+    expect(exec).not.toHaveBeenCalled();
   });
 
   it('getSystemInfo returns the expected shape', async () => {

@@ -8,6 +8,7 @@ import { promisify } from 'util';
 import sharp from 'sharp';
 import si from 'systeminformation';
 import type { IPlatformService, OverlayContent, SystemInfo } from './types.js';
+import { isTestMode } from './safety.js';
 
 const execAsync = promisify(exec);
 
@@ -175,6 +176,7 @@ export class LinuxPlatformService implements IPlatformService {
   }
 
   async restartPC(): Promise<void> {
+    if (isTestMode()) return;
     try {
       await execAsync('systemctl reboot');
     } catch {
@@ -183,6 +185,7 @@ export class LinuxPlatformService implements IPlatformService {
   }
 
   async shutdownPC(): Promise<void> {
+    if (isTestMode()) return;
     try {
       await execAsync('systemctl poweroff');
     } catch {
@@ -224,6 +227,7 @@ export class LinuxPlatformService implements IPlatformService {
   }
 
   async enableAutoStart(): Promise<void> {
+    if (isTestMode()) return;
     const desktopEntry = [
       '[Desktop Entry]',
       'Type=Application',
@@ -238,6 +242,7 @@ export class LinuxPlatformService implements IPlatformService {
   }
 
   async disableAutoStart(): Promise<void> {
+    if (isTestMode()) return;
     await fs.rm(AUTO_START_FILE, { force: true });
   }
 
