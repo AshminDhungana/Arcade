@@ -168,6 +168,7 @@ def _force_remove_windows(path: Path) -> None:
         "npx.cmd",
         "Arcade Agent.exe",
         "Arcade Agent",
+        "Arcade Launcher.exe",
     ]:
         try:
             subprocess.run(  # noqa: S603,S607
