@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { playStaffAlertChime } from './chime';
 
 class FakeOscillator {
   type = '';
