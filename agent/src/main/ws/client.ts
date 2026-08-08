@@ -288,6 +288,12 @@ export class AgentWebSocketClient {
         return;
       }
 
+      // Server heartbeat: reply PONG so the server keeps the seat online.
+      if (message.type === 'PING') {
+        this.send('PONG', {});
+        return;
+      }
+
       // Screenshot is handled directly by the client
       if (message.type === 'TAKE_SCREENSHOT') {
         void this.handleScreenshot();

@@ -223,6 +223,22 @@ describe('AgentWebSocketClient', () => {
     expect(client.send('PING', {})).toBe(false);
   });
 
+  it('replies PONG when the server sends PING (heartbeat)', async () => {
+    client.connect();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = (client as any).ws as MockWebSocket | null;
+    if (ws) {
+      ws._sentMessages = [];
+      ws._simulateMessage({ type: 'PING', payload: {} });
+
+      const pong = ws._sentMessages
+        .map((m) => JSON.parse(m))
+        .find((m) => m.type === 'PONG');
+      expect(pong).toBeDefined();
+    }
+  });
+
   it('emits staff-alert-ack IPC when STAFF_ALERT_ACK received', async () => {
     client.connect();
     await vi.advanceTimersByTimeAsync(10);

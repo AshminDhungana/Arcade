@@ -333,6 +333,13 @@ class WebSocketManager:
                 return await self._handle_staff_override(seat_id, payload)
             case "STAFF_ALERT":
                 return await self._handle_staff_alert(seat_id, payload)
+            case "PING":
+                # Agent heartbeat: reply PONG (the agent waits for it to keep
+                # the socket open) and clear the pending-pong marker for the
+                # server-side heartbeat — an incoming PING proves the agent is
+                # alive, so it must not be disconnected on the next tick.
+                await self.handle_pong(seat_id)
+                return {"type": "PONG"}
             case "PONG":
                 await self.handle_pong(seat_id)
                 return {"type": "PONG_ACK"}

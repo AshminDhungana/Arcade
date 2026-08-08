@@ -103,6 +103,39 @@ async def test_tick_calls_disconnect_agent_on_timeout():
 
 
 @pytest.mark.asyncio
+async def test_handle_ping_returns_pong_and_clears_pending():
+    """An agent PING (its own heartbeat) must be answered with PONG and clear
+    the pending-pong marker so a live agent is never marked OFFLINE."""
+    manager = WebSocketManager()
+    manager._pending_pongs.add("seat1")
+
+    result = await manager.handle_agent_message(
+        "seat1", {"type": "PING", "payload": {}}
+    )
+
+    assert result == {"type": "PONG"}
+    assert "seat1" not in manager._pending_pongs
+
+
+@pytest.mark.asyncio
+async def test_tick_keeps_agent_that_answered_ping():
+    """A seat that answered the previous server PING (cleared from
+    _pending_pongs) is NOT disconnected on the next tick."""
+    manager = WebSocketManager()
+    manager.disconnect_agent = AsyncMock()
+
+    mock_ws = AsyncMock()
+    manager.agent_connections["seat1"] = mock_ws
+    # seat1 answered its PING, so it is not in _pending_pongs
+
+    await manager._tick()
+
+    manager.disconnect_agent.assert_not_awaited()
+    # It was re-PINGed and re-added for the next tick
+    assert "seat1" in manager._pending_pongs
+
+
+@pytest.mark.asyncio
 async def test_handle_staff_alert_broadcasts_message_and_acks():
     manager = WebSocketManager()
     manager.broadcast_to_dashboards = AsyncMock()

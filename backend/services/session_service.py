@@ -249,7 +249,17 @@ async def start_session(
 
     # 8. Agent command (non-blocking)
     try:
-        await ws_manager.send_to_agent(seat_id, {"type": "HIDE_OVERLAY"})
+        await ws_manager.send_to_agent(
+            seat_id,
+            {
+                "type": "HIDE_OVERLAY",
+                "payload": {
+                    "session_id": session.id,
+                    # started_at is NOT NULL (Mapped[datetime])
+                    "started_at": _ensure_tz(session.started_at).isoformat(),  # type: ignore[union-attr]
+                },
+            },
+        )
     except AgentOfflineError:
         logger.warning("Agent offline for seat %s — HIDE_OVERLAY not sent", seat_id)
 
@@ -397,7 +407,17 @@ async def resume_session(
 
     # Agent command
     try:
-        await ws_manager.send_to_agent(session.seat_id, {"type": "HIDE_OVERLAY"})
+        await ws_manager.send_to_agent(
+            session.seat_id,
+            {
+                "type": "HIDE_OVERLAY",
+                "payload": {
+                    "session_id": session.id,
+                    # started_at is NOT NULL (Mapped[datetime])
+                    "started_at": _ensure_tz(session.started_at).isoformat(),  # type: ignore[union-attr]
+                },
+            },
+        )
     except AgentOfflineError:
         logger.warning(
             "Agent offline for seat %s — HIDE_OVERLAY not sent", session.seat_id

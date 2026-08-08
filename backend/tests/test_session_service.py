@@ -126,6 +126,10 @@ async def test_start_session_ok(db: AsyncSession, zone_and_seat, staff_member):
     assert result.status == SessionStatus.ACTIVE
     mock_ws.broadcast_to_dashboards.assert_awaited_once()
     mock_ws.send_to_agent.assert_awaited_once()
+    hide_overlay = mock_ws.send_to_agent.await_args.args[1]
+    assert hide_overlay["type"] == "HIDE_OVERLAY"
+    assert hide_overlay["payload"]["session_id"] == result.id
+    assert hide_overlay["payload"]["started_at"] == result.started_at.isoformat()
 
 
 async def test_start_session_seat_not_found(db: AsyncSession, staff_member):
@@ -360,6 +364,10 @@ async def test_resume_session_ok(db: AsyncSession, zone_and_seat, staff_member):
     assert resumed.total_paused_seconds >= 0
     mock_ws.broadcast_to_dashboards.assert_awaited_once()
     mock_ws.send_to_agent.assert_awaited_once()
+    hide_overlay = mock_ws.send_to_agent.await_args.args[1]
+    assert hide_overlay["type"] == "HIDE_OVERLAY"
+    assert hide_overlay["payload"]["session_id"] == resumed.id
+    assert hide_overlay["payload"]["started_at"] == resumed.started_at.isoformat()
 
 
 async def test_resume_session_not_found(db: AsyncSession, staff_member):

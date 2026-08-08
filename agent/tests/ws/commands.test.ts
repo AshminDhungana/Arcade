@@ -46,6 +46,23 @@ it('HIDE_OVERLAY calls hideKioskOverlay', () => {
     expect(mockPlatform.hideKioskOverlay).toHaveBeenCalled();
   });
 
+  it('HIDE_OVERLAY with empty payload still hides the overlay (no crash on missing session_id)', () => {
+    const persistSession = vi.fn(() => {
+      throw new Error('must not be called with undefined session_id');
+    });
+    const store = { persistSession } as unknown as import('../../src/main/storage/types.js').SessionStore;
+    const handlersWithStore = createCommandHandlers(
+      mockPlatform,
+      { seatId: 'seat_001' },
+      store,
+    );
+
+    handlersWithStore.HIDE_OVERLAY({});
+
+    expect(persistSession).not.toHaveBeenCalled();
+    expect(mockPlatform.hideKioskOverlay).toHaveBeenCalled();
+  });
+
   it('SHOW_OVERLAY calls showKioskOverlay', () => {
     handlers.SHOW_OVERLAY({ session_id: 'sess-123' });
     expect(mockPlatform.showKioskOverlay).toHaveBeenCalledWith({

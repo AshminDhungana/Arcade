@@ -41,8 +41,13 @@ export function createCommandHandlers(
 ): CommandHandlers {
   return {
     HIDE_OVERLAY(payload) {
-      // Persist session locally so elapsed time survives disconnect/crash
-      store?.persistSession(payload.session_id, deps.seatId, payload.started_at);
+      // Persist session locally so elapsed time survives disconnect/crash.
+      // The payload may be empty (legacy servers), so skip persistence rather
+      // than letting a missing session_id crash this handler — the overlay
+      // must ALWAYS be hidden regardless of session metadata.
+      if (payload.session_id) {
+        store?.persistSession(payload.session_id, deps.seatId, payload.started_at);
+      }
       // Hide the kiosk overlay so the user can access the desktop
       platform.hideKioskOverlay();
     },
