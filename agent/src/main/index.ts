@@ -162,6 +162,13 @@ async function bootstrap(): Promise<void> {
     void wsClient?.triggerStaffOverride(pin);
   });
 
+  // Renderer toggles OS-level click-through when the kiosk overlay is in
+  // minimal mode (hot corner hover / modal open). Keeps the desktop usable
+  // while the overlay is off.
+  ipcMain.on('overlay:click-through', (_event, clickThrough: boolean) => {
+    platformService?.setKioskClickThrough(clickThrough);
+  });
+
   ipcMain.handle('verify-settings-pin', async (_event, pin: string) => {
     if (!wsClient) return false;
     const result = await wsClient.triggerSettingsPinVerify(pin);

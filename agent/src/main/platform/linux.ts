@@ -44,6 +44,7 @@ export class LinuxPlatformService implements IPlatformService {
     const sendMinimal = false; // Full mode for new sessions
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
+      this.kioskWindow.setIgnoreMouseEvents(false);
       this.kioskWindow.webContents.send('overlay:set-minimal', sendMinimal);
       this.kioskWindow.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
       return;
@@ -120,8 +121,15 @@ export class LinuxPlatformService implements IPlatformService {
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
       this.kioskWindow.webContents.send('overlay:set-minimal', true);
+      this.setKioskClickThrough(true);
     } else {
       console.warn('[Platform:Linux] hideKioskOverlay: kioskWindow is null or destroyed!');
+    }
+  }
+
+  setKioskClickThrough(clickThrough: boolean): void {
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.setIgnoreMouseEvents(clickThrough, { forward: true });
     }
   }
 

@@ -118,6 +118,10 @@ const api = {
     ipcRenderer.on('overlay:set-minimal', (_event: IpcRendererEvent, enabled: boolean) => callback(enabled));
   },
 
+  setClickThrough: (clickThrough: boolean) => {
+    ipcRenderer.send('overlay:click-through', clickThrough);
+  },
+
   enroll: (code: string) =>
     ipcRenderer.invoke('agent:enroll', code),
 };

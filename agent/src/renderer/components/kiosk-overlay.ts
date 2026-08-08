@@ -32,6 +32,10 @@ export class KioskOverlay {
   private buttonVisible = false;
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
   private isMouseOverButton = false;
+  private minimalMode = false;
+  private hotspotCb: ((active: boolean) => void) | null = null;
+  private lastHotspot = false;
+  private readonly HOT_ZONE_WIDTH = 24;
 
   // NEW: Fallback name (default "Arcade")
   private arcadeName = 'Arcade';
@@ -228,11 +232,13 @@ export class KioskOverlay {
     this.buttonVisible = true;
     this.callStaffBtn.classList.add('visible');
     this.clearHideTimer();
+    this.setHotspot(true);
   }
 
   private hideButton(): void {
     this.buttonVisible = false;
     this.callStaffBtn.classList.remove('visible');
+    this.setHotspot(false);
   }
 
   private scheduleHide(): void {
@@ -253,24 +259,55 @@ export class KioskOverlay {
     this.callStaffCb = cb;
   }
 
-  /** Toggle minimal mode — hides full overlay content, keeps trigger zone + button. */
+  /**
+   * Register a callback fired when the right-edge hot zone is hovered/unhovered
+   * while minimal mode is active. Used to toggle OS-level click-through.
+   */
+  onHotspotHover(cb: (active: boolean) => void): void {
+    this.hotspotCb = cb;
+  }
+
+  /** Toggle minimal mode — hides overlay content, keeps right-edge hot zone + button. */
   setMinimalMode(enabled: boolean): void {
+    this.minimalMode = enabled;
+    this.container.classList.toggle('minimal', enabled);
+    document.body.classList.toggle('minimal', enabled);
     if (enabled) {
-      this.container.classList.add('minimal');
+      document.addEventListener('mousemove', this.handleHotspotMove);
     } else {
-      this.container.classList.remove('minimal');
+      document.removeEventListener('mousemove', this.handleHotspotMove);
+      this.setHotspot(false);
+      this.hideButton();
     }
     // Force reflow to ensure CSS applies immediately
-    this.container.offsetHeight;
+    void this.container.offsetHeight;
   }
 
   /** Tear down the component. */
   destroy(): void {
     this.stopClock();
     this.clearHideTimer();
+    document.removeEventListener('mousemove', this.handleHotspotMove);
     if (this.container.parentNode) {
       this.container.parentNode.removeChild(this.container);
     }
+  }
+
+  private handleHotspotMove = (e: MouseEvent): void => {
+    const nearRightEdge = e.clientX >= window.innerWidth - this.HOT_ZONE_WIDTH;
+    if (nearRightEdge) {
+      this.showButton();
+      this.setHotspot(true);
+    } else if (!this.isMouseOverButton) {
+      this.setHotspot(false);
+      this.scheduleHide();
+    }
+  };
+
+  private setHotspot(active: boolean): void {
+    if (active === this.lastHotspot) return;
+    this.lastHotspot = active;
+    this.hotspotCb?.(active);
   }
 
   private callStaffCb: (() => void) | null = null;

@@ -29,6 +29,7 @@ export interface ElectronAPI {
   onStaffAlertAck: (callback: () => void) => void;
   verifySettingsPin: (pin: string) => Promise<boolean>;
   onSetMinimal: (callback: (enabled: boolean) => void) => void;
+  setClickThrough: (clickThrough: boolean) => void;
 }
 
 declare global {

@@ -169,6 +169,9 @@ body {
 }
 
 /* Minimal mode — transparent background, click-through except trigger zone + call staff button */
+body.minimal {
+  background: transparent;
+}
 .kiosk-overlay.minimal {
   background: transparent;
   pointer-events: none;
@@ -187,3 +190,11 @@ body {
 /* Trigger zone and button remain visible in minimal mode — no extra rules needed */
 /* .kiosk-trigger-zone already display: block */
 /* .kiosk-btn.primary visibility controlled by .visible class */
+
+/* Minimal mode: extend the trigger zone to the full right edge of the screen */
+.kiosk-overlay.minimal .kiosk-trigger-zone {
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  height: auto;
+}

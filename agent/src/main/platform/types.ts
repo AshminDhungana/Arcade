@@ -99,6 +99,16 @@ export interface IPlatformService {
   hideKioskOverlay(): void;
 
   /**
+   * Toggle OS-level click-through on the kiosk window.
+   *
+   * Minimal mode enables click-through so the desktop below receives all mouse
+   * input; mouse move events are still forwarded to the renderer so the
+   * right-edge hot zone can be detected and temporarily disable click-through
+   * while the Call Staff button is shown.
+   */
+  setKioskClickThrough(clickThrough: boolean): void;
+
+  /**
    * Show the low-time warning in the kiosk overlay window.
    */
   showLowTimeWarning(minutes: number): void;

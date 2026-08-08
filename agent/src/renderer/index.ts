@@ -44,6 +44,34 @@ function initKiosk(): void {
   // --- IPC Listeners from preload ---
   let hasOverrideCode = false;
   let currentConfig: OverlayData | null = null;
+  let minimalMode = false;
+  let hotspotHovered = false;
+  let modalOpen = false;
+
+  /**
+   * Recompute OS-level click-through for the kiosk window.
+   * Click-through is active only in minimal mode when no hot-zone hover is
+   * holding the Call Staff button and no modal is open (PIN dialogs need
+   * real clicks). The desktop below stays usable whenever it is active.
+   */
+  const syncClickThrough = (): void => {
+    window.electronAPI.setClickThrough(minimalMode && !hotspotHovered && !modalOpen);
+  };
+
+  // Track modal visibility so PIN dialogs stay clickable in minimal mode.
+  const modalObserver = new MutationObserver(() => {
+    const open = document.querySelector('.modal-overlay.visible') !== null;
+    if (open !== modalOpen) {
+      modalOpen = open;
+      syncClickThrough();
+    }
+  });
+  modalObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class'],
+  });
 
   window.electronAPI.onConfig((config) => {
     hasOverrideCode = config.hasOverrideCode;
@@ -158,7 +186,18 @@ function initKiosk(): void {
 
   // --- Minimal mode toggle ---
   window.electronAPI.onSetMinimal((enabled) => {
+    minimalMode = enabled;
     overlay.setMinimalMode(enabled);
+    if (!enabled) {
+      hotspotHovered = false;
+    }
+    syncClickThrough();
+  });
+
+  // --- Right-edge hot zone (Call Staff button) toggles click-through ---
+  overlay.onHotspotHover((active) => {
+    hotspotHovered = active;
+    syncClickThrough();
   });
 }
 
