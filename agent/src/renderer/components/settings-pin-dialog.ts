@@ -1,9 +1,11 @@
 /**
  * Settings PIN dialog — pure DOM helper.
  * Reuses staff-override-dialog keypad style for Settings access PIN entry.
+ * Supports physical-keyboard entry via `bindPinKeyboard`.
  */
 
 import { ARCADE_ICON_SVG } from '../icon.js';
+import { bindPinKeyboard } from './pin-keyboard.js';
 
 export interface SettingsPinDialogOptions {
   onVerify: (pin: string) => Promise<boolean>;
@@ -50,42 +52,65 @@ export function createSettingsPinDialog(options: SettingsPinDialogOptions): HTML
     display.textContent = pin.replace(/./g, '●');
   };
 
+  // Physical-keyboard cleanup, assigned below; used by closeModal.
+  let keyboardCleanup: () => void = () => {};
+
+  const closeModal = (): void => {
+    pin = '';
+    updateDisplay();
+    keyboardCleanup();
+    modal.classList.remove('visible');
+    modal.style.display = 'none';
+  };
+
   const handleKey = (key: string): void => {
+    if (confirmBtn.disabled) return; // ignore input while verification is pending
     if (key === 'C') {
       pin = '';
     } else if (key === '✓') {
-      if (pin.length > 0) {
-        // Disable buttons during verification
-        confirmBtn.disabled = true;
-        modal.querySelectorAll<HTMLButtonElement>('.pin-pad button').forEach(btn => btn.disabled = true);
+      if (pin.length === 0) return;
+      // Disable buttons during verification
+      confirmBtn.disabled = true;
+      modal.querySelectorAll<HTMLButtonElement>('.pin-pad button').forEach(btn => btn.disabled = true);
 
-        onVerify(pin).then((success) => {
-          confirmBtn.disabled = false;
-          modal.querySelectorAll<HTMLButtonElement>('.pin-pad button').forEach(btn => btn.disabled = false);
+      onVerify(pin).then((success) => {
+        confirmBtn.disabled = false;
+        modal.querySelectorAll<HTMLButtonElement>('.pin-pad button').forEach(btn => btn.disabled = false);
 
-          if (success) {
-            pin = '';
-            updateDisplay();
-            modal.classList.remove('visible');
-            modal.style.display = 'none';
-            onSuccess?.();
-          } else {
-            // Wrong PIN: shake animation
-            modal.querySelector('.modal-content')?.classList.add('shake');
-            setTimeout(() => {
-              modal.querySelector('.modal-content')?.classList.remove('shake');
-            }, 300);
-            pin = '';
-            updateDisplay();
-          }
-        });
-      }
+        if (success) {
+          closeModal();
+          onSuccess?.();
+        } else {
+          // Wrong PIN: shake animation
+          modal.querySelector('.modal-content')?.classList.add('shake');
+          setTimeout(() => {
+            modal.querySelector('.modal-content')?.classList.remove('shake');
+          }, 300);
+          pin = '';
+          updateDisplay();
+        }
+      });
       return;
     } else {
       pin += key;
     }
     updateDisplay();
   };
+
+  // Physical-keyboard entry
+  keyboardCleanup = bindPinKeyboard(modal, {
+    onDigit: (digit) => handleKey(digit),
+    onBackspace: () => {
+      pin = pin.slice(0, -1);
+      updateDisplay();
+    },
+    onSubmit: () => handleKey('✓'),
+    onCancel: () => {
+      onCancel();
+      closeModal();
+    },
+  });
+  (modal as HTMLDivElement & { _cleanup?: () => void })._cleanup = keyboardCleanup;
 
   // Wire keypad buttons
   modal.querySelectorAll<HTMLButtonElement>('.pin-pad button').forEach((btn) => {
@@ -96,28 +121,9 @@ export function createSettingsPinDialog(options: SettingsPinDialogOptions): HTML
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       onCancel();
-      modal.classList.remove('visible');
-      modal.style.display = 'none';
-      pin = '';
-      updateDisplay();
+      closeModal();
     }
   });
-
-  // ESC key handler
-  const handleEsc = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onCancel();
-      modal.classList.remove('visible');
-      modal.style.display = 'none';
-      pin = '';
-      updateDisplay();
-      document.removeEventListener('keydown', handleEsc);
-    }
-  };
-  document.addEventListener('keydown', handleEsc);
-
-  // Store cleanup
-  (modal as HTMLDivElement & { _cleanup?: () => void })._cleanup = () => document.removeEventListener('keydown', handleEsc);
 
   return modal;
 }
