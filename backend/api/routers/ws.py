@@ -7,12 +7,25 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
-from backend.core.ws_manager import manager
+from backend.core.ws_manager import manager, ws_envelope
 
 logger = logging.getLogger(__name__)
+
+
+def envelop_agent_response(result: dict[str, Any]) -> dict[str, Any]:
+    """Wrap a raw agent response dict in the standard WS envelope (SDD §9.2).
+
+    ``handle_agent_message`` returns bare dicts; every message sent to an
+    agent must be ``{"type", "payload", "timestamp"}`` so the agent can read
+    response fields from ``message.payload``.
+    """
+    payload = {k: v for k, v in result.items() if k != "type"}
+    return ws_envelope(result.get("type", "ERROR"), payload)
+
 
 router = APIRouter()
 
@@ -67,7 +80,7 @@ async def agent_websocket(
             message = await websocket.receive_json()
             result = await manager.handle_agent_message(seat_id, message)
             if result:
-                await websocket.send_json(result)
+                await websocket.send_json(envelop_agent_response(result))
     except WebSocketDisconnect:
         pass
     finally:
