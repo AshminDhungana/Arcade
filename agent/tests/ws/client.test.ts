@@ -4,10 +4,17 @@ import type { AgentConfig } from '../../src/main/ws/types.js';
 import { AgentWebSocketClient } from '../../src/main/ws/client.js';
 import { ipcRenderer } from 'electron';
 import { verify } from '@node-rs/argon2';
+import * as loader from '../../src/main/config/loader.js';
 
 vi.mock('@node-rs/argon2', () => ({
   verify: vi.fn(),
 }));
+
+// Stub saveAgentConfig so REGISTERED persistence is testable without disk I/O.
+vi.mock('../../src/main/config/loader.js', async () => {
+  const actual = await vi.importActual<typeof loader>('../../src/main/config/loader.js');
+  return { ...actual, saveAgentConfig: vi.fn() };
+});
 
 // ---------------------------------------------------------------------------
 // Mock WebSocket
@@ -209,6 +216,92 @@ describe('AgentWebSocketClient', () => {
         payload: { text: 'Hello', duration_seconds: 5 },
       });
       expect(mockPlatform.sendAnnouncement).toHaveBeenCalledWith('Hello', 5000);
+    }
+  });
+
+  it('uses cafe_name from persisted config as the initial brand', async () => {
+    client = new AgentWebSocketClient(
+      { ...config, cafe_name: 'Neon Galaxy Cafe' },
+      mockPlatform,
+    );
+    client.connect();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = (client as any).ws as MockWebSocket | null;
+    if (ws) {
+      ws._simulateMessage({
+        type: 'SHOW_OVERLAY',
+        payload: { session_id: 'sess-123' },
+      });
+      expect(mockPlatform.showKioskOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({ cafeName: 'Neon Galaxy Cafe' }),
+      );
+    }
+  });
+
+  it('captures cafe name and event banner from REGISTERED and brands the overlay', async () => {
+    client.connect();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = (client as any).ws as MockWebSocket | null;
+    if (ws) {
+      ws._simulateMessage({
+        type: 'REGISTERED',
+        payload: {
+          seat_id: 'seat_001',
+          cafe_name: 'Galaxy Lounge',
+          event_banner: 'Summer Tournament',
+        },
+      });
+      ws._simulateMessage({
+        type: 'SHOW_OVERLAY',
+        payload: { session_id: 'sess-123' },
+      });
+      expect(mockPlatform.showKioskOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cafeName: 'Galaxy Lounge',
+          eventBanner: 'Summer Tournament',
+        }),
+      );
+    }
+  });
+
+  it('persists cafe name to config when REGISTERED provides it', async () => {
+    client = new AgentWebSocketClient(
+      config,
+      mockPlatform,
+      undefined,
+      '/tmp/agent.config.json',
+    );
+    client.connect();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = (client as any).ws as MockWebSocket | null;
+    if (ws) {
+      ws._simulateMessage({
+        type: 'REGISTERED',
+        payload: { seat_id: 'seat_001', cafe_name: 'Galaxy Lounge' },
+      });
+      expect(loader.saveAgentConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ cafe_name: 'Galaxy Lounge' }),
+        '/tmp/agent.config.json',
+      );
+    }
+  });
+
+  it('does not crash on a legacy unwrapped REGISTERED response', async () => {
+    client.connect();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const ws = (client as any).ws as MockWebSocket | null;
+    if (ws) {
+      expect(() =>
+        ws._simulateMessage({
+          type: 'REGISTERED',
+          seat_id: 'seat_001',
+          cafe_name: 'Galaxy Lounge',
+        }),
+      ).not.toThrow();
     }
   });
 

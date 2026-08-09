@@ -69,6 +69,10 @@ export class AgentWebSocketClient {
       getCafeName: () => this.cafeName,
       getEventBanner: () => this.eventBanner,
     }, store);
+
+    // Seed the brand from the persisted config (written at enrollment) so the
+    // overlay is branded immediately at boot, before the first REGISTERED.
+    this.cafeName = (config.cafe_name ?? '').trim();
   }
 
   // -------------------------------------------------------------------------
@@ -331,9 +335,18 @@ export class AgentWebSocketClient {
 
       // Capture the cafe name so SHOW_OVERLAY can brand the kiosk (Epic 5.5).
       if (message.type === 'REGISTERED') {
-        const payload = message.payload as { cafe_name?: string; event_banner?: string };
-        if (payload.cafe_name) {
-          this.cafeName = payload.cafe_name;
+        const payload = (message.payload ?? {}) as {
+          cafe_name?: string;
+          event_banner?: string;
+        };
+        const cafeName = typeof payload.cafe_name === 'string' ? payload.cafe_name.trim() : '';
+        if (cafeName) {
+          this.cafeName = cafeName;
+          if (this.configPath) {
+            // Persist so the brand survives restarts even if REGISTERED is missed.
+            this.config.cafe_name = cafeName;
+            saveAgentConfig(this.config as LoadedAgentConfig, this.configPath);
+          }
         }
         if (payload.event_banner) {
           this.eventBanner = payload.event_banner;

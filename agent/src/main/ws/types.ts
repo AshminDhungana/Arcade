@@ -43,6 +43,9 @@ export interface AgentConfig {
   /** Secret token shared with the server for authentication. */
   agent_secret: string;
 
+  /** Cafe name reported by the server (set at enrollment; refreshed on REGISTERED). */
+  cafe_name?: string;
+
   /** Optional Argon2id hash of the staff override PIN. */
   override_code_hash?: string | null;
 
