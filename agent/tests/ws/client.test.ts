@@ -333,10 +333,21 @@ describe('AgentWebSocketClient', () => {
   });
 
   it('emits staff-alert-ack IPC when STAFF_ALERT_ACK received', async () => {
-    client.connect();
+    const clientWithRenderer = new AgentWebSocketClient(
+      config,
+      mockPlatform,
+      undefined,
+      '',
+      (event) => {
+        if (event === 'staff-alert-ack') {
+          ipcRenderer.send('staff-alert-ack');
+        }
+      },
+    );
+    clientWithRenderer.connect();
     await vi.advanceTimersByTimeAsync(10);
 
-    const ws = (client as any).ws as MockWebSocket | null;
+    const ws = (clientWithRenderer as any).ws as MockWebSocket | null;
     if (ws) {
       ws._simulateMessage({
         type: 'STAFF_ALERT_ACK',
@@ -346,6 +357,7 @@ describe('AgentWebSocketClient', () => {
 
       expect(ipcRenderer.send).toHaveBeenCalledWith('staff-alert-ack');
     }
+    clientWithRenderer.disconnect();
   });
 
   it('triggerStaffOverride calls hideKioskOverlay when PIN verifies', async () => {

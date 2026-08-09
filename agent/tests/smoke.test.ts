@@ -2,14 +2,15 @@
 import { describe, it, expect, vi } from 'vitest'
 import { spawn } from 'child_process'
 import path from 'path'
-import { fileURLToPath } from 'node:url'
 import fs from 'fs'
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
+// NOTE: the vitest jsdom environment mangles `import.meta.url`, so resolve
+// paths from the process CWD (vitest runs from the agent package root).
+const projectRoot = process.cwd()
 
 describe('Agent smoke test', () => {
   it('should exit with code 0 when --smoke-test flag is passed', async () => {
-    const distPath = path.resolve(__dirname, '../dist/main/index.js')
+    const distPath = path.resolve(projectRoot, 'dist/main/index.js')
 
     // Skip if dist doesn't exist (requires build first)
     if (!fs.existsSync(distPath)) {
@@ -21,7 +22,7 @@ describe('Agent smoke test', () => {
       distPath,
       '--smoke-test'
     ], {
-      cwd: path.resolve(__dirname, '..'),
+      cwd: projectRoot,
       timeout: 30000
     })
 

@@ -2,30 +2,38 @@ import { describe, it, expect, vi } from 'vitest';
 
 // Mock electron so that importing the Windows platform service doesn't
 // trigger an Electron binary download / path resolution error.
-vi.mock('electron', () => ({
-  BrowserWindow: vi.fn().mockImplementation(() => ({
-    webContents: {
-      on: vi.fn(),
-      send: vi.fn(),
-      loadURL: vi.fn(),
-    },
-    show: vi.fn(),
-    hide: vi.fn(),
-    destroy: vi.fn(),
-    isDestroyed: vi.fn().mockReturnValue(false),
-  })),
-  desktopCapturer: {
-    getSources: vi.fn().mockResolvedValue([
-      {
-        id: 'screen:0:0',
-        name: 'Screen 1',
-        thumbnail: {
-          toPNG: vi.fn().mockReturnValue(Buffer.from('fake-png')),
-        },
+// The platform source destructures from the default export, so `default`
+// must expose the same members as the named exports.
+vi.mock('electron', () => {
+  const mockElectron = {
+    BrowserWindow: vi.fn().mockImplementation(() => ({
+      webContents: {
+        on: vi.fn(),
+        send: vi.fn(),
+        loadURL: vi.fn(),
       },
-    ]),
-  },
-}));
+      show: vi.fn(),
+      hide: vi.fn(),
+      destroy: vi.fn(),
+      isDestroyed: vi.fn().mockReturnValue(false),
+    })),
+    desktopCapturer: {
+      getSources: vi.fn().mockResolvedValue([
+        {
+          id: 'screen:0:0',
+          name: 'Screen 1',
+          thumbnail: {
+            toPNG: vi.fn().mockReturnValue(Buffer.from('fake-png')),
+          },
+        },
+      ]),
+    },
+  };
+  return {
+    ...mockElectron,
+    default: mockElectron,
+  };
+});
 
 // Mock sharp so the screenshot compression path doesn't touch native code.
 vi.mock('sharp', () => ({

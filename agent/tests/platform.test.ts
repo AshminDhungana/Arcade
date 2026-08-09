@@ -23,24 +23,18 @@ function makeWindow() {
 }
 
 describe('WindowsPlatformService routing', () => {
-  it('routes timer/announcement/low-time to HUD when a session is active', () => {
+  it('routes timer/announcement/low-time to the kiosk window', () => {
     const svc = new WindowsPlatformService();
-    const hud = makeWindow();
     const kiosk = makeWindow();
-    // @ts-expect-error inject test windows
-    svc.hudWindow = hud;
-    // @ts-expect-error inject test windows
+    // @ts-expect-error inject test window
     svc.kioskWindow = kiosk;
-    // @ts-expect-error flip session flag
-    svc.sessionActive = true;
 
     svc.updateTimer({ elapsedSeconds: 300 });
     svc.sendAnnouncement('Hi', 1000);
     svc.showLowTimeWarning(5);
 
-    expect(hud.sent['overlay:timer'][0]).toEqual({ elapsedSeconds: 300 });
-    expect(kiosk.sent['overlay:timer']).toBeUndefined();
-    expect(hud.sent['overlay:announcement']).toBeTruthy();
-    expect(hud.sent['overlay:low-time']).toBeTruthy();
+    expect(kiosk.sent['overlay:timer'][0]).toEqual({ elapsedSeconds: 300 });
+    expect(kiosk.sent['overlay:announcement'][0]).toEqual({ text: 'Hi', durationMs: 1000 });
+    expect(kiosk.sent['overlay:low-time'][0]).toEqual({ minutes: 5 });
   });
 });

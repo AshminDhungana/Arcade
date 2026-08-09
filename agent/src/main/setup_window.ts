@@ -1,13 +1,15 @@
 // agent/src/main/setup_window.ts
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BrowserWindow } from 'electron';
+import electron from 'electron';
+import type { BrowserWindow as BrowserWindowType } from 'electron';
+const { BrowserWindow } = electron;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function openSetupWindow(
   onEnrolled: () => void,
-): BrowserWindow {
+): BrowserWindowType {
   const win = new BrowserWindow({
     width: 520,
     height: 360,

@@ -1,6 +1,11 @@
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BrowserWindow, desktopCapturer } from 'electron';
+// Default import + destructure: under the Electron runtime this yields the
+// real API object; under plain Node (smoke test) the CJS shim loads without
+// a named-export SyntaxError, and the bindings are never used.
+import electron from 'electron';
+import type { BrowserWindow as BrowserWindowType } from 'electron';
+const { BrowserWindow, desktopCapturer } = electron;
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import sharp from 'sharp';
@@ -27,7 +32,7 @@ const BLOCKED_SHORTCUTS = [
 ];
 
 export class WindowsPlatformService implements IPlatformService {
-  private kioskWindow: BrowserWindow | null = null;
+  private kioskWindow: BrowserWindowType | null = null;
   private sessionActive = false;
   private overrideCodeConfigured = false;
 

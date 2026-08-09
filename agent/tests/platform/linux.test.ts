@@ -26,20 +26,28 @@ vi.mock('electron', async () => {
     constructor(_opts?: Record<string, unknown>) {}
   }
 
+  const mockDesktopCapturer = {
+    getSources: vi.fn().mockResolvedValue([
+      {
+        id: 'screen:0:0',
+        name: 'Screen 1',
+        thumbnail: {
+          toPNG: vi.fn().mockReturnValue(Buffer.from('fake-png')),
+        },
+      },
+    ]),
+  };
+
   return {
     ...actual,
-    BrowserWindow: MockBrowserWindow,
-    desktopCapturer: {
-      getSources: vi.fn().mockResolvedValue([
-        {
-          id: 'screen:0:0',
-          name: 'Screen 1',
-          thumbnail: {
-            toPNG: vi.fn().mockReturnValue(Buffer.from('fake-png')),
-          },
-        },
-      ]),
+    // The platform source destructures from the default export, so the mock
+    // must override `default` too — not just the named exports.
+    default: {
+      BrowserWindow: MockBrowserWindow,
+      desktopCapturer: mockDesktopCapturer,
     },
+    BrowserWindow: MockBrowserWindow,
+    desktopCapturer: mockDesktopCapturer,
   };
 });
 
@@ -86,6 +94,7 @@ const mockFs = vi.hoisted(() => ({
 }));
 
 vi.mock('node:fs', () => ({
+  default: { promises: mockFs },
   promises: mockFs,
 }));
 
@@ -110,16 +119,17 @@ describe('LinuxPlatformService', () => {
     warnSpy.mockRestore();
   });
 
-  it('exposes all 14 IPlatformService methods', () => {
+  it('exposes all 15 IPlatformService methods', () => {
     const expected = [
       'showKioskOverlay',
       'hideKioskOverlay',
-      'showHud',
-      'hideHud',
+      'setKioskClickThrough',
       'showLowTimeWarning',
       'isKioskVisible',
       'updateTimer',
       'sendAnnouncement',
+      'sendConfigToOverlay',
+      'sendToOverlayAndHud',
       'restartPC',
       'shutdownPC',
       'captureScreenshot',
