@@ -125,3 +125,55 @@ export function useForceCloseUnprinted() {
     },
   });
 }
+
+/** Pause an active session (stops the timer, shows the overlay on the kiosk). */
+export async function pauseSession(
+  sessionId: string,
+  token: string | null,
+): Promise<SessionResponse> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/pause`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `Failed to pause session: ${res.status}` }));
+    throw new Error(err.detail ?? `Failed to pause session: ${res.status}`);
+  }
+  return (await res.json()) as SessionResponse;
+}
+
+/** Resume a paused session (restarts the timer, hides the overlay). */
+export async function resumeSession(
+  sessionId: string,
+  token: string | null,
+): Promise<SessionResponse> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/resume`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `Failed to resume session: ${res.status}` }));
+    throw new Error(err.detail ?? `Failed to resume session: ${res.status}`);
+  }
+  return (await res.json()) as SessionResponse;
+}
+
+/** Hook to pause a session from remote commands. */
+export function usePauseSession() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ session_id }: { session_id: string }) => pauseSession(session_id, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
+  });
+}
+
+/** Hook to resume a paused session from remote commands. */
+export function useResumeSession() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ session_id }: { session_id: string }) => resumeSession(session_id, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
+  });
+}

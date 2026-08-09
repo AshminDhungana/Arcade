@@ -1,6 +1,6 @@
 // frontend/src/api/sessions.test.ts
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { fetchSession, extendSession } from './sessions';
+import { fetchSession, extendSession, pauseSession, resumeSession } from './sessions';
 
 const mockToken = 'test-jwt-token';
 
@@ -63,6 +63,66 @@ describe('extendSession', () => {
 
     await expect(extendSession('sess_1', 30, mockToken)).rejects.toThrow(
       'Failed to extend session: 503 Service Unavailable',
+    );
+  });
+});
+
+describe('pauseSession', () => {
+  it('PATCHes the pause endpoint with auth header', async () => {
+    const mockSession = { id: 'sess_1', seat_id: 'seat_1' };
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSession),
+    } as Response);
+
+    const result = await pauseSession('sess_1', mockToken);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/sessions/sess_1/pause', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mockToken}` },
+    });
+    expect(result).toEqual(mockSession);
+  });
+
+  it('throws backend detail on non-ok response', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: () => Promise.resolve({ detail: 'Expected status ACTIVE to pause' }),
+    } as Response);
+
+    await expect(pauseSession('sess_1', mockToken)).rejects.toThrow(
+      'Expected status ACTIVE to pause',
+    );
+  });
+});
+
+describe('resumeSession', () => {
+  it('PATCHes the resume endpoint with auth header', async () => {
+    const mockSession = { id: 'sess_1', seat_id: 'seat_1' };
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSession),
+    } as Response);
+
+    const result = await resumeSession('sess_1', mockToken);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/sessions/sess_1/resume', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mockToken}` },
+    });
+    expect(result).toEqual(mockSession);
+  });
+
+  it('throws backend detail on non-ok response', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: () => Promise.resolve({ detail: 'Expected status PAUSED to resume' }),
+    } as Response);
+
+    await expect(resumeSession('sess_1', mockToken)).rejects.toThrow(
+      'Expected status PAUSED to resume',
     );
   });
 });
