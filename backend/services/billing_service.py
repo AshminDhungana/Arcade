@@ -600,6 +600,7 @@ async def checkout_session(
 
     # 12. Return Invoice (with the refreshed print_status).
     await db.refresh(invoice)
+    invoice.created_at = _ensure_utc(invoice.created_at)  # type: ignore[assignment]
     return invoice
 
 
@@ -652,4 +653,5 @@ async def force_close_unprinted(
     await _release_held_seat(
         db, session, invoice, staff=staff, override_reason=override_reason
     )
+    invoice.created_at = _ensure_utc(invoice.created_at)  # type: ignore[assignment]
     return invoice

@@ -30,37 +30,40 @@ async def test_session_start_response_time(
 async def test_checkout_response_time(
     integration_client, integration_db, seeded_zone, seeded_seat, admin_staff
 ):
-    """POST /api/sessions/{id}/checkout responds within 10 seconds.
-
-    Note: There's a pre-existing bug where InvoiceResponse.created_at
-    validation fails due to timezone-naive datetime in DB. The endpoint
-    is reached but returns 500. For performance testing, we verify the
-    service-layer is fast by testing billing_service.checkout_session
-    directly (bypassing the validation bug).
-    """
-    from backend.models import PaymentMethod, SeatStatus
-    from backend.services import billing_service, session_service
+    """POST /api/sessions/{id}/checkout responds within 10 seconds."""
+    from backend.models import SeatStatus
 
     # Re-seed seat to available
     seeded_seat.status = SeatStatus.AVAILABLE
     await integration_db.commit()
 
-    session = await session_service.start_session(
-        integration_db, seeded_seat.id, None, admin_staff
+    resp = await integration_client.post(
+        "/api/sessions",
+        json={"seat_id": seeded_seat.id},
+        headers=auth_headers(staff_id=admin_staff.id, role="ADMIN"),
     )
+    assert resp.status_code == 201
+    session_id = resp.json()["id"]
+
     # Simulate 30 min elapsed with timezone-aware datetime
+    from backend.repositories import session_repo
+
+    session = await session_repo.get_by_id(integration_db, session_id)
     session.started_at = datetime.now(UTC) - timedelta(minutes=30)
     await integration_db.commit()
 
-    # Test the service layer directly (bypasses the InvoiceResponse validation bug)
     start = time.perf_counter()
-    invoice = await billing_service.checkout_session(
-        integration_db, session.id, PaymentMethod.CASH, admin_staff
+    resp = await integration_client.post(
+        f"/api/sessions/{session_id}/checkout",
+        json={"payment_method": "CASH"},
+        headers=auth_headers(staff_id=admin_staff.id, role="ADMIN"),
     )
     elapsed = time.perf_counter() - start
 
-    assert invoice is not None
-    assert invoice.total_paise >= 0
+    assert resp.status_code == 201, resp.text
+    data = resp.json()
+    assert data["total_paise"] >= 0
+    assert "created_at" in data
     assert elapsed < 10.0, f"Checkout took {elapsed:.2f}s, expected < 10s"
 
 

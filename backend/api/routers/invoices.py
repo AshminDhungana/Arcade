@@ -187,7 +187,7 @@ async def get_invoice(
     invoice = await invoice_repo.get_by_id(db, invoice_id)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    return InvoiceResponse.model_validate(invoice)
+    return _build_invoice_response(invoice)
 
 
 @router.get(
