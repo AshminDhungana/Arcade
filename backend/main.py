@@ -102,12 +102,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
         await load_flags(db)
         await _seed_legacy_secrets(db)
         from backend.core.bootstrap import (
+            ensure_default_feature_flags,
             ensure_default_staff,
             ensure_default_zone_and_seats,
         )
 
+        await ensure_default_feature_flags(db)
         await ensure_default_staff(db)
         await ensure_default_zone_and_seats(db)
+        await load_flags(db)
         await db.commit()
 
     # 5. Recover any sessions that were active during an unclean shutdown

@@ -36,6 +36,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from argon2 import PasswordHasher  # noqa: E402
 
+from backend.core.bootstrap import DEFAULT_FEATURE_FLAGS  # noqa: E402
 from backend.core.database import AsyncSessionLocal, Base  # noqa: E402
 from backend.models import (  # noqa: E402
     AppSettings,
@@ -470,23 +471,6 @@ async def seed_structural(
     # Feature flags
     existing_flags = (await db.scalars(select(AppSettings))).all()
     if not existing_flags:
-        DEFAULT_FEATURE_FLAGS = {
-            "enable_members": "true",
-            "enable_packages": "true",
-            "enable_pos": "true",
-            "enable_inventory": "false",
-            "enable_reservations": "true",
-            "enable_vouchers": "false",
-            "enable_tournaments": "false",
-            "enable_expense_tracking": "false",
-            "enable_health_monitoring": "true",
-            "require_member_for_session": "false",
-            "enable_tuya": "false",
-            "require_print_before_release": "false",
-            "block_shift_close_unprinted": "false",
-            "overlay_pauses_billing": "true",
-            "enable_assigned_time_limit": "false",
-        }
         for key, value in DEFAULT_FEATURE_FLAGS.items():
             db.add(AppSettings(key=key, value=value, updated_at=datetime.now(UTC)))
         await db.flush()

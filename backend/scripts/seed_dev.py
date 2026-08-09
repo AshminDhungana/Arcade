@@ -26,6 +26,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from argon2 import PasswordHasher  # noqa: E402
 
+from backend.core.bootstrap import DEFAULT_FEATURE_FLAGS  # noqa: E402
 from backend.core.database import AsyncSessionLocal, Base  # noqa: E402
 from backend.models import (  # noqa: E402
     AppSettings,
@@ -204,25 +205,7 @@ async def seed_members(db) -> None:  # type: ignore[no-untyped-def]
     await db.flush()
 
 
-DEFAULT_FEATURE_FLAGS: dict[str, str] = {
-    "enable_members": "true",
-    "enable_packages": "true",
-    "enable_pos": "true",
-    "enable_inventory": "false",
-    "enable_reservations": "true",
-    "enable_vouchers": "false",
-    "enable_tournaments": "false",
-    "enable_expense_tracking": "false",
-    "enable_health_monitoring": "true",
-    "require_member_for_session": "false",
-    "enable_tuya": "false",
-    "require_print_before_release": "false",
-    "block_shift_close_unprinted": "false",
-    # NEW (Phase 6.5.3)
-    "overlay_pauses_billing": "true",
-    # NEW (Phase 6.5.4; seed now so Appendix D defaults hold)
-    "enable_assigned_time_limit": "false",
-}
+DEFAULT_FEATURE_FLAGS = DEFAULT_FEATURE_FLAGS  # noqa: PLW0127 — re-export from bootstrap (single source of truth)
 
 
 async def seed_feature_flags(db) -> None:  # type: ignore[no-untyped-def]

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import Settings, get_config
 from backend.core.security import hash_pin
-from backend.models import Seat, Staff, Zone
+from backend.models import AppSettings, Seat, Staff, Zone
 from backend.models._enums import PricingModel, SeatStatus, StaffRole
 from backend.repositories import seat_repo, staff_repo, zone_repo
 
@@ -20,6 +20,24 @@ _ADMIN_DEFAULT_ID = "admin"
 _ADMIN_DEFAULT_PIN = "admin"
 _CASHIER_DEFAULT_ID = "cashier"
 _CASHIER_DEFAULT_PIN = "cashier"
+
+DEFAULT_FEATURE_FLAGS: dict[str, str] = {
+    "enable_members": "true",
+    "enable_packages": "true",
+    "enable_pos": "true",
+    "enable_inventory": "false",
+    "enable_reservations": "true",
+    "enable_vouchers": "false",
+    "enable_tournaments": "false",
+    "enable_expense_tracking": "false",
+    "enable_health_monitoring": "true",
+    "require_member_for_session": "false",
+    "enable_tuya": "false",
+    "require_print_before_release": "false",
+    "block_shift_close_unprinted": "false",
+    "overlay_pauses_billing": "true",
+    "enable_assigned_time_limit": "false",
+}
 
 _DEFAULT_ZONE_NAME = "Standard PC"
 _DEFAULT_ZONE_RATE_PER_MINUTE = 200  # 200 paise/min = ₹12/hr
@@ -111,5 +129,23 @@ async def ensure_default_zone_and_seats(
             agent_secret=secret,
         )
         db.add(seat)
+
+    await db.flush()
+
+
+async def ensure_default_feature_flags(db: AsyncSession) -> None:
+    """Insert default feature flags only when the settings table is empty.
+
+    Mirrors the ``ensure_default_staff`` pattern: safe to call on every
+    startup, never overwrites existing values, so operators can toggle flags
+    in the UI without them being reset.
+    """
+    from sqlalchemy import select
+
+    if (await db.execute(select(AppSettings).limit(1))).first():
+        return  # already seeded; never overwrite operator-tuned values
+
+    for key, value in DEFAULT_FEATURE_FLAGS.items():
+        db.add(AppSettings(key=key, value=value))
 
     await db.flush()
