@@ -58,7 +58,10 @@ export function SeatGrid() {
   const [drawerSeat, setDrawerSeat] = useState<Seat | null>(null);
 
   const handleSeatClick = (seat: Seat) => {
-    if (seat.status === 'IN_USE' && seat.current_session_id) {
+    if (
+      (seat.status === 'IN_USE' || seat.status === 'PAUSED') &&
+      seat.current_session_id
+    ) {
       setDrawerSeat(seat);
     } else {
       setSelectedSeat(seat);
