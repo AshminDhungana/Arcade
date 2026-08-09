@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { Seat } from '@/types/seat';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
+import { useSeat } from '@/api/seats';
 import { POSPanel } from './pos/POSPanel';
 import { CheckoutPanel } from './invoice/CheckoutPanel';
+import { CommandsPanel } from './CommandsPanel';
 import { X, ShoppingCart, CreditCard, Terminal } from 'lucide-react';
 
 type DrawerTab = 'pos' | 'checkout' | 'commands';
@@ -18,6 +20,11 @@ export function SessionDrawer({ seat, sessionId, onClose }: SessionDrawerProps) 
   const posEnabled = useFeatureFlagStore((s) => s.flags.enable_pos);
   const [activeTab, setActiveTab] = useState<DrawerTab>(posEnabled ? 'pos' : 'checkout');
   const [isOpen, setIsOpen] = useState(false);
+
+  // Live seat data so the drawer reflects pauses/resumes (WebSocket-driven)
+  const { data: liveSeat } = useSeat(seat.id, { initialData: seat });
+  const currentSeat = liveSeat ?? seat;
+  const statusLabel = currentSeat.status === 'PAUSED' ? 'Session paused' : 'Session active';
 
   // Animate open on mount
   useEffect(() => {
@@ -77,7 +84,7 @@ export function SessionDrawer({ seat, sessionId, onClose }: SessionDrawerProps) 
               {seat.name}
             </h2>
             <p className="text-xs text-slate-400">
-              Session active · {seat.is_console ? 'Console' : 'PC'}
+              {statusLabel} · {currentSeat.is_console ? 'Console' : 'PC'}
             </p>
           </div>
           <button
@@ -120,38 +127,10 @@ export function SessionDrawer({ seat, sessionId, onClose }: SessionDrawerProps) 
             <CheckoutPanel sessionId={sessionId} onClose={handleClose} />
           )}
           {activeTab === 'commands' && (
-            <PlaceholderTab
-              icon={<Terminal className="h-8 w-8" />}
-              title="Commands"
-              description="Remote commands and seat controls coming in a future update"
-            />
+            <CommandsPanel seat={currentSeat} sessionId={sessionId} />
           )}
         </div>
       </div>
     </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Placeholder tab content
-// ---------------------------------------------------------------------------
-
-function PlaceholderTab({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="mb-4 rounded-2xl bg-slate-800 p-5 text-slate-500">
-        {icon}
-      </div>
-      <h3 className="text-lg font-semibold text-slate-300">{title}</h3>
-      <p className="mt-2 max-w-xs text-sm text-slate-500">{description}</p>
-    </div>
   );
 }
