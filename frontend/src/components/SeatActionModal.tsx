@@ -1,7 +1,7 @@
 import type { Seat } from '@/types/seat';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Loader2, Pause, Play, Power, Settings, ShoppingCart, Heart, User, X, Lock, Unlock } from 'lucide-react';
+import { Loader2, Play, Power, Settings, ShoppingCart, Heart, User, X, Lock, Unlock } from 'lucide-react';
 import { MemberSearch } from './MemberSearch';
 import { useStartSession } from '@/api/sessions';
 import { generateEnrollCode, regenerateOverridePin, forceOverlay, useSeat } from '@/api/seats';
@@ -148,12 +148,6 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
                 {startSession.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               </ActionButton>
             </>
-          )}
-          {currentSeat.status === 'IN_USE' && (
-            <ActionButton icon={<Pause className="h-5 w-5" />} label="Pause Session" variant="secondary" />
-          )}
-          {currentSeat.status === 'PAUSED' && (
-            <ActionButton icon={<Play className="h-5 w-5" />} label="Resume Session" variant="secondary" />
           )}
           <ActionButton icon={<ShoppingCart className="h-5 w-5" />} label="Checkout" variant="emerald" />
           <ActionButton icon={<Power className="h-5 w-5" />} label="Wake-on-LAN" variant="secondary" />
