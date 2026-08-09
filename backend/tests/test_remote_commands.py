@@ -645,12 +645,14 @@ async def test_staff_override_sends_force_overlay_off(
     # Set overlay_forced = True first
     await seat_service.set_overlay_forced(db, seat.id, True)
 
-    # Patch AsyncSessionLocal to use the test's db session
+    # Patch AsyncSessionLocal to use the test's db session.
+    # ws_manager imports AsyncSessionLocal lazily from backend.core.database,
+    # so the patch must target the defining module.
     async def mock_session():
         yield db
 
     with patch.object(ws_manager, "send_to_agent", new=AsyncMock()) as mock_send:
-        with patch("backend.core.ws_manager.AsyncSessionLocal", mock_session):
+        with patch("backend.core.database.AsyncSessionLocal", mock_session):
             # Simulate agent sending STAFF_OVERRIDE
             await ws_manager._handle_staff_override(seat.id, {"pin": "1234"})
 
