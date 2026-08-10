@@ -35,7 +35,6 @@ export class KioskOverlay {
   private minimalMode = false;
   private hotspotCb: ((active: boolean) => void) | null = null;
   private lastHotspot = false;
-  private readonly HOT_ZONE_WIDTH = 24;
 
   // NEW: Fallback name (default "Arcade")
   private arcadeName = 'Arcade';
@@ -272,10 +271,7 @@ export class KioskOverlay {
     this.minimalMode = enabled;
     this.container.classList.toggle('minimal', enabled);
     document.body.classList.toggle('minimal', enabled);
-    if (enabled) {
-      document.addEventListener('mousemove', this.handleHotspotMove);
-    } else {
-      document.removeEventListener('mousemove', this.handleHotspotMove);
+    if (!enabled) {
       this.setHotspot(false);
       this.hideButton();
     }
@@ -283,19 +279,15 @@ export class KioskOverlay {
     void this.container.offsetHeight;
   }
 
-  /** Tear down the component. */
-  destroy(): void {
-    this.stopClock();
-    this.clearHideTimer();
-    document.removeEventListener('mousemove', this.handleHotspotMove);
-    if (this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container);
-    }
-  }
-
-  private handleHotspotMove = (e: MouseEvent): void => {
-    const nearRightEdge = e.clientX >= window.innerWidth - this.HOT_ZONE_WIDTH;
-    if (nearRightEdge) {
+  /**
+   * Handle hot-zone hover state reported by the main process (OS cursor
+   * polling). Drives the Call Staff button visibility and the OS click-through
+   * toggle. Hot-zone detection must live in the main process because Electron's
+   * forwarded mouse events (setIgnoreMouseEvents + forward) are not delivered
+   * reliably on Windows while a non-Electron app is focused.
+   */
+  setHotspotActive(active: boolean): void {
+    if (active) {
       this.showButton();
       this.setHotspot(true);
     } else if (!this.isMouseOverButton) {
@@ -307,7 +299,16 @@ export class KioskOverlay {
         this.setHotspot(false);
       }
     }
-  };
+  }
+
+  /** Tear down the component. */
+  destroy(): void {
+    this.stopClock();
+    this.clearHideTimer();
+    if (this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container);
+    }
+  }
 
   private setHotspot(active: boolean): void {
     if (active === this.lastHotspot) return;

@@ -118,6 +118,10 @@ const api = {
     ipcRenderer.on('overlay:set-minimal', (_event: IpcRendererEvent, enabled: boolean) => callback(enabled));
   },
 
+  onHotspot: (callback: (active: boolean) => void) => {
+    ipcRenderer.on('overlay:hotspot', (_event: IpcRendererEvent, active: boolean) => callback(active));
+  },
+
   setClickThrough: (clickThrough: boolean) => {
     ipcRenderer.send('overlay:click-through', clickThrough);
   },

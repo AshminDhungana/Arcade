@@ -35,6 +35,8 @@ describe('preload API', () => {
     expect(exposedApi).toHaveProperty('onAnnouncement');
     expect(exposedApi).toHaveProperty('onLowTimeWarning');
     expect(exposedApi).toHaveProperty('onSessionStatus');
+    expect(exposedApi).toHaveProperty('onSetMinimal');
+    expect(exposedApi).toHaveProperty('onHotspot');
     expect(exposedApi).toHaveProperty('callStaff');
     expect(exposedApi).toHaveProperty('staffOverride');
     expect(exposedApi).toHaveProperty('onStaffAlertAck');

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 // a named-export SyntaxError, and the bindings are never used.
 import electron from 'electron';
 import type { BrowserWindow as BrowserWindowType } from 'electron';
-const { BrowserWindow, desktopCapturer } = electron;
+const { BrowserWindow, desktopCapturer, screen } = electron;
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import sharp from 'sharp';
@@ -36,14 +36,26 @@ export class WindowsPlatformService implements IPlatformService {
   private sessionActive = false;
   private overrideCodeConfigured = false;
 
+  // Right-edge hot zone: OS cursor polling replaces Electron's unreliable
+  // setIgnoreMouseEvents({ forward: true }) event forwarding on Windows, which
+  // stops delivering mousemove while a non-Electron app is focused (a running
+  // session is exactly that case). Polling getCursorScreenPoint() always works.
+  private static readonly HOT_ZONE_WIDTH = 24;
+  private static readonly HOTSPOT_POLL_MS = 120;
+  private hotspotTimer: ReturnType<typeof setInterval> | null = null;
+  private hotspotZone: 'full' | 'minimal' = 'full';
+  private lastHotspot = false;
+
   showKioskOverlay(content: OverlayContent): void {
     this.sessionActive = false;
+    this.hotspotZone = 'full';
     const sendMinimal = false; // Full mode for new sessions
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
       this.kioskWindow.setIgnoreMouseEvents(false);
       this.kioskWindow.webContents.send('overlay:set-minimal', sendMinimal);
       this.kioskWindow.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
+      this.startHotspotPolling();
       return;
     }
 
@@ -90,6 +102,7 @@ export class WindowsPlatformService implements IPlatformService {
 
     this.kioskWindow.on('closed', () => {
       this.kioskWindow = null;
+      this.stopHotspotPolling();
     });
 
     const htmlPath = path.join(__dirname, '../../renderer/index.html');
@@ -99,14 +112,18 @@ export class WindowsPlatformService implements IPlatformService {
       this.kioskWindow?.webContents.send('overlay:set-minimal', sendMinimal);
       this.kioskWindow?.webContents.send('overlay:update', { ...content, overrideCodeConfigured: this.overrideCodeConfigured });
     });
+
+    this.startHotspotPolling();
   }
 
   hideKioskOverlay(): void {
     this.sessionActive = true;
+    this.hotspotZone = 'minimal';
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.show();
       this.kioskWindow.webContents.send('overlay:set-minimal', true);
       this.setKioskClickThrough(true);
+      this.startHotspotPolling();
     } else {
       console.warn('[Platform:Windows] hideKioskOverlay: kioskWindow is null or destroyed!');
     }
@@ -115,6 +132,61 @@ export class WindowsPlatformService implements IPlatformService {
   setKioskClickThrough(clickThrough: boolean): void {
     if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
       this.kioskWindow.setIgnoreMouseEvents(clickThrough, { forward: true });
+    }
+  }
+
+  /**
+   * Poll the OS cursor position and notify the renderer when the Call Staff
+   * hot zone is hovered/unhovered.
+   *
+   * The kiosk window is fullscreen, so window coordinates equal the cursor
+   * position minus the window origin. This must run in the main process:
+   * Electron's forwarded mouse events (setIgnoreMouseEvents + forward) are
+   * unreliable on Windows — they are not delivered while a non-Electron app
+   * is focused, which is exactly the state during a running session.
+   */
+  private startHotspotPolling(): void {
+    if (this.hotspotTimer !== null) return;
+    this.lastHotspot = false;
+    this.hotspotTimer = setInterval(() => this.pollHotspot(), WindowsPlatformService.HOTSPOT_POLL_MS);
+  }
+
+  private stopHotspotPolling(): void {
+    if (this.hotspotTimer !== null) {
+      clearInterval(this.hotspotTimer);
+      this.hotspotTimer = null;
+    }
+    this.lastHotspot = false;
+  }
+
+  private pollHotspot(): void {
+    if (!this.kioskWindow || this.kioskWindow.isDestroyed()) {
+      this.stopHotspotPolling();
+      return;
+    }
+    const cursor = screen.getCursorScreenPoint();
+    const bounds = this.kioskWindow.getBounds();
+    const cx = cursor.x - bounds.x;
+    const cy = cursor.y - bounds.y;
+    const inWindow =
+      cx >= 0 && cy >= 0 && cx < bounds.width && cy < bounds.height;
+
+    let active = false;
+    if (inWindow) {
+      if (this.hotspotZone === 'minimal') {
+        // Full-height right-edge strip (matches .kiosk-trigger-zone minimal CSS)
+        active = cx >= bounds.width - WindowsPlatformService.HOT_ZONE_WIDTH;
+      } else {
+        // Bottom-right corner (matches the 20x20 CSS trigger zone)
+        active =
+          cx >= bounds.width - WindowsPlatformService.HOT_ZONE_WIDTH &&
+          cy >= bounds.height - WindowsPlatformService.HOT_ZONE_WIDTH;
+      }
+    }
+
+    if (active !== this.lastHotspot) {
+      this.lastHotspot = active;
+      this.kioskWindow.webContents.send('overlay:hotspot', active);
     }
   }
 

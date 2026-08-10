@@ -23,6 +23,7 @@ vi.mock('electron', async () => {
     isDestroyed = vi.fn().mockReturnValue(false);
     isVisible = vi.fn().mockReturnValue(true);
     on = vi.fn();
+    getBounds = vi.fn().mockReturnValue({ x: 0, y: 0, width: 1920, height: 1080 });
     constructor(_opts?: Record<string, unknown>) {}
   }
 
@@ -38,6 +39,10 @@ vi.mock('electron', async () => {
     ]),
   };
 
+  const mockScreen = {
+    getCursorScreenPoint: vi.fn().mockReturnValue({ x: 0, y: 0 }),
+  };
+
   return {
     ...actual,
     // The platform source destructures from the default export, so the mock
@@ -45,9 +50,11 @@ vi.mock('electron', async () => {
     default: {
       BrowserWindow: MockBrowserWindow,
       desktopCapturer: mockDesktopCapturer,
+      screen: mockScreen,
     },
     BrowserWindow: MockBrowserWindow,
     desktopCapturer: mockDesktopCapturer,
+    screen: mockScreen,
   };
 });
 
@@ -100,7 +107,7 @@ vi.mock('node:fs', () => ({
 
 import { LinuxPlatformService, isWayland } from '../../src/main/platform/linux.js';
 import { exec } from 'child_process';
-import { desktopCapturer } from 'electron';
+import { desktopCapturer, screen } from 'electron';
 
 describe('LinuxPlatformService', () => {
   let service: LinuxPlatformService;
@@ -115,6 +122,7 @@ describe('LinuxPlatformService', () => {
   });
 
   afterEach(() => {
+    (service as any).stopHotspotPolling?.();
     service.hideKioskOverlay();
     warnSpy.mockRestore();
   });
@@ -242,5 +250,63 @@ describe('LinuxPlatformService', () => {
     expect(firstWindow.show).toHaveBeenCalled();
     expect(mockWebContents.send).toHaveBeenCalledWith('overlay:set-minimal', false);
     expect(mockWebContents.send).toHaveBeenCalledWith('overlay:update', expect.objectContaining({ sessionActive: true }));
+  });
+
+  describe('hotspot cursor polling', () => {
+    let send: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      service = new LinuxPlatformService();
+      vi.clearAllMocks();
+      service.showKioskOverlay({
+        cafeName: 'Test',
+        announcements: [],
+        callStaffEnabled: true,
+        sessionActive: false,
+      });
+      send = mockWebContents.send;
+      send.mockClear();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('full mode: notifies hotspot when cursor enters the bottom-right corner', () => {
+      vi.mocked(screen.getCursorScreenPoint).mockReturnValue({ x: 100, y: 100 });
+      vi.advanceTimersByTime(500);
+      expect(send).not.toHaveBeenCalledWith('overlay:hotspot', true);
+
+      vi.mocked(screen.getCursorScreenPoint).mockReturnValue({ x: 1905, y: 1065 });
+      vi.advanceTimersByTime(500);
+      expect(send).toHaveBeenCalledWith('overlay:hotspot', true);
+    });
+
+    it('full mode: notifies hotspot exit when cursor leaves the corner', () => {
+      vi.mocked(screen.getCursorScreenPoint).mockReturnValue({ x: 1905, y: 1065 });
+      vi.advanceTimersByTime(500);
+      expect(send).toHaveBeenCalledWith('overlay:hotspot', true);
+
+      send.mockClear();
+      vi.mocked(screen.getCursorScreenPoint).mockReturnValue({ x: 100, y: 100 });
+      vi.advanceTimersByTime(500);
+      expect(send).toHaveBeenCalledWith('overlay:hotspot', false);
+    });
+
+    it('minimal mode: notifies hotspot along the full right edge', () => {
+      service.hideKioskOverlay();
+      send.mockClear();
+
+      vi.mocked(screen.getCursorScreenPoint).mockReturnValue({ x: 1905, y: 500 });
+      vi.advanceTimersByTime(500);
+      expect(send).toHaveBeenCalledWith('overlay:hotspot', true);
+    });
+
+    it('does not notify for a cursor outside the window', () => {
+      vi.mocked(screen.getCursorScreenPoint).mockReturnValue({ x: 1920, y: 100 });
+      vi.advanceTimersByTime(500);
+      expect(send).not.toHaveBeenCalledWith('overlay:hotspot', true);
+    });
   });
 });

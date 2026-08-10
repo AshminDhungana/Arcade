@@ -199,6 +199,12 @@ function initKiosk(): void {
     hotspotHovered = active;
     syncClickThrough();
   });
+
+  // Main process polls the OS cursor (Electron's forwarded mouse events are
+  // unreliable on Windows) and reports whether the hot zone is hovered.
+  window.electronAPI.onHotspot((active) => {
+    overlay.setHotspotActive(active);
+  });
 }
 
 // ---------------------------------------------------------------------------
