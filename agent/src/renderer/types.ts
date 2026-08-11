@@ -23,7 +23,7 @@ export interface ElectronAPI {
   onSessionStatus: (callback: (active: boolean) => void) => void;
   onConfig: (callback: (config: { hasOverrideCode: boolean }) => void) => void;
   callStaff: () => void;
-  staffOverride: (pin: string) => void;
+  staffOverride: (pin: string) => Promise<'override' | 'master' | false>;
   openSettings: () => void;
   enroll: (code: string) => Promise<{ ok: boolean; error?: string }>;
   onStaffAlertAck: (callback: () => void) => void;

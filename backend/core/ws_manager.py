@@ -372,6 +372,16 @@ class WebSocketManager:
                 from backend.services.seat_service import _broadcast_seat_update
 
                 await _broadcast_seat_update(db, seat)
+
+        # Re-apply a forced overlay after an agent restart/reconnect: the seat's
+        # overlay_forced flag survives in the DB, so the lock must survive too.
+        if seat is not None and seat.overlay_forced:
+            try:
+                await self.send_to_agent(
+                    seat_id, {"type": Msg.FORCE_OVERLAY_ON, "payload": {}}
+                )
+            except AgentOfflineError:
+                pass  # Agent dropped before the push; next register retries
         # Notify WoL service that an agent registered (may be a WoL success)
         from backend.services.wol_service import wol_success_callback as _wol_callback
 

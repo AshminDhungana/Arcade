@@ -146,10 +146,9 @@ out-of-band (e.g. hand-editing `agent.config.json`) for now.
 
 ### Emergency master PIN
 
-If the agent cannot reach the server, the staff override PIN is unavailable (it is
-provisioned by the server). The build-injected **master PIN** then works as an emergency
-unlock (see `tools/keygen/generate_keys.py`). It is accepted **only** when the server is
-unreachable, and is never shown in the UI.
+The build-injected **master PIN** is the emergency unlock (see `tools/keygen/generate_keys.py`; the built-in default is **1928** — override it with `MASTER_PIN` / `ARCADE_MASTER_PIN` at build time). It is never shown in the UI and is accepted as a fallback whenever the staff override PIN does not verify — including while the agent is connected.
+
+**Default staff override PIN:** when the server has no override PIN configured and a seat has none, the server auto-mints the documented default **1928**. Staff can always drop the kiosk with `1928`; change a seat's PIN from the dashboard (**Seat → Regenerate override PIN**), which shows the new PIN once.
 
 ## Receipt Printer Setup
 

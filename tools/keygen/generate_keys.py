@@ -17,11 +17,11 @@ from __future__ import annotations
 # ===========================================================================
 # EMERGENCY MASTER PIN  (per-cafe, seller-only — NEVER shown in any UI)
 # ---------------------------------------------------------------------------
-# The Arcade Agent's emergency unlock PIN is the ONLY credential that works when
-# the agent cannot reach the server (when connected, only the staff override
-# PIN works). It is resolved at enrollment from ARCADE_MASTER_PIN, defaulting to
-# '1928' (see agent/src/main/master-pin.ts + agent/.env.example), then hashed
-# with Argon2id and stored as `master_code_hash` in agent.config.json.
+# The Arcade Agent's emergency unlock PIN is the fallback credential: the staff
+# override PIN is tried first, and the master PIN verifies in every connection
+# state (online or offline). It is resolved at enrollment from ARCADE_MASTER_PIN,
+# defaulting to '1928' (see agent/src/main/master-pin.ts + agent/.env.example),
+# then hashed with Argon2id and stored as `master_code_hash` in agent.config.json.
 #
 # `generate_master_pin_hash()` below reproduces the SAME Argon2id parameters the
 # agent uses at runtime (memory_cost=4096 KiB, time_cost=3, parallelism=1,

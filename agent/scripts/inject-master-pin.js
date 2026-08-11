@@ -2,8 +2,10 @@
 /**
  * Build-time master PIN injection script.
  *
- * Reads a plaintext PIN from MASTER_PIN env var or --pin arg, computes Argon2id hash,
- * and generates src/main/master-pin.ts with the pre-computed hash embedded.
+ * Reads a plaintext PIN from --pin, MASTER_PIN, or ARCADE_MASTER_PIN (in that
+ * order), computing an Argon2id hash and generating src/main/master-pin.ts
+ * with the pre-computed hash embedded. When no PIN is provided anywhere the
+ * built-in default (1928) is used, so unparameterised dev builds still work.
  *
  * Usage:
  *   MASTER_PIN=1234 node scripts/inject-master-pin.js --out=src/main/master-pin.ts
@@ -26,30 +28,45 @@ const MASTER_PIN_HASH_OPTIONS = {
   parallelism: 1,
 };
 
+/** Built-in default PIN when none is provided (matches agent/.env.example). */
+const DEFAULT_MASTER_PIN = '1928';
+
 function parseArgs() {
   const args = process.argv.slice(2);
-  const result = { pin: undefined, out: '' };
+  const result = { pin: undefined, out: '', pinProvided: false };
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--pin' || arg === '-p') {
       result.pin = args[++i];
+      result.pinProvided = true;
     } else if (arg === '--out' || arg === '-o') {
       result.out = args[++i];
     } else if (arg.startsWith('--pin=')) {
       result.pin = arg.slice(6);
+      result.pinProvided = true;
     } else if (arg.startsWith('--out=')) {
       result.out = arg.slice(6);
     }
   }
 
-  // Fallback to env var
-  if (!result.pin) {
+  // Fallback to env var (MASTER_PIN, then ARCADE_MASTER_PIN)
+  if (!result.pinProvided && process.env.MASTER_PIN !== undefined) {
     result.pin = process.env.MASTER_PIN;
+    result.pinProvided = true;
+  }
+  if (!result.pinProvided && process.env.ARCADE_MASTER_PIN !== undefined) {
+    result.pin = process.env.ARCADE_MASTER_PIN;
+    result.pinProvided = true;
+  }
+
+  // Built-in default so unparameterised builds still get a working master PIN.
+  if (!result.pinProvided) {
+    result.pin = DEFAULT_MASTER_PIN;
   }
 
   if (!result.pin) {
-    console.error('Error: PIN required. Provide via --pin or MASTER_PIN env var.');
+    console.error('Error: PIN required. Provide via --pin, MASTER_PIN, or ARCADE_MASTER_PIN.');
     process.exit(1);
   }
 

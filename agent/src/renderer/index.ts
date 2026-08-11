@@ -122,10 +122,14 @@ function initKiosk(): void {
       }
       if (!overrideDialog) {
         overrideDialog = createStaffOverrideDialog({
-          onOverride: (pin: string) => {
-            window.electronAPI.staffOverride(pin);
-            hideModal(overrideDialog!);
-            overrideDialog = null;
+          onOverride: async (pin: string) => {
+            const result = await window.electronAPI.staffOverride(pin);
+            if (result) {
+              hideModal(overrideDialog!);
+              overrideDialog = null;
+            } else {
+              overrideDialog?._showError?.();
+            }
           },
           onCancel: () => {
             hideModal(overrideDialog!);

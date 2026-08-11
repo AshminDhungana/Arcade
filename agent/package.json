@@ -12,7 +12,7 @@
     "build:win": "npm run build -- --win",
     "build:mac": "npm run build -- --mac",
     "build:linux": "npm run build -- --linux",
-    "start": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && tsc -p tsconfig.preload.json && node scripts/copy-renderer-assets.mjs && electron .",
+    "start": "npm run inject-master-pin && tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && tsc -p tsconfig.preload.json && node scripts/copy-renderer-assets.mjs && electron .",
     "lint": "eslint src",
     "test": "vitest"
   },

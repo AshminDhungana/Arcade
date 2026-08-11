@@ -264,6 +264,14 @@ body {
   animation: shake 0.3s ease-in-out;
 }
 
+/* Wrong-PIN feedback inside the staff override dialog */
+.pin-error {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--live);
+  letter-spacing: 0.05em;
+}
+
 @keyframes shake {
   0%,
   100% {
@@ -300,10 +308,11 @@ body.minimal {
 /* .kiosk-trigger-zone already display: block */
 /* .kiosk-btn.primary visibility controlled by .visible class */
 
-/* Minimal mode: extend the trigger zone to the full right edge of the screen */
+/* Minimal mode: extend the trigger zone to the full right edge of the screen.
+   Matches the ~15% hot zone polled by the main process in minimal mode. */
 .kiosk-overlay.minimal .kiosk-trigger-zone {
   top: 0;
   bottom: 0;
-  width: 24px;
+  width: 15vw;
   height: auto;
 }

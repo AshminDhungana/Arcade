@@ -158,8 +158,14 @@ async function bootstrap(): Promise<void> {
     });
   });
 
-  ipcMain.on('staff-override', (_event, pin: string) => {
-    void wsClient?.triggerStaffOverride(pin);
+  ipcMain.handle('staff-override', async (_event, pin: string) => {
+    if (!wsClient) return false;
+    try {
+      return await wsClient.triggerStaffOverride(pin);
+    } catch (err) {
+      console.error('[Agent] staff-override error:', err);
+      return false;
+    }
   });
 
   // Renderer toggles OS-level click-through when the kiosk overlay is in

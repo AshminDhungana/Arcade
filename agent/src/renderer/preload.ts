@@ -101,9 +101,8 @@ const api = {
     ipcRenderer.send('call-staff');
   },
 
-  staffOverride: (pin: string) => {
-    ipcRenderer.send('staff-override', pin);
-  },
+  staffOverride: (pin: string) =>
+    ipcRenderer.invoke('staff-override', pin),
 
   verifySettingsPin: (pin: string) =>
     ipcRenderer.invoke('verify-settings-pin', pin),

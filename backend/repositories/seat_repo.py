@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import secrets
 from collections.abc import Sequence
 from datetime import datetime
 
@@ -181,15 +180,20 @@ async def get_override_pin_hash(db: AsyncSession, seat_id: str) -> str | None:
     return seat.override_code_hash if seat else None
 
 
+# Default staff override PIN minted when a seat has none and the server config
+# has no override PIN. Documented default so staff always know the unlock code;
+# change it per seat from the dashboard ("Regenerate override PIN").
+DEFAULT_OVERRIDE_PIN = "1928"
+
+
 async def auto_mint_override_pin(db: AsyncSession, seat_id: str) -> str | None:
-    """Mint a default 6-digit override PIN if the seat has none; return its hash."""
+    """Mint the default override PIN (1928) if the seat has none; return its hash."""
     seat = await db.get(Seat, seat_id)
     if seat is None:
         raise ValueError(f"Unknown seat_id: {seat_id}")
     if seat.override_code_hash:
         return seat.override_code_hash
-    pin = f"{secrets.randbelow(1_000_000):06d}"
-    seat.override_code_hash = hash_pin(pin)
+    seat.override_code_hash = hash_pin(DEFAULT_OVERRIDE_PIN)
     await db.commit()
     return seat.override_code_hash
 

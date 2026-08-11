@@ -15,8 +15,13 @@ export interface StaffOverrideOptions {
   onSettings?: () => void;
 }
 
+export interface StaffOverrideDialogElement extends HTMLDivElement {
+  /** Flash "Wrong PIN" and shake the dialog after a failed verification. */
+  _showError?: () => void;
+}
+
 /** Build the staff-override modal element with a numeric keypad. */
-export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDivElement {
+export function createStaffOverrideDialog(options: StaffOverrideOptions): StaffOverrideDialogElement {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.style.display = 'flex';
@@ -27,6 +32,7 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
       <div class="modal-body">
         <p>Enter staff override PIN:</p>
         <div class="pin-display" id="pin-display"></div>
+        <p class="pin-error" id="pin-error" style="display: none;">Wrong PIN — try again</p>
         <div class="pin-pad">
           <button data-key="1">1</button>
           <button data-key="2">2</button>
@@ -52,9 +58,24 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
 
   let pin = '';
   const display = modal.querySelector<HTMLDivElement>('#pin-display')!;
+  const errorEl = modal.querySelector<HTMLParagraphElement>('#pin-error')!;
 
   const updateDisplay = (): void => {
     display.textContent = pin.replace(/./g, '●');
+    // Clear the error as soon as the user starts typing again.
+    errorEl.style.display = 'none';
+  };
+
+  /** Flash "Wrong PIN" and shake the dialog (called on failed verification). */
+  const showError = (): void => {
+    errorEl.style.display = 'block';
+    const content = modal.querySelector<HTMLElement>('.modal-content');
+    if (content) {
+      content.classList.remove('shake');
+      // Force reflow so a repeated shake restarts the animation.
+      void content.offsetWidth;
+      content.classList.add('shake');
+    }
   };
 
   // Physical-keyboard cleanup, assigned below; used by submit/closeModal.
@@ -118,5 +139,7 @@ export function createStaffOverrideDialog(options: StaffOverrideOptions): HTMLDi
     options.onSettings?.();
   });
 
-  return modal;
+  (modal as StaffOverrideDialogElement)._showError = showError;
+
+  return modal as StaffOverrideDialogElement;
 }

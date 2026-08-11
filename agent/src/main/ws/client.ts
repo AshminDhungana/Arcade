@@ -192,27 +192,37 @@ export class AgentWebSocketClient {
   }
 
   /**
-   * Verify a PIN and unlock. Connected → only staff override PIN.
-   * Disconnected → staff override PIN OR emergency master PIN.
-   * Returns 'override' | 'master' | false.
+   * Verify a PIN and unlock. The staff override PIN always works when it is
+   * configured; the build-injected master PIN is the emergency fallback and
+   * works in every connection state. Returns 'override' | 'master' | false.
    */
   async triggerStaffOverride(pin: string): Promise<'override' | 'master' | false> {
-    const connected = this.isConnected();
     const overrideHash = this.config.override_code_hash;
     const masterHash = this.config.master_code_hash ?? null;
 
     // Always allow the staff override PIN if configured and it verifies.
-    if (overrideHash && (await verify(overrideHash, pin))) {
+    if (overrideHash && (await this.safeVerifyPin(overrideHash, pin))) {
       this._activateOverride();
       return 'override';
     }
-    // Master PIN only when the server is unreachable (emergency), and it verifies.
-    if (!connected && masterHash && (await verify(masterHash, pin))) {
+    // Master PIN is the emergency unlock — accepted in any state (it is
+    // build-injected per installation and never shown in the UI).
+    if (masterHash && (await this.safeVerifyPin(masterHash, pin))) {
       this._activateOverride();
       return 'master';
     }
     console.warn('[Agent] PIN verification failed');
     return false;
+  }
+
+  /** Verify against an Argon2id hash, treating malformed hashes as a mismatch. */
+  private async safeVerifyPin(hash: string, pin: string): Promise<boolean> {
+    try {
+      return await verify(hash, pin);
+    } catch (err) {
+      console.error('[Agent] PIN verification error (hash may be malformed):', err);
+      return false;
+    }
   }
 
   /**
@@ -248,6 +258,8 @@ export class AgentWebSocketClient {
     if (type === 'SET_OVERRIDE_PIN') {
       this.config.override_code_hash = payload.override_code_hash ?? null;
       if (this.configPath) saveAgentConfig(this.config as LoadedAgentConfig, this.configPath);
+      // Re-sync the renderer so Ctrl+Shift+O reflects the new PIN state.
+      this.platform.sendConfigToOverlay({ hasOverrideCode: Boolean(this.config.override_code_hash) });
     }
   }
 

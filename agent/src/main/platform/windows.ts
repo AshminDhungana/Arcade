@@ -174,13 +174,16 @@ export class WindowsPlatformService implements IPlatformService {
     let active = false;
     if (inWindow) {
       if (this.hotspotZone === 'minimal') {
-        // Full-height right-edge strip (matches .kiosk-trigger-zone minimal CSS)
-        active = cx >= bounds.width - WindowsPlatformService.HOT_ZONE_WIDTH;
+        // Full-height right-edge zone (~15% of the width). It covers both the
+        // edge strip and the Call Staff button (bottom right), so moving from
+        // the strip onto the button never trips the auto-hide dead state.
+        active = cx >= bounds.width - Math.max(WindowsPlatformService.HOT_ZONE_WIDTH, bounds.width * 0.15);
       } else {
-        // Bottom-right corner (matches the 20x20 CSS trigger zone)
+        // Bottom-right corner zone (~15% x 15%), covering the corner trigger
+        // and the Call Staff button so it stays visible while approaching it.
         active =
-          cx >= bounds.width - WindowsPlatformService.HOT_ZONE_WIDTH &&
-          cy >= bounds.height - WindowsPlatformService.HOT_ZONE_WIDTH;
+          cx >= bounds.width - Math.max(WindowsPlatformService.HOT_ZONE_WIDTH, bounds.width * 0.15) &&
+          cy >= bounds.height - Math.max(WindowsPlatformService.HOT_ZONE_WIDTH, bounds.height * 0.15);
       }
     }
 
