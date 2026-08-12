@@ -2,7 +2,7 @@
 
 **Purpose:** Step-by-step, checkbox-driven checklist for engineers. Work top-to-bottom: test each feature area, fix any problem found (one at a time), verify the fix, then check off the item.
 
-**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Section 0 (setup + baseline gates) is complete as of commit `92eb500`** — testing of Sections A–M may begin.
+**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0 and A are complete** (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections B–M may begin.
 
 ## How to use this checklist
 
