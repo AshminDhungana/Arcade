@@ -576,12 +576,19 @@ def run_self_tests(launcher_artifacts: list[Path], agent_artifacts: list[Path]) 
     agent_exe = None
     for artifact in agent_artifacts:
         if artifact.is_dir():
-            # Look for built agent executable
-            for exe in artifact.rglob("*.exe"):
-                if "Arcade" in exe.name and "Agent" in exe.name:
-                    agent_exe = exe
-                    break
-            if not agent_exe:
+            # Look for built agent executable (prefer the unpacked app
+            # binary over the NSIS installer; the installer does not
+            # understand --smoke-test)
+            candidates = [
+                exe
+                for exe in artifact.rglob("*.exe")
+                if "Arcade" in exe.name
+                and "Agent" in exe.name
+                and "Setup" not in exe.name
+            ]
+            if candidates:
+                agent_exe = candidates[0]
+            else:
                 # macOS .app bundle
                 for app in artifact.rglob("*.app"):
                     agent_exe = app
@@ -589,7 +596,18 @@ def run_self_tests(launcher_artifacts: list[Path], agent_artifacts: list[Path]) 
             if agent_exe:
                 break
         elif artifact.suffix.lower() in {".exe", ".appimage", ".dmg", ".app"}:
-            agent_exe = artifact
+            if artifact.name.lower().endswith(".exe"):
+                # NSIS installer — prefer the unpacked app binary beside it
+                for exe in artifact.parent.rglob("*.exe"):
+                    if (
+                        "Arcade" in exe.name
+                        and "Agent" in exe.name
+                        and "Setup" not in exe.name
+                    ):
+                        agent_exe = exe
+                        break
+            if agent_exe is None:
+                agent_exe = artifact
             break
 
     if agent_exe and agent_exe.exists():

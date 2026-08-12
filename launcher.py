@@ -1384,6 +1384,11 @@ def _run_server(host: str, port: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Run CI smoke test (flag form used by build.py and CI)",
+    )
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # Self-test command (existing)
@@ -1402,7 +1407,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    if args.command == "self-test":
+    if args.command == "self-test" or args.self_test:
         sys.exit(run_self_test())
     elif args.command == "run-server":
         _run_server(args.host, args.port)

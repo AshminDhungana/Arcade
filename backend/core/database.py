@@ -18,21 +18,19 @@ import secrets
 import sys
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 
 from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-T = TypeVar("T")
-
 # ---------------------------------------------------------------------------
 # Retry helper for SQLite busy/locked errors
 # ---------------------------------------------------------------------------
 
 
-async def _with_retry(
+async def _with_retry[T](
     coro_func: Callable[[], Awaitable[T]],
     retries: int = 3,
     base_delay: float = 0.1,

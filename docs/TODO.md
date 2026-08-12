@@ -44,15 +44,15 @@ cd backend/tests/load && python seed_load_test.py   # see README.md
 
 Run these before any feature testing. If a gate fails, fix it first — everything below depends on these being green.
 
-- [ ] **0.1 Environment ready** — venv exists with `backend/requirements.txt` installed; `cd frontend && npm install` and `cd agent && npm install` complete.
-- [ ] **0.2 Backend test suite green** — `python -m pytest backend/` passes with 0 failures (ignore unrelated skips).
-- [ ] **0.3 Frontend test suite green** — `cd frontend && npm test -- --run` passes with 0 failures.
-- [ ] **0.4 Launcher tests green** — `python -m pytest tests/test_launcher_*.py tests/launcher/` passes.
-- [ ] **0.5 Python lint clean** — `ruff check backend/` and `mypy --strict backend/` produce no errors.
-- [ ] **0.6 Frontend lint clean** — `cd frontend && npm run lint` passes.
-- [ ] **0.7 Agent lint clean** — `cd agent && npm run lint` passes.
-- [ ] **0.8 Integration suite green** — `python -m pytest backend/tests/integration/` passes (AC-01 through AC-22).
-- [ ] **0.9 Build self-check** — `python build.py --self-test` reports launcher and agent self-checks passing.
+- [x] **0.1 Environment ready** — venv exists with `backend/requirements.txt` installed; `cd frontend && npm install` and `cd agent && npm install` complete.
+- [x] **0.2 Backend test suite green** — `python -m pytest backend/` passes with 0 failures (ignore unrelated skips).
+- [x] **0.3 Frontend test suite green** — `cd frontend && npm test -- --run` passes with 0 failures.
+- [x] **0.4 Launcher tests green** — `python -m pytest tests/test_launcher_*.py tests/launcher/` passes.
+- [x] **0.5 Python lint clean** — `ruff check backend/` and `mypy --strict backend/` produce no errors.
+- [x] **0.6 Frontend lint clean** — `cd frontend && npm run lint` passes.
+- [x] **0.7 Agent lint clean** — `cd agent && npm run lint` passes.
+- [x] **0.8 Integration suite green** — `python -m pytest backend/tests/integration/` passes (AC-01 through AC-22).
+- [x] **0.9 Build self-check** — `python build.py --self-test` reports launcher and agent self-checks passing.
 
 **Done when:** gates 0.1–0.9 are all checked off and committed.
 
@@ -264,8 +264,10 @@ When an item fails, follow this loop **before** moving to the next item:
 
 | Date | Area | Item | Problem found | Fix commit |
 |------|------|------|---------------|------------|
-|      |      |      |               |            |
-|      |      |      |               |            |
+| 2026-08-12 | Setup gates | 0.3 | Node 22+ experimental `localStorage` shadowed jsdom's in vitest (vitest-dev/vitest#10867), breaking 13 frontend tests | (this commit) |
+| 2026-08-12 | Setup gates | 0.4 | `launcher.py` only accepted the `self-test` subcommand, but build.py/CI/tests invoke `--self-test` as a flag | (this commit) |
+| 2026-08-12 | Setup gates | 0.5 | ruff UP047: `_with_retry` should use PEP 695 type parameters | (this commit) |
+| 2026-08-12 | Setup gates | 0.9 | build.py ran agent smoke-test against the NSIS installer, which doesn't understand `--smoke-test`; now targets `win-unpacked/Arcade Agent.exe` | (this commit) |
 
 ---
 
