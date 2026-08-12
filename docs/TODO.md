@@ -60,15 +60,15 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 
 ## Section A — Licensing, Launcher & Config
 
-- [ ] **A.1 Activation screen on fresh install** — delete `license.key` (and `arcade.config.json`); start `python launcher.py`. Verify: Activation screen appears, Hardware ID is displayed, no admin privileges required (uses `py-machineid`).
-- [ ] **A.2 Valid license activates** — activate with a key signed for this machine's HWID. Verify: setup wizard unlocks; `license.key` written; app proceeds to server start. Verify: `python -m pytest backend/tests/test_licensing.py backend/tests/test_keygen*.py`
-- [ ] **A.3 HWID mismatch rejected** — copy the same license to a different machine (or tamper with HWID sources). Verify: activation fails with a clear message, app stays on activation screen. Existing data (db, config) untouched.
-- [ ] **A.4 Corrupted/missing license** — corrupt `license.key` bytes. Verify: signature check fails, app returns to activation screen, no crash, no data corruption.
-- [ ] **A.5 Trial license expiry** — issue a trial license with past/future expiry. Verify: past-expiry rejected; valid trial proceeds.
-- [ ] **A.6 Launcher start/stop lifecycle** — Start server via Launcher → confirm toolbar/setup state → stop server. Verify uvicorn subprocess spawns and terminates cleanly.
-- [ ] **A.7 Exit while server running** — click Launcher "X" with server up. Verify: confirmation dialog appears; Yes stops server + exits; No keeps both running. Verify: `python -m pytest tests/test_launcher_ipc.py`
-- [ ] **A.8 Setup wizard persists config** — complete wizard (cafe name, zones, seats, printer). Verify: `arcade.config.json` written correctly; wizard re-run shows saved values; cafe name shown in agent overlay (see I.4).
-- [ ] **A.9 Launcher UI regression** — theme, motion, and widget modules render correctly (Windows). Verify: `python -m pytest tests/launcher/`
+- [x] **A.1 Activation screen on fresh install** — delete `license.key` (and `arcade.config.json`); start `python launcher.py`. Verify: Activation screen appears, Hardware ID is displayed, no admin privileges required (uses `py-machineid`).
+- [x] **A.2 Valid license activates** — activate with a key signed for this machine's HWID. Verify: setup wizard unlocks; `license.key` written; app proceeds to server start. Verify: `python -m pytest backend/tests/test_licensing.py backend/tests/test_keygen*.py`
+- [x] **A.3 HWID mismatch rejected** — copy the same license to a different machine (or tamper with HWID sources). Verify: activation fails with a clear message, app stays on activation screen. Existing data (db, config) untouched.
+- [x] **A.4 Corrupted/missing license** — corrupt `license.key` bytes. Verify: signature check fails, app returns to activation screen, no crash, no data corruption.
+- [x] **A.5 Trial license expiry** — issue a trial license with past/future expiry. Verify: past-expiry rejected; valid trial proceeds.
+- [x] **A.6 Launcher start/stop lifecycle** — Start server via Launcher → confirm toolbar/setup state → stop server. Verify uvicorn subprocess spawns and terminates cleanly.
+- [x] **A.7 Exit while server running** — click Launcher "X" with server up. Verify: confirmation dialog appears; Yes stops server + exits; No keeps both running. Verify: `python -m pytest tests/test_launcher_ipc.py`
+- [x] **A.8 Setup wizard persists config** — complete wizard (cafe name, zones, seats, printer). Verify: `arcade.config.json` written correctly; wizard re-run shows saved values; cafe name shown in agent overlay (see I.4).
+- [x] **A.9 Launcher UI regression** — theme, motion, and widget modules render correctly (Windows). Verify: `python -m pytest tests/launcher/`
 
 **Done when:** A.1–A.9 pass.
 
@@ -268,6 +268,7 @@ When an item fails, follow this loop **before** moving to the next item:
 | 2026-08-12 | Setup gates | 0.4 | `launcher.py` only accepted the `self-test` subcommand, but build.py/CI/tests invoke `--self-test` as a flag | `92eb500` |
 | 2026-08-12 | Setup gates | 0.5 | ruff UP047: `_with_retry` should use PEP 695 type parameters | `92eb500` |
 | 2026-08-12 | Setup gates | 0.9 | build.py ran agent smoke-test against the NSIS installer, which doesn't understand `--smoke-test`; now targets `win-unpacked/Arcade Agent.exe` | `92eb500` |
+| 2026-08-12 | Section A | A.1–A.9 | None found — all items passed on first run; tested against packaged `dist/Arcade Launcher.exe` (wizard writes config/db into `dist/`), tampered keys generated via `tools/keygen` | — |
 
 ---
 
