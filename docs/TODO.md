@@ -2,7 +2,7 @@
 
 **Purpose:** Step-by-step, checkbox-driven checklist for engineers. Work top-to-bottom: test each feature area, fix any problem found (one at a time), verify the fix, then check off the item.
 
-**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items.
+**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Section 0 (setup + baseline gates) is complete as of commit `92eb500`** — testing of Sections A–M may begin.
 
 ## How to use this checklist
 
@@ -264,10 +264,10 @@ When an item fails, follow this loop **before** moving to the next item:
 
 | Date | Area | Item | Problem found | Fix commit |
 |------|------|------|---------------|------------|
-| 2026-08-12 | Setup gates | 0.3 | Node 22+ experimental `localStorage` shadowed jsdom's in vitest (vitest-dev/vitest#10867), breaking 13 frontend tests | (this commit) |
-| 2026-08-12 | Setup gates | 0.4 | `launcher.py` only accepted the `self-test` subcommand, but build.py/CI/tests invoke `--self-test` as a flag | (this commit) |
-| 2026-08-12 | Setup gates | 0.5 | ruff UP047: `_with_retry` should use PEP 695 type parameters | (this commit) |
-| 2026-08-12 | Setup gates | 0.9 | build.py ran agent smoke-test against the NSIS installer, which doesn't understand `--smoke-test`; now targets `win-unpacked/Arcade Agent.exe` | (this commit) |
+| 2026-08-12 | Setup gates | 0.3 | Node 22+ experimental `localStorage` shadowed jsdom's in vitest (vitest-dev/vitest#10867), breaking 13 frontend tests | `92eb500` |
+| 2026-08-12 | Setup gates | 0.4 | `launcher.py` only accepted the `self-test` subcommand, but build.py/CI/tests invoke `--self-test` as a flag | `92eb500` |
+| 2026-08-12 | Setup gates | 0.5 | ruff UP047: `_with_retry` should use PEP 695 type parameters | `92eb500` |
+| 2026-08-12 | Setup gates | 0.9 | build.py ran agent smoke-test against the NSIS installer, which doesn't understand `--smoke-test`; now targets `win-unpacked/Arcade Agent.exe` | `92eb500` |
 
 ---
 
