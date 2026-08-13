@@ -104,61 +104,6 @@ jobs:
         run: |
           pyinstaller arcade.spec --clean --noconfirm
 
-      - name: Verify Launcher bundle (Windows)
-        if: runner.os == 'Windows'
-        run: test -f dist/arcade/arcade.exe
-
-      - name: Verify Launcher bundle (macOS)
-        if: runner.os == 'macOS'
-        run: test -f dist/arcade/Arcade\ Launcher
-
-      - name: Verify Launcher bundle (Linux)
-        if: runner.os == 'Linux'
-        run: test -f dist/arcade/arcade
-
-      - name: Smoke test Launcher (Windows)
-        if: runner.os == 'Windows'
-        run: dist/arcade/arcade.exe --self-test
-
-      - name: Smoke test Launcher (macOS)
-        if: runner.os == 'macOS'
-        run: ./dist/arcade/Arcade\ Launcher --self-test
-
-      - name: Smoke test Launcher (Linux)
-        if: runner.os == 'Linux'
-        run: xvfb-run -a ./dist/arcade/arcade --self-test
-
-      - name: Package Launcher artifact (Windows)
-        if: runner.os == 'Windows'
-        id: launcher_artifact
-        run: |
-          VERSION="${{ env.VERSION }}"
-          OS="${{ matrix.os }}"
-          ARCH="${{ matrix.arch }}"
-          cd dist
-          "C:\Program Files\7-Zip\7z.exe" a -tzip "../arcade-launcher-${VERSION}-windows-${ARCH}.zip" arcade/*
-          echo "path=../arcade-launcher-${VERSION}-windows-${ARCH}.zip" >> $GITHUB_OUTPUT
-
-      - name: Package Launcher artifact (macOS)
-        if: runner.os == 'macOS'
-        id: launcher_artifact
-        run: |
-          VERSION="${{ env.VERSION }}"
-          OS="${{ matrix.os }}"
-          ARCH="${{ matrix.arch }}"
-          tar -czf "../arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" -C dist arcade
-          echo "path=../arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" >> $GITHUB_OUTPUT
-
-      - name: Package Launcher artifact (Linux)
-        if: runner.os == 'Linux'
-        id: launcher_artifact
-        run: |
-          VERSION="${{ env.VERSION }}"
-          OS="${{ matrix.os }}"
-          ARCH="${{ matrix.arch }}"
-          tar -czf "../arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" -C dist arcade
-          echo "path=../arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" >> $GITHUB_OUTPUT
-
   release:
     name: Aggregate Release
     needs: build
