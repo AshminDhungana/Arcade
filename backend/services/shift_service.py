@@ -21,6 +21,7 @@ from backend.models._enums import (
     SessionStatus,
     ShiftStatus,
 )
+from backend.models.settings import AppSettings
 from backend.repositories import invoice_repo, session_repo, shift_repo
 from backend.schemas.shift import (
     ShiftCurrentResponse,
@@ -84,6 +85,20 @@ _UNPRINTED_STATUSES = (InvoicePrintStatus.FAILED, InvoicePrintStatus.SKIPPED)
 # warning when unprinted invoices exist for the shift.
 _BLOCK_SHIFT_CLOSE_FLAG = "block_shift_close_unprinted"
 
+_VARIANCE_THRESHOLD_KEY = "shift_cash_variance_threshold"
+_DEFAULT_VARIANCE_THRESHOLD_PAISE = 5000
+
+
+async def _read_variance_threshold(db: AsyncSession) -> int:
+    """Read the admin-editable variance threshold (paise); 5000 when unset/bad."""
+    row = await db.get(AppSettings, _VARIANCE_THRESHOLD_KEY)
+    if row is None:
+        return _DEFAULT_VARIANCE_THRESHOLD_PAISE
+    try:
+        return int(row.value)
+    except ValueError:
+        return _DEFAULT_VARIANCE_THRESHOLD_PAISE
+
 
 async def get_current_shift(db: AsyncSession) -> Shift | None:
     """Return the currently OPEN shift, or ``None``."""
@@ -133,6 +148,19 @@ async def close_shift(
         staff_id=staff_id,
         detail=f"counted_paise={closing_cash_paise}",
     )
+
+    totals = await _compute_live_totals(db, shift)
+    variance = closing_cash_paise - totals.expected_cash_paise
+    threshold = await _read_variance_threshold(db)
+    if abs(variance) > threshold:
+        await audit_service.log(
+            db,
+            action=AuditAction.SHIFT_VARIANCE,
+            entity_type="shift",
+            entity_id=shift.id,
+            staff_id=staff_id,
+            detail=f"variance_paise={variance};threshold_paise={threshold}",
+        )
 
     if unprinted:
         await audit_service.log(
@@ -245,6 +273,8 @@ async def get_shift_report(db: AsyncSession, *, shift_id: str) -> ShiftReportRes
         if shift.counted_paise is not None
         else None
     )
+    threshold = await _read_variance_threshold(db)
+    variance_flagged = variance_paise is not None and abs(variance_paise) > threshold
     report = ShiftReport(
         shift=shift,
         session_count=totals.session_count,
@@ -264,4 +294,5 @@ async def get_shift_report(db: AsyncSession, *, shift_id: str) -> ShiftReportRes
         cash_collected_paise=report.cash_collected_paise,
         expected_cash_paise=report.expected_cash_paise,
         variance_paise=report.variance_paise,
+        variance_flagged=variance_flagged,
     )

@@ -367,3 +367,99 @@ async def test_close_shift_flag_off_by_default_blocks_nothing(db: AsyncSession) 
     await _make_failed_invoice(db, shift.id)
     closed = await close_shift(db, staff_id="staff-1", closing_cash_paise=5000)
     assert closed.status == ShiftStatus.CLOSED
+
+
+async def _set_threshold(db: AsyncSession, paise: str) -> None:
+    from backend.models.settings import AppSettings
+
+    db.add(AppSettings(key="shift_cash_variance_threshold", value=paise))
+    await db.flush()
+
+
+def test_shift_variance_audit_action_defined() -> None:
+    assert AuditAction.SHIFT_VARIANCE.value == "SHIFT_VARIANCE"
+
+
+def test_shift_variance_threshold_seeded_default() -> None:
+    from backend.core.bootstrap import DEFAULT_FEATURE_FLAGS
+
+    assert DEFAULT_FEATURE_FLAGS["shift_cash_variance_threshold"] == "5000"
+
+
+async def test_close_shift_audits_variance_over_threshold(db: AsyncSession) -> None:
+    await _set_threshold(db, "100")
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    sess = await session_repo.create(
+        db,
+        seat_id="seat-1",
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        shift_id=shift.id,
+    )
+    await invoice_repo.create(
+        db,
+        session_id=sess.id,
+        shift_id=shift.id,
+        payment_method=PaymentMethod.CASH,
+        total_paise=1500,
+    )
+    # expected = 6500, counted = 6800 -> variance +300 > 100 -> flagged
+    await close_shift(db, staff_id="staff-1", closing_cash_paise=6800)
+    logs = await audit_repo.list(db, action=AuditAction.SHIFT_VARIANCE.value)
+    assert len(logs) == 1
+    assert "variance_paise=300" in logs[0].detail
+    assert "threshold_paise=100" in logs[0].detail
+
+
+async def test_close_shift_no_variance_audit_within_threshold(db: AsyncSession) -> None:
+    await _set_threshold(db, "100")
+    await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    # variance = +50 <= 100 -> not flagged
+    await close_shift(db, staff_id="staff-1", closing_cash_paise=5050)
+    logs = await audit_repo.list(db, action=AuditAction.SHIFT_VARIANCE.value)
+    assert logs == []
+
+
+async def test_close_shift_no_variance_audit_without_threshold_row(
+    db: AsyncSession,
+) -> None:
+    """Default threshold 5000 applies when no setting row exists."""
+    await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    # variance = +1000 <= 5000 -> not flagged
+    await close_shift(db, staff_id="staff-1", closing_cash_paise=6000)
+    logs = await audit_repo.list(db, action=AuditAction.SHIFT_VARIANCE.value)
+    assert logs == []
+
+
+async def test_get_shift_report_variance_flagged_when_over_threshold(
+    db: AsyncSession,
+) -> None:
+    await _set_threshold(db, "100")
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    sess = await session_repo.create(
+        db,
+        seat_id="seat-1",
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        shift_id=shift.id,
+    )
+    await invoice_repo.create(
+        db,
+        session_id=sess.id,
+        shift_id=shift.id,
+        payment_method=PaymentMethod.CASH,
+        total_paise=1500,
+    )
+    await close_shift(db, staff_id="staff-1", closing_cash_paise=6800)
+    report = await get_shift_report(db, shift_id=shift.id)
+    assert report.variance_paise == 300
+    assert report.variance_flagged is True
+
+
+async def test_get_shift_report_not_flagged_within_threshold(
+    db: AsyncSession,
+) -> None:
+    await _set_threshold(db, "100")
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+    await close_shift(db, staff_id="staff-1", closing_cash_paise=5050)
+    report = await get_shift_report(db, shift_id=shift.id)
+    assert report.variance_paise == 50
+    assert report.variance_flagged is False

@@ -35,6 +35,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, str] = {
     "enable_tuya": "false",
     "require_print_before_release": "false",
     "block_shift_close_unprinted": "false",
+    "shift_cash_variance_threshold": "5000",
     "overlay_pauses_billing": "true",
     "enable_assigned_time_limit": "false",
 }

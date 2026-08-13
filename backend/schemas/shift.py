@@ -50,6 +50,7 @@ class ShiftReportResponse(BaseResponseSchema):
     cash_collected_paise: int
     expected_cash_paise: int
     variance_paise: int | None = None
+    variance_flagged: bool = False
 
 
 class ShiftCurrentResponse(BaseResponseSchema):
