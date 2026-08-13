@@ -48,10 +48,12 @@ vi.mock('@/api/seats', () => ({
   forceOverlay: vi.fn().mockResolvedValue(undefined),
   generateEnrollCode: vi.fn().mockResolvedValue({ code: 'TEST123', expires_at: '2024-01-01T00:00:00Z' }),
   regenerateOverridePin: vi.fn().mockResolvedValue({ override_pin: '123456' }),
+  setMaintenance: vi.fn().mockResolvedValue(undefined),
+  clearMaintenance: vi.fn().mockResolvedValue(undefined),
   useSeat: vi.fn(),
 }));
 
-const { forceOverlay } = await import('@/api/seats');
+const { forceOverlay, setMaintenance, clearMaintenance } = await import('@/api/seats');
 const { useSeat } = await import('@/api/seats');
 
 // Helper to create a mock UseQueryResult
@@ -102,6 +104,8 @@ const mockSeat: Seat = {
   wol_failures: 0,
   overlay_forced: false,
   assigned_end_at: null,
+  maintenance_since: null,
+  maintenance_duration_seconds: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -227,6 +231,86 @@ describe('SeatActionModal', () => {
       { seat_id: 'seat-1', member_id: null, assigned_minutes: 120 },
       expect.any(Object),
     );
+  });
+});
+
+describe('SeatActionModal maintenance (C.11)', () => {
+  const ADMIN = {
+    id: 'admin-1',
+    name: 'Admin',
+    role: 'ADMIN',
+    is_active: true,
+  };
+
+  const CASHIER = {
+    id: 'cashier-1',
+    name: 'Cashier',
+    role: 'CASHIER',
+    is_active: true,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthStore.setState({ accessToken: 'tok', staff: ADMIN });
+    vi.mocked(useSeat).mockReturnValue(createMockQueryResult(mockSeat, false, false, null));
+  });
+
+  it('admin sees the Maintenance button on a non-MAINTENANCE seat', () => {
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+    expect(screen.getByRole('button', { name: /^maintenance$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /clear maintenance/i })).not.toBeInTheDocument();
+  });
+
+  it('cashier sees neither Maintenance nor Clear Maintenance', () => {
+    useAuthStore.setState({ accessToken: 'tok', staff: CASHIER });
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+    expect(screen.queryByRole('button', { name: /^maintenance$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /clear maintenance/i })).not.toBeInTheDocument();
+  });
+
+  it('Maintenance opens a note field; Confirm calls setMaintenance with the note', async () => {
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+    fireEvent.click(screen.getByRole('button', { name: /maintenance/i }));
+    const input = screen.getByLabelText(/maintenance note/i);
+    fireEvent.change(input, { target: { value: 'Fan noisy' } });
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+    await waitFor(() => expect(setMaintenance).toHaveBeenCalledWith('seat-1', 'Fan noisy'));
+  });
+
+  it('Cancel resets the note mode without calling the API', () => {
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+    fireEvent.click(screen.getByRole('button', { name: /maintenance/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(setMaintenance).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(/maintenance note/i)).not.toBeInTheDocument();
+  });
+
+  it('MAINTENANCE seat shows Clear Maintenance + downtime line; Clear calls the API', async () => {
+    const maintSeat = {
+      ...mockSeat,
+      status: SeatStatus.MAINTENANCE,
+      notes: 'Fan noisy',
+      maintenance_since: '2026-08-13T06:00:00Z',
+      maintenance_duration_seconds: 600,
+    } as Seat;
+    vi.mocked(useSeat).mockReturnValue(createMockQueryResult(maintSeat, false, false, null));
+
+    render(<SeatActionModal seat={maintSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+
+    expect(screen.getByRole('button', { name: /clear maintenance/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^maintenance$/i })).not.toBeInTheDocument();
+    expect(screen.getByTestId('maintenance-since')).toBeInTheDocument();
+    expect(screen.getByText(/Fan noisy/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /clear maintenance/i }));
+    await waitFor(() => expect(clearMaintenance).toHaveBeenCalledWith('seat-1'));
+  });
+
+  it('ESC in the note field aborts maintenance mode', () => {
+    render(<SeatActionModal seat={mockSeat} onClose={vi.fn()} />, { wrapper: makeWrapper() });
+    fireEvent.click(screen.getByRole('button', { name: /maintenance/i }));
+    fireEvent.keyDown(screen.getByLabelText(/maintenance note/i), { key: 'Escape' });
+    expect(screen.queryByLabelText(/maintenance note/i)).not.toBeInTheDocument();
   });
 });
 

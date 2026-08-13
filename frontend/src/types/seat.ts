@@ -27,6 +27,11 @@ export interface Seat {
   notes: string | null;
   overlay_forced: boolean;
   assigned_end_at: string | null;  // Epic 6.5.4: active session's assigned expiry; null when no limit set
+  /** Maintenance downtime tracking (C.11): UTC ISO when the seat was marked
+   *  MAINTENANCE; null when not under maintenance. */
+  maintenance_since: string | null;
+  /** Live downtime in seconds, computed server-side while MAINTENANCE. */
+  maintenance_duration_seconds: number | null;
   wol_attempts: number;
   wol_successes: number;
   wol_failures: number;

@@ -24,7 +24,9 @@ const { useSeat } = await import('@/api/seats');
 const inUseSeat: Seat = {
   id: 'seat-1', name: 'PC-01', zone_id: 'zone-1', mac_address: null,
   status: SeatStatus.IN_USE, plug_id: null, is_console: false, notes: null,
-  overlay_forced: false, assigned_end_at: null, wol_attempts: 0, wol_successes: 0,
+  overlay_forced: false, assigned_end_at: null,
+    maintenance_since: null,
+    maintenance_duration_seconds: null, wol_attempts: 0, wol_successes: 0,
   wol_failures: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z',
   current_session_id: 'sess-1',
 };

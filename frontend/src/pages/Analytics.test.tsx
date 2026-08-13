@@ -43,12 +43,14 @@ const SEATS: Seat[] = [
     id: 's1', name: 'PC-01', zone_id: 'z', mac_address: null, status: SeatStatus.AVAILABLE,
     plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0,
     wol_failures: 0, overlay_forced: false, assigned_end_at: null,
+    maintenance_since: null, maintenance_duration_seconds: null,
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   },
   {
     id: 's2', name: 'PC-02', zone_id: 'z', mac_address: null, status: SeatStatus.OFFLINE,
     plug_id: null, is_console: false, notes: null, wol_attempts: 0, wol_successes: 0,
     wol_failures: 0, overlay_forced: false, assigned_end_at: null,
+    maintenance_since: null, maintenance_duration_seconds: null,
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   },
 ];

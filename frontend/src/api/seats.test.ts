@@ -15,6 +15,8 @@ describe('Seat types', () => {
       notes: null,
       overlay_forced: false,
       assigned_end_at: null,
+      maintenance_since: null,
+      maintenance_duration_seconds: null,
       wol_attempts: 0,
       wol_successes: 0,
       wol_failures: 0,

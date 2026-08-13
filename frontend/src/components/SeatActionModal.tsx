@@ -1,12 +1,13 @@
 import type { Seat } from '@/types/seat';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, Play, Power, Settings, ShoppingCart, Heart, User, X, Lock, Unlock } from 'lucide-react';
 import { MemberSearch } from './MemberSearch';
 import { useStartSession } from '@/api/sessions';
-import { generateEnrollCode, regenerateOverridePin, forceOverlay, useSeat } from '@/api/seats';
+import { generateEnrollCode, regenerateOverridePin, forceOverlay, setMaintenance, clearMaintenance, useSeat } from '@/api/seats';
 import { toast } from '@/store/toastStore';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
+import { useAuthStore } from '@/store/authStore';
 import type { Member } from '@/types/members';
 
 interface SeatActionModalProps {
@@ -21,15 +22,30 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
   const [member, setMember] = useState<Member | null>(null);
   const [assignedMinutes, setAssignedMinutes] = useState<string>('');
   const [forceOverlayLoading, setForceOverlayLoading] = useState<'on' | 'off' | null>(null);
+  const [maintenanceMode, setMaintenanceMode] = useState<'idle' | 'note'>('idle');
+  const [maintenanceNote, setMaintenanceNote] = useState('');
+  const [maintenancePending, setMaintenancePending] = useState(false);
+  const [now, setNow] = useState<Date>(() => new Date());
   const startSession = useStartSession();
   const memberRequired = useFeatureFlagStore((s) => s.flags.require_member_for_session);
   const assignedTimeEnabled = useFeatureFlagStore((s) => s.flags.enable_assigned_time_limit);
+  const isAdmin = useAuthStore((s) => s.staff?.role === 'ADMIN');
 
   // Use useSeat hook for real-time data with prop as initialData
   const { data: seatData } = useSeat(seat.id, { initialData: seat });
 
   // Use seatData (fresh from query) or fall back to seat prop
   const currentSeat = seatData ?? seat;
+
+  const isMaintenance = currentSeat.status === 'MAINTENANCE';
+
+  // Tick once per second while the seat is under maintenance so the
+  // downtime display stays live (cleared on unmount / status change).
+  useEffect(() => {
+    if (!isMaintenance || !currentSeat.maintenance_since) return;
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, [isMaintenance, currentSeat.maintenance_since]);
 
   const handleStartSession = () => {
     const parsed = assignedMinutes.trim() === '' ? null : Number(assignedMinutes);
@@ -70,6 +86,44 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
       setForceOverlayLoading(null);
     }
   };
+
+  const handleSetMaintenance = async () => {
+    setMaintenancePending(true);
+    try {
+      await setMaintenance(currentSeat.id, maintenanceNote.trim() || null);
+      toast.success('Seat marked for maintenance');
+      setMaintenanceNote('');
+      setMaintenanceMode('idle');
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setMaintenancePending(false);
+    }
+  };
+
+  const handleClearMaintenance = async () => {
+    setMaintenancePending(true);
+    try {
+      await clearMaintenance(currentSeat.id);
+      toast.success('Maintenance cleared');
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setMaintenancePending(false);
+    }
+  };
+
+  const abortMaintenanceNote = () => {
+    setMaintenanceNote('');
+    setMaintenanceMode('idle');
+  };
+
+  // Ticking downtime display: local clock vs the server's maintenance_since
+  const sinceMs = currentSeat.maintenance_since
+    ? new Date(currentSeat.maintenance_since).getTime()
+    : null;
+  const downtimeSeconds =
+    sinceMs !== null ? Math.max(0, (now.getTime() - sinceMs) / 1000) : null;
 
   return (
     <div
@@ -152,7 +206,74 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
           <ActionButton icon={<ShoppingCart className="h-5 w-5" />} label="Checkout" variant="emerald" />
           <ActionButton icon={<Power className="h-5 w-5" />} label="Wake-on-LAN" variant="secondary" />
           <ActionButton icon={<Heart className="h-5 w-5" />} label="View Health" variant="secondary" />
-          <ActionButton icon={<Settings className="h-5 w-5" />} label="Maintenance" variant="secondary" />
+          {isAdmin && isMaintenance && (
+            <div className="col-span-2 space-y-2">
+              {downtimeSeconds !== null && (
+                <p
+                  data-testid="maintenance-since"
+                  className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-400"
+                >
+                  In maintenance since{' '}
+                  <span className="font-medium">{new Date(currentSeat.maintenance_since!).toLocaleTimeString()}</span>{' '}
+                  · <span className="font-mono">{formatDuration(downtimeSeconds)}</span>
+                </p>
+              )}
+              <ActionButton
+                icon={<Settings className="h-5 w-5" />}
+                label="Clear Maintenance"
+                variant="secondary"
+                onClick={handleClearMaintenance}
+                disabled={maintenancePending}
+              >
+                {maintenancePending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              </ActionButton>
+            </div>
+          )}
+          {isAdmin && !isMaintenance && maintenanceMode === 'note' && (
+            <div className="col-span-2 space-y-2">
+              <label
+                className="block text-xs font-medium text-muted-foreground"
+                htmlFor="maintenance-note"
+              >
+                Maintenance note
+              </label>
+              <input
+                id="maintenance-note"
+                aria-label="Maintenance note"
+                autoFocus
+                value={maintenanceNote}
+                onChange={(e) => setMaintenanceNote(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') abortMaintenanceNote();
+                }}
+                placeholder="Reason for maintenance…"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-card-foreground"
+              />
+              <div className="flex gap-2">
+                <ActionButton
+                  icon={<Settings className="h-5 w-5" />}
+                  label="Confirm"
+                  variant="primary"
+                  onClick={handleSetMaintenance}
+                  disabled={maintenancePending}
+                />
+                <ActionButton
+                  label="Cancel"
+                  variant="secondary"
+                  onClick={abortMaintenanceNote}
+                  disabled={maintenancePending}
+                />
+              </div>
+            </div>
+          )}
+          {isAdmin && !isMaintenance && maintenanceMode === 'idle' && (
+            <ActionButton
+              icon={<Settings className="h-5 w-5" />}
+              label="Maintenance"
+              variant="secondary"
+              onClick={() => setMaintenanceMode('note')}
+            />
+          )}
           <ActionButton icon={<Settings className="h-5 w-5" />} label="Enroll Code" variant="secondary" onClick={async () => {
             try {
               const { code } = await generateEnrollCode(currentSeat.id);
@@ -202,12 +323,22 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
 }
 
 interface ActionButtonProps {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   variant: 'primary' | 'secondary' | 'emerald';
   onClick?: () => void;
   disabled?: boolean;
   children?: ReactNode;
+}
+
+/** Format a duration in seconds as MM:SS or H:MM:SS for the downtime line. */
+function formatDuration(totalSeconds: number): string {
+  const s = Math.floor(totalSeconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
 }
 
 function ActionButton({ icon, label, variant, onClick, disabled, children }: ActionButtonProps) {

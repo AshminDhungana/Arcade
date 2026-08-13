@@ -93,6 +93,33 @@ export async function bulkForceOverlay(show: boolean): Promise<{
   };
 }
 
+/** Mark a seat as under maintenance with an optional note (admin only).
+ *  PATCH /api/seats/{id}/maintenance. Returns { note } on success. */
+export async function setMaintenance(seatId: string, note: string | null): Promise<void> {
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${API_BASE}/seats/${seatId}/maintenance`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+    body: JSON.stringify({ note }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to set maintenance: ${res.status} ${res.statusText}`);
+  }
+}
+
+/** Clear a seat's MAINTENANCE status back to AVAILABLE (admin only).
+ *  DELETE /api/seats/{id}/maintenance. */
+export async function clearMaintenance(seatId: string): Promise<void> {
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${API_BASE}/seats/${seatId}/maintenance`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to clear maintenance: ${res.status} ${res.statusText}`);
+  }
+}
+
 /** React Query hook for listing all seats.
  *  Invalidated automatically by `useWebSocket` on `seat_updated` events. */
 export function useSeats() {
