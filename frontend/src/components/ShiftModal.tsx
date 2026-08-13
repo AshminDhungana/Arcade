@@ -73,7 +73,7 @@ export function ShiftModal({ open, onClose }: ShiftModalProps) {
     );
   }
 
-  if (current === null) {
+  if (!current) {
     return (
       <Modal open={open} onClose={onClose} title="Shift">
         <div className="space-y-4">

@@ -20,19 +20,20 @@ const OPEN_CURRENT: ShiftCurrentResponse = {
   expected_cash_paise: 7500,
 };
 
-let openShiftMutate: (...args: unknown[]) => void;
-let closeShiftMutate: (...args: unknown[]) => void;
+type ShiftMutateOpts = { onSuccess?: () => void; onError?: (e: Error) => void };
+let openShiftMutate: (paise: number, opts?: ShiftMutateOpts) => void;
+let closeShiftMutate: (paise: number, opts?: ShiftMutateOpts) => void;
 let currentData: ShiftCurrentResponse | null;
 let thresholdPaise = '5000';
 
 vi.mock('@/api/shifts', () => ({
   useCurrentShift: () => ({ data: currentData, isPending: false }),
   useOpenShift: () => ({
-    mutate: (...a: unknown[]) => openShiftMutate(...a),
+    mutate: (paise: number, opts?: ShiftMutateOpts) => openShiftMutate(paise, opts),
     isPending: false,
   }),
   useCloseShift: () => ({
-    mutate: (...a: unknown[]) => closeShiftMutate(...a),
+    mutate: (paise: number, opts?: ShiftMutateOpts) => closeShiftMutate(paise, opts),
     isPending: false,
   }),
 }));
@@ -107,8 +108,8 @@ describe('ShiftModal', () => {
   it('toasts an error when close is blocked by unprinted invoices', async () => {
     const { toast } = await import('@/store/toastStore');
     currentData = OPEN_CURRENT;
-    closeShiftMutate = (_paise: number, opts: { onError: (e: Error) => void }) => {
-      opts.onError(new Error('UNPRINTED_INVOICES_BLOCK_SHIFT_CLOSE:count=1'));
+    closeShiftMutate = (_paise: number, opts?: ShiftMutateOpts) => {
+      opts?.onError?.(new Error('UNPRINTED_INVOICES_BLOCK_SHIFT_CLOSE:count=1'));
     };
     render(<ShiftModal open onClose={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /close shift/i }));
