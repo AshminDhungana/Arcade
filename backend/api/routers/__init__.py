@@ -18,6 +18,7 @@ from backend.api.routers.device_types import router as device_type_router
 from backend.api.routers.events import router as event_router
 from backend.api.routers.inventory import router as inventory_router
 from backend.api.routers.invoices import router as invoices_router
+from backend.api.routers.license import router as license_router
 from backend.api.routers.members import router as member_router
 from backend.api.routers.menu import router as menu_router
 from backend.api.routers.packages import router as package_router
@@ -69,6 +70,7 @@ routers: list[APIRouter] = [
     invoices_router,
     audit_router,
     settings_router,
+    license_router,
     member_router,
     package_router,
     promotion_router,

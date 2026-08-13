@@ -7,14 +7,13 @@ import tempfile
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-import pytest
-
 from backend.licensing import (
     LicenseError,
     LicenseResult,
     check_license,
     get_hardware_id,
 )
+from backend.main import app
 
 
 def test_license_verification_valid_signature(
@@ -201,12 +200,27 @@ def test_license_verification_hardware_id_collection(
         assert overridden == "test-override-12345"
 
 
-def test_license_endpoint_requires_admin(
+async def test_license_endpoint_requires_admin(
     integration_client, integration_db, seeded_zone, seeded_seat
 ):
-    """POST /api/license/verify requires ADMIN role -
-    SKIPPED: endpoint not implemented yet."""
-    pytest.skip("License verification endpoint not yet implemented")
+    """POST /api/license/verify is admin-only; a cashier gets 403."""
+    from backend.api.deps import get_current_staff
+    from backend.models._enums import StaffRole
+
+    class _S:
+        id = "mock-cashier"
+        name = "Cashier"
+        is_active = True
+        token_version = 0
+
+    s = _S()
+    s.role = StaffRole.CASHIER
+    app.dependency_overrides[get_current_staff] = lambda: s
+    try:
+        resp = await integration_client.post("/api/license/verify")
+        assert resp.status_code == 403
+    finally:
+        app.dependency_overrides.pop(get_current_staff, None)
 
 
 def test_license_check_returns_license_result_structure(
