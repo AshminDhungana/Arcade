@@ -38,3 +38,11 @@ jobs:
       VERSION: ${{ github.event.inputs.version || github.ref_name }}
     steps:
       - run: echo "matrix ok"
+
+  release:
+    name: Aggregate Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "release ok"
