@@ -31,6 +31,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, str] = {
     "enable_tournaments": "false",
     "enable_expense_tracking": "false",
     "enable_health_monitoring": "true",
+    "enable_wake_on_lan": "true",
     "require_member_for_session": "false",
     "enable_tuya": "false",
     "require_print_before_release": "false",

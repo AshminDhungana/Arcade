@@ -184,13 +184,14 @@ async def test_send_wol_to_seat_422_no_mac(
 async def test_boot_all_seats_sends_to_all_with_mac(
     db: AsyncSession, zone_and_seat_with_mac, zone_and_seat_no_mac
 ) -> None:
-    """boot_all_seats sends magic packets only to seats with a MAC."""
+    """boot_all_seats sends magic packets only to seats with a MAC (flag on)."""
     from backend.services import wol_service
 
     async def _noop_watchdog(*args, delay):  # noqa: ARG001
         pass
 
     with (
+        patch("backend.services.wol_service.get_flag", return_value=True),
         patch.object(wol_service, "_broadcast_seat_update", new=AsyncMock()),
         patch.object(wol_service, "_watchdog", new=_noop_watchdog),
         patch("socket.socket") as mock_sock,
@@ -204,6 +205,86 @@ async def test_boot_all_seats_sends_to_all_with_mac(
 
     # Only one seat had a MAC address
     assert len(result) == 1
+
+
+async def test_boot_all_seats_flag_off_sends_nothing(
+    db: AsyncSession, zone_and_seat_with_mac
+) -> None:
+    """C.6: with enable_wake_on_lan off, boot_all_seats sends no packets and
+    leaves every seat status untouched."""
+    from backend.services import wol_service
+
+    _, seat = zone_and_seat_with_mac
+    seat.status = SeatStatus.OFFLINE
+    await db.flush()
+
+    with (
+        patch("backend.services.wol_service.get_flag", return_value=False),
+        patch("socket.socket") as mock_sock,
+    ):
+        result = await wol_service.boot_all_seats(db)
+
+    assert result == []
+    mock_sock.assert_not_called()
+    refreshed = await seat_repo.get_by_id(db, seat.id)
+    assert refreshed.status == SeatStatus.OFFLINE
+    assert refreshed.wol_attempts == 0
+
+
+async def test_boot_all_seats_skips_maintenance(
+    db: AsyncSession, zone_and_seat_with_mac
+) -> None:
+    """C.6: seats under MAINTENANCE never receive magic packets, even with the
+    flag on."""
+    from backend.models import PricingModel, Zone
+    from backend.services import wol_service
+
+    _, seat = zone_and_seat_with_mac
+    seat.status = SeatStatus.MAINTENANCE
+    await db.flush()
+
+    healthy_zone = Zone(
+        name="Healthy Floor",
+        rate_per_minute_paise=5,
+        rate_per_hour_paise=300,
+        pricing_model=PricingModel.PER_MINUTE,
+    )
+    db.add(healthy_zone)
+    await db.flush()
+    healthy = await seat_repo.create(
+        db,
+        name="PC-HEALTHY",
+        zone_id=healthy_zone.id,
+        mac_address="11:22:33:44:55:66",
+    )
+    healthy.status = SeatStatus.AVAILABLE
+    await db.flush()
+
+    async def _noop_watchdog(*args, delay):  # noqa: ARG001
+        pass
+
+    captured = {}
+
+    def capture_sendto(packet, addr):
+        captured["packet"] = packet
+
+    with (
+        patch("backend.services.wol_service.get_flag", return_value=True),
+        patch.object(wol_service, "_broadcast_seat_update", new=AsyncMock()),
+        patch.object(wol_service, "_watchdog", new=_noop_watchdog),
+        patch("socket.socket") as mock_sock_class,
+    ):
+        mock_sock = MagicMock()
+        mock_sock.sendto.side_effect = capture_sendto
+        mock_sock_class.return_value = mock_sock
+
+        result = await wol_service.boot_all_seats(db)
+
+    assert result == [healthy.id]
+    assert captured["packet"] is not None
+    refreshed = await seat_repo.get_by_id(db, seat.id)
+    assert refreshed.status == SeatStatus.MAINTENANCE
+    assert refreshed.wol_attempts == 0
 
 
 # ---------------------------------------------------------------------------

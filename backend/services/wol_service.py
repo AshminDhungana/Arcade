@@ -11,6 +11,7 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.feature_flags import get_flag
 from backend.core.ws_manager import manager as ws_manager
 from backend.models._enums import AuditAction, SeatStatus
 from backend.models.seat import Seat
@@ -223,13 +224,24 @@ async def _watchdog(
 async def boot_all_seats(db: AsyncSession) -> list[str]:
     """Send WoL magic packets to all seats with a registered MAC address.
 
+    Gated by the ``enable_wake_on_lan`` feature flag (C.6): when the flag is
+    off, nothing is sent and no seat status changes. Seats under MAINTENANCE
+    are never woken, even with the flag on.
+
     Returns the list of seat IDs that received packets.
     """
+    if not get_flag("enable_wake_on_lan"):
+        logger.info("enable_wake_on_lan is off — boot_all_seats is a no-op")
+        return []
+
     seats = await seat_repo.list_with_mac(db)
     triggered: list[str] = []
     for seat in seats:
         if not seat.mac_address:
             logger.warning("Seat %s has no MAC address, skipping", seat.id)
+            continue
+        if seat.status == SeatStatus.MAINTENANCE:
+            logger.info("Seat %s is under MAINTENANCE, skipping WoL", seat.id)
             continue
         try:
             await _wakeup_seat(db, seat)
