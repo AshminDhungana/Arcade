@@ -2,7 +2,7 @@
 
 **Purpose:** Step-by-step, checkbox-driven checklist for engineers. Work top-to-bottom: test each feature area, fix any problem found (one at a time), verify the fix, then check off the item.
 
-**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A and B are complete** (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections B–M may begin.
+**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A, B and C are complete** (Section C as of commit `9232e73`) (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections D–M may begin.
 
 ## How to use this checklist
 
@@ -107,6 +107,8 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 - [x] **C.11 Maintenance mode** — mark a seat out of order with a note; verify badge, downtime tracking, and that sessions can't start on it. Verify: `test_seat_service.py` (maintenance_since + duration), `test_seat_router.py`, `test_startup.py::test_initialize_seat_statuses_preserves_maintenance`, `SeatActionModal.test.tsx` (note flow, Clear, downtime line).
 
 **Done when:** C.1–C.11 pass.
+
+**2026-08-13 pass:** all C.1–C.11 verified — C.1 (WS latency suite), C.2 (seat lifecycle + WoL packet suites), C.3 (sessions router/service), C.4/C.8 (new `test_c_recovery_sync.py`: pause excludes paused window, agent SHOW/HIDE_OVERLAY envelopes, crash-reconnect keeps IN_USE, ADOPT_ALE billed exactly once), C.5 (`test_ac02_api_performance.py`), C.6 (flag-gated boot + packet suite), C.7 (`test_ac07_sync_reconcile.py`), C.9 (`test_ac22_session_persistence.py`), C.10 (assigned-time e2e + sweep), C.11 (maintenance downtime tracking, startup survival, frontend note/Clear/downtime line). Full backend suite 1005 passed, frontend 354 passed, ruff + mypy strict + ESLint clean. Real-hardware steps (two-tab <100 ms, LAN pull, agent kill/restart, WoL restart) ride on RE-2's hardware walkthrough. Fixes landed in `9506695`, `30c0e75`, `9232e73`.
 
 ---
 
@@ -266,9 +268,9 @@ When an item fails, follow this loop **before** moving to the next item:
 
 | Date | Area | Item | Problem found | Fix commit |
 |------|------|------|---------------|------------|
-| 2026-08-13 | C.8 | SYNC reconciliation | `_handle_sync` returned `ADOPT_ALE` but never persisted the adopted elapsed — checkout billed the stale server anchor (spec §5 requires billing the adopted elapsed). | (uncommitted — Section C pass) |
-| 2026-08-13 | B.9 | audit API test | `test_audit_routes_are_read_only` failed: FastAPI 0.138 mounts included routers as `_IncludedRouter`, so `app.routes` no longer exposes flattened `/api/audit` routes; test now walks included routers. | (uncommitted — Section C pass) |
-| 2026-08-13 | C.11 | maintenance downtime | `initialize_seat_statuses` flipped every seat to OFFLINE at startup, silently dropping MAINTENANCE status + `maintenance_since` on restarts; now skips MAINTENANCE seats (spec §3). | (uncommitted — Section C pass) |
+| 2026-08-13 | C.8 | SYNC reconciliation | `_handle_sync` returned `ADOPT_ALE` but never persisted the adopted elapsed — checkout billed the stale server anchor (spec §5 requires billing the adopted elapsed). | `9506695` |
+| 2026-08-13 | B.9 | audit API test | `test_audit_routes_are_read_only` failed: FastAPI 0.138 mounts included routers as `_IncludedRouter`, so `app.routes` no longer exposes flattened `/api/audit` routes; test now walks included routers. | `9506695` |
+| 2026-08-13 | C.11 | maintenance downtime | `initialize_seat_statuses` flipped every seat to OFFLINE at startup, silently dropping MAINTENANCE status + `maintenance_since` on restarts; now skips MAINTENANCE seats (spec §3). | `9506695`, `30c0e75` |
 | 2026-08-12 | Setup gates | 0.3 | Node 22+ experimental `localStorage` shadowed jsdom's in vitest (vitest-dev/vitest#10867), breaking 13 frontend tests | `92eb500` |
 | 2026-08-12 | Setup gates | 0.4 | `launcher.py` only accepted the `self-test` subcommand, but build.py/CI/tests invoke `--self-test` as a flag | `92eb500` |
 | 2026-08-12 | Setup gates | 0.5 | ruff UP047: `_with_retry` should use PEP 695 type parameters | `92eb500` |
