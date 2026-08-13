@@ -17,8 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.deps import require_admin, require_cashier
 from backend.core.database import get_db
 from backend.core.feature_flags import refresh_flags
+from backend.models._enums import AuditAction
 from backend.models.settings import AppSettings
 from backend.models.staff import Staff
+from backend.services import audit_service
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -38,10 +40,10 @@ async def get_settings(
 async def patch_settings(
     updates: dict[str, str],
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    _staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_admin)] = None,  # noqa: B008
 ) -> dict[str, str]:
     """Update one or more settings rows (admin). Refreshes the flag cache so
-    503 gating flips live."""
+    503 gating flips live, and audits the change (B.8)."""
     if not updates:
         raise HTTPException(status_code=400, detail="No settings provided.")
     for key, value in updates.items():
@@ -54,5 +56,13 @@ async def patch_settings(
             row.value = str(value)
     await db.commit()
     await refresh_flags(db)
+    await audit_service.log(
+        db,
+        action=AuditAction.SETTINGS_CHANGED,
+        entity_type="settings",
+        entity_id=staff.id if staff else "unknown",
+        staff_id=staff.id if staff else None,
+        detail=f"keys={','.join(sorted(updates))}",
+    )
     result = await db.execute(select(AppSettings))
     return {r.key: r.value for r in result.scalars().all()}

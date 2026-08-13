@@ -17,9 +17,9 @@ from backend.core.database import Base
 from backend.core.feature_flags import _flag_cache, load_flags
 from backend.main import app
 from backend.models import Staff
-from backend.models._enums import StaffRole
+from backend.models._enums import AuditAction, StaffRole
 from backend.models.settings import AppSettings
-from backend.repositories import staff_repo
+from backend.repositories import audit_repo, staff_repo
 
 
 @pytest.fixture
@@ -106,3 +106,20 @@ async def test_patch_settings_event_banner_persists_and_returns(
 
     res_get3 = await client.get("/api/settings")
     assert res_get3.json().get("event_banner") == ""
+
+
+@pytest.mark.asyncio
+async def test_patch_settings_audits_settings_changed(
+    client: AsyncClient, db: AsyncSession, admin_staff: Staff
+):
+    res = await client.patch(
+        "/api/settings",
+        json={"enable_members": "false", "event_banner": "Weekend"},
+    )
+    assert res.status_code == 200
+
+    logs = await audit_repo.list(db, action=AuditAction.SETTINGS_CHANGED.value)
+    assert len(logs) == 1
+    assert logs[0].staff_id == admin_staff.id
+    assert logs[0].entity_type == "settings"
+    assert logs[0].detail == "keys=enable_members,event_banner"
