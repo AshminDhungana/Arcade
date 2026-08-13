@@ -2,6 +2,20 @@ name: Build Test
 on:
   push:
     branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version override (e.g., 1.0.0)'
+        required: false
+        type: string
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build ${{ matrix.os }}
