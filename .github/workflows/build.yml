@@ -2,7 +2,7 @@ name: Build All Platforms
 
 on:
   push:
-    branches-ignore: ['**']
+    branches: ['main']
     tags: ['v*']
   workflow_dispatch:
     inputs:
@@ -10,6 +10,10 @@ on:
         description: 'Version override (e.g., 1.0.0)'
         required: false
         type: string
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
