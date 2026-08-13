@@ -32,5 +32,9 @@ jobs:
             agent_target: appimage+deb
             node_version: '22'
             python_version: '3.12'
+    env:
+      PYTHON_VERSION: ${{ matrix.python_version }}
+      NODE_VERSION: ${{ matrix.node_version }}
+      VERSION: ${{ github.event.inputs.version || github.ref_name }}
     steps:
       - run: echo "matrix ok"
