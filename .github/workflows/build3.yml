@@ -106,17 +106,14 @@ jobs:
 
       - name: Package Launcher artifact (Windows)
         if: runner.os == 'Windows'
-        id: launcher_artifact_windows
         run: echo packaging-windows
 
       - name: Package Launcher artifact (macOS)
         if: runner.os == 'macOS'
-        id: launcher_artifact_macos
         run: echo packaging-macos
 
       - name: Package Launcher artifact (Linux)
         if: runner.os == 'Linux'
-        id: launcher_artifact_linux
         run: echo packaging-linux
 
   release:
