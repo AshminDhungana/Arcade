@@ -18,10 +18,15 @@ from backend.models._enums import (
     AuditAction,
     InvoicePrintStatus,
     PaymentMethod,
+    SessionStatus,
     ShiftStatus,
 )
 from backend.repositories import invoice_repo, session_repo, shift_repo
-from backend.schemas.shift import ShiftReportResponse, ShiftResponse
+from backend.schemas.shift import (
+    ShiftCurrentResponse,
+    ShiftReportResponse,
+    ShiftResponse,
+)
 from backend.services import audit_service
 
 
@@ -157,6 +162,70 @@ class ShiftReport:
     variance_paise: int | None
 
 
+@dataclass(frozen=True)
+class ShiftLiveTotals:
+    session_count: int
+    invoice_count: int
+    total_revenue_paise: int
+    pos_total_paise: int
+    expected_cash_paise: int
+    average_duration_seconds: float
+
+
+async def _compute_live_totals(db: AsyncSession, shift: Shift) -> ShiftLiveTotals:
+    """Shared reconciliation math for live totals and the close report."""
+    sessions = await session_repo.list_by_shift(db, shift.id)
+    invoices = await invoice_repo.list_by_shift(db, shift.id)
+
+    cash_collected_paise = sum(
+        i.total_paise for i in invoices if i.payment_method == PaymentMethod.CASH
+    )
+    total_revenue_paise = sum(i.total_paise for i in invoices)
+    pos_total_paise = sum(i.pos_total_paise for i in invoices)
+
+    completed = [
+        s
+        for s in sessions
+        if s.status == SessionStatus.COMPLETED and s.ended_at is not None
+    ]
+    if completed:
+        total = 0.0
+        for s in completed:
+            ended_at = s.ended_at
+            if ended_at is None:
+                continue
+            elapsed = (ended_at - s.started_at).total_seconds()
+            total += elapsed - s.total_paused_seconds
+        average_duration_seconds = total / len(completed)
+    else:
+        average_duration_seconds = 0.0
+
+    return ShiftLiveTotals(
+        session_count=len(sessions),
+        invoice_count=len(invoices),
+        total_revenue_paise=total_revenue_paise,
+        pos_total_paise=pos_total_paise,
+        expected_cash_paise=shift.float_paise + cash_collected_paise,
+        average_duration_seconds=average_duration_seconds,
+    )
+
+
+async def get_current_shift_totals(db: AsyncSession) -> ShiftCurrentResponse | None:
+    """Live shift-scoped totals for the currently OPEN shift, or ``None``."""
+    shift = await shift_repo.get_open_shift(db)
+    if shift is None:
+        return None
+    _attach_utc(shift)
+    totals = await _compute_live_totals(db, shift)
+    return ShiftCurrentResponse(
+        shift=ShiftResponse.model_validate(shift),
+        session_count=totals.session_count,
+        total_revenue_paise=totals.total_revenue_paise,
+        average_duration_seconds=totals.average_duration_seconds,
+        expected_cash_paise=totals.expected_cash_paise,
+    )
+
+
 async def get_shift_report(db: AsyncSession, *, shift_id: str) -> ShiftReportResponse:
     """Build a cash-reconciliation report for *shift_id*.
 
@@ -168,33 +237,22 @@ async def get_shift_report(db: AsyncSession, *, shift_id: str) -> ShiftReportRes
     if shift is None:
         raise HTTPException(status_code=404, detail="Shift not found")
 
-    sessions = await session_repo.list_by_shift(db, shift_id)
-    invoices = await invoice_repo.list_by_shift(db, shift_id)
+    totals = await _compute_live_totals(db, shift)
+    _attach_utc(shift)
 
-    cash_collected_paise = sum(
-        i.total_paise for i in invoices if i.payment_method == PaymentMethod.CASH
-    )
-    total_revenue_paise = sum(i.total_paise for i in invoices)
-    pos_total_paise = sum(i.pos_total_paise for i in invoices)
-    expected_cash_paise = shift.float_paise + cash_collected_paise
     variance_paise = (
-        shift.counted_paise - expected_cash_paise
+        shift.counted_paise - totals.expected_cash_paise
         if shift.counted_paise is not None
         else None
     )
-
-    # SQLite strips tzinfo from DateTime columns on round-trip; re-attach UTC
-    # before building the response (which requires timezone-aware datetimes).
-    _attach_utc(shift)
-
     report = ShiftReport(
         shift=shift,
-        session_count=len(sessions),
-        invoice_count=len(invoices),
-        total_revenue_paise=total_revenue_paise,
-        pos_total_paise=pos_total_paise,
-        cash_collected_paise=cash_collected_paise,
-        expected_cash_paise=expected_cash_paise,
+        session_count=totals.session_count,
+        invoice_count=totals.invoice_count,
+        total_revenue_paise=totals.total_revenue_paise,
+        pos_total_paise=totals.pos_total_paise,
+        cash_collected_paise=totals.expected_cash_paise - shift.float_paise,
+        expected_cash_paise=totals.expected_cash_paise,
         variance_paise=variance_paise,
     )
     return ShiftReportResponse(

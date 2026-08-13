@@ -12,6 +12,7 @@ from backend.core.database import get_db
 from backend.models.staff import Staff
 from backend.schemas.shift import (
     ShiftCloseRequest,
+    ShiftCurrentResponse,
     ShiftOpenRequest,
     ShiftReportResponse,
     ShiftResponse,
@@ -45,10 +46,11 @@ async def close_shift(
     return ShiftResponse.model_validate(shift)
 
 
-@router.get("/current", response_model=ShiftResponse | None)
-async def get_current_shift(db: DbDep, staff: CashierDep) -> ShiftResponse | None:
-    shift = await shift_service.get_current_shift(db)
-    return ShiftResponse.model_validate(shift) if shift else None
+@router.get("/current", response_model=ShiftCurrentResponse | None)
+async def get_current_shift(
+    db: DbDep, staff: CashierDep
+) -> ShiftCurrentResponse | None:
+    return await shift_service.get_current_shift_totals(db)
 
 
 @router.get("/{shift_id}/report", response_model=ShiftReportResponse)

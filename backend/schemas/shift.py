@@ -50,3 +50,11 @@ class ShiftReportResponse(BaseResponseSchema):
     cash_collected_paise: int
     expected_cash_paise: int
     variance_paise: int | None = None
+
+
+class ShiftCurrentResponse(BaseResponseSchema):
+    shift: ShiftResponse
+    session_count: int
+    total_revenue_paise: int
+    average_duration_seconds: float
+    expected_cash_paise: int

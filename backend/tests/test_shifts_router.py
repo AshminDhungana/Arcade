@@ -86,11 +86,27 @@ async def test_duplicate_open_409(cashier_client: AsyncClient) -> None:
     assert resp.status_code == 409
 
 
-async def test_get_current_returns_open(cashier_client: AsyncClient) -> None:
+async def test_get_current_returns_open_with_totals(
+    cashier_client: AsyncClient,
+) -> None:
     await cashier_client.post("/api/shifts/open", json={"float_paise": 5000})
     resp = await cashier_client.get("/api/shifts/current")
     assert resp.status_code == 200
-    assert resp.json()["status"] == "OPEN"
+    body = resp.json()
+    assert body["shift"]["status"] == "OPEN"
+    assert body["shift"]["float_paise"] == 5000
+    assert body["session_count"] == 0
+    assert body["total_revenue_paise"] == 0
+    assert body["average_duration_seconds"] == 0.0
+    assert body["expected_cash_paise"] == 5000
+
+
+async def test_get_current_returns_null_when_no_shift(
+    cashier_client: AsyncClient,
+) -> None:
+    resp = await cashier_client.get("/api/shifts/current")
+    assert resp.status_code == 200
+    assert resp.json() is None
 
 
 async def test_close_shift_200(cashier_client: AsyncClient) -> None:

@@ -16,12 +16,14 @@ from backend.models._enums import (
     InvoicePrintStatus,
     PaymentMethod,
     PricingModel,
+    SessionStatus,
     ShiftStatus,
 )
 from backend.repositories import audit_repo, invoice_repo, session_repo, shift_repo
 from backend.services.shift_service import (
     close_shift,
     get_current_shift,
+    get_current_shift_totals,
     get_shift_report,
     open_shift,
 )
@@ -99,6 +101,54 @@ async def test_get_current_shift_none_when_closed(db: AsyncSession) -> None:
     opened.closed_at = datetime.now(UTC)
     await shift_repo.update(db, opened)
     assert await get_current_shift(db) is None
+
+
+async def test_get_current_shift_totals_live_values(db: AsyncSession) -> None:
+    """B.5: revenue, sessions, avg duration, expected cash for the open shift."""
+    shift = await open_shift(db, staff_id="staff-1", opening_cash_paise=5000)
+
+    finished = await session_repo.create(
+        db,
+        seat_id="seat-1",
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        shift_id=shift.id,
+    )
+    finished.status = SessionStatus.COMPLETED
+    finished.started_at = datetime(2026, 8, 13, 10, 0, tzinfo=UTC)
+    finished.ended_at = datetime(2026, 8, 13, 11, 0, tzinfo=UTC)
+    finished.total_paused_seconds = 300
+    await session_repo.update(db, finished)
+    await invoice_repo.create(
+        db,
+        session_id=finished.id,
+        shift_id=shift.id,
+        payment_method=PaymentMethod.CASH,
+        total_paise=1500,
+        pos_total_paise=300,
+    )
+    # In-progress session counts toward session_count but not the average.
+    await session_repo.create(
+        db,
+        seat_id="seat-2",
+        locked_pricing_model=PricingModel.PER_MINUTE,
+        shift_id=shift.id,
+    )
+
+    current = await get_current_shift_totals(db)
+    assert current is not None
+    assert current.shift.id == shift.id
+    assert current.shift.float_paise == 5000
+    assert current.session_count == 2
+    assert current.total_revenue_paise == 1500
+    assert current.expected_cash_paise == 6500  # float 5000 + cash 1500
+    # 1 hour minus 300s paused = 3300s
+    assert current.average_duration_seconds == pytest.approx(3300.0)
+
+
+async def test_get_current_shift_totals_none_when_no_shift_open(
+    db: AsyncSession,
+) -> None:
+    assert await get_current_shift_totals(db) is None
 
 
 async def test_close_shift_sets_closed_state(db: AsyncSession) -> None:
