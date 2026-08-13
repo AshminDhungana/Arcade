@@ -94,8 +94,9 @@ for C.4/C.7/C.8, and (f) the full C.1–C.11 verification run.
 
 | Trigger | Old behavior | New behavior |
 |---|---|---|
-| REGISTER, seat ∈ {OFFLINE, BOOTING, UNREACHABLE, AVAILABLE} | → AVAILABLE | → **ONLINE** |
-| REGISTER, seat ∈ {IN_USE, PAUSED, EXPIRED, RESERVED, MAINTENANCE} | → **AVAILABLE** (clobbers live state — bug) | **no change** |
+| REGISTER, seat ∈ {OFFLINE, BOOTING, UNREACHABLE, AVAILABLE}, **no active session** | → AVAILABLE | → **ONLINE** |
+| REGISTER, seat ∈ {OFFLINE, BOOTING, UNREACHABLE}, **active session exists** (agent crashed mid-session) | → AVAILABLE (clobbers live state — bug) | → **IN_USE** (or **PAUSED** when the session is paused) — C.8 crash recovery |
+| REGISTER, seat ∈ {IN_USE, PAUSED, EXPIRED, RESERVED, MAINTENANCE} (agent still connected) | → **AVAILABLE** (clobbers live state — bug) | **no change** |
 | WoL success (`wol_success_callback`, seat BOOTING) | → AVAILABLE | → **ONLINE** |
 | Watchdog timeout (60 s, still BOOTING) | → UNREACHABLE | unchanged |
 | `start_session` gate | {AVAILABLE, RESERVED} | {AVAILABLE, **ONLINE**, RESERVED} → IN_USE |
@@ -105,8 +106,12 @@ for C.4/C.7/C.8, and (f) the full C.1–C.11 verification run.
 ### Implementation notes
 
 - `backend/core/ws_manager.py:_handle_register` — compute the transition from
-  the current DB status; only OFFLINE/BOOTING/UNREACHABLE/AVAILABLE → ONLINE.
-  Broadcast unchanged. Keep the `overlay_forced` re-push and the
+  the current DB status. OFFLINE/BOOTING/UNREACHABLE/AVAILABLE with *no* active
+  session (`session_repo.get_active_by_seat`) → ONLINE. OFFLINE/BOOTING/
+  UNREACHABLE (disconnected seats) with an active session → IN_USE (or PAUSED
+  when the session is paused) so the dashboard keeps showing the live session
+  after an agent crash (C.8) — `disconnect_agent` set the seat OFFLINE during
+  the outage. Broadcast unchanged. Keep the `overlay_forced` re-push and the
   `wol_success_callback` task firing.
 - `backend/services/wol_service.py:wol_success_callback` — BOOTING → ONLINE
   (was AVAILABLE). The register handler already sets ONLINE in the same flow,
