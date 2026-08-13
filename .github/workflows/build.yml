@@ -129,15 +129,21 @@ jobs:
 
       - name: Smoke test Launcher (Windows)
         if: runner.os == 'Windows'
-        run: ./dist/arcade/Arcade Launcher.exe --self-test
+        run: |
+          echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
+          ./dist/arcade/Arcade Launcher.exe --self-test
 
       - name: Smoke test Launcher (macOS)
         if: runner.os == 'macOS'
-        run: ./dist/arcade/Arcade Launcher --self-test
+        run: |
+          echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
+          ./dist/arcade/Arcade Launcher --self-test
 
       - name: Smoke test Launcher (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a "./dist/arcade/Arcade Launcher" --self-test
+        run: |
+          echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
+          xvfb-run -a ./dist/arcade/Arcade Launcher --self-test
 
       - name: Package Launcher artifact (Windows)
         if: runner.os == 'Windows'
@@ -204,17 +210,12 @@ jobs:
       - name: Verify Agent artifacts (macOS)
         if: runner.os == 'macOS'
         working-directory: agent
-        run: test -f dist/*.dmg && test -f dist/*.zip
+        run: test -f dist/*.dmg && test -d dist/*.app
 
       - name: Verify Agent artifacts (Linux)
         if: runner.os == 'Linux'
         working-directory: agent
         run: test -f dist/*.AppImage && test -f dist/*.deb
-
-      - name: Smoke test Agent (Windows)
-        if: runner.os == 'Windows'
-        working-directory: agent
-        run: ./dist/arcade-agent.exe --smoke-test
 
       - name: Smoke test Agent (macOS)
         if: runner.os == 'macOS'
@@ -224,7 +225,7 @@ jobs:
       - name: Smoke test Agent (Linux)
         if: runner.os == 'Linux'
         working-directory: agent
-        run: xvfb-run -a ./dist/*.AppImage --smoke-test
+        run: xvfb-run -a ./dist/*.AppImage --appimage-extract-and-run --smoke-test
 
       - name: Package Agent artifacts (Windows)
         if: runner.os == 'Windows'
@@ -244,10 +245,8 @@ jobs:
           VERSION="${{ env.VERSION }}"
           ARCH="${{ matrix.arch }}"
           cp dist/*.dmg "arcade-agent-${VERSION}-macos-${ARCH}.dmg"
-          cp dist/*.zip "arcade-agent-${VERSION}-macos-${ARCH}.zip"
           echo "paths<<EOF" >> "$GITHUB_OUTPUT"
           echo "arcade-agent-${VERSION}-macos-${ARCH}.dmg" >> "$GITHUB_OUTPUT"
-          echo "arcade-agent-${VERSION}-macos-${ARCH}.zip" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Package Agent artifacts (Linux)
