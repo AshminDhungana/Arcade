@@ -528,22 +528,24 @@ async def test_force_overlay_ignores_session_when_flag_off(
 async def test_bulk_force_overlay_locks_only_available(
     db: AsyncSession, zone_and_seat
 ) -> None:
-    """bulk_force_overlay(show=True) targets only AVAILABLE seats."""
+    """bulk_force_overlay(show=True) targets AVAILABLE and ONLINE seats."""
     from backend.models._enums import SeatStatus
     from backend.repositories import seat_repo
     from backend.services import remote_command_service as rcs
 
     _, avail = zone_and_seat
-    busy = await seat_repo.create(db, name="PC-02", zone_id=avail.zone_id)
+    online = await seat_repo.create(db, name="PC-02", zone_id=avail.zone_id)
+    online.status = SeatStatus.ONLINE
+    busy = await seat_repo.create(db, name="PC-03", zone_id=avail.zone_id)
     busy.status = SeatStatus.IN_USE
-    db.add(busy)
+    db.add_all([online, busy])
     await db.commit()
 
     with patch.object(rcs, "force_overlay", new=AsyncMock()) as m:
         result = await rcs.bulk_force_overlay(db, True, None)
-    assert result["succeeded"] == [avail.id]
+    assert result["succeeded"] == [avail.id, online.id]
     assert result["failed"] == []
-    m.assert_awaited_once_with(db, avail.id, True, None)
+    assert m.await_count == 2
 
 
 async def test_bulk_force_overlay_records_offline(

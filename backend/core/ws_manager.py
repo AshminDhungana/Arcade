@@ -358,15 +358,38 @@ class WebSocketManager:
         to all dashboard clients.
         """
 
-        # Update seat status to AVAILABLE in database
+        # Update seat status in database (spec §1 transition table):
+        # OFFLINE/BOOTING/UNREACHABLE/AVAILABLE -> ONLINE, *unless* a session
+        # is still active on the seat (agent crashed mid-session, C.8) — then
+        # restore IN_USE/PAUSED instead of clobbering the live state. Other
+        # statuses (RESERVED, MAINTENANCE, ...) are left untouched.
         from backend.core.database import AsyncSessionLocal
+        from backend.models import SessionStatus
         from backend.models._enums import SeatStatus
         from backend.repositories import seat_repo
 
         async with AsyncSessionLocal() as db:
             seat = await seat_repo.get_by_id(db, seat_id)
-            if seat:
-                seat.status = SeatStatus.AVAILABLE
+            if seat and seat.status in {
+                SeatStatus.OFFLINE,
+                SeatStatus.BOOTING,
+                SeatStatus.UNREACHABLE,
+                SeatStatus.AVAILABLE,
+            }:
+                if seat.status != SeatStatus.AVAILABLE:
+                    from backend.repositories import session_repo
+
+                    active = await session_repo.get_active_by_seat(db, seat_id)
+                    if active is not None:
+                        seat.status = (
+                            SeatStatus.PAUSED
+                            if active.status == SessionStatus.PAUSED
+                            else SeatStatus.IN_USE
+                        )
+                    else:
+                        seat.status = SeatStatus.ONLINE
+                else:
+                    seat.status = SeatStatus.ONLINE
                 await db.commit()
                 # Broadcast full seat data for consistent dashboard updates
                 from backend.services.seat_service import _broadcast_seat_update

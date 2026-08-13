@@ -132,6 +132,26 @@ async def test_start_session_ok(db: AsyncSession, zone_and_seat, staff_member):
     assert hide_overlay["payload"]["started_at"] == result.started_at.isoformat()
 
 
+async def test_start_session_online_seat_ok(
+    db: AsyncSession, zone_and_seat, staff_member
+):
+    """An ONLINE seat (agent registered, idle) can start a session."""
+    _, seat = zone_and_seat
+    seat.status = SeatStatus.ONLINE
+    await seat_repo.update(db, seat)
+
+    with patch("backend.services.session_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        mock_ws.send_to_agent = AsyncMock(return_value=None)
+        result = await start_session(
+            db, seat_id=seat.id, member_id=None, staff=staff_member
+        )
+        await db.refresh(seat)
+
+    assert result.status == SessionStatus.ACTIVE
+    assert seat.status == SeatStatus.IN_USE
+
+
 async def test_start_session_seat_not_found(db: AsyncSession, staff_member):
     """start_session raises 404 for a missing seat."""
     with pytest.raises(HTTPException) as exc_info:

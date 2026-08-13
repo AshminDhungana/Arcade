@@ -13,6 +13,7 @@ from enum import Enum
 
 class SeatStatus(Enum):
     AVAILABLE = "AVAILABLE"
+    ONLINE = "ONLINE"
     IN_USE = "IN_USE"
     RESERVED = "RESERVED"
     PAUSED = "PAUSED"

@@ -428,13 +428,15 @@ async def bulk_force_overlay(
 ) -> dict[str, object]:
     """Force overlay on/off for many seats; returns a success/failure summary.
 
-    ``show=True`` targets AVAILABLE seats; ``show=False`` targets seats whose
-    ``overlay_forced`` is already true. An offline agent is recorded in
+    ``show=True`` targets AVAILABLE/ONLINE seats; ``show=False`` targets seats
+    whose ``overlay_forced`` is already true. An offline agent is recorded in
     ``failed`` rather than aborting the whole batch.
     """
     seats = await seat_repo.list(db)
     if show:
-        targets = [s for s in seats if s.status == SeatStatus.AVAILABLE]
+        targets = [
+            s for s in seats if s.status in (SeatStatus.AVAILABLE, SeatStatus.ONLINE)
+        ]
     else:
         targets = [s for s in seats if s.overlay_forced]
     succeeded: list[str] = []

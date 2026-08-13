@@ -299,7 +299,7 @@ async def override_seat_online(
 async def wol_success_callback(seat_id: str, *, db: AsyncSession | None = None) -> None:
     """Called when an agent registers while the seat is in BOOTING state.
 
-    Cancels the watchdog, marks the seat as AVAILABLE, and records success.
+    Cancels the watchdog, marks the seat as ONLINE, and records success.
     """
     _cancel_watchdog(seat_id)
 
@@ -310,7 +310,7 @@ async def wol_success_callback(seat_id: str, *, db: AsyncSession | None = None) 
             return
         if seat.status != SeatStatus.BOOTING:
             return
-        seat.status = SeatStatus.AVAILABLE
+        seat.status = SeatStatus.ONLINE
         seat.wol_successes += 1
         await seat_repo.update(session, seat)
         await _broadcast_seat_update(seat)

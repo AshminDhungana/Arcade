@@ -302,7 +302,7 @@ async def mark_due_reservations_reserved(db: AsyncSession) -> list[str]:
     updated: list[str] = []
     for reservation in due:
         seat = await seat_repo.get_by_id(db, reservation.seat_id)
-        if seat is None or seat.status != SeatStatus.AVAILABLE:
+        if seat is None or seat.status not in (SeatStatus.AVAILABLE, SeatStatus.ONLINE):
             continue
         seat.status = SeatStatus.RESERVED
         seat = await seat_repo.update(db, seat)

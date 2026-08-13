@@ -44,7 +44,7 @@ async def test_new_seat_starts_offline():
 @pytest.mark.asyncio
 async def test_full_online_offline_cycle():
     """Test: startup sets OFFLINE -> register sets
-    AVAILABLE -> disconnect sets OFFLINE"""
+    ONLINE -> disconnect sets OFFLINE"""
     async with AsyncSessionLocal() as db:
         # Clean slate
         await db.execute(text("DELETE FROM seats"))
@@ -73,7 +73,7 @@ async def test_full_online_offline_cycle():
         refreshed = await db.get(Seat, seat_id)
         assert refreshed.status == SeatStatus.OFFLINE
 
-    # 2. Agent connects - REGISTER should set AVAILABLE
+    # 2. Agent connects - REGISTER should set ONLINE
     manager = WebSocketManager()
 
     with patch("backend.core.ws_manager.manager", manager):
@@ -83,7 +83,7 @@ async def test_full_online_offline_cycle():
 
     async with AsyncSessionLocal() as db:
         refreshed = await db.get(Seat, seat_id)
-        assert refreshed.status == SeatStatus.AVAILABLE
+        assert refreshed.status == SeatStatus.ONLINE
 
     # 3. Agent disconnects - should set OFFLINE
     await manager.disconnect_agent(seat_id)
@@ -91,3 +91,124 @@ async def test_full_online_offline_cycle():
     async with AsyncSessionLocal() as db:
         refreshed = await db.get(Seat, seat_id)
         assert refreshed.status == SeatStatus.OFFLINE
+
+
+@pytest.mark.asyncio
+async def test_register_with_active_session_keeps_in_use():
+    """C.8 crash recovery: REGISTER while a session is active must NOT clobber
+    the live state to AVAILABLE/ONLINE — the seat stays IN_USE."""
+    from datetime import UTC, datetime
+
+    from backend.models import GamingSession
+
+    async with AsyncSessionLocal() as db:
+        # Clean slate
+        await db.execute(text("DELETE FROM sessions"))
+        await db.execute(text("DELETE FROM seats"))
+        await db.commit()
+
+        zone = await zone_repo.create(
+            db,
+            name="Crash Zone",
+            rate_per_minute_paise=100,
+            rate_per_hour_paise=5000,
+            pricing_model=PricingModel.PER_MINUTE,
+        )
+        await db.commit()
+
+        seat = await seat_repo.create(db, name="Crash Seat", zone_id=zone.id)
+        await db.commit()
+        seat_id = seat.id
+
+        # The agent was disconnected mid-session -> seat shows OFFLINE
+        seat.status = SeatStatus.OFFLINE
+        session = GamingSession(
+            seat_id=seat_id,
+            started_at=datetime.now(UTC),
+            locked_rate_paise=100,
+            locked_pricing_model=PricingModel.PER_MINUTE,
+        )
+        db.add(session)
+        await db.commit()
+
+    manager = WebSocketManager()
+    with patch("backend.core.ws_manager.manager", manager):
+        await manager._handle_register(
+            seat_id, {"mac_address": "aa:bb:cc:dd:ee:ff", "hostname": "crash-pc"}
+        )
+
+    async with AsyncSessionLocal() as db:
+        refreshed = await db.get(Seat, seat_id)
+        assert refreshed.status == SeatStatus.IN_USE
+
+    # Clean up the session so the next test starts fresh
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("DELETE FROM sessions"))
+        await db.execute(text("DELETE FROM seats"))
+        await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_register_preserves_reserved():
+    """REGISTER must not clobber a RESERVED seat."""
+    async with AsyncSessionLocal() as db:
+        # Clean slate
+        await db.execute(text("DELETE FROM seats"))
+        await db.commit()
+
+        zone = await zone_repo.create(
+            db,
+            name="Reserve Zone",
+            rate_per_minute_paise=100,
+            rate_per_hour_paise=5000,
+            pricing_model=PricingModel.PER_MINUTE,
+        )
+        await db.commit()
+
+        seat = await seat_repo.create(db, name="Reserved Seat", zone_id=zone.id)
+        seat.status = SeatStatus.RESERVED
+        await db.commit()
+        seat_id = seat.id
+
+    manager = WebSocketManager()
+    with patch("backend.core.ws_manager.manager", manager):
+        await manager._handle_register(
+            seat_id, {"mac_address": "aa:bb:cc:dd:ee:ff", "hostname": "reserve-pc"}
+        )
+
+    async with AsyncSessionLocal() as db:
+        refreshed = await db.get(Seat, seat_id)
+        assert refreshed.status == SeatStatus.RESERVED
+
+
+@pytest.mark.asyncio
+async def test_register_preserves_maintenance():
+    """REGISTER must not clobber a seat under MAINTENANCE."""
+    async with AsyncSessionLocal() as db:
+        # Clean slate
+        await db.execute(text("DELETE FROM seats"))
+        await db.commit()
+
+        zone = await zone_repo.create(
+            db,
+            name="Maint Zone",
+            rate_per_minute_paise=100,
+            rate_per_hour_paise=5000,
+            pricing_model=PricingModel.PER_MINUTE,
+        )
+        await db.commit()
+
+        seat = await seat_repo.create(db, name="Maint Seat", zone_id=zone.id)
+        seat.status = SeatStatus.MAINTENANCE
+        await db.commit()
+        seat_id = seat.id
+
+    manager = WebSocketManager()
+    with patch("backend.core.ws_manager.manager", manager):
+        await manager._handle_register(
+            seat_id, {"mac_address": "aa:bb:cc:dd:ee:ff", "hostname": "maint-pc"}
+        )
+
+    async with AsyncSessionLocal() as db:
+        refreshed = await db.get(Seat, seat_id)
+        assert refreshed.status == SeatStatus.MAINTENANCE

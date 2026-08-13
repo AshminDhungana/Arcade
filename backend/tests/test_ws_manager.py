@@ -38,10 +38,10 @@ async def test_handle_register_sets_seat_online():
             seat_id, {"mac_address": "aa:bb:cc:dd:ee:ff", "hostname": "test-pc"}
         )
 
-    # Verify seat is now AVAILABLE (not OFFLINE)
+    # Verify seat is now ONLINE (not OFFLINE)
     async with AsyncSessionLocal() as db:
         refreshed = await db.get(Seat, seat_id)
-        assert refreshed.status == SeatStatus.AVAILABLE
+        assert refreshed.status == SeatStatus.ONLINE
 
     # Verify response
     assert result["type"] == "REGISTERED"

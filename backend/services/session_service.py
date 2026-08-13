@@ -178,7 +178,11 @@ async def start_session(
         raise SessionConflictError()
 
     # 4. Validate seat status
-    if seat.status not in (SeatStatus.AVAILABLE, SeatStatus.RESERVED):
+    if seat.status not in (
+        SeatStatus.AVAILABLE,
+        SeatStatus.ONLINE,
+        SeatStatus.RESERVED,
+    ):
         raise SeatUnavailableError()
 
     # 4. Billing rate

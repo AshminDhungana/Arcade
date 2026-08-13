@@ -247,7 +247,7 @@ async def test_override_seat_online_404(db: AsyncSession) -> None:
 async def test_wol_success_callback_updates_seat(
     db: AsyncSession, zone_and_seat_with_mac
 ) -> None:
-    """wol_success_callback marks BOOTING seat as AVAILABLE and increments success."""
+    """wol_success_callback marks BOOTING seat as ONLINE and increments success."""
     from backend.services import wol_service
 
     _, seat = zone_and_seat_with_mac
@@ -265,7 +265,7 @@ async def test_wol_success_callback_updates_seat(
 
     # Refresh seat
     refreshed = await seat_repo.get_by_id(db, seat.id)
-    assert refreshed.status == SeatStatus.AVAILABLE
+    assert refreshed.status == SeatStatus.ONLINE
     assert refreshed.wol_successes == 1
     mock_bc.assert_awaited_once()
     # The fake task is cancelled by wol_success_callback

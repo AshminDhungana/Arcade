@@ -64,6 +64,28 @@ async def test_job_flips_due_seat_and_broadcasts(db, seat) -> None:
     assert refreshed.status == SeatStatus.RESERVED
 
 
+async def test_job_flips_due_online_seat_and_broadcasts(db, seat) -> None:
+    """A due reservation on an ONLINE seat flips it to RESERVED."""
+    seat_obj = await seat_repo.get_by_id(db, seat)
+    seat_obj.status = SeatStatus.ONLINE
+    await seat_repo.update(db, seat_obj)
+    await reservation_repo.create(
+        db,
+        seat_id=seat,
+        customer_name="Gina",
+        reserved_from=datetime.now(UTC) + timedelta(minutes=1),
+        reserved_until=datetime.now(UTC) + timedelta(minutes=20),
+        created_by_staff_id="staff-1",
+    )
+    with patch(
+        "backend.core.ws_manager.manager.broadcast_to_dashboards", new=AsyncMock()
+    ):
+        updated = await mark_due_reservations_reserved(db)
+    assert seat in updated
+    refreshed = await seat_repo.get_by_id(db, seat)
+    assert refreshed.status == SeatStatus.RESERVED
+
+
 async def test_job_skips_non_available_seat(db, seat) -> None:
     seat_obj = await seat_repo.get_by_id(db, seat)
     seat_obj.status = SeatStatus.IN_USE  # type: ignore[assignment]
