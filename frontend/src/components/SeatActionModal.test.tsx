@@ -150,6 +150,12 @@ describe('SeatActionModal', () => {
     expect(screen.getByText('Start Session')).toBeInTheDocument();
   });
 
+  it('shows Start Session button for ONLINE seats', () => {
+    const onlineSeat = { ...mockSeat, status: 'ONLINE' } as Seat;
+    render(<SeatActionModal seat={onlineSeat} onClose={() => {}} />, { wrapper: makeWrapper() });
+    expect(screen.getByText('Start Session')).toBeInTheDocument();
+  });
+
   it('selecting a member and starting posts seat_id + member_id', () => {
     const startSpy = vi.fn();
     lastMutate = startSpy;

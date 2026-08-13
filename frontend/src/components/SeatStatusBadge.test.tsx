@@ -6,6 +6,7 @@ import { SeatStatus } from '@/types/seat';
 describe('SeatStatusBadge', () => {
   it.each([
     ['AVAILABLE', 'bg-emerald-500'],
+    ['ONLINE', 'bg-teal-500'],
     ['IN_USE', 'bg-orange-500'],
     ['PAUSED', 'bg-yellow-500'],
     ['RESERVED', 'bg-blue-500'],
@@ -24,6 +25,7 @@ describe('SeatStatusBadge', () => {
 
   it.each([
     [SeatStatus.AVAILABLE, 'Available'],
+    [SeatStatus.ONLINE, 'Online'],
     [SeatStatus.IN_USE, 'In Use'],
     [SeatStatus.PAUSED, 'Paused'],
     [SeatStatus.RESERVED, 'Reserved'],

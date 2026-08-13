@@ -20,6 +20,7 @@ export function SeatCard({ seat, onClick }: SeatCardProps) {
   // Determine left border colour based on status
   const borderColor: Record<Seat['status'], string> = {
     AVAILABLE: 'border-l-emerald-500',
+    ONLINE: 'border-l-teal-500',
     IN_USE: 'border-l-orange-500',
     PAUSED: 'border-l-yellow-500',
     RESERVED: 'border-l-blue-500',

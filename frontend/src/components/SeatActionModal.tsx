@@ -100,7 +100,7 @@ export function SeatActionModal({ seat, onClose }: SeatActionModalProps) {
         </section>
 
         <nav aria-label="Seat actions" className="grid grid-cols-2 gap-2">
-          {currentSeat.status === 'AVAILABLE' && (
+          {(currentSeat.status === 'AVAILABLE' || currentSeat.status === 'ONLINE') && (
             <>
               <div className="col-span-2 space-y-2">
                 <MemberSearch onSelect={setMember} placeholder="Search members by name or phone…" />

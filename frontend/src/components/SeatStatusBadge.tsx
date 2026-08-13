@@ -4,6 +4,7 @@ import { SeatStatus } from '@/types/seat';
  *  Distinct per status for at-a-glance operator scanning of the seat grid. */
 const STATUS_BG: Record<SeatStatus, string> = {
   AVAILABLE: 'bg-emerald-500',
+  ONLINE: 'bg-teal-500',
   IN_USE: 'bg-orange-500',
   PAUSED: 'bg-yellow-500',
   RESERVED: 'bg-blue-500',
@@ -17,6 +18,7 @@ const STATUS_BG: Record<SeatStatus, string> = {
 /** Maps each SeatStatus to a human-readable label. */
 const STATUS_LABEL: Record<SeatStatus, string> = {
   AVAILABLE: 'Available',
+  ONLINE: 'Online',
   IN_USE: 'In Use',
   PAUSED: 'Paused',
   RESERVED: 'Reserved',

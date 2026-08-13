@@ -1,6 +1,7 @@
 /** Seat status values from backend SeatStatus enum. */
 export const SeatStatus = {
   AVAILABLE: 'AVAILABLE',
+  ONLINE: 'ONLINE',
   IN_USE: 'IN_USE',
   RESERVED: 'RESERVED',
   PAUSED: 'PAUSED',

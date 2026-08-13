@@ -62,6 +62,15 @@ describe('SeatCard', () => {
     expect(screen.getByText('PC')).toBeInTheDocument();
   });
 
+  it('renders ONLINE seat with teal border and Online badge', () => {
+    const onlineSeat = { ...mockSeat, status: SeatStatus.ONLINE };
+    render(<SeatCard seat={onlineSeat} onClick={() => {}} />, { wrapper: makeWrapper() });
+    expect(screen.getByText('Online')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Elapsed time')).not.toBeInTheDocument();
+    const card = screen.getByRole('button');
+    expect(card.className).toContain('border-l-teal-500');
+  });
+
   it('renders as Console when is_console is true', () => {
     const consoleSeat = { ...mockSeat, is_console: true };
     render(<SeatCard seat={consoleSeat} onClick={() => {}} />, { wrapper: makeWrapper() });

@@ -17,6 +17,7 @@ import type { Seat, SeatStatus, SeatFormData } from '@/types/settings';
 
 const STATUS_BADGE_VARIANTS: Record<SeatStatus, string> = {
   AVAILABLE: 'bg-emerald-900/30 text-emerald-300',
+  ONLINE: 'bg-teal-900/30 text-teal-300',
   IN_USE: 'bg-blue-900/30 text-blue-300',
   RESERVED: 'bg-amber-900/30 text-amber-300',
   PAUSED: 'bg-orange-900/30 text-orange-300',

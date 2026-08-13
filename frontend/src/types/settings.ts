@@ -70,6 +70,7 @@ export interface MenuItem {
 
 export type SeatStatus =
   | 'AVAILABLE'
+  | 'ONLINE'
   | 'IN_USE'
   | 'RESERVED'
   | 'PAUSED'
