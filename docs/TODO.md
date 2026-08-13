@@ -94,17 +94,17 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 
 ## Section C — Seats, Dashboard & Sessions
 
-- [ ] **C.1 Live seat grid** — open two dashboard tabs; start/pause/resume/checkout a seat. Verify: status changes propagate to both tabs in <100ms, no refresh. Verify: `python -m pytest backend/tests/integration/test_ac01_ws_latency.py`
-- [ ] **C.2 Seat status lifecycle** — exercise each state transition: AVAILABLE → BOOTING → ONLINE → IN_USE → PAUSED → IN_USE → AVAILABLE, plus RESERVED and MAINTENANCE. Verify badges/zones render correctly. Verify: `python -m pytest backend/tests/test_seat_status_integration.py backend/tests/integration/test_ac04_wol_packet.py`
-- [ ] **C.3 Session start flow** — start walk-in and member sessions; assign zone + rate; confirm billing starts at the locked rate. Verify: `python -m pytest backend/tests/test_sessions_router.py backend/tests/test_session_service.py`
-- [ ] **C.4 Pause/resume** — pause then resume a session; elapsed time excludes paused time; dashboard + agent stay in sync.
-- [ ] **C.5 Session speed/perf** — start/end under 10s of staff interaction; 50 concurrent sessions all <1s API latency. Verify: `python -m pytest backend/tests/integration/test_ac02_api_performance.py`
-- [ ] **C.6 WoL boot** — enable `enable_wake_on_lan`; restart server. Verify: magic packet broadcast to all AVAILABLE seats, status → BOOTING, agent registers within 60s → ONLINE, else UNREACHABLE after watchdog. Verify: `python -m pytest backend/tests/test_wol_service.py backend/tests/integration/test_ac04_wol_packet.py`
-- [ ] **C.7 LAN-drop resilience** — pull the client's LAN cable 60s into a session, reconnect. Verify: billed time matches wall clock ±2s (server adopts max elapsed via SYNC). Verify: `python -m pytest backend/tests/integration/test_ac07_sync_reconcile.py backend/tests/test_session_service.py`
-- [ ] **C.8 Agent crash recovery** — kill the agent mid-session, restart it. Verify: session resumes with correct elapsed time, no double billing.
-- [ ] **C.9 Server restart recovery** — leave 5 sessions active, kill/restart the server. Verify: all sessions recover with correct elapsed time on the dashboard; agents re-sync. Verify: `python -m pytest backend/tests/integration/test_ac22_session_persistence.py backend/tests/test_session_service.py::test_recover_active_sessions_on_restart`
-- [ ] **C.10 Assigned-time limit** — with `enable_assigned_time_limit`, set a hard time limit; verify session ends at limit. Verify: `python -m pytest backend/tests/test_assigned_time_e2e.py backend/tests/test_sweep_expired_sessions.py`
-- [ ] **C.11 Maintenance mode** — mark a seat out of order with a note; verify badge, downtime tracking, and that sessions can't start on it.
+- [x] **C.1 Live seat grid** — open two dashboard tabs; start/pause/resume/checkout a seat. Verify: status changes propagate to both tabs in <100ms, no refresh. Verify: `python -m pytest backend/tests/integration/test_ac01_ws_latency.py`
+- [x] **C.2 Seat status lifecycle** — exercise each state transition: AVAILABLE → BOOTING → ONLINE → IN_USE → PAUSED → IN_USE → AVAILABLE, plus RESERVED and MAINTENANCE. Verify badges/zones render correctly. Verify: `python -m pytest backend/tests/test_seat_status_integration.py backend/tests/integration/test_ac04_wol_packet.py`
+- [x] **C.3 Session start flow** — start walk-in and member sessions; assign zone + rate; confirm billing starts at the locked rate. Verify: `python -m pytest backend/tests/test_sessions_router.py backend/tests/test_session_service.py`
+- [x] **C.4 Pause/resume** — pause then resume a session; elapsed time excludes paused time; dashboard + agent stay in sync. Verify: `backend/tests/integration/test_c_recovery_sync.py::test_c4_pause_excludes_elapsed_and_syncs_agent`
+- [x] **C.5 Session speed/perf** — start/end under 10s of staff interaction; 50 concurrent sessions all <1s API latency. Verify: `python -m pytest backend/tests/integration/test_ac02_api_performance.py`
+- [x] **C.6 WoL boot** — enable `enable_wake_on_lan`; restart server. Verify: magic packet broadcast to all AVAILABLE seats, status → BOOTING, agent registers within 60s → ONLINE, else UNREACHABLE after watchdog. Verify: `python -m pytest backend/tests/test_wol_service.py backend/tests/integration/test_ac04_wol_packet.py`
+- [x] **C.7 LAN-drop resilience** — pull the client's LAN cable 60s into a session, reconnect. Verify: billed time matches wall clock ±2s (server adopts max elapsed via SYNC). Verify: `python -m pytest backend/tests/integration/test_ac07_sync_reconcile.py backend/tests/test_session_service.py`
+- [x] **C.8 Agent crash recovery** — kill the agent mid-session, restart it. Verify: session resumes with correct elapsed time, no double billing. Verify: `backend/tests/integration/test_c_recovery_sync.py::test_c8_agent_crash_recovery_bills_adopted_elapsed_once`
+- [x] **C.9 Server restart recovery** — leave 5 sessions active, kill/restart the server. Verify: all sessions recover with correct elapsed time on the dashboard; agents re-sync. Verify: `python -m pytest backend/tests/integration/test_ac22_session_persistence.py backend/tests/test_session_service.py::test_recover_active_sessions_on_restart`
+- [x] **C.10 Assigned-time limit** — with `enable_assigned_time_limit`, set a hard time limit; verify session ends at limit. Verify: `python -m pytest backend/tests/test_assigned_time_e2e.py backend/tests/test_sweep_expired_sessions.py`
+- [x] **C.11 Maintenance mode** — mark a seat out of order with a note; verify badge, downtime tracking, and that sessions can't start on it. Verify: `test_seat_service.py` (maintenance_since + duration), `test_seat_router.py`, `test_startup.py::test_initialize_seat_statuses_preserves_maintenance`, `SeatActionModal.test.tsx` (note flow, Clear, downtime line).
 
 **Done when:** C.1–C.11 pass.
 
@@ -266,6 +266,9 @@ When an item fails, follow this loop **before** moving to the next item:
 
 | Date | Area | Item | Problem found | Fix commit |
 |------|------|------|---------------|------------|
+| 2026-08-13 | C.8 | SYNC reconciliation | `_handle_sync` returned `ADOPT_ALE` but never persisted the adopted elapsed — checkout billed the stale server anchor (spec §5 requires billing the adopted elapsed). | (uncommitted — Section C pass) |
+| 2026-08-13 | B.9 | audit API test | `test_audit_routes_are_read_only` failed: FastAPI 0.138 mounts included routers as `_IncludedRouter`, so `app.routes` no longer exposes flattened `/api/audit` routes; test now walks included routers. | (uncommitted — Section C pass) |
+| 2026-08-13 | C.11 | maintenance downtime | `initialize_seat_statuses` flipped every seat to OFFLINE at startup, silently dropping MAINTENANCE status + `maintenance_since` on restarts; now skips MAINTENANCE seats (spec §3). | (uncommitted — Section C pass) |
 | 2026-08-12 | Setup gates | 0.3 | Node 22+ experimental `localStorage` shadowed jsdom's in vitest (vitest-dev/vitest#10867), breaking 13 frontend tests | `92eb500` |
 | 2026-08-12 | Setup gates | 0.4 | `launcher.py` only accepted the `self-test` subcommand, but build.py/CI/tests invoke `--self-test` as a flag | `92eb500` |
 | 2026-08-12 | Setup gates | 0.5 | ruff UP047: `_with_retry` should use PEP 695 type parameters | `92eb500` |

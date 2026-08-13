@@ -226,6 +226,7 @@ and `billing_service.checkout()` (power OFF) when the seat has a Tuya device bou
 | Value        | Meaning                                       |
 |--------------|-----------------------------------------------|
 | `AVAILABLE`  | Empty and ready for a session                 |
+| `ONLINE`     | Agent connected, seat idle                    |
 | `IN_USE`     | Active session running                        |
 | `EXPIRED`    | Assigned time limit reached; overlay forced on, billing paused |
 | `PAUSED`     | Session paused, timer not running             |

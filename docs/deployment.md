@@ -50,6 +50,7 @@ Unknown / missing flags default to **off**. Defaults below are seeded by
 | `enable_tournaments`      | `false` | Events / Tournaments (Phase 6)      | ON to run in-cafe tournaments               |
 | `enable_expense_tracking` | `false` | Expense tracking                    | OFF in v1.0 (no UI/endpoint yet)             |
 | `enable_health_monitoring`| `true`  | Agent health dashboard              | **ON** if agents report health metrics       |
+| `enable_wake_on_lan`      | `true`  | WoL magic packets on server start   | **ON** to auto-boot seats at startup (seats under MAINTENANCE are skipped) |
 | `enable_tuya`             | `false` | Tuya smart-plug power control (HW)  | ON only with paired Tuya plugs (see below)   |
 
 > `require_member_for_session` is a related config-style flag (default `false`):
