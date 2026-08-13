@@ -271,6 +271,7 @@ When an item fails, follow this loop **before** moving to the next item:
 | 2026-08-12 | Setup gates | 0.5 | ruff UP047: `_with_retry` should use PEP 695 type parameters | `92eb500` |
 | 2026-08-12 | Setup gates | 0.9 | build.py ran agent smoke-test against the NSIS installer, which doesn't understand `--smoke-test`; now targets `win-unpacked/Arcade Agent.exe` | `92eb500` |
 | 2026-08-12 | Section A | A.1–A.9 | None found — all items passed on first run; tested against packaged `dist/Arcade Launcher.exe` (wizard writes config/db into `dist/`), tampered keys generated via `tools/keygen` | — |
+| 2026-08-13 | Section B | B.1–B.9 | Full pass: 118 Section-B tests + full backend suite (1000) + frontend (344) green, lint clean. Fixed during pass: license-check endpoint was missing (`POST /api/license/verify` + `LICENSE_CHECK` audit, Task 4); settings PATCH didn't audit → `SETTINGS_CHANGED`; live shift totals + variance threshold shipped. B.4 restore-backup 403 deferred to Section L (endpoint not yet implemented); B.5 verified via live-totals API + ShiftModal. See `d28212e`–`807ab78` | `6a92b03` |
 
 ---
 
