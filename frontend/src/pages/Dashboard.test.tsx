@@ -18,6 +18,11 @@ vi.mock('@/components/UnprintedInvoices', () => ({
   UnprintedInvoices: () => <div data-testid="unprinted-invoices" />,
 }));
 
+vi.mock('@/components/ShiftModal', () => ({
+  ShiftModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="shift-modal" /> : null,
+}));
+
 vi.mock('@/store/toastStore', () => ({
   toast: {
     success: vi.fn(),
@@ -99,5 +104,14 @@ describe('DashboardPage', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveTextContent('Staff assistance requested');
     expect(dialog).toHaveTextContent('Seat: seat-1');
+  });
+
+  it('shows the Shift button and opens the shift modal', () => {
+    render(<DashboardPage />, { wrapper: makeWrapper() });
+    const shiftButton = screen.getByRole('button', { name: /shift/i });
+    expect(shiftButton).toBeInTheDocument();
+    expect(screen.queryByTestId('shift-modal')).not.toBeInTheDocument();
+    fireEvent.click(shiftButton);
+    expect(screen.getByTestId('shift-modal')).toBeInTheDocument();
   });
 });

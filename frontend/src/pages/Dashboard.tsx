@@ -4,10 +4,11 @@ import { UnprintedInvoices } from '@/components/UnprintedInvoices';
 import { useAuthStore } from '@/store/authStore';
 import { bulkForceOverlay } from '@/api/seats';
 import { toast } from '@/store/toastStore';
-import { Lock } from 'lucide-react';
+import { Lock, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { StaffAlertModal } from '@/components/StaffAlertModal';
+import { ShiftModal } from '@/components/ShiftModal';
 
 function ConnectionBadge({
   status,
@@ -43,6 +44,7 @@ export default function DashboardPage() {
   const { status } = useWebSocket();
   const { staff } = useAuthStore();
   const [isLocking, setIsLocking] = useState(false);
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
 
   const isAdmin = staff?.role === 'ADMIN';
 
@@ -81,6 +83,14 @@ export default function DashboardPage() {
                 <span>Lock all idle seats</span>
               </Button>
             )}
+            <Button
+              variant="secondary"
+              onClick={() => setShiftModalOpen(true)}
+              aria-label="Open shift modal"
+            >
+              <Clock className="size-4" aria-hidden="true" />
+              <span>Shift</span>
+            </Button>
             <ConnectionBadge status={status} />
           </div>
         </div>
@@ -92,6 +102,7 @@ export default function DashboardPage() {
       </main>
 
       <StaffAlertModal />
+      <ShiftModal open={shiftModalOpen} onClose={() => setShiftModalOpen(false)} />
     </div>
   );
 }
