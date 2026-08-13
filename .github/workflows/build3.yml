@@ -3,7 +3,34 @@ on:
   push:
     branches: [develop, main]
 jobs:
-  smoke:
-    runs-on: ubuntu-latest
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_ext: zip
+            arch: x64
+            launcher_target: onedir
+            agent_target: nsis
+            node_version: '22'
+            python_version: '3.12'
+          - os: macos-latest
+            artifact_ext: tar.gz
+            arch: arm64
+            launcher_target: onedir
+            agent_target: dmg+zip
+            node_version: '22'
+            python_version: '3.12'
+          - os: ubuntu-latest
+            artifact_ext: tar.gz
+            arch: x64
+            launcher_target: onedir
+            agent_target: appimage+deb
+            node_version: '22'
+            python_version: '3.12'
     steps:
-      - run: echo "build3 minimal ok"
+      - run: echo "matrix ok"
