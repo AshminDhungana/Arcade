@@ -41,6 +41,8 @@ class SeatResponse(SeatBase, BaseResponseSchema):
     wol_failures: int = 0
     overlay_forced: bool = False
     assigned_end_at: AwareDatetime | None = None
+    maintenance_since: AwareDatetime | None = None
+    maintenance_duration_seconds: float | None = None
     # --- Active session (populated by list_seats / seat_updated) ---
     current_session_id: str | None = None
     current_session_started_at: AwareDatetime | None = None

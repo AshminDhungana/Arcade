@@ -174,6 +174,77 @@ async def test_clear_maintenance_not_found(db: AsyncSession, admin_staff) -> Non
 
 
 # -------------------------------------------------------------------
+# maintenance_since (C.11 downtime tracking)
+# -------------------------------------------------------------------
+
+
+async def test_set_maintenance_records_maintenance_since(
+    db: AsyncSession, zone_and_seat: tuple, admin_staff: Staff
+) -> None:
+    """set_maintenance stamps maintenance_since and a live duration."""
+    _, seat = zone_and_seat
+    before = datetime.now(UTC)
+    with patch("backend.services.seat_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        result = await set_maintenance(db, seat.id, "Fan broken", admin_staff)
+
+    assert result.status == SeatStatus.MAINTENANCE
+    assert result.maintenance_since is not None
+    assert before - timedelta(seconds=1) <= result.maintenance_since
+    assert result.maintenance_duration_seconds is not None
+    assert result.maintenance_duration_seconds >= 0
+    mock_ws.broadcast_to_dashboards.assert_awaited_once()
+
+
+async def test_set_maintenance_keeps_original_since_on_reset(
+    db: AsyncSession, zone_and_seat: tuple, admin_staff: Staff
+) -> None:
+    """Re-setting maintenance does not restart the downtime clock."""
+    _, seat = zone_and_seat
+    with patch("backend.services.seat_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        first = await set_maintenance(db, seat.id, "Fan broken", admin_staff)
+
+    backdated = first.maintenance_since - timedelta(minutes=10)
+    stored = await seat_repo.get_by_id(db, seat.id)
+    assert stored is not None
+    stored.maintenance_since = backdated
+    await db.commit()
+
+    with patch("backend.services.seat_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        second = await set_maintenance(db, seat.id, "Replaced fan", admin_staff)
+
+    assert second.maintenance_since == backdated
+    assert second.notes == "Replaced fan"
+
+
+async def test_clear_maintenance_clears_since(
+    db: AsyncSession, zone_and_seat, admin_staff
+) -> None:
+    """clear_maintenance nulls maintenance_since and the live duration."""
+    _, seat = zone_and_seat
+    with patch("backend.services.seat_service.ws_manager") as mock_ws:
+        mock_ws.broadcast_to_dashboards = AsyncMock(return_value=None)
+        await set_maintenance(db, seat.id, "Fan broken", admin_staff)
+        result = await clear_maintenance(db, seat.id, admin_staff)
+
+    assert result.status == SeatStatus.AVAILABLE
+    assert result.maintenance_since is None
+    assert result.maintenance_duration_seconds is None
+
+
+async def test_available_seat_has_no_maintenance_fields(
+    db: AsyncSession, zone_and_seat, admin_staff
+) -> None:
+    """A non-maintenance seat exposes None maintenance fields."""
+    _, seat = zone_and_seat
+    result = await get_seat(db, seat.id)
+    assert result.maintenance_since is None
+    assert result.maintenance_duration_seconds is None
+
+
+# -------------------------------------------------------------------
 # update_mac_address
 # -------------------------------------------------------------------
 

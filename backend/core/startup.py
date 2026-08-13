@@ -99,7 +99,11 @@ async def shutdown_watchdogs() -> None:
 
 
 async def initialize_seat_statuses() -> None:
-    """Set all seats to OFFLINE on server startup and broadcast to dashboards."""
+    """Set all seats to OFFLINE on server startup and broadcast to dashboards.
+
+    Seats under MAINTENANCE are skipped so the flag and its downtime
+    timestamp survive restarts (C.11).
+    """
     from backend.core.database import AsyncSessionLocal
     from backend.core.ws_manager import manager as ws_manager
     from backend.models import Seat
@@ -110,17 +114,18 @@ async def initialize_seat_statuses() -> None:
         seat_ids = await seat_repo.get_all_seat_ids(db)
         for seat_id in seat_ids:
             try:
+                seat = await db.get(Seat, seat_id)
+                if seat is None or seat.status == SeatStatus.MAINTENANCE:
+                    continue
                 await seat_repo.update_status(db, seat_id, SeatStatus.OFFLINE)
                 # Broadcast to dashboards
-                seat = await db.get(Seat, seat_id)
-                if seat:
-                    await ws_manager.broadcast_to_dashboards(
-                        "seat_updated",
-                        {
-                            "seat_id": seat_id,
-                            "status": "OFFLINE",
-                        },
-                    )
+                await ws_manager.broadcast_to_dashboards(
+                    "seat_updated",
+                    {
+                        "seat_id": seat_id,
+                        "status": "OFFLINE",
+                    },
+                )
             except Exception as e:
                 # Log per-seat failure, continue with remaining seats
                 logger.warning(

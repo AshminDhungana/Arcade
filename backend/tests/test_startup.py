@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
 from backend.core.database import AsyncSessionLocal
@@ -39,3 +41,37 @@ async def test_initialize_seat_statuses_sets_all_offline():
             for seat_id in [seat1.id, seat2.id]:
                 refreshed = await db2.get(Seat, seat_id)
                 assert refreshed.status == SeatStatus.OFFLINE
+
+
+@pytest.mark.asyncio
+async def test_initialize_seat_statuses_preserves_maintenance():
+    """C.11: a MAINTENANCE seat (with maintenance_since) survives restart."""
+    async with AsyncSessionLocal() as db:
+        zone = await zone_repo.create(
+            db,
+            name="Maint Zone",
+            rate_per_minute_paise=100,
+            rate_per_hour_paise=5000,
+            pricing_model=PricingModel.PER_MINUTE,
+        )
+        await db.commit()
+
+        maint_seat = await seat_repo.create(db, name="Maint Seat", zone_id=zone.id)
+        maint_seat.status = SeatStatus.MAINTENANCE
+        maint_seat.maintenance_since = datetime.now(UTC)
+        await db.commit()
+
+        other_seat = await seat_repo.create(db, name="Other Seat", zone_id=zone.id)
+        other_seat.status = SeatStatus.AVAILABLE
+        await db.commit()
+
+        # Call function
+        await initialize_seat_statuses()
+
+        # Verify fresh session: MAINTENANCE survives, others reset to OFFLINE
+        async with AsyncSessionLocal() as db2:
+            refreshed = await db2.get(Seat, maint_seat.id)
+            assert refreshed.status == SeatStatus.MAINTENANCE
+            assert refreshed.maintenance_since is not None
+            refreshed_other = await db2.get(Seat, other_seat.id)
+            assert refreshed_other.status == SeatStatus.OFFLINE

@@ -17,7 +17,7 @@ import base64
 import json
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import WebSocket
@@ -474,6 +474,13 @@ class WebSocketManager:
                     chosen_seconds = result.chosen_elapsed_seconds
                     drift = result.drift
                     action = result.action
+                    if action == "ADOPT_ALE":
+                        # Persist the adopted elapsed (C.8): shift the anchor so
+                        # future server-side billing matches the agent's clock.
+                        session.started_at = now - timedelta(
+                            seconds=chosen_seconds + total_paused
+                        )
+                        await db.commit()
         except Exception:
             logger.warning(
                 "Failed to reconcile SYNC for session %s, "

@@ -52,7 +52,15 @@ async def _seat_to_response(
 ) -> SeatResponse:
     seat.created_at = _ensure_tz(seat.created_at)  # type: ignore[assignment]
     seat.updated_at = _ensure_tz(seat.updated_at)  # type: ignore[assignment]
+    seat.maintenance_since = _ensure_tz(seat.maintenance_since)
     resp = SeatResponse.model_validate(seat)
+    if seat.status == SeatStatus.MAINTENANCE and seat.maintenance_since is not None:
+        since = _ensure_tz(seat.maintenance_since)
+        if since is not None:
+            resp.maintenance_since = since
+            resp.maintenance_duration_seconds = max(
+                0.0, (datetime.now(UTC) - since).total_seconds()
+            )
     if seat.zone_id is not None:
         if zone_name_map is not None:
             resp.zone_name = zone_name_map.get(seat.zone_id)
@@ -178,6 +186,8 @@ async def set_maintenance(
         raise SeatNotFoundError(seat_id)
 
     seat.status = SeatStatus.MAINTENANCE
+    if seat.maintenance_since is None:
+        seat.maintenance_since = datetime.now(UTC)
     seat.notes = note or seat.notes
     updated = await seat_repo.update(db, seat)
 
@@ -219,6 +229,7 @@ async def clear_maintenance(
 
     seat.status = SeatStatus.AVAILABLE
     seat.notes = None
+    seat.maintenance_since = None
     updated = await seat_repo.update(db, seat)
 
     await audit_service.log(

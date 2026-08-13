@@ -29,6 +29,10 @@ class Seat(Base):
     plug_id: Mapped[str | None] = mapped_column(String(255))
     is_console: Mapped[bool] = mapped_column(default=False)
     notes: Mapped[str | None] = mapped_column(String(1000))
+    # --- Maintenance downtime tracking (C.11) ---
+    maintenance_since: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # --- Force-overlay lock (non-sticky / informational) ---
     overlay_forced: Mapped[bool] = mapped_column(default=False, nullable=False)
     # --- Self-provisioning (Phase 11) ---
