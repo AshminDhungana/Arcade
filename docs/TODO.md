@@ -2,7 +2,7 @@
 
 **Purpose:** Step-by-step, checkbox-driven checklist for engineers. Work top-to-bottom: test each feature area, fix any problem found (one at a time), verify the fix, then check off the item.
 
-**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0 and A are complete** (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections B–M may begin.
+**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A and B are complete** (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections B–M may begin.
 
 ## How to use this checklist
 
@@ -76,17 +76,19 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 
 ## Section B — Auth, Staff, Shifts & Audit
 
-- [ ] **B.1 Staff login** — create Admin + Cashier; log in with Staff ID + PIN. Verify: wrong PIN rejected; 5 failed attempts lock the account. Verify: `python -m pytest backend/tests/test_auth.py backend/tests/test_staff_auth.py backend/tests/test_auth_service.py`
-- [ ] **B.2 PIN hashing** — confirm stored PINs are Argon2id hashes (no plaintext in DB).
-- [ ] **B.3 Token revocation** — log in, change the PIN, then use the old JWT. Verify: the old token is rejected (token_version bump). Verify: `backend/tests/test_auth_service.py`
-- [ ] **B.4 Role permissions** — Cashier can bill + run POS but cannot: toggle feature flags, trigger force overlay, restore backups, manage staff, or see admin-only settings (expect 403s).
-- [ ] **B.5 Shift open** — open shift with cash float; dashboard shows running totals (revenue, sessions, avg duration).
-- [ ] **B.6 Shift close & reconciliation** — run mixed cash/card/package sessions, close shift with counted cash. Verify: expected cash vs variance computed; variance > `shift_cash_variance_threshold` flagged. Verify: `python -m pytest backend/tests/test_shift_service.py backend/tests/test_shifts_router.py backend/tests/integration/test_ac10_shift_reconciliation.py`
-- [ ] **B.7 Unprinted-invoice gate** — with `block_shift_close_unprinted` on, close a shift leaving a `FAILED`/`SKIPPED` invoice. Verify: warning/block per flag setting. Verify: `python -m pytest backend/tests/test_invoice_router_print_gate.py`
-- [ ] **B.8 Audit log completeness** — perform a representative set of sensitive ops (login, session start/checkout, shift close, remote restart, settings change, feature flag toggle, backup, license check). Verify: all appear in the audit log with staff id, timestamp, action, entity, detail. Verify: `python -m pytest backend/tests/test_audit.py backend/tests/integration/test_ac09_audit_immutability.py`
-- [ ] **B.9 Audit log immutability** — verify no update/delete routes exist for audit entries (checklist: no `PUT/DELETE /api/audit*`).
+- [x] **B.1 Staff login** — create Admin + Cashier; log in with Staff ID + PIN. Verify: wrong PIN rejected; 5 failed attempts lock the account. Verify: `python -m pytest backend/tests/test_auth.py backend/tests/test_staff_auth.py backend/tests/test_auth_service.py`
+- [x] **B.2 PIN hashing** — confirm stored PINs are Argon2id hashes (no plaintext in DB).
+- [x] **B.3 Token revocation** — log in, change the PIN, then use the old JWT. Verify: the old token is rejected (token_version bump). Verify: `backend/tests/test_auth_service.py`
+- [x] **B.4 Role permissions** — Cashier can bill + run POS but cannot: toggle feature flags, trigger force overlay, restore backups, manage staff, or see admin-only settings (expect 403s).
+- [x] **B.5 Shift open** — open shift with cash float; dashboard shows running totals (revenue, sessions, avg duration).
+- [x] **B.6 Shift close & reconciliation** — run mixed cash/card/package sessions, close shift with counted cash. Verify: expected cash vs variance computed; variance > `shift_cash_variance_threshold` flagged. Verify: `python -m pytest backend/tests/test_shift_service.py backend/tests/test_shifts_router.py backend/tests/integration/test_ac10_shift_reconciliation.py`
+- [x] **B.7 Unprinted-invoice gate** — with `block_shift_close_unprinted` on, close a shift leaving a `FAILED`/`SKIPPED` invoice. Verify: warning/block per flag setting. Verify: `python -m pytest backend/tests/test_invoice_router_print_gate.py`
+- [x] **B.8 Audit log completeness** — perform a representative set of sensitive ops (login, session start/checkout, shift close, remote restart, settings change, feature flag toggle, backup, license check). Verify: all appear in the audit log with staff id, timestamp, action, entity, detail. Verify: `python -m pytest backend/tests/test_audit.py backend/tests/integration/test_ac09_audit_immutability.py`
+- [x] **B.9 Audit log immutability** — verify no update/delete routes exist for audit entries (checklist: no `PUT/DELETE /api/audit*`).
 
 **Done when:** B.1–B.9 pass.
+
+**2026-08-13 pass:** all B.1–B.9 verified — B.4 restore-backup 403 deferred to Section L (endpoint not yet implemented); B.5 verified via live-totals API + ShiftModal (revenue/sessions/avg duration). Verification tests: `test_pin_hashing.py`, `test_permissions_matrix.py`, `test_audit_completeness.py`, `test_audit_immutability_api.py`, `test_license_router.py`.
 
 ---
 
