@@ -27,7 +27,7 @@ Pin the action to its last license-free, input-compatible major version:
 gitleaks/gitleaks-action@v3  ->  gitleaks/gitleaks-action@v2
 ```
 
-`@v2` resolves to the latest v2 release (v2.3.6), which:
+`@v2` (a moving tag) resolves to the latest v2 release — currently v2.3.9 (verified via `git ls-remote` on 2026-08-13). It:
 
 - accepts the `config` and `args` inputs (eliminates the invalid-input warning),
 - requires no license key (eliminates the `missing gitleaks license` error),
