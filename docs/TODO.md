@@ -132,16 +132,18 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 
 ## Section E — POS, Menu, Inventory & Printing
 
-- [ ] **E.1 POS flow** — add food/drink items to an active session tab; verify itemised rows, quantities, prices, and totals appear on checkout + receipt. Verify: `python -m pytest backend/tests/test_pos_service.py backend/tests/test_pos_router.py`
-- [ ] **E.2 Menu management** — create/update/disable menu items; verify disabled items can't be sold. Verify: `python -m pytest backend/tests/test_menu_crud.py backend/tests/test_inventory_router.py`
-- [ ] **E.3 Inventory levels** — sell below low-stock threshold → alert; hit zero → item auto-disabled as sold out. Verify: `python -m pytest backend/tests/test_inventory_service.py`
-- [ ] **E.4 Restock log** — record a delivery with timestamp + quantity; verify stock rises and log entry exists.
-- [ ] **E.5 Thermal printing** — print a real receipt on ESC/POS printer; verify all receipt fields (cafe name, seat, session times, duration, rate, package, promo, items, subtotal, tax, total, payment method, staff, invoice #). Verify: `python -m pytest backend/tests/test_print.py backend/tests/test_print_service_printer_uri.py`
-- [ ] **E.6 PDF fallback** — print with no thermal printer configured; verify PDF/browser-print path works and contains the same fields.
-- [ ] **E.7 Printer discovery/config** — discovery finds local printers; saving a printer URI persists and is used. Verify: `python -m pytest backend/tests/test_printer_discovery.py backend/tests/test_printers_api.py backend/tests/test_config_printer_uri.py`
-- [ ] **E.8 Print queue / retry** — verify print job queue, `PRINT_RETRY` on failure, print-status gate behaviour, and scheduler release of blocked invoices. Verify: `python -m pytest backend/tests/test_print_job_model.py backend/tests/test_print_job_repo.py backend/tests/test_scheduler_print_release.py`
+- [x] **E.1 POS flow** — add food/drink items to an active session tab; verify itemised rows, quantities, prices, and totals appear on checkout + receipt. Verify: `python -m pytest backend/tests/test_pos_service.py backend/tests/test_pos_router.py`
+- [x] **E.2 Menu management** — create/update/disable menu items; verify disabled items can't be sold. Verify: `python -m pytest backend/tests/test_menu_crud.py backend/tests/test_inventory_router.py`
+- [x] **E.3 Inventory levels** — sell below low-stock threshold → alert; hit zero → item auto-disabled as sold out. Verify: `python -m pytest backend/tests/test_inventory_service.py`
+- [x] **E.4 Restock log** — record a delivery with timestamp + quantity; verify stock rises and log entry exists. Verify: `python -m pytest backend/tests/test_inventory_service.py backend/tests/test_inventory_router.py`
+- [x] **E.5 Thermal printing** — print a real receipt on ESC/POS printer; verify all receipt fields (cafe name, seat, session times, duration, rate, package, promo, items, subtotal, tax, total, payment method, staff, invoice #). Verify: `python -m pytest backend/tests/test_print.py backend/tests/test_print_service_printer_uri.py`
+- [x] **E.6 PDF fallback** — print with no thermal printer configured; verify PDF/browser-print path works and contains the same fields. Verify: `python -m pytest backend/tests/test_invoices_router.py::test_get_invoice_pdf_renders_receipt_fields`
+- [x] **E.7 Printer discovery/config** — discovery finds local printers; saving a printer URI persists and is used. Verify: `python -m pytest backend/tests/test_printer_discovery.py backend/tests/test_printers_api.py backend/tests/test_config_printer_uri.py`
+- [x] **E.8 Print queue / retry** — verify print job queue, `PRINT_RETRY` on failure, print-status gate behaviour, and scheduler release of blocked invoices. Verify: `python -m pytest backend/tests/test_print_job_model.py backend/tests/test_print_job_repo.py backend/tests/test_scheduler_print_release.py`
 
 **Done when:** E.1–E.8 pass.
+
+**2026-08-14 pass:** all E.1–E.8 verified — E.1 (POS flow: itemised rows/quantities/prices on checkout), E.2 (menu CRUD + disabled items unsellable), E.3 (low-stock alert + zero-stock auto-disable), E.4 (restock log; verification command added — `test_restock_creates_log` in `test_inventory_service.py` + restock router tests), E.5 (thermal receipt fields, 30 tests), E.6 (new `test_get_invoice_pdf_renders_receipt_fields` in `test_invoices_router.py` — PDF/browser-print HTML contains cafe name, date, time charge, line items, total, payment method, auto-print JS; cleans up seeded rows in FK order so shared-DB tests like `DELETE FROM seats` are unaffected), E.7 (printer discovery/config URI), E.8 (print job queue, `PRINT_RETRY` retry, print-status gate, scheduler release). No defects found; 1 test added, 1 verification command added. ruff + mypy strict clean.
 
 ---
 
