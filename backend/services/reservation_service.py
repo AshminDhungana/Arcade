@@ -8,7 +8,7 @@ their first parameter.  This module is feature-flagged at the API layer
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +19,10 @@ from backend.models._enums import AuditAction
 from backend.repositories import reservation_repo, seat_repo
 from backend.schemas.reservation import ReservationUpdate
 from backend.services import audit_service
+
+#: No-show grace for open-ended reservations (no ``reserved_until``) before
+#: the scheduler auto-expires them as unconfirmed.
+NO_SHOW_GRACE = timedelta(minutes=30)
 
 
 class ReservationNotFoundError(HTTPException):
@@ -139,7 +143,7 @@ async def confirm_reservation(
 
 
 async def cancel_reservation(
-    db: AsyncSession, *, reservation_id: str, staff_id: str
+    db: AsyncSession, *, reservation_id: str, staff_id: str | None
 ) -> Reservation:
     reservation = await reservation_repo.get_by_id(db, reservation_id)
     if reservation is None:
@@ -294,8 +298,6 @@ async def mark_due_reservations_reserved(db: AsyncSession) -> list[str]:
     we never clobber an in-use or maintenance seat; already-RESERVED seats
     are skipped (idempotent across minutes).
     """
-    from datetime import timedelta
-
     now = datetime.now(UTC)
     window_end = now + timedelta(minutes=2)
     due = await reservation_repo.find_due(db, window_start=now, window_end=window_end)
@@ -310,3 +312,25 @@ async def mark_due_reservations_reserved(db: AsyncSession) -> list[str]:
         updated.append(seat.id)
     await db.commit()
     return updated
+
+
+async def release_expired_unconfirmed(db: AsyncSession) -> list[str]:
+    """Cancel PENDING reservations whose window has fully elapsed and release
+    their seats (no-show sweep).
+
+    Runs from the scheduler every minute.  Reuses ``cancel_reservation`` so
+    seat release, dashboard broadcast, and the ``RESERVATION_CANCELLED``
+    audit entry are identical to a manual cancel; ``staff_id`` is None to
+    mark the action as system-initiated.  Live sessions are never touched —
+    only seats still in ``RESERVED`` state are released.
+    """
+    now = datetime.now(UTC)
+    expired = await reservation_repo.find_expired_unconfirmed(
+        db, now=now, open_ended_grace=NO_SHOW_GRACE
+    )
+    released: list[str] = []
+    for reservation in expired:
+        await cancel_reservation(db, reservation_id=reservation.id, staff_id=None)
+        released.append(reservation.seat_id)
+    await db.commit()
+    return released

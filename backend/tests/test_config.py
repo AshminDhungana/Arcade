@@ -151,9 +151,15 @@ def test_singleton_caching(
     # Point the default relative path at the temp directory
     monkeypatch.chdir(tmp_path)
 
-    first = get_config()
-    second = get_config()
-    assert first is second
+    try:
+        first = get_config()
+        second = get_config()
+        assert first is second
+    finally:
+        # Restore the singleton: the cached Settings was loaded from the temp
+        # directory and must not leak into later tests (its cafe_name / db_path
+        # would poison every get_config() caller for the rest of the suite).
+        config_module._cached_load_config.cache_clear()
 
 
 # ---------------------------------------------------------------------------

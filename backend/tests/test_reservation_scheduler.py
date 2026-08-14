@@ -124,7 +124,62 @@ async def test_job_skips_when_flag_off() -> None:
             "backend.services.reservation_service.mark_due_reservations_reserved",
             new=AsyncMock(),
         ) as svc,
+        patch(
+            "backend.services.reservation_service.release_expired_unconfirmed",
+            new=AsyncMock(),
+        ) as sweep,
     ):
         await _reservation_reminder_job()
     flag.assert_called_once_with("enable_reservations")
     svc.assert_not_called()
+    sweep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_job_calls_due_flip_and_expiry_sweep(db, seat) -> None:
+    """With the flag on, the job runs both the due-flip and the expiry sweep."""
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=db)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    with (
+        patch("backend.core.database.AsyncSessionLocal", return_value=cm),
+        patch("backend.core.feature_flags.get_flag", return_value=True),
+        patch(
+            "backend.services.reservation_service.mark_due_reservations_reserved",
+            new=AsyncMock(),
+        ) as due,
+        patch(
+            "backend.services.reservation_service.release_expired_unconfirmed",
+            new=AsyncMock(),
+        ) as sweep,
+    ):
+        await _reservation_reminder_job()
+    due.assert_awaited_once_with(db)
+    sweep.assert_awaited_once_with(db)
+
+
+async def test_sweep_releases_expired_seat(db, seat) -> None:
+    """An unconfirmed reservation whose window has passed is cancelled and
+    the RESERVED seat is released back to AVAILABLE."""
+    from backend.services.reservation_service import release_expired_unconfirmed
+
+    await reservation_repo.create(
+        db,
+        seat_id=seat,
+        customer_name="NoShow",
+        reserved_from=datetime.now(UTC) - timedelta(minutes=60),
+        reserved_until=datetime.now(UTC) - timedelta(minutes=30),
+        created_by_staff_id="staff-1",
+    )
+    seat_obj = await seat_repo.get_by_id(db, seat)
+    seat_obj.status = SeatStatus.RESERVED
+    await seat_repo.update(db, seat_obj)
+
+    with patch(
+        "backend.core.ws_manager.manager.broadcast_to_dashboards", new=AsyncMock()
+    ):
+        released = await release_expired_unconfirmed(db)
+
+    assert released == [seat]
+    refreshed = await seat_repo.get_by_id(db, seat)
+    assert refreshed.status == SeatStatus.AVAILABLE

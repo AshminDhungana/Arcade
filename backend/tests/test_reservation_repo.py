@@ -14,6 +14,7 @@ from backend.repositories import reservation_repo, seat_repo
 from backend.repositories.reservation_repo import (
     find_conflicting,
     find_due,
+    find_expired_unconfirmed,
 )
 
 
@@ -123,3 +124,49 @@ async def test_find_due_within_window(db, seat) -> None:
         window_end=datetime.now(UTC) + timedelta(minutes=2),
     )
     assert [r.id for r in found] == [due.id]
+
+
+async def test_find_expired_unconfirmed_closed_window(db, seat) -> None:
+    """PENDING reservation whose reserved_until is in the past is expired."""
+    expired = await _make(db, seat, -60, -30)  # window fully in the past
+    found = await find_expired_unconfirmed(
+        db, now=datetime.now(UTC), open_ended_grace=timedelta(minutes=30)
+    )
+    assert [r.id for r in found] == [expired.id]
+
+
+async def test_find_expired_unconfirmed_future_window(db, seat) -> None:
+    """PENDING reservation in the future is not expired."""
+    await _make(db, seat, 10, 30)
+    found = await find_expired_unconfirmed(
+        db, now=datetime.now(UTC), open_ended_grace=timedelta(minutes=30)
+    )
+    assert found == ()
+
+
+async def test_find_expired_unconfirmed_open_ended_past_grace(db, seat) -> None:
+    """Open-ended PENDING reservation past the no-show grace is expired."""
+    expired = await _make(db, seat, -60, None)
+    found = await find_expired_unconfirmed(
+        db, now=datetime.now(UTC), open_ended_grace=timedelta(minutes=30)
+    )
+    assert [r.id for r in found] == [expired.id]
+
+
+async def test_find_expired_unconfirmed_open_ended_within_grace(db, seat) -> None:
+    """Open-ended PENDING reservation inside the no-show grace is not expired."""
+    await _make(db, seat, -10, None)
+    found = await find_expired_unconfirmed(
+        db, now=datetime.now(UTC), open_ended_grace=timedelta(minutes=30)
+    )
+    assert found == ()
+
+
+async def test_find_expired_unconfirmed_skips_other_statuses(db, seat) -> None:
+    """CONFIRMED / CANCELLED reservations are never auto-expired."""
+    await _make(db, seat, -60, -30, status=ReservationStatus.CONFIRMED)
+    await _make(db, seat, -90, -60, status=ReservationStatus.CANCELLED)
+    found = await find_expired_unconfirmed(
+        db, now=datetime.now(UTC), open_ended_grace=timedelta(minutes=30)
+    )
+    assert found == ()

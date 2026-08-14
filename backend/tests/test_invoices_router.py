@@ -158,35 +158,41 @@ async def test_get_invoice_pdf_renders_receipt_fields(
     assert "text/html" in resp.headers["content-type"]
     html = resp.text
 
-    # Cafe name (default "Arcade" in the test config), date, items, totals
-    assert "Arcade" in html
-    assert re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", html) is not None
-    assert "Time charge:" in html
-    assert "Rs. 10.00" in html
-    assert "Cold Coke" in html
-    assert "TOTAL:" in html
-    assert "Rs. 13.00" in html
-    assert "Paid by:" in html
-    assert "CASH" in html
-    # The fallback path triggers the browser's own print dialog
-    assert "window.print()" in html
+    try:
+        # Cafe name (default "Arcade" in the test config), date, items, totals
+        assert "Arcade" in html
+        assert re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", html) is not None
+        assert "Time charge:" in html
+        assert "Rs. 10.00" in html
+        assert "Cold Coke" in html
+        assert "TOTAL:" in html
+        assert "Rs. 13.00" in html
+        assert "Paid by:" in html
+        assert "CASH" in html
+        # The fallback path triggers the browser's own print dialog
+        assert "window.print()" in html
+    finally:
+        # Clean up the seeded rows in FK order even on assertion failure: other
+        # tests share this DB and issue bare `DELETE FROM seats` (e.g.
+        # test_seat_status_integration), which fails while orphan
+        # sessions/invoices still reference them.
+        from sqlalchemy import text
 
-    # Clean up the seeded rows in FK order: other tests share this DB and
-    # issue bare `DELETE FROM seats` (e.g. test_seat_status_integration),
-    # which fails while orphan sessions/invoices still reference them.
-    from sqlalchemy import text
-
-    async with AsyncSessionLocal() as db:
-        await db.execute(
-            text("DELETE FROM invoice_line_items WHERE invoice_id = :iid"),
-            {"iid": invoice_id},
-        )
-        await db.execute(
-            text("DELETE FROM invoices WHERE id = :iid"), {"iid": invoice_id}
-        )
-        await db.execute(
-            text("DELETE FROM sessions WHERE seat_id = :sid"), {"sid": seat_id}
-        )
-        await db.execute(text("DELETE FROM seats WHERE id = :sid"), {"sid": seat_id})
-        await db.execute(text("DELETE FROM zones WHERE id = :zid"), {"zid": zone_id})
-        await db.commit()
+        async with AsyncSessionLocal() as db:
+            await db.execute(
+                text("DELETE FROM invoice_line_items WHERE invoice_id = :iid"),
+                {"iid": invoice_id},
+            )
+            await db.execute(
+                text("DELETE FROM invoices WHERE id = :iid"), {"iid": invoice_id}
+            )
+            await db.execute(
+                text("DELETE FROM sessions WHERE seat_id = :sid"), {"sid": seat_id}
+            )
+            await db.execute(
+                text("DELETE FROM seats WHERE id = :sid"), {"sid": seat_id}
+            )
+            await db.execute(
+                text("DELETE FROM zones WHERE id = :zid"), {"zid": zone_id}
+            )
+            await db.commit()

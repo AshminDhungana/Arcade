@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -148,3 +148,41 @@ async def find_due(
     )
     result = await db.execute(stmt)
     return tuple(result.scalars().all())
+
+
+async def find_expired_unconfirmed(
+    db: AsyncSession,
+    *,
+    now: datetime,
+    open_ended_grace: timedelta,
+) -> Sequence[Reservation]:
+    """Return PENDING reservations whose booked window has fully elapsed.
+
+    A reservation is expired when it is still unconfirmed (``PENDING``) and
+    either its ``reserved_until`` is in the past, or it is open-ended
+    (``reserved_until`` is NULL) and ``reserved_from + open_ended_grace``
+    has passed (no-show grace).  Confirmed/cancelled/completed reservations
+    are never auto-expired.
+    """
+    return tuple(
+        (
+            await db.execute(
+                select(Reservation)
+                .where(Reservation.status == ReservationStatus.PENDING)
+                .where(
+                    or_(
+                        and_(
+                            Reservation.reserved_until.is_not(None),
+                            Reservation.reserved_until <= now,
+                        ),
+                        and_(
+                            Reservation.reserved_until.is_(None),
+                            Reservation.reserved_from <= now - open_ended_grace,
+                        ),
+                    )
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )

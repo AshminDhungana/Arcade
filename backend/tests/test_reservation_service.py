@@ -398,3 +398,123 @@ async def test_update_notes_on_confirmed(db: AsyncSession, seat: str) -> None:
     )
     assert updated.status == ReservationStatus.CONFIRMED
     assert updated.notes == "vip arrival"
+
+
+async def _seed_expired(
+    db: AsyncSession, seat: str, *, minutes_ago: int
+) -> Reservation:
+    """Seed a PENDING reservation whose window ended ``minutes_ago`` minutes ago."""
+    from backend.services.reservation_service import create_reservation
+
+    base = datetime.now(UTC) - timedelta(minutes=minutes_ago)
+    return await create_reservation(
+        db,
+        seat_id=seat,
+        customer_name="NoShow",
+        reserved_from=base - timedelta(minutes=30),
+        reserved_until=base,
+        notes=None,
+        created_by_staff_id="staff-1",
+    )
+
+
+async def test_sweep_releases_expired_unconfirmed_seat(
+    db: AsyncSession, seat: str
+) -> None:
+    from unittest.mock import AsyncMock, patch
+
+    from backend.core.ws_manager import manager as ws_manager
+    from backend.services.reservation_service import release_expired_unconfirmed
+
+    reservation = await _seed_expired(db, seat, minutes_ago=5)
+    seat_obj = await seat_repo.get_by_id(db, seat)
+    seat_obj.status = SeatStatus.RESERVED
+    await seat_repo.update(db, seat_obj)
+
+    broadcast_mock = AsyncMock()
+    with patch.object(ws_manager, "broadcast_to_dashboards", broadcast_mock):
+        released = await release_expired_unconfirmed(db)
+
+    assert released == [seat]
+    refreshed = await seat_repo.get_by_id(db, seat)
+    assert refreshed.status == SeatStatus.AVAILABLE
+    cancelled = await get_reservation(db, reservation_id=reservation.id)
+    assert cancelled.status == ReservationStatus.CANCELLED
+    broadcast_mock.assert_awaited_once()
+    args, _ = broadcast_mock.call_args
+    assert args[0] == "seat_updated"
+    assert args[1]["id"] == seat
+    assert args[1]["status"] == "AVAILABLE"
+
+
+async def test_sweep_logs_system_cancel_audit(db: AsyncSession, seat: str) -> None:
+    from sqlalchemy import select
+
+    from backend.models import AuditLog
+    from backend.models._enums import AuditAction
+    from backend.services.reservation_service import release_expired_unconfirmed
+
+    reservation = await _seed_expired(db, seat, minutes_ago=5)
+    await release_expired_unconfirmed(db)
+    rows = (
+        (
+            await db.execute(
+                select(AuditLog).where(
+                    AuditLog.action == AuditAction.RESERVATION_CANCELLED.value,
+                    AuditLog.entity_id == reservation.id,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(rows) == 1
+    assert rows[0].staff_id is None
+
+
+async def test_sweep_keeps_future_and_confirmed(db: AsyncSession, seat: str) -> None:
+    from backend.services.reservation_service import release_expired_unconfirmed
+
+    future = await _seed(db, seat, offset=60)
+    confirmed = await _seed(db, seat, offset=120)
+    await confirm_reservation(db, reservation_id=confirmed.id, staff_id="staff-1")
+
+    released = await release_expired_unconfirmed(db)
+
+    assert released == []
+    assert (await get_reservation(db, reservation_id=future.id)).status == (
+        ReservationStatus.PENDING
+    )
+    assert (await get_reservation(db, reservation_id=confirmed.id)).status == (
+        ReservationStatus.CONFIRMED
+    )
+
+
+async def test_sweep_releases_open_ended_after_no_show_grace(
+    db: AsyncSession, seat: str
+) -> None:
+    from backend.services.reservation_service import (
+        NO_SHOW_GRACE,
+        create_reservation,
+        release_expired_unconfirmed,
+    )
+
+    base = datetime.now(UTC) - NO_SHOW_GRACE - timedelta(minutes=5)
+    await create_reservation(
+        db,
+        seat_id=seat,
+        customer_name="Late",
+        reserved_from=base,
+        reserved_until=None,
+        notes=None,
+        created_by_staff_id="staff-1",
+    )
+    seat_obj = await seat_repo.get_by_id(db, seat)
+    seat_obj.status = SeatStatus.RESERVED
+    await seat_repo.update(db, seat_obj)
+
+    released = await release_expired_unconfirmed(db)
+
+    assert released == [seat]
+    refreshed = await seat_repo.get_by_id(db, seat)
+    assert refreshed.status == SeatStatus.AVAILABLE

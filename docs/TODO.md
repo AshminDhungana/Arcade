@@ -2,7 +2,7 @@
 
 **Purpose:** Step-by-step, checkbox-driven checklist for engineers. Work top-to-bottom: test each feature area, fix any problem found (one at a time), verify the fix, then check off the item.
 
-**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A, B and C are complete** (Section C as of commit `9232e73`) (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections D–M may begin.
+**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A, B, C, D, E, F and G are complete** (Section G as of this pass, Section F as of commit `f81cb96`) (Section E as of commit `29b844b`) (Section C as of commit `9232e73`) (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections H–M may begin.
 
 ## How to use this checklist
 
@@ -163,11 +163,13 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 
 ## Section G — Reservations
 
-- [ ] **G.1 Create/cancel reservation** — reserve a seat for a future time/group; verify seat shows RESERVED in grid. Verify: `python -m pytest backend/tests/test_reservation_service.py backend/tests/test_reservation_router.py`
-- [ ] **G.2 Reservation expiry/sweep** — expired unconfirmed reservations are released by the scheduler. Verify: `python -m pytest backend/tests/test_reservation_scheduler.py`
-- [ ] **G.3 Conflict handling** — double-book the same seat/time; verify second reservation is rejected or queues per policy. Verify: `backend/tests/test_reservation_foundation.py`
+- [x] **G.1 Create/cancel reservation** — reserve a seat for a future time/group; verify seat shows RESERVED in grid. Verify: `python -m pytest backend/tests/test_reservation_service.py backend/tests/test_reservation_router.py`
+- [x] **G.2 Reservation expiry/sweep** — expired unconfirmed reservations are released by the scheduler. Verify: `python -m pytest backend/tests/test_reservation_scheduler.py`
+- [x] **G.3 Conflict handling** — double-book the same seat/time; verify second reservation is rejected or queues per policy. Verify: `backend/tests/test_reservation_foundation.py`
 
 **Done when:** G.1–G.3 pass.
+
+**2026-08-14 pass:** all G.1–G.3 verified — G.1 (create/cancel via service + router, seat flips to RESERVED 2 min before start via `mark_due_reservations_reserved`, release on cancel/delete restores AVAILABLE + WS broadcast), G.2 (expiry sweep **implemented this pass** — see fixes: `release_expired_unconfirmed` in the 1-minute scheduler job cancels PENDING reservations whose window has fully elapsed and releases the seat; 30-min no-show grace for open-ended bookings; `RESERVATION_CANCELLED` audit with `staff_id=NULL` marks system cancels), G.3 (double-book rejected 409 via `SeatUnavailableError`; conflict check also guards time-window edits; `test_reservation_foundation.py` = notes column + audit actions). **Full backend suite 1021 passed (2 skipped), ruff + mypy strict clean.** Fixes landed in this pass commit (see "Fixed during this pass").
 
 ---
 
@@ -274,6 +276,8 @@ When an item fails, follow this loop **before** moving to the next item:
 
 | Date | Area | Item | Problem found | Fix commit |
 |------|------|------|---------------|------------|
+| 2026-08-14 | G.2 | reservation expiry | no code existed — a PENDING reservation whose window passed left the seat RESERVED forever (reminder job only flips to RESERVED, nothing released it). Added `find_expired_unconfirmed` (repo), `release_expired_unconfirmed` (service: cancels via `cancel_reservation`, releases seat, `RESERVATION_CANCELLED` audit with `staff_id=NULL`, 30-min no-show grace for open-ended) wired into `_reservation_reminder_job` (+11 tests) | in pass commit |
+| 2026-08-14 | Full suite | test isolation | `test_config.py::test_singleton_caching` leaked the temp-dir config into the global `get_config()` cache (cafe_name "Galaxy Gaming Lounge" + wrong db_path) for the rest of the suite → the E.6 PDF test failed → its FK-order cleanup never ran → orphan invoice + ACTIVE session blocked `DELETE FROM seats`/`DELETE FROM sessions` (5 seat tests) and `test_list_active_sessions_empty` (7 failures on clean main). Cache now restored in a `finally`; PDF test cleanup moved into `try/finally` so a failed assert can't leave orphans | in pass commit |
 | 2026-08-14 | F.1 | member audit | `create_member` logged no audit entry — added `MEMBER_CREATED` action + audit call with staff id (+ regression test `test_create_member_logs_audit_entry`) | in pass commit |
 | 2026-08-14 | F.5 | package audit | package drawdown at checkout logged no redeem entry — added `PACKAGE_REDEEM` action to the drawdown path (+ regression test `test_drawdown_logs_package_redeem_audit`) | in pass commit |
 | 2026-08-13 | C.8 | SYNC reconciliation | `_handle_sync` returned `ADOPT_ALE` but never persisted the adopted elapsed — checkout billed the stale server anchor (spec §5 requires billing the adopted elapsed). | `9506695` |

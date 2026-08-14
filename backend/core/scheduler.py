@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 async def _reservation_reminder_job() -> None:
-    """Every minute, mark seats of soon-starting reservations as RESERVED.
+    """Every minute, mark seats of soon-starting reservations as RESERVED and
+    release seats of expired unconfirmed reservations.
 
     Runs outside any request context, so it opens its own DB session.  The
     ``enable_reservations`` flag gates it for consistency with the API.
@@ -28,7 +29,14 @@ async def _reservation_reminder_job() -> None:
         updated = await reservation_service.mark_due_reservations_reserved(db)
         if updated:
             logger.info(
-                "Marked %d seat(s) RESERVED for upcoming reservations.", len(updated)
+                "Marked %d seat(s) RESERVED for upcoming reservations.",
+                len(updated),
+            )
+        released = await reservation_service.release_expired_unconfirmed(db)
+        if released:
+            logger.info(
+                "Released %d seat(s) from expired unconfirmed reservations.",
+                len(released),
             )
 
 
