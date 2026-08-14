@@ -302,3 +302,43 @@ async def test_checkout_accepts_override_reason_and_ignores_it(
     refreshed = await seat_repo.get_by_id(db, seat.id)
     assert refreshed.status == SeatStatus.AVAILABLE
     assert invoice is not None
+
+
+async def test_rate_lock_mid_session_zone_change_keeps_original_rate(
+    db: AsyncSession,
+) -> None:
+    """D.2: changing a zone rate mid-session keeps the locked rate.
+
+    The rate is resolved via start_session (resolve_rate) and snapshotted onto
+    the session. A later zone rate change must not affect the running session.
+    """
+    from backend.services.session_service import start_session
+
+    zone = await zone_repo.create(
+        db,
+        name="TestZone",
+        rate_per_minute_paise=100,
+        rate_per_hour_paise=3000,
+        pricing_model=PricingModel.PER_MINUTE,
+    )
+    seat = await seat_repo.create(db, name="PC-01", zone_id=zone.id)
+    seat.status = SeatStatus.AVAILABLE
+    await seat_repo.update(db, seat)
+
+    started_at = datetime.now(UTC) - timedelta(minutes=30)
+    await start_session(db, seat_id=seat.id, time_now=started_at)
+
+    sess = await session_repo.get_active_by_seat(db, seat.id)
+    assert sess is not None
+    assert sess.locked_rate_paise == 100
+
+    # Change the zone rate mid-session (e.g. peak pricing kicks in)
+    zone.rate_per_minute_paise = 500
+    await zone_repo.update(db, zone)
+
+    invoice = await checkout_session(db, sess.id, PaymentMethod.CASH)
+
+    # 30 min at the LOCKED 100 paise/min = 3000, not 15000
+    assert invoice is not None
+    assert invoice.time_charge_paise == 3000
+    assert invoice.total_paise == 3000

@@ -114,17 +114,19 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 
 ## Section D — Billing, Packages, Promotions & Vouchers
 
-- [ ] **D.1 Pricing models** — verify per-minute, flat hourly, time-block, peak/off-peak (via peak schedule), and device-type rates bill correctly. Verify: `python -m pytest backend/tests/test_billing_service.py backend/tests/test_billing_service_checkout.py backend/tests/test_peak_schedule_crud.py backend/tests/test_device_type_crud.py`
-- [ ] **D.2 Rate lock at session start** — change a zone rate mid-session; verify the running session keeps the original rate.
-- [ ] **D.3 Checkout math** — run a checkout with time + POS items + tax + promo. Verify: paise integer arithmetic, no rounding errors. Verify: `python -m pytest backend/tests/integration/test_ac03_checkout_full.py`
-- [ ] **D.4 Package drawdown + overflow** — member with a 30-min package plays 45 min. Verify: 30 min package + 15 min per-minute overflow billed correctly, atomically. Verify: `python -m pytest backend/tests/test_member_service.py::test_package_drawdown_overflow backend/tests/integration/test_ac11_package_drawdown.py`
-- [ ] **D.5 Package types** — hours, day pass (expires at midnight), night pass (22:00–06:00 window), monthly pass all enforce correctly; selling packages against wallet/cash works, insufficient wallet rejected. Verify: `python -m pytest backend/tests/test_package_service.py backend/tests/test_packages_router.py`
-- [ ] **D.6 Promotions** — happy hour, flash discount, first-visit, group, birthday apply correct percentages and zone restrictions. Verify: `python -m pytest backend/tests/test_promotion_service.py backend/tests/test_promotions_router.py`
-- [ ] **D.7 Voucher lifecycle** — generate voucher (with value), print, redeem once at counter, reject second use, reject unknown code. Verify: `python -m pytest backend/tests/test_voucher_service.py backend/tests/test_voucher_router.py`
-- [ ] **D.8 Atomic package updates** — two sessions drawing from the same package concurrently; verify no overspend (race test). Verify: `python -m pytest backend/tests/test_package_drawdown.py`
-- [ ] **D.9 Force-close checkout** — close a session without printing; verify `CHECKOUT_FORCED_UNPRINTED` audit entry and unprinted invoice flag set. Verify: `python -m pytest backend/tests/test_billing_service_force_close.py`
+- [x] **D.1 Pricing models** — verify per-minute, flat hourly, time-block, peak/off-peak (via peak schedule), and device-type rates bill correctly. Verify: `python -m pytest backend/tests/test_billing_service.py backend/tests/test_billing_service_checkout.py backend/tests/test_peak_schedule_crud.py backend/tests/test_device_type_crud.py`
+- [x] **D.2 Rate lock at session start** — change a zone rate mid-session; verify the running session keeps the original rate.
+- [x] **D.3 Checkout math** — run a checkout with time + POS items + tax + promo. Verify: paise integer arithmetic, no rounding errors. Verify: `python -m pytest backend/tests/integration/test_ac03_checkout_full.py`
+- [x] **D.4 Package drawdown + overflow** — member with a 30-min package plays 45 min. Verify: 30 min package + 15 min per-minute overflow billed correctly, atomically. Verify: `python -m pytest backend/tests/test_package_drawdown.py backend/tests/integration/test_ac11_package_drawdown.py`
+- [x] **D.5 Package types** — hours, day pass (expires at midnight), night pass (22:00–06:00 window), monthly pass all enforce correctly; selling packages against wallet/cash works, insufficient wallet rejected. Verify: `python -m pytest backend/tests/test_package_service.py backend/tests/test_packages_router.py`
+- [x] **D.6 Promotions** — happy hour, flash discount, first-visit, group, birthday apply correct percentages and zone restrictions. Verify: `python -m pytest backend/tests/test_promotion_service.py backend/tests/test_promotions_router.py`
+- [x] **D.7 Voucher lifecycle** — generate voucher (with value), print, redeem once at counter, reject second use, reject unknown code. Verify: `python -m pytest backend/tests/test_voucher_service.py backend/tests/test_voucher_router.py`
+- [x] **D.8 Atomic package updates** — two sessions drawing from the same package concurrently; verify no overspend (race test). Verify: `python -m pytest backend/tests/test_package_drawdown.py`
+- [x] **D.9 Force-close checkout** — close a session without printing; verify `CHECKOUT_FORCED_UNPRINTED` audit entry and unprinted invoice flag set. Verify: `python -m pytest backend/tests/test_billing_service_force_close.py`
 
 **Done when:** D.1–D.9 pass.
+
+**2026-08-14 pass:** all D.1–D.9 verified — D.1 (pricing models incl. peak schedule + device-type CRUD), D.2 (new `test_rate_lock_mid_session_zone_change_keeps_original_rate` in `test_billing_service_checkout.py`; zone rate changed mid-session, checkout bills the locked rate), D.3 (`test_ac03_checkout_full.py`), D.4 (unit + AC-11 suites; stale node reference corrected — scenario lives in `test_package_drawdown.py::test_drawdown_with_overflow`), D.5 (package types incl. day/night/monthly windows + wallet/cash sale), D.6 (promotion percentages + zone restrictions), D.7 (voucher lifecycle incl. single-use), D.8 (new `test_concurrent_drawdown_no_overspend` in `test_package_drawdown.py`: two sessions drawdown the same entitlement concurrently via separate DB sessions — remaining never negative, aggregate billing deterministic; drawdown is a single atomic guarded UPDATE), D.9 (force-close `CHECKOUT_FORCED_UNPRINTED` audit + unprinted flag). Full backend suite 1007 passed (2 skipped), ruff + mypy strict clean. No defects found; 2 tests added, 1 stale reference corrected.
 
 ---
 
