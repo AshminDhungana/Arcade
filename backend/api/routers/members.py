@@ -80,10 +80,12 @@ async def search_members(
 async def create_member(
     body: MemberCreate,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    _staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
+    staff: Annotated[Staff | None, Depends(require_cashier)] = None,  # noqa: B008
 ) -> MemberResponse:
     """Create a new member with BRONZE tier."""
-    member = await MemberService.create_member(db, name=body.name, phone=body.phone)
+    member = await MemberService.create_member(
+        db, name=body.name, phone=body.phone, staff=staff
+    )
     member.created_at = _ensure_tz(member.created_at)  # type: ignore[assignment]
     member.updated_at = _ensure_tz(member.updated_at)  # type: ignore[assignment]
     return MemberResponse.model_validate(member)

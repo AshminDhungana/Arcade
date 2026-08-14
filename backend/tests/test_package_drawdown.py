@@ -118,6 +118,29 @@ async def test_drawdown_with_overflow(db):
     assert ent.status == EntitlementStatus.EXHAUSTED
 
 
+async def test_drawdown_logs_package_redeem_audit(db):
+    """F.5: package drawdown at checkout logs a PACKAGE_REDEEM audit entry."""
+    from backend.models._enums import AuditAction
+    from backend.services import audit_service
+
+    member, _, ent = await _create_member_with_entitlement(db, remaining_minutes=60)
+    sess, _, _ = await _create_active_session(
+        db,
+        member_id=member.id,
+        package_entitlement_id=ent.id,
+        duration=45,
+    )
+    await checkout_session(db, sess.id, PaymentMethod.CASH)
+
+    logs = await audit_service.list_logs(
+        db, action=AuditAction.PACKAGE_REDEEM, entity_id=ent.id
+    )
+    assert len(logs) == 1
+    assert logs[0].entity_type == "entitlement"
+    assert "session_id=" in logs[0].detail
+    assert "minutes_used=45" in logs[0].detail
+
+
 async def test_no_package_charges_normally(db):
     sess, _, _ = await _create_active_session(db, duration=30)
     invoice = await checkout_session(db, sess.id, PaymentMethod.CASH)

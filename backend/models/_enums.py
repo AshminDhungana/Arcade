@@ -244,6 +244,8 @@ class AuditAction(Enum):
     SEAT_CREATED = "SEAT_CREATED"
     SEAT_UPDATED = "SEAT_UPDATED"
     SEAT_DELETED = "SEAT_DELETED"
+    MEMBER_CREATED = "MEMBER_CREATED"
+    PACKAGE_REDEEM = "PACKAGE_REDEEM"
 
 
 # ── License ──────────────────────────────────────────────────────────────

@@ -386,6 +386,20 @@ async def checkout_session(
                 entitlement.status = EntitlementStatus.EXHAUSTED
                 db.add(entitlement)
 
+            # Audit the package drawdown
+            await audit_service.log(
+                db,
+                action=AuditAction.PACKAGE_REDEEM,
+                entity_type="entitlement",
+                entity_id=entitlement_id,
+                staff_id=staff.id if staff else None,
+                detail=(
+                    f"session_id={session_obj.id}; "
+                    f"minutes_used={package_minutes_used}; "
+                    f"elapsed_minutes={elapsed_minutes}"
+                ),
+            )
+
         per_minute = _per_minute_rate(locked)
         package_credit_paise = package_minutes_used * per_minute
 

@@ -77,6 +77,21 @@ class TestCreateMember:
         with pytest.raises(DuplicatePhoneError):
             await MemberService.create_member(db, name="Bob", phone="9801234567")
 
+    async def test_create_member_logs_audit_entry(
+        self, db: AsyncSession, staff
+    ) -> None:
+        """F.1: creating a member writes a MEMBER_CREATED audit entry."""
+        member = await MemberService.create_member(
+            db, name="Alice", phone="9801234567", staff=staff
+        )
+        logs = await audit_service.list_logs(
+            db, action=AuditAction.MEMBER_CREATED, entity_id=member.id
+        )
+        assert len(logs) == 1
+        assert logs[0].staff_id == staff.id
+        assert logs[0].entity_type == "member"
+        assert "Alice" in logs[0].detail
+
 
 class TestGetMember:
     async def test_get_member_success(self, db: AsyncSession):

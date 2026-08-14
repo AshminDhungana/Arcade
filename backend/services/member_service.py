@@ -60,6 +60,7 @@ class MemberService:
         *,
         name: str,
         phone: str,
+        staff: Staff | None = None,
     ) -> Member:
         """Create a new member with BRONZE tier."""
         # Check phone uniqueness
@@ -76,6 +77,16 @@ class MemberService:
             loyalty_points=0,
             tier=MemberTier.BRONZE.value,
             birth_month=None,
+        )
+
+        # Audit log
+        await audit_service.log(
+            db,
+            action=AuditAction.MEMBER_CREATED,
+            entity_type="member",
+            entity_id=member.id,
+            staff_id=staff.id if staff else None,
+            detail=f"name={member.name}; phone={member.phone}",
         )
 
         # Broadcast member update
