@@ -148,33 +148,23 @@ jobs:
           echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
           xvfb-run -a "./dist/arcade/Arcade Launcher" --self-test
 
-      - name: Package Launcher artifact (Windows)
-        if: runner.os == 'Windows'
-        id: launcher_artifact_windows
+      - name: Package Launcher artifact
+        id: package_launcher
         shell: bash
         run: |
           VERSION="${{ env.VERSION }}"
           ARCH="${{ matrix.arch }}"
-          "/c/Program Files/7-Zip/7z.exe" a -tzip "arcade-launcher-${VERSION}-windows-${ARCH}.zip" dist/arcade/*
-          echo "path=arcade-launcher-${VERSION}-windows-${ARCH}.zip" >> "$GITHUB_OUTPUT"
 
-      - name: Package Launcher artifact (macOS)
-        if: runner.os == 'macOS'
-        id: launcher_artifact_macos
-        run: |
-          VERSION="${{ env.VERSION }}"
-          ARCH="${{ matrix.arch }}"
-          tar -czf "arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" -C dist arcade
-          echo "path=arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
-
-      - name: Package Launcher artifact (Linux)
-        if: runner.os == 'Linux'
-        id: launcher_artifact_linux
-        run: |
-          VERSION="${{ env.VERSION }}"
-          ARCH="${{ matrix.arch }}"
-          tar -czf "arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" -C dist arcade
-          echo "path=arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            "/c/Program Files/7-Zip/7z.exe" a -tzip "arcade-launcher-${VERSION}-windows-${ARCH}.zip" dist/arcade/*
+            echo "path=arcade-launcher-${VERSION}-windows-${ARCH}.zip" >> "$GITHUB_OUTPUT"
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            tar -czf "arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" -C dist arcade
+            echo "path=arcade-launcher-${VERSION}-macos-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          else
+            tar -czf "arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" -C dist arcade
+            echo "path=arcade-launcher-${VERSION}-linux-${ARCH}.tar.gz" >> "$GITHUB_OUTPUT"
+          fi
 
       # ---------------------------------------------------------
       # Build Agent (electron-builder)
@@ -234,42 +224,28 @@ jobs:
         working-directory: agent
         run: xvfb-run -a ./dist/*.AppImage --appimage-extract-and-run --smoke-test
 
-      - name: Package Agent artifacts (Windows)
-        if: runner.os == 'Windows'
-        id: agent_artifact_windows
+      - name: Package Agent artifacts
+        id: package_agent
         working-directory: agent
         shell: bash
         run: |
           VERSION="${{ env.VERSION }}"
           ARCH="${{ matrix.arch }}"
-          cp dist/*.exe "arcade-agent-${VERSION}-windows-${ARCH}.exe"
-          echo "path=agent/arcade-agent-${VERSION}-windows-${ARCH}.exe" >> "$GITHUB_OUTPUT"
 
-      - name: Package Agent artifacts (macOS)
-        if: runner.os == 'macOS'
-        id: agent_artifact_macos
-        working-directory: agent
-        run: |
-          VERSION="${{ env.VERSION }}"
-          ARCH="${{ matrix.arch }}"
-          cp dist/*.dmg "arcade-agent-${VERSION}-macos-${ARCH}.dmg"
-          echo "paths<<EOF" >> "$GITHUB_OUTPUT"
-          echo "agent/arcade-agent-${VERSION}-macos-${ARCH}.dmg" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Package Agent artifacts (Linux)
-        if: runner.os == 'Linux'
-        id: agent_artifact_linux
-        working-directory: agent
-        run: |
-          VERSION="${{ env.VERSION }}"
-          ARCH="${{ matrix.arch }}"
-          cp dist/*.AppImage "arcade-agent-${VERSION}-linux-${ARCH}.AppImage"
-          cp dist/*.deb "arcade-agent-${VERSION}-linux-${ARCH}.deb"
-          echo "paths<<EOF" >> "$GITHUB_OUTPUT"
-          echo "agent/arcade-agent-${VERSION}-linux-${ARCH}.AppImage" >> "$GITHUB_OUTPUT"
-          echo "agent/arcade-agent-${VERSION}-linux-${ARCH}.deb" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cp dist/*.exe "arcade-agent-${VERSION}-windows-${ARCH}.exe"
+            echo "paths=agent/arcade-agent-${VERSION}-windows-${ARCH}.exe" >> "$GITHUB_OUTPUT"
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            cp dist/*.dmg "arcade-agent-${VERSION}-macos-${ARCH}.dmg"
+            echo "paths=agent/arcade-agent-${VERSION}-macos-${ARCH}.dmg" >> "$GITHUB_OUTPUT"
+          else
+            cp dist/*.AppImage "arcade-agent-${VERSION}-linux-${ARCH}.AppImage"
+            cp dist/*.deb "arcade-agent-${VERSION}-linux-${ARCH}.deb"
+            {
+              echo "paths=agent/arcade-agent-${VERSION}-linux-${ARCH}.AppImage"
+              echo "agent/arcade-agent-${VERSION}-linux-${ARCH}.deb"
+            } >> "$GITHUB_OUTPUT"
+          fi
 
       # ---------------------------------------------------------
       # Upload Artifacts
@@ -278,14 +254,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: arcade-launcher-${{ matrix.os }}-${{ matrix.arch }}
-          path: ${{ steps.launcher_artifact_windows.outputs.path || steps.launcher_artifact_macos.outputs.path || steps.launcher_artifact_linux.outputs.path }}
+          path: ${{ steps.package_launcher.outputs.path }}
           retention-days: 30
 
       - name: Upload Agent artifact(s)
         uses: actions/upload-artifact@v4
         with:
           name: arcade-agent-${{ matrix.os }}-${{ matrix.arch }}
-          path: ${{ steps.agent_artifact_windows.outputs.paths || steps.agent_artifact_macos.outputs.paths || steps.agent_artifact_linux.outputs.paths }}
+          path: ${{ steps.package_agent.outputs.paths }}
           retention-days: 30
 
       # ---------------------------------------------------------
