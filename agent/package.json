@@ -7,7 +7,7 @@
   "author": "Ashmin Dhungana <ashmin.dhungana@example.com>",
   "homepage": "https://github.com/AshminDhungana/Arcade",
   "scripts": {
-    "inject-master-pin": "node scripts/inject-master-pin.js --pin=$MASTER_PIN --out=src/main/master-pin.ts",
+    "inject-master-pin": "node scripts/inject-master-pin.js --out=src/main/master-pin.ts",
     "build": "npm run inject-master-pin && tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json && tsc -p tsconfig.preload.json && node scripts/copy-renderer-assets.mjs && electron-builder",
     "build:win": "npm run build -- --win",
     "build:mac": "npm run build -- --mac",

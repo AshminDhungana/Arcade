@@ -185,6 +185,7 @@ jobs:
         working-directory: agent
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          MASTER_PIN: ${{ secrets.MASTER_PIN }}
         run: npm run build:win
 
       - name: Build Agent (macOS)
@@ -200,6 +201,7 @@ jobs:
         working-directory: agent
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          MASTER_PIN: ${{ secrets.MASTER_PIN }}
         run: npm run build:linux
 
       - name: Verify Agent artifacts (Windows)

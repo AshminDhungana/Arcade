@@ -38,24 +38,30 @@ function parseArgs() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--pin' || arg === '-p') {
-      result.pin = args[++i];
-      result.pinProvided = true;
+      const value = args[++i];
+      if (value) {
+        result.pin = value;
+        result.pinProvided = true;
+      }
     } else if (arg === '--out' || arg === '-o') {
       result.out = args[++i];
     } else if (arg.startsWith('--pin=')) {
-      result.pin = arg.slice(6);
-      result.pinProvided = true;
+      const value = arg.slice(6);
+      if (value) {
+        result.pin = value;
+        result.pinProvided = true;
+      }
     } else if (arg.startsWith('--out=')) {
       result.out = arg.slice(6);
     }
   }
 
   // Fallback to env var (MASTER_PIN, then ARCADE_MASTER_PIN)
-  if (!result.pinProvided && process.env.MASTER_PIN !== undefined) {
+  if (!result.pinProvided && process.env.MASTER_PIN) {
     result.pin = process.env.MASTER_PIN;
     result.pinProvided = true;
   }
-  if (!result.pinProvided && process.env.ARCADE_MASTER_PIN !== undefined) {
+  if (!result.pinProvided && process.env.ARCADE_MASTER_PIN) {
     result.pin = process.env.ARCADE_MASTER_PIN;
     result.pinProvided = true;
   }
