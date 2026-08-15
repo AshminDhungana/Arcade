@@ -131,19 +131,19 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
-          ./dist/arcade/Arcade Launcher.exe --self-test
+          "./dist/arcade/Arcade Launcher.exe" --self-test
 
       - name: Smoke test Launcher (macOS)
         if: runner.os == 'macOS'
         run: |
           echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
-          ./dist/arcade/Arcade Launcher --self-test
+          "./dist/arcade/Arcade Launcher" --self-test
 
       - name: Smoke test Launcher (Linux)
         if: runner.os == 'Linux'
         run: |
           echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
-          xvfb-run -a ./dist/arcade/Arcade Launcher --self-test
+          xvfb-run -a "./dist/arcade/Arcade Launcher" --self-test
 
       - name: Package Launcher artifact (Windows)
         if: runner.os == 'Windows'
