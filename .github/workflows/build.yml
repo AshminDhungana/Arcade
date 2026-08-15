@@ -149,8 +149,8 @@ jobs:
         if: runner.os == 'Windows'
         id: launcher_artifact_windows
         run: |
-          VERSION="${{ env.VERSION }}"
-          ARCH="${{ matrix.arch }}"
+          $VERSION="${{ env.VERSION }}"
+          $ARCH="${{ matrix.arch }}"
           cd dist
           & "C:\Program Files\7-Zip\7z.exe" a -tzip "arcade-launcher-${VERSION}-windows-${ARCH}.zip" arcade/*
           echo "path=arcade-launcher-${VERSION}-windows-${ARCH}.zip" >> "$GITHUB_OUTPUT"
@@ -207,7 +207,9 @@ jobs:
       - name: Verify Agent artifacts (Windows)
         if: runner.os == 'Windows'
         working-directory: agent
-        run: test -f dist/*.exe
+        run: |
+          $exe = Get-ChildItem dist/*.exe | Select-Object -First 1
+          if ($null -eq $exe) { Write-Error "No NSIS installer found in dist"; exit 1 }
 
       - name: Verify Agent artifacts (macOS)
         if: runner.os == 'macOS'
@@ -234,8 +236,8 @@ jobs:
         id: agent_artifact_windows
         working-directory: agent
         run: |
-          VERSION="${{ env.VERSION }}"
-          ARCH="${{ matrix.arch }}"
+          $VERSION="${{ env.VERSION }}"
+          $ARCH="${{ matrix.arch }}"
           cp dist/*.exe "arcade-agent-${VERSION}-windows-${ARCH}.exe"
           echo "path=arcade-agent-${VERSION}-windows-${ARCH}.exe" >> "$GITHUB_OUTPUT"
 
