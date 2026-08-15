@@ -242,8 +242,10 @@ jobs:
             cp dist/*.AppImage "arcade-agent-${VERSION}-linux-${ARCH}.AppImage"
             cp dist/*.deb "arcade-agent-${VERSION}-linux-${ARCH}.deb"
             {
-              echo "paths=agent/arcade-agent-${VERSION}-linux-${ARCH}.AppImage"
+              echo "paths<<EOF"
+              echo "agent/arcade-agent-${VERSION}-linux-${ARCH}.AppImage"
               echo "agent/arcade-agent-${VERSION}-linux-${ARCH}.deb"
+              echo "EOF"
             } >> "$GITHUB_OUTPUT"
           fi
 
