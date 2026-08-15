@@ -9,5 +9,34 @@ files:
   - "dist/main/**/*"
   - "dist/renderer/**/*"
   - "package.json"
+mac:
+  target:
+    - dmg
+    - zip
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+dmg:
+  sign: false
+linux:
+  target:
+    - target: AppImage
+      arch: x64
+    - target: deb
+      arch: x64
+appImage:
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+deb:
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+  packageCategory: "utils"
+  maintainer: "Ashmin Dhungana <ashmin.dhungana@example.com>"
+  afterInstall: "assets/scripts/after-install.sh"
+win:
+  target:
+    - nsis
 nsis:
+  artifactName: "${productName}-Setup-${version}-${arch}.${ext}"
   oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "${productName}"

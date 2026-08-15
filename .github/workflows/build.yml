@@ -152,7 +152,7 @@ jobs:
           VERSION="${{ env.VERSION }}"
           ARCH="${{ matrix.arch }}"
           cd dist
-          "C:\Program Files\7-Zip\7z.exe" a -tzip "arcade-launcher-${VERSION}-windows-${ARCH}.zip" arcade/*
+          & "C:\Program Files\7-Zip\7z.exe" a -tzip "arcade-launcher-${VERSION}-windows-${ARCH}.zip" arcade/*
           echo "path=arcade-launcher-${VERSION}-windows-${ARCH}.zip" >> "$GITHUB_OUTPUT"
 
       - name: Package Launcher artifact (macOS)
@@ -212,7 +212,7 @@ jobs:
       - name: Verify Agent artifacts (macOS)
         if: runner.os == 'macOS'
         working-directory: agent
-        run: test -f dist/*.dmg && test -d dist/*.app
+        run: test -f dist/*.dmg && test -d dist/mac*/Arcade\ Agent.app
 
       - name: Verify Agent artifacts (Linux)
         if: runner.os == 'Linux'
