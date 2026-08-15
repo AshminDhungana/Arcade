@@ -101,6 +101,7 @@ jobs:
           npm run build
 
       - name: Verify frontend/dist exists
+        shell: bash
         run: test -f frontend/dist/index.html
 
       # ---------------------------------------------------------
@@ -117,6 +118,7 @@ jobs:
 
       - name: Verify Launcher bundle (Windows)
         if: runner.os == 'Windows'
+        shell: bash
         run: test -f "dist/arcade/Arcade Launcher.exe"
 
       - name: Verify Launcher bundle (macOS)
@@ -129,9 +131,10 @@ jobs:
 
       - name: Smoke test Launcher (Windows)
         if: runner.os == 'Windows'
+        shell: bash
         run: |
           echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
-          & "./dist/arcade/Arcade Launcher.exe" --self-test
+          "./dist/arcade/Arcade Launcher.exe" --self-test
 
       - name: Smoke test Launcher (macOS)
         if: runner.os == 'macOS'
@@ -148,11 +151,11 @@ jobs:
       - name: Package Launcher artifact (Windows)
         if: runner.os == 'Windows'
         id: launcher_artifact_windows
+        shell: bash
         run: |
-          $VERSION="${{ env.VERSION }}"
-          $ARCH="${{ matrix.arch }}"
-          cd dist
-          & "C:\Program Files\7-Zip\7z.exe" a -tzip "arcade-launcher-${VERSION}-windows-${ARCH}.zip" arcade/*
+          VERSION="${{ env.VERSION }}"
+          ARCH="${{ matrix.arch }}"
+          "/c/Program Files/7-Zip/7z.exe" a -tzip "arcade-launcher-${VERSION}-windows-${ARCH}.zip" dist/arcade/*
           echo "path=arcade-launcher-${VERSION}-windows-${ARCH}.zip" >> "$GITHUB_OUTPUT"
 
       - name: Package Launcher artifact (macOS)
@@ -207,9 +210,9 @@ jobs:
       - name: Verify Agent artifacts (Windows)
         if: runner.os == 'Windows'
         working-directory: agent
+        shell: bash
         run: |
-          $exe = Get-ChildItem dist/*.exe | Select-Object -First 1
-          if ($null -eq $exe) { Write-Error "No NSIS installer found in dist"; exit 1 }
+          ls dist/*.exe >/dev/null 2>&1 || { echo "No NSIS installer found in dist"; exit 1; }
 
       - name: Verify Agent artifacts (macOS)
         if: runner.os == 'macOS'
@@ -235,11 +238,12 @@ jobs:
         if: runner.os == 'Windows'
         id: agent_artifact_windows
         working-directory: agent
+        shell: bash
         run: |
-          $VERSION="${{ env.VERSION }}"
-          $ARCH="${{ matrix.arch }}"
+          VERSION="${{ env.VERSION }}"
+          ARCH="${{ matrix.arch }}"
           cp dist/*.exe "arcade-agent-${VERSION}-windows-${ARCH}.exe"
-          echo "path=arcade-agent-${VERSION}-windows-${ARCH}.exe" >> "$GITHUB_OUTPUT"
+          echo "path=agent/arcade-agent-${VERSION}-windows-${ARCH}.exe" >> "$GITHUB_OUTPUT"
 
       - name: Package Agent artifacts (macOS)
         if: runner.os == 'macOS'
@@ -250,7 +254,7 @@ jobs:
           ARCH="${{ matrix.arch }}"
           cp dist/*.dmg "arcade-agent-${VERSION}-macos-${ARCH}.dmg"
           echo "paths<<EOF" >> "$GITHUB_OUTPUT"
-          echo "arcade-agent-${VERSION}-macos-${ARCH}.dmg" >> "$GITHUB_OUTPUT"
+          echo "agent/arcade-agent-${VERSION}-macos-${ARCH}.dmg" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Package Agent artifacts (Linux)
@@ -263,8 +267,8 @@ jobs:
           cp dist/*.AppImage "arcade-agent-${VERSION}-linux-${ARCH}.AppImage"
           cp dist/*.deb "arcade-agent-${VERSION}-linux-${ARCH}.deb"
           echo "paths<<EOF" >> "$GITHUB_OUTPUT"
-          echo "arcade-agent-${VERSION}-linux-${ARCH}.AppImage" >> "$GITHUB_OUTPUT"
-          echo "arcade-agent-${VERSION}-linux-${ARCH}.deb" >> "$GITHUB_OUTPUT"
+          echo "agent/arcade-agent-${VERSION}-linux-${ARCH}.AppImage" >> "$GITHUB_OUTPUT"
+          echo "agent/arcade-agent-${VERSION}-linux-${ARCH}.deb" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       # ---------------------------------------------------------
@@ -293,7 +297,7 @@ jobs:
         with:
           files: |
             arcade-launcher-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}.*
-            arcade-agent-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}.*
+            agent/arcade-agent-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}.*
           generate_release_notes: true
           draft: false
           prerelease: false
