@@ -131,7 +131,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           echo '{"jwt_secret": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}' > arcade.config.json
-          "./dist/arcade/Arcade Launcher.exe" --self-test
+          & "./dist/arcade/Arcade Launcher.exe" --self-test
 
       - name: Smoke test Launcher (macOS)
         if: runner.os == 'macOS'
