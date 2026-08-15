@@ -132,7 +132,8 @@ session timer. Act fast so the customer isn't over-billed, and so the seat is fr
 1. **Check the seat status** on the dashboard seat grid:
    - `OFFLINE` / `UNREACHABLE` → the agent process is down or the PC lost power/network.
    - Still `IN_USE` but no response → the PC or agent is wedged.
-2. **Try a restart via the dashboard** (Remote Commands → Restart, or `POST /api/seats/{id}/restart`, Admin).
+2. **Try a restart via the API** — `POST /api/seats/{id}/restart` (Admin).
+   *(v1 has no dashboard "Remote Commands" menu yet — the endpoint is API-only; a dashboard UI is planned.)*
    The agent gets `RESTART` with a ~10-second grace delay and audits `SEAT_RESTARTED`. If the
    agent is offline the call returns `503` — move to step 3.
 3. **If the PC is off / agent offline:** use **Wake-on-LAN** (`POST /api/seats/{id}/wol`, Admin)
@@ -312,7 +313,7 @@ Process checkout for a member using wallet balance and/or package entitlement.
 
 ---
 
-## How to Restart a Frozen PC from the Dashboard
+## How to Restart a Frozen PC Remotely
 
 Restart a wedged client PC without leaving the counter.
 
@@ -321,12 +322,12 @@ Restart a wedged client PC without leaving the counter.
 1. On the dashboard seat grid, identify the problematic seat:
    - Status `IN_USE` but customer reports frozen
    - Status `OFFLINE` / `UNREACHABLE` — agent disconnected
-2. Click the seat card → **Remote Commands** → **Restart**.
-3. Confirm the restart (10-second grace delay shown).
+2. Restart via the API: `POST /api/seats/{id}/restart` (Admin). *(v1: dashboard menu not yet built — use the API.)*
+3. Confirm the restart (10-second grace delay shown in the audit log).
 4. Agent receives `RESTART` command, audits `SEAT_RESTARTED`.
 5. If agent is offline (returns `503`):
-   - Try **Wake-on-LAN** (WoL) from same menu → seat goes `BOOTING`
-   - If console on Tuya plug: **Power Cycle** (Power Off → Power On)
+   - Try **Wake-on-LAN** (WoL): `POST /api/seats/{id}/wol` (Admin) → seat goes `BOOTING`
+   - If console on Tuya plug: **Power Cycle** via `POST /api/seats/{id}/power-off` then `POST /api/seats/{id}/power-on` (Admin, `enable_tuya`)
    - If no agent registers within 60s → seat becomes `UNREACHABLE`
 6. Once PC reboots and agent reconnects:
    - Session still running on server (timer never stopped)

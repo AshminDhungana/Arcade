@@ -159,6 +159,14 @@ def test_screenshot_returns_jpeg(client: TestClient, sample_seat: Seat) -> None:
     assert resp.content == b"\xff\xd8\xff\xff\xd9"
 
 
+def test_screenshot_denied_for_cashier(
+    cashier_client: TestClient, sample_seat: Seat
+) -> None:
+    """Screenshots capture customer screens — Admin-only (NFR-SEC-004)."""
+    resp = cashier_client.get(f"/api/seats/{sample_seat.id}/screenshot")
+    assert resp.status_code == 403
+
+
 # --- restart / shutdown (admin only) ---------------------------------------
 
 
