@@ -267,13 +267,28 @@ jobs:
       # ---------------------------------------------------------
       # GitHub Release (on tag push only)
       # ---------------------------------------------------------
+      - name: Compute artifact names
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: artifact_names
+        shell: bash
+        run: |
+          VERSION="${{ env.VERSION }}"
+          ARCH="${{ matrix.arch }}"
+          case "${{ runner.os }}" in
+            Windows) OS_LOWER="windows" ;;
+            macOS) OS_LOWER="macos" ;;
+            Linux) OS_LOWER="linux" ;;
+          esac
+          echo "launcher=arcade-launcher-${VERSION}-${OS_LOWER}-${ARCH}.*" >> "$GITHUB_OUTPUT"
+          echo "agent=agent/arcade-agent-${VERSION}-${OS_LOWER}-${ARCH}.*" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            arcade-launcher-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}.*
-            agent/arcade-agent-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}.*
+            ${{ steps.artifact_names.outputs.launcher }}
+            ${{ steps.artifact_names.outputs.agent }}
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -302,7 +317,9 @@ jobs:
       - name: Final Release (attach all)
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/arcade-*
+          files: |
+            artifacts/arcade-launcher-*
+            artifacts/arcade-agent-*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
