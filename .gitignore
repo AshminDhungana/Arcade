@@ -339,3 +339,4 @@ backups/
 frontend/test-results/
 Arcade-Setup-*.exe
 \nE:\Ongoing Projects\Arcade\tools\keygen\private_key.pem\ntools/keygen/private_key.pem\n
+agent/src/main/master-pin-test.ts
