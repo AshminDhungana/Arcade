@@ -39,18 +39,16 @@ function parseArgs() {
     const arg = args[i];
     if (arg === '--pin' || arg === '-p') {
       const value = args[++i];
-      if (value) {
-        result.pin = value;
-        result.pinProvided = true;
-      }
+      // Empty string is allowed here too - validation happens later
+      result.pin = value ?? '';
+      result.pinProvided = true;
     } else if (arg === '--out' || arg === '-o') {
       result.out = args[++i];
     } else if (arg.startsWith('--pin=')) {
       const value = arg.slice(6);
-      if (value) {
-        result.pin = value;
-        result.pinProvided = true;
-      }
+      // Explicitly provided --pin= (even if empty) counts as provided
+      result.pin = value;
+      result.pinProvided = true;
     } else if (arg.startsWith('--out=')) {
       result.out = arg.slice(6);
     }
@@ -66,12 +64,16 @@ function parseArgs() {
     result.pinProvided = true;
   }
 
+  // Track if PIN was explicitly provided (even if empty)
+  const pinExplicitlyProvided = result.pinProvided && result.pin === '';
+
   // Built-in default so unparameterised builds still get a working master PIN.
   if (!result.pinProvided) {
     result.pin = DEFAULT_MASTER_PIN;
   }
 
-  if (!result.pin) {
+  // Empty string is not a valid PIN even if explicitly provided via --pin=
+  if (pinExplicitlyProvided || !result.pin || result.pin.trim() === '') {
     console.error('Error: PIN required. Provide via --pin, MASTER_PIN, or ARCADE_MASTER_PIN.');
     process.exit(1);
   }

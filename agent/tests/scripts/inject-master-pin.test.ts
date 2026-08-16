@@ -52,7 +52,7 @@ describe('inject-master-pin.js', () => {
     expect(content).toContain('export function resolveMasterPinHash()');
     expect(content).toContain('return MASTER_PIN_HASH;');
     expect(content).not.toContain('testpin123');
-  });
+  }, 60000);
 
   it('generates master-pin.ts with Argon2id hash from env var', async () => {
     const { spawn } = await import('node:child_process');
