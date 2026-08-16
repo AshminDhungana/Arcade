@@ -209,6 +209,17 @@ function initKiosk(): void {
   window.electronAPI.onHotspot((active) => {
     overlay.setHotspotActive(active);
   });
+
+  // Power events from main process
+  window.electronAPI.onSuspend?.(() => {
+    overlay.stopClock();
+  });
+
+  window.electronAPI.onResume?.(() => {
+    overlay.startClock();
+    // Request SYNC from main process
+    window.electronAPI.onRequestSync?.();
+  });
 }
 
 // ---------------------------------------------------------------------------

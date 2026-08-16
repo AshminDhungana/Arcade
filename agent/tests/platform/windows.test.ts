@@ -40,6 +40,11 @@ vi.mock('electron', async () => {
     getCursorScreenPoint: vi.fn().mockReturnValue({ x: 0, y: 0 }),
   };
 
+  const mockPowerMonitor = {
+    on: vi.fn(),
+    off: vi.fn(),
+  };
+
   return {
     ...actual,
     // The platform source destructures from the default export, so the mock
@@ -48,10 +53,12 @@ vi.mock('electron', async () => {
       BrowserWindow: MockBrowserWindow,
       desktopCapturer: mockDesktopCapturer,
       screen: mockScreen,
+      powerMonitor: mockPowerMonitor,
     },
     BrowserWindow: MockBrowserWindow,
     desktopCapturer: mockDesktopCapturer,
     screen: mockScreen,
+    powerMonitor: mockPowerMonitor,
   };
 });
 
@@ -93,7 +100,7 @@ vi.mock('systeminformation', () => ({
 
 import { WindowsPlatformService } from '../../src/main/platform/windows.js';
 import { exec } from 'child_process';
-import { desktopCapturer, screen } from 'electron';
+import { desktopCapturer, screen, powerMonitor } from 'electron';
 
 describe('WindowsPlatformService', () => {
   let service: WindowsPlatformService;
@@ -256,6 +263,70 @@ describe('WindowsPlatformService', () => {
       vi.mocked(screen.getCursorScreenPoint).mockReturnValue({ x: 1920, y: 100 });
       vi.advanceTimersByTime(500);
       expect(send).not.toHaveBeenCalledWith('overlay:hotspot', true);
+    });
+  });
+
+  describe('power monitor events', () => {
+    let service: WindowsPlatformService;
+    let send: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      service = new WindowsPlatformService();
+      vi.clearAllMocks();
+      service.showKioskOverlay({
+        cafeName: 'Test',
+        announcements: [],
+        callStaffEnabled: true,
+        sessionActive: true,
+      });
+      const mockWindow = (service as any).kioskWindow;
+      send = mockWindow.webContents.send;
+      send.mockClear();
+    });
+
+    it('registers suspend/resume/lock/unlock handlers on init', () => {
+      expect(powerMonitor.on).toHaveBeenCalledWith('suspend', expect.any(Function));
+      expect(powerMonitor.on).toHaveBeenCalledWith('resume', expect.any(Function));
+      expect(powerMonitor.on).toHaveBeenCalledWith('lock-screen', expect.any(Function));
+      expect(powerMonitor.on).toHaveBeenCalledWith('unlock-screen', expect.any(Function));
+    });
+
+    it('on suspend: sends overlay:suspend and marks suspended', () => {
+      const suspendHandler = vi.mocked(powerMonitor.on).mock.calls.find(
+        (c) => c[0] === 'suspend'
+      )?.[1];
+      expect(suspendHandler).toBeDefined();
+      suspendHandler?.();
+      expect(send).toHaveBeenCalledWith('overlay:suspend');
+    });
+
+    it('on resume: restores full mode, clears suspended, sends overlay:resume and request-sync', () => {
+      const resumeHandler = vi.mocked(powerMonitor.on).mock.calls.find(
+        (c) => c[0] === 'resume'
+      )?.[1];
+      expect(resumeHandler).toBeDefined();
+      resumeHandler?.();
+      expect(send).toHaveBeenCalledWith('overlay:set-minimal', false);
+      expect(send).toHaveBeenCalledWith('overlay:resume');
+      expect(send).toHaveBeenCalledWith('overlay:request-sync', undefined);
+    });
+
+    it('lock-screen triggers suspend behavior', () => {
+      const lockHandler = vi.mocked(powerMonitor.on).mock.calls.find(
+        (c) => c[0] === 'lock-screen'
+      )?.[1];
+      expect(lockHandler).toBeDefined();
+      lockHandler?.();
+      expect(send).toHaveBeenCalledWith('overlay:suspend');
+    });
+
+    it('unlock-screen triggers resume behavior', () => {
+      const unlockHandler = vi.mocked(powerMonitor.on).mock.calls.find(
+        (c) => c[0] === 'unlock-screen'
+      )?.[1];
+      expect(unlockHandler).toBeDefined();
+      unlockHandler?.();
+      expect(send).toHaveBeenCalledWith('overlay:set-minimal', false);
     });
   });
 });

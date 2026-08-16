@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 // a named-export SyntaxError, and the bindings are never used.
 import electron from 'electron';
 import type { BrowserWindow as BrowserWindowType } from 'electron';
-const { BrowserWindow, desktopCapturer, screen } = electron;
+const { BrowserWindow, desktopCapturer, screen, powerMonitor } = electron;
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import sharp from 'sharp';
@@ -35,6 +35,8 @@ export class WindowsPlatformService implements IPlatformService {
   private kioskWindow: BrowserWindowType | null = null;
   private sessionActive = false;
   private overrideCodeConfigured = false;
+  private suspended = false;
+  private wasMinimalBeforeSuspend = false;
 
   // Right-edge hot zone: OS cursor polling replaces Electron's unreliable
   // setIgnoreMouseEvents({ forward: true }) event forwarding on Windows, which
@@ -114,6 +116,35 @@ export class WindowsPlatformService implements IPlatformService {
     });
 
     this.startHotspotPolling();
+    this.setupPowerMonitor();
+  }
+
+  private setupPowerMonitor(): void {
+    powerMonitor.on('suspend', () => this.handleSuspend());
+    powerMonitor.on('resume', () => this.handleResume());
+    powerMonitor.on('lock-screen', () => this.handleSuspend());
+    powerMonitor.on('unlock-screen', () => this.handleResume());
+  }
+
+  private handleSuspend(): void {
+    this.suspended = true;
+    this.wasMinimalBeforeSuspend = this.sessionActive;
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      this.kioskWindow.webContents.send('overlay:suspend');
+    }
+  }
+
+  private async handleResume(): Promise<void> {
+    this.suspended = false;
+    if (this.kioskWindow && !this.kioskWindow.isDestroyed()) {
+      // Restore to full mode (not minimal)
+      this.kioskWindow.show();
+      this.kioskWindow.setIgnoreMouseEvents(false);
+      this.kioskWindow.webContents.send('overlay:set-minimal', false);
+      this.kioskWindow.webContents.send('overlay:resume');
+      // Request SYNC from main process if session was active
+      this.sendToOverlayAndHud('overlay:request-sync');
+    }
   }
 
   hideKioskOverlay(): void {

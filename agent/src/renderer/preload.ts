@@ -121,6 +121,18 @@ const api = {
     ipcRenderer.on('overlay:hotspot', (_event: IpcRendererEvent, active: boolean) => callback(active));
   },
 
+  onSuspend: (callback: () => void) => {
+    ipcRenderer.on('overlay:suspend', (_event: IpcRendererEvent) => callback());
+  },
+
+  onResume: (callback: () => void) => {
+    ipcRenderer.on('overlay:resume', (_event: IpcRendererEvent) => callback());
+  },
+
+  onRequestSync: (callback: () => void) => {
+    ipcRenderer.on('overlay:request-sync', (_event: IpcRendererEvent) => callback());
+  },
+
   setClickThrough: (clickThrough: boolean) => {
     ipcRenderer.send('overlay:click-through', clickThrough);
   },
