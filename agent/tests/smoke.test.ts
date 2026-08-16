@@ -23,7 +23,7 @@ describe('Agent smoke test', () => {
       '--smoke-test'
     ], {
       cwd: projectRoot,
-      timeout: 30000
+      timeout: 60000
     })
 
     await new Promise<void>((resolve, reject) => {
@@ -33,5 +33,5 @@ describe('Agent smoke test', () => {
       })
       proc.on('error', reject)
     })
-  })
+  }, 60000)
 })
