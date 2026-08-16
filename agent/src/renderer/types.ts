@@ -31,6 +31,9 @@ export interface ElectronAPI {
   onSetMinimal: (callback: (enabled: boolean) => void) => void;
   onHotspot: (callback: (active: boolean) => void) => void;
   setClickThrough: (clickThrough: boolean) => void;
+  onSuspend: (callback: () => void) => void;
+  onResume: (callback: () => void) => void;
+  onRequestSync: (callback: () => void) => void;
 }
 
 declare global {

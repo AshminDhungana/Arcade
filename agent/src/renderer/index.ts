@@ -217,8 +217,12 @@ function initKiosk(): void {
 
   window.electronAPI.onResume?.(() => {
     overlay.startClock();
-    // Request SYNC from main process
-    window.electronAPI.onRequestSync?.();
+  });
+
+  window.electronAPI.onRequestSync?.(() => {
+    // SYNC is handled automatically by main process on WebSocket reconnect
+    // Renderer can show "reconnecting" indicator here if needed
+    console.log('[Renderer] Request SYNC received from main process');
   });
 }
 
