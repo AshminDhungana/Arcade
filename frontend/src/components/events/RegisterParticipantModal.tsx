@@ -146,7 +146,7 @@ export function RegisterParticipantModal({
           />
         )}
 
-        {(seats?.length ?? 0) > 0 && (
+        {seats && (seats.length ?? 0) > 0 && (
           <div>
             <label id="seat-label" className="block text-sm font-medium text-foreground mb-1.5">Seat (optional)</label>
             <select

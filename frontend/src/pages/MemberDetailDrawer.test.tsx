@@ -17,7 +17,7 @@ const ALL_FLAGS = {
 const MEMBER: Member = {
   id: 'm1', name: 'Test Member', phone: '9800000000', birth_month: 5,
   wallet_balance_paise: 0, loyalty_points: 0, tier: 'BRONZE', total_visits: 0,
-  total_seconds_played: 0, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+  total_seconds_played: 0, is_active: true, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 };
 
 const EMPTY_PACKAGES: Package[] = [];

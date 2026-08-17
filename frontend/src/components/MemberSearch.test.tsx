@@ -7,8 +7,8 @@ import { useAuthStore } from '@/store/authStore';
 import type { Member } from '@/types/members';
 
 const SAMPLE: Member[] = [
-  { id: 'm1', name: 'John', phone: '9800000001', birth_month: null, wallet_balance_paise: 0, loyalty_points: 0, tier: 'BRONZE', total_visits: 0, total_seconds_played: 0, created_at: '', updated_at: '' },
-  { id: 'm2', name: 'Jane', phone: '9800000002', birth_month: null, wallet_balance_paise: 0, loyalty_points: 0, tier: 'BRONZE', total_visits: 0, total_seconds_played: 0, created_at: '', updated_at: '' },
+  { id: 'm1', name: 'John', phone: '9800000001', birth_month: null, wallet_balance_paise: 0, loyalty_points: 0, tier: 'BRONZE', total_visits: 0, total_seconds_played: 0, is_active: true, created_at: '', updated_at: '' },
+  { id: 'm2', name: 'Jane', phone: '9800000002', birth_month: null, wallet_balance_paise: 0, loyalty_points: 0, tier: 'BRONZE', total_visits: 0, total_seconds_played: 0, is_active: true, created_at: '', updated_at: '' },
 ];
 
 function makeWrapper() {

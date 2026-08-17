@@ -16,6 +16,7 @@ const MEMBER: Member = {
   tier: 'BRONZE',
   total_visits: 0,
   total_seconds_played: 0,
+  is_active: true,
   created_at: '',
   updated_at: '',
 };
