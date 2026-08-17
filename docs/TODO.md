@@ -2,7 +2,7 @@
 
 **Purpose:** Step-by-step, checkbox-driven checklist for engineers. Work top-to-bottom: test each feature area, fix any problem found (one at a time), verify the fix, then check off the item.
 
-**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A, B, C, D, E, F, G and H are complete** (Section H as of this pass, Section G as of commit `a0428ce`) (Section F as of commit `f81cb96`) (Section E as of commit `29b844b`) (Section C as of commit `9232e73`) (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections I–M may begin.
+**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A, B, C, D, E, F, G, H, I and J are complete** (Section J as of this pass, Section I as of commit `17e8ac2`) (Section H as of commit `b3bd1b9`, Section G as of commit `a0428ce`) (Section F as of commit `f81cb96`) (Section E as of commit `29b844b`) (Section C as of commit `9232e73`) (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections K–M may begin.
 
 ## How to use this checklist
 
@@ -217,12 +217,14 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 
 ## Section J — Events & Tournaments
 
-- [ ] **J.1 Event creation** — create an event with entry fee; verify eventbrite-style registration works. Verify: `python -m pytest backend/tests/test_events.py backend/tests/test_events_router.py backend/tests/test_event_service.py`
-- [ ] **J.2 Participant registration + seats** — register participants, assign seats, charge entry fee (wallet or standalone). Verify: `backend/tests/test_events_e2e_smoke.py`
-- [ ] **J.3 Brackets** — single and double elimination: advance winners, record results, compute prize pool.
-- [ ] **J.4 Event billing** — verify entry fees hit member wallets or transactions correctly, page renders on dashboard. Verify: `cd frontend && npx vitest run src/pages/Events.test.tsx`
+- [x] **J.1 Event creation** — create an event with entry fee; verify eventbrite-style registration works. Verify: `python -m pytest backend/tests/test_events.py backend/tests/test_events_router.py backend/tests/test_event_service.py`
+- [x] **J.2 Participant registration + seats** — register participants, assign seats, charge entry fee (wallet or standalone). Verify: `backend/tests/test_events_e2e_smoke.py`
+- [x] **J.3 Brackets** — single and double elimination: advance winners, record results, compute prize pool.
+- [x] **J.4 Event billing** — verify entry fees hit member wallets or transactions correctly, page renders on dashboard. Verify: `cd frontend && npx vitest run src/pages/Events.test.tsx`
 
 **Done when:** J.1–J.4 pass.
+
+**2026-08-17 pass:** all J.1–J.4 verified — J.1 (backend event creation + listing via router/service tests), J.2 (frontend RegisterParticipantModal with member/walk-in toggle + seat assignment; backend wallet deduction verified in e2e smoke test), J.3 (single & double elimination bracket generation, match recording, advancement tested in service + router), J.4 (member wallet deduction on registration, EventsWidget on Dashboard showing upcoming tournaments, summary shows entry_fee_revenue_paise). Frontend tests: 364 passed. Backend tests: 25 passed. Linters clean.
 
 ---
 
