@@ -114,6 +114,19 @@ export function useMembers(q = '') {
   });
 }
 
+export function useActiveMembers() {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['members', 'active'],
+    queryFn: async () => {
+      const all = await listMembers({}, token);
+      return all.filter((m) => m.is_active);
+    },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useCreateMember() {
   const token = useAuthStore((s) => s.accessToken);
   const qc = useQueryClient();

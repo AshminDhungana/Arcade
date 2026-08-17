@@ -142,3 +142,17 @@ export function useSeat(seatId: string, options?: Omit<UseQueryOptions<Seat, Err
     ...options,
   });
 }
+
+const AVAILABLE_STATUSES = ['AVAILABLE', 'ONLINE'] as const;
+
+export function useAvailableSeats() {
+  return useQuery({
+    queryKey: ['seats', 'available'],
+    queryFn: async () => {
+      const all = await fetchSeats();
+      return all.filter((s) => AVAILABLE_STATUSES.includes(s.status as typeof AVAILABLE_STATUSES[number]));
+    },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+}
