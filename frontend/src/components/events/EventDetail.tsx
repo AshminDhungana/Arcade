@@ -48,6 +48,7 @@ export function EventDetail({ eventId, onBack }: { eventId: string; onBack: () =
       <RegisterParticipantModal
         open={isRegisterOpen}
         eventId={eventId}
+        entryFeePaise={summary.event.entry_fee_paise}
         onClose={() => setIsRegisterOpen(false)}
       />
     </div>
