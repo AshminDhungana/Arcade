@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { StaffAlertModal } from '@/components/StaffAlertModal';
 import { ShiftModal } from '@/components/ShiftModal';
+import { EventsWidget } from '@/components/events/EventsWidget';
 
 function ConnectionBadge({
   status,
@@ -98,6 +99,7 @@ export default function DashboardPage() {
 
       <main className="mx-auto w-full max-w-7xl space-y-6 p-6">
         <UnprintedInvoices />
+        <EventsWidget />
         <SeatGrid />
       </main>
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import DashboardPage from './Dashboard';
 import { useAuthStore } from '@/store/authStore';
@@ -41,7 +42,9 @@ vi.mock('@/lib/chime', () => ({ playStaffAlertChime: vi.fn() }));
 const makeWrapper = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={['/']}>{children}</MemoryRouter>
+    </QueryClientProvider>
   );
 };
 
@@ -113,5 +116,25 @@ describe('DashboardPage', () => {
     expect(screen.queryByTestId('shift-modal')).not.toBeInTheDocument();
     fireEvent.click(shiftButton);
     expect(screen.getByTestId('shift-modal')).toBeInTheDocument();
+  });
+
+  describe('EventsWidget', () => {
+    beforeEach(() => {
+      vi.stubGlobal('fetch', vi.fn(async () =>
+        new Response(JSON.stringify([
+          { id: 'e1', name: 'FIFA Cup', game_title: 'FIFA 24', event_date: '2026-08-15T18:00:00Z', entry_fee_paise: 5000, prize_pool_paise: 20000, bracket_type: 'SINGLE_ELIMINATION', status: 'UPCOMING' },
+          { id: 'e2', name: 'Past Event', game_title: 'Game', event_date: '2026-07-01T18:00:00Z', entry_fee_paise: 2000, prize_pool_paise: 5000, bracket_type: 'SINGLE_ELIMINATION', status: 'COMPLETED' },
+        ]), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+    });
+    afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
+
+    it('renders EventsWidget with upcoming events', async () => {
+      render(<DashboardPage />, { wrapper: makeWrapper() });
+      await waitFor(() => expect(screen.getByText('Upcoming Events')).toBeInTheDocument());
+      // Wait for event data to load
+      await waitFor(() => expect(screen.getByText('FIFA Cup')).toBeInTheDocument());
+      expect(screen.queryByText('Past Event')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute('href', '/events');
+    });
   });
 });
