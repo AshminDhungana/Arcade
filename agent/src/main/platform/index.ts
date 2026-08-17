@@ -3,9 +3,6 @@ export * from './types.js';
 
 /**
  * Map of platform names to their implementation module paths.
- *
- * Only `win32` is implemented in Feature 2.2.1.
- * `darwin` (macOS) and `linux` are planned for Phase 7.
  */
 const PLATFORM_MODULES: Record<string, string> = {
   win32: './windows.js',
@@ -17,7 +14,6 @@ const PLATFORM_MODULES: Record<string, string> = {
  * Return the platform-specific IPlatformService implementation.
  *
  * Uses `process.platform` to determine the target module dynamically.
- * Only `win32` is currently supported; `darwin` and `linux` will throw.
  *
  * @throws {Error} if the current platform is not yet supported.
  */
@@ -33,6 +29,11 @@ export async function getPlatformService(): Promise<IPlatformService> {
   if (platform === 'win32') {
     const { WindowsPlatformService } = await import('./windows.js');
     return new WindowsPlatformService();
+  }
+
+  if (platform === 'darwin') {
+    const { MacOSPlatformService } = await import('./macos.js');
+    return new MacOSPlatformService();
   }
 
   if (platform === 'linux') {
