@@ -12,7 +12,6 @@ files:
 mac:
   target:
     - dmg
-    - zip
   artifactName: "${productName}-${version}-${arch}.${ext}"
 dmg:
   sign: false

@@ -22,7 +22,7 @@ jobs:
   build:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -35,10 +35,10 @@ jobs:
             node_version: '22'
             python_version: '3.12'
           - os: macos-latest
-            artifact_ext: tar.gz
+            artifact_ext: dmg
             arch: arm64
             launcher_target: onedir
-            agent_target: dmg+zip
+            agent_target: dmg
             node_version: '22'
             python_version: '3.12'
           - os: ubuntu-latest
