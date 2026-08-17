@@ -21,7 +21,7 @@ export function RegisterParticipantModal({
 }) {
   const register = useRegisterParticipant(eventId);
   const { data: members, isLoading: membersLoading } = useActiveMembers();
-  const { data: seats, isLoading: seatsLoading } = useAvailableSeats();
+  const { data: seats } = useAvailableSeats();
   const [mode, setMode] = useState<'member' | 'walkin'>('member');
   const [memberId, setMemberId] = useState('');
   const [walkinName, setWalkinName] = useState('');
@@ -30,7 +30,7 @@ export function RegisterParticipantModal({
   const selectedMember = members?.find((m) => m.id === memberId);
   const walletPreview = selectedMember
     ? selectedMember.wallet_balance_paise - entryFeePaise
-    : null;
+    : 0;
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -146,7 +146,7 @@ export function RegisterParticipantModal({
           />
         )}
 
-        {!seatsLoading && (seats?.length ?? 0) > 0 && (
+        {(seats?.length ?? 0) > 0 && (
           <div>
             <label id="seat-label" className="block text-sm font-medium text-foreground mb-1.5">Seat (optional)</label>
             <select

@@ -30,6 +30,7 @@ class Member(Base):
     birth_month: Mapped[int | None]
     total_visits: Mapped[int] = mapped_column(default=0)
     total_seconds_played: Mapped[int] = mapped_column(default=0)
+    is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

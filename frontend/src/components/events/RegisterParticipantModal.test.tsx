@@ -30,8 +30,8 @@ describe('RegisterParticipantModal', () => {
       if (url.includes('/seats')) return new Response(JSON.stringify(SEATS), { status: 200, headers: { 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify({ id: 'p1' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }));
-    vi.spyOn(toast, 'error').mockImplementation(() => {});
-    vi.spyOn(toast, 'success').mockImplementation(() => {});
+    vi.spyOn(toast, 'error').mockImplementation(() => 'toast-id');
+    vi.spyOn(toast, 'success').mockImplementation(() => 'toast-id');
   });
   afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
 

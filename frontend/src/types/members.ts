@@ -10,6 +10,7 @@ export interface Member {
   tier: MemberTier;
   total_visits: number;
   total_seconds_played: number;
+  is_active: boolean;
   created_at: string; // ISO datetime
   updated_at: string;
 }
