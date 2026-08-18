@@ -36,7 +36,7 @@ def test_expense_response_from_orm():
         amount_paise = 150000
         note = "Power bill"
         logged_by_staff_id = "staff1"
-        created_at = datetime.now(UTC).isoformat()
+        created_at = datetime.now(UTC)
 
     r = ExpenseResponse.model_validate(FakeExpense())
     assert r.id == "exp1"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import date as _date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,12 +14,14 @@ from backend.models import Expense
 async def create(
     db: AsyncSession,
     *,
-    date: str,
+    date: _date | str,
     category: str,
     amount_paise: int,
     note: str | None = None,
     logged_by_staff_id: str = "",
 ) -> Expense:
+    if isinstance(date, str):
+        date = _date.fromisoformat(date)
     expense = Expense(
         date=date,
         category=category,
@@ -38,7 +41,7 @@ async def get_by_id(db: AsyncSession, expense_id: str) -> Expense | None:
 
 
 async def list(db: AsyncSession) -> Sequence[Expense]:
-    result = await db.execute(select(Expense))
+    result = await db.execute(select(Expense).order_by(Expense.created_at.desc()))
     return result.scalars().all()
 
 

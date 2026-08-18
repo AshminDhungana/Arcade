@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import Field
 
@@ -24,4 +24,4 @@ class ExpenseResponse(BaseResponseSchema):
     amount_paise: int
     note: str | None
     logged_by_staff_id: str
-    created_at: str  # ISO datetime string
+    created_at: datetime

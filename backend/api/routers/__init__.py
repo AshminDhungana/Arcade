@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.routers import expenses as expenses_router
 from backend.api.routers.analytics import router as analytics_router
 from backend.api.routers.audit import router as audit_router
 from backend.api.routers.auth import router as auth_router
@@ -86,4 +87,5 @@ routers: list[APIRouter] = [
     analytics_router,
     event_router,
     printer_router,
+    expenses_router.router,
 ]
