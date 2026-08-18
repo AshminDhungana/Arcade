@@ -45,6 +45,24 @@ export interface HealthAlert {
   reasons: string[];
 }
 
+// P&L types (K.2)
+export interface PLSummary {
+  period_start: string;
+  period_end: string;
+  session_revenue_paise: number;
+  pos_revenue_paise: number;
+  total_revenue_paise: number;
+  expenses_by_category: Record<string, number>;
+  total_expenses_paise: number;
+  gross_profit_paise: number;
+  net_profit_paise: number;
+}
+
+export interface PLMonthParams {
+  year: number;
+  month: number;
+}
+
 export interface AnalyticsSummary {
   total_revenue_paise: number;
   session_count: number;
