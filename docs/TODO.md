@@ -2,7 +2,7 @@
 
 **Purpose:** Step-by-step, checkbox-driven checklist for engineers. Work top-to-bottom: test each feature area, fix any problem found (one at a time), verify the fix, then check off the item.
 
-**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A, B, C, D, E, F, G, H, I and J are complete** (Section J as of this pass, Section I as of commit `17e8ac2`) (Section H as of commit `b3bd1b9`, Section G as of commit `a0428ce`) (Section F as of commit `f81cb96`) (Section E as of commit `29b844b`) (Section C as of commit `9232e73`) (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections K–M may begin.
+**Project status:** v1.0 released. All 23 acceptance criteria evaluated (15 verified, 8 deferred — see `docs/release/v1.0-acceptance-results.md`). The remaining work is full feature testing, fixing defects, and closing the deferred cross-platform items. **Sections 0, A, B, C, D, E, F, G, H, I, J and K (K.1–K.3) are complete** (Section J as of this pass, Section I as of commit `17e8ac2`) (Section H as of commit `b3bd1b9`, Section G as of commit `a0428ce`) (Section F as of commit `f81cb96`) (Section E as of commit `29b844b`) (Section C as of commit `9232e73`) (Section B as of commit `6a92b03`) (Section 0 as of commit `92eb500`, Section A as of commit `7954502`) — testing of Sections K.4 and L–M may begin.
 
 ## How to use this checklist
 
@@ -230,9 +230,9 @@ Run these before any feature testing. If a gate fails, fix it first — everythi
 
 ## Section K — Analytics & Reports
 
-- [ ] **K.1 Dashboard analytics** — today's revenue, busiest hours, seat utilisation by zone, top POS items, member activity all populate correctly. Verify: `python -m pytest backend/tests/test_analytics.py backend/tests/test_analytics_indexes.py backend/tests/integration/test_ac05_analytics_fields.py`
-- [ ] **K.2 Expense tracking** — log rent/electricity/restock/wages; verify gross vs net P&L estimate.
-- [ ] **K.3 Shift reports** — per-shift revenue, sessions, avg duration, payment breakdown. Verify: `python -m pytest backend/tests/test_shifts_router.py backend/tests/test_schemas_invoice_shift.py`
+- [x] **K.1 Dashboard analytics** — today's revenue, busiest hours, seat utilisation by zone, top POS items, member activity all populate correctly. Verify: `python -m pytest backend/tests/test_analytics.py backend/tests/test_analytics_indexes.py backend/tests/integration/test_ac05_analytics_fields.py`
+- [x] **K.2 Expense tracking** — log rent/electricity/restock/wages; verify gross vs net P&L estimate (backend: `backend/api/routers/expenses.py`, `backend/services/pl_service.py`, `backend/api/routers/reports.py`; frontend: `ExpensesTab`, `PLTab` in Settings). Verify: `python -m pytest backend/tests/test_expense_schemas.py backend/tests/test_expenses_router.py backend/tests/test_pl_service.py backend/tests/test_reports_router.py` + `cd frontend && npm test -- --run ExpensesTab.test.tsx PLTab.test.tsx`
+- [x] **K.3 Shift reports** — per-shift revenue, sessions, avg duration, payment breakdown. Verify: `python -m pytest backend/tests/test_shifts_router.py backend/tests/test_schemas_invoice_shift.py`
 - [ ] **K.4 Mobile owner view** — open `/mobile` on a phone on cafe WiFi; verify responsive cards: today's revenue, active sessions, shift summary, top zones; real-time updates without refresh.
 
 **Done when:** K.1–K.4 pass.
