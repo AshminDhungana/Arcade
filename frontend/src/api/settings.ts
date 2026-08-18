@@ -10,6 +10,8 @@ import type {
   Seat,
   SeatCreate,
   SeatUpdate,
+  Expense,
+  ExpenseCreate,
 } from '@/types/settings';
 import { useAuthStore } from '@/store/authStore';
 
@@ -755,5 +757,61 @@ export function useDeleteSeat() {
   return useMutation({
     mutationFn: (id: string) => deleteSeat(id, token),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seats'] }),
+  });
+}
+
+// ---------- Expenses (K.2) ----------
+export async function listExpenses(token: string | null): Promise<Expense[]> {
+  const res = await fetch(`${API_BASE}/expenses`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error(`Failed to load expenses: ${res.status}`);
+  return (await res.json()) as Expense[];
+}
+
+export async function createExpense(
+  e: ExpenseCreate,
+  token: string | null
+): Promise<Expense> {
+  const res = await fetch(`${API_BASE}/expenses`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(e),
+  });
+  if (!res.ok) throw new Error(`Failed to create expense: ${res.status}`);
+  return (await res.json()) as Expense;
+}
+
+export async function deleteExpense(id: string, token: string | null): Promise<void> {
+  const res = await fetch(`${API_BASE}/expenses/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`Failed to delete expense: ${res.status}`);
+}
+
+// ---------- React Query hooks for Expenses ----------
+export function useExpenses() {
+  const token = useAuthStore((s) => s.accessToken);
+  return useQuery({
+    queryKey: ['expenses'],
+    queryFn: () => listExpenses(token),
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateExpense() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (e: ExpenseCreate) => createExpense(e, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
+  });
+}
+
+export function useDeleteExpense() {
+  const token = useAuthStore((s) => s.accessToken);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteExpense(id, token),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
   });
 }

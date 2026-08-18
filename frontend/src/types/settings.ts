@@ -127,3 +127,31 @@ export interface SeatUpdate {
   is_console?: boolean;
   notes?: string | null;
 }
+
+// Expense types (K.2)
+export type ExpenseCategory =
+  | 'RENT'
+  | 'ELECTRICITY'
+  | 'RESTOCK'
+  | 'WAGES'
+  | 'MAINTENANCE'
+  | 'MARKETING'
+  | 'OTHER';
+
+export interface Expense {
+  id: string;
+  date: string; // ISO date string
+  category: ExpenseCategory;
+  amount_paise: number;
+  note: string | null;
+  logged_by_staff_id: string;
+  logged_by_staff_name?: string;
+  created_at: string; // ISO datetime string
+}
+
+export interface ExpenseCreate {
+  date: string; // ISO date string (YYYY-MM-DD)
+  category: ExpenseCategory;
+  amount_paise: number;
+  note?: string | null;
+}
