@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ExpensesTab } from './ExpensesTab';
 import { useAuthStore } from '@/store/authStore';
@@ -200,8 +199,6 @@ describe('ExpensesTab', () => {
   });
 
   it('deletes an expense via confirm dialog', async () => {
-    const expenseToDelete = MOCK_EXPENSES[0];
-
     let resolveDelete: (v: void) => void;
     const deletePromise = new Promise<void>((resolve) => {
       resolveDelete = resolve;

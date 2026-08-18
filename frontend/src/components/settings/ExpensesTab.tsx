@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, X, Calendar, Tag, CreditCard, FileText } from 'lucide-react';
+import { Plus, Trash2, Calendar, FileText } from 'lucide-react';
 import {
   useExpenses,
   useCreateExpense,
@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { toast } from '@/store/toastStore';
 import { formatPaise } from '@/hooks/useFormatPaise';
-import type { Expense, ExpenseCategory, ExpenseCreate } from '@/types/settings';
+import type { Expense, ExpenseCategory } from '@/types/settings';
 
 const CATEGORY_OPTIONS: { value: ExpenseCategory; label: string }[] = [
   { value: 'RENT', label: 'Rent' },

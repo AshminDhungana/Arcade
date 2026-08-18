@@ -7,6 +7,8 @@ import { SeatsTab } from '@/components/settings/SeatsTab';
 import { MenuTab } from '@/components/settings/MenuTab';
 import { PrinterTab } from '@/components/settings/PrinterTab';
 import { BroadcastTab } from '@/components/settings/BroadcastTab';
+import { ExpensesTab } from '@/components/settings/ExpensesTab';
+import { PLTab } from '@/components/settings/PLTab';
 
 export default function SettingsPage() {
   return (
@@ -25,6 +27,8 @@ export default function SettingsPage() {
             <TabsTrigger value="menu">Menu</TabsTrigger>
             <TabsTrigger value="printer">Printer</TabsTrigger>
             <TabsTrigger value="broadcast">Broadcast</TabsTrigger>
+            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="pl">P&L</TabsTrigger>
           </TabsList>
           <TabsContent value="flags"><FeatureFlagsTab /></TabsContent>
           <TabsContent value="pricing"><PricingTab /></TabsContent>
@@ -34,6 +38,8 @@ export default function SettingsPage() {
           <TabsContent value="menu"><MenuTab /></TabsContent>
           <TabsContent value="printer"><PrinterTab /></TabsContent>
           <TabsContent value="broadcast"><BroadcastTab /></TabsContent>
+          <TabsContent value="expenses"><ExpensesTab /></TabsContent>
+          <TabsContent value="pl"><PLTab /></TabsContent>
         </Tabs>
       </main>
     </div>
