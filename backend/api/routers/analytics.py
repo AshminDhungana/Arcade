@@ -10,11 +10,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import require_admin
 from backend.core.database import get_db
+from backend.core.feature_flags import require_feature
 from backend.models.staff import Staff
 from backend.schemas.analytics import AnalyticsSummary
 from backend.services import analytics_service
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(
+    prefix="/analytics",
+    tags=["analytics"],
+    dependencies=[Depends(require_feature("enable_analytics"))],
+)
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 AdminDep = Annotated[Staff, Depends(require_admin)]

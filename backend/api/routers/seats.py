@@ -178,7 +178,11 @@ async def delete_seat(
     await seat_service.delete_seat(db, seat_id, staff)
 
 
-@router.patch("/{seat_id}/maintenance", status_code=status.HTTP_200_OK)
+@router.patch(
+    "/{seat_id}/maintenance",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_feature("enable_maintenance_mode"))],
+)
 async def set_maintenance(
     seat_id: str,
     body: _MaintenanceBody,
@@ -192,7 +196,10 @@ async def set_maintenance(
     return await seat_service.set_maintenance(db, seat_id, body.note, staff)
 
 
-@router.delete("/{seat_id}/maintenance")
+@router.delete(
+    "/{seat_id}/maintenance",
+    dependencies=[Depends(require_feature("enable_maintenance_mode"))],
+)
 async def clear_maintenance(
     seat_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008 – FastAPI DI idiom
@@ -222,7 +229,11 @@ async def wol_override(
     return await wol_service.override_seat_online(db, seat_id, staff)
 
 
-@router.post("/{seat_id}/message", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/{seat_id}/message",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_feature("enable_remote_commands"))],
+)
 async def send_seat_message(
     seat_id: str,
     body: _MessageBody,
@@ -233,7 +244,10 @@ async def send_seat_message(
     await remote_command_service.send_message(db, seat_id, body.message, staff)
 
 
-@router.get("/{seat_id}/screenshot")
+@router.get(
+    "/{seat_id}/screenshot",
+    dependencies=[Depends(require_feature("enable_remote_commands"))],
+)
 async def request_seat_screenshot(
     seat_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -244,7 +258,11 @@ async def request_seat_screenshot(
     return Response(content=data, media_type="image/jpeg")
 
 
-@router.post("/{seat_id}/restart", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/{seat_id}/restart",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_feature("enable_remote_commands"))],
+)
 async def restart_seat(
     seat_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
@@ -254,7 +272,11 @@ async def restart_seat(
     await remote_command_service.restart_seat(db, seat_id, staff)
 
 
-@router.post("/{seat_id}/shutdown", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/{seat_id}/shutdown",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_feature("enable_remote_commands"))],
+)
 async def shutdown_seat(
     seat_id: str,
     db: AsyncSession = Depends(get_db),  # noqa: B008
