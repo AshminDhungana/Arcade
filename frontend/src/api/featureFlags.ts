@@ -1,29 +1,53 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import type { FeatureFlags } from '@/types/pos';
+import type { AppSettings } from '@/types/pos';
 import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import { useAuthStore } from '@/store/authStore';
 
 const API_BASE = '/api';
 
-/** All recognised feature flag keys. */
-export const FLAG_KEYS: (keyof FeatureFlags)[] = [
+/** All recognised feature flag keys (20 boolean flags). */
+export const FLAG_KEYS = [
+  // Core Features
   'enable_members',
   'enable_packages',
   'enable_pos',
-  'enable_inventory',
   'enable_reservations',
+  'enable_wake_on_lan',
+  // Operations
+  'enable_inventory',
   'enable_vouchers',
   'enable_tournaments',
   'enable_expense_tracking',
   'enable_health_monitoring',
+  'enable_remote_commands',
+  'enable_analytics',
+  'enable_promotions',
+  'enable_maintenance_mode',
+  // Agent/Overlay
+  'enable_tuya',
+  'enable_kiosk_branding',
+  'overlay_pauses_billing',
   'require_member_for_session',
-  'require_print_before_release',
   'enable_assigned_time_limit',
-];
+  // Advanced
+  'require_print_before_release',
+  'block_shift_close_unprinted',
+  'enable_loyalty_discounts',
+  'enable_audit_export',
+] as const;
+
+/** Config keys (numbers/strings). */
+export const CONFIG_KEYS = [
+  'shift_cash_variance_threshold',
+  // Add other config keys here as needed
+] as const;
+
+export type FlagKey = typeof FLAG_KEYS[number];
+export type ConfigKey = typeof CONFIG_KEYS[number];
 
 /** Fetch all settings from the backend and extract feature flags. */
-export async function fetchFeatureFlags(token: string | null): Promise<FeatureFlags> {
+export async function fetchFeatureFlags(token: string | null): Promise<AppSettings> {
   const headers: Record<string, string> = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -36,13 +60,17 @@ export async function fetchFeatureFlags(token: string | null): Promise<FeatureFl
 
   const data = (await res.json()) as Record<string, string>;
 
-  // Parse only recognised flag keys, defaulting to false
-  const flags: Record<string, boolean> = {};
+  // Parse all recognised keys
+  const settings: Partial<AppSettings> = {};
   for (const key of FLAG_KEYS) {
     const value = data[key];
-    flags[key] = value?.toLowerCase() === 'true';
+    settings[key as FlagKey] = value?.toLowerCase() === 'true';
   }
-  return flags as unknown as FeatureFlags;
+  for (const key of CONFIG_KEYS) {
+    const value = data[key];
+    settings[key as ConfigKey] = value ? parseFloat(value) : 0;
+  }
+  return settings as AppSettings;
 }
 
 /** React Query hook that fetches feature flags and syncs them to the Zustand store.

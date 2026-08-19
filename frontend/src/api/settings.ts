@@ -44,8 +44,8 @@ export function useToggleFlag() {
   const token = useAuthStore((s) => s.accessToken);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { key: string; value: boolean }) =>
-      patchSettings({ [vars.key]: vars.value ? 'true' : 'false' }, token),
+    mutationFn: (vars: { key: string; value: boolean | number }) =>
+      patchSettings({ [vars.key]: String(vars.value) }, token),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['featureFlags'] });
     },
