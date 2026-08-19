@@ -101,24 +101,54 @@ def restore_latest_backup(backup_dir: str | Path) -> Path:
     if backup is None:
         raise FileNotFoundError(f"No backup found in {backup_dir}")
 
+    return restore_specific_backup(backup_dir, backup.name)
+
+
+def restore_specific_backup(backup_dir: str | Path, backup_filename: str) -> Path:
+    """Restore a specific backup file by name, with SHA256 verification.
+
+    :param backup_dir: Directory containing backup files and manifest.json.
+    :param backup_filename: Name of the backup file to restore
+        (e.g., "arcade_20260819_0300.db").
+    :return: Path to the live ``arcade.db`` that was restored.
+    :raises FileNotFoundError: If backup file not found.
+    :raises ValueError: If SHA256 verification fails.
+    """
+    from backend.services.backup_service import load_manifest, verify_backup_integrity
+
+    target = _resolve_backup_dir(backup_dir)
+    backup_path = target / backup_filename
+    if not backup_path.exists():
+        raise FileNotFoundError(f"Backup not found: {backup_filename}")
+
+    manifest = load_manifest(target)
+    if not verify_backup_integrity(backup_path, manifest):
+        raise ValueError(f"SHA256 mismatch for {backup_filename}")
+
     db = _db_path()
     target_dir = db.parent
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clear any stale WAL/SHM BEFORE replacing the db, so a stale WAL
-    # cannot replay onto the freshly restored backup.
+    # Clear any stale WAL/SHM BEFORE replacing the db
     _clear_sidecars(db)
 
-    # Atomic copy: write to temp then replace. Temp file is cleaned up on failure.
+    # Atomic copy: write to temp then replace
     tmp = target_dir / f".{db.name}.tmp"
     try:
-        shutil.copy2(backup, tmp)
+        shutil.copy2(backup_path, tmp)
         tmp.replace(db)
     finally:
         tmp.unlink(missing_ok=True)
 
+    # Also restore -wal and -shm sidecars if they exist
+    for suffix in ["-wal", "-shm"]:
+        src = backup_path.with_name(backup_path.name + suffix)
+        dst = db.with_name(db.name + suffix)
+        if src.exists():
+            shutil.copy2(src, dst)
+
     _migrate_to_head()
-    logger.info("Restored backup %s -> %s and migrated to head", backup.name, db)
+    logger.info("Restored backup %s -> %s and migrated to head", backup_filename, db)
     return db
 
 

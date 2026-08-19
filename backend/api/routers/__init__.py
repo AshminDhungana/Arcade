@@ -28,6 +28,7 @@ from backend.api.routers.pos import router as pos_router
 from backend.api.routers.printers import router as printer_router
 from backend.api.routers.promotions import router as promotion_router
 from backend.api.routers.reservations import router as reservation_router
+from backend.api.routers.restore import router as restore_router
 from backend.api.routers.schedules import router as schedule_router
 from backend.api.routers.seats import router as seat_router
 from backend.api.routers.sessions import router as session_router
@@ -65,6 +66,7 @@ __all__ = ["routers"]
 routers: list[APIRouter] = [
     auth_router,
     backup_router,
+    restore_router,
     seat_router,
     session_router,
     pos_router,
