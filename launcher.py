@@ -20,6 +20,7 @@ import logging
 import os
 import secrets
 import shutil
+import signal
 import sqlite3
 import subprocess
 import sys
@@ -714,6 +715,8 @@ class MainScreen(_BaseScreen):
         self._server_host = DEFAULT_HOST
         self._server_port = DEFAULT_PORT
         self._build()
+        # Start periodic restore signal check
+        self.root.after(5000, self._check_restore_signal)
 
     def _build(self) -> None:
         f = self.controller.fonts
@@ -949,6 +952,70 @@ class MainScreen(_BaseScreen):
             attempt += 1
             time.sleep(0.5)
         # If we exit without success, button stays disabled
+
+    def _check_restore_signal(self) -> None:
+        """Check for .restore_requested signal file and trigger restore if found.
+
+        This runs periodically on the main thread via root.after().
+        """
+        signal_path = Path(".") / ".restore_requested"
+        if not signal_path.exists():
+            # No signal, schedule next check
+            self.root.after(5000, self._check_restore_signal)
+            return
+
+        try:
+            signal_data = json.loads(signal_path.read_text())
+            backup_filename = signal_data.get("backup_filename")
+            if not backup_filename:
+                logging.warning(
+                    "[launcher] Restore signal missing backup_filename, " "ignoring"
+                )
+                signal_path.unlink()
+                self.root.after(5000, self._check_restore_signal)
+                return
+
+            logging.info(f"[launcher] Restore requested: {backup_filename}")
+
+            # Stop uvicorn gracefully
+            if self._proc and self._proc.poll() is None:
+                logging.info("[launcher] Sending SIGTERM to uvicorn...")
+                self._proc.send_signal(signal.SIGTERM)
+                try:
+                    self._proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    logging.warning(
+                        "[launcher] Uvicorn didn't stop in time, killing..."
+                    )
+                    self._proc.kill()
+                    self._proc.wait()
+
+            # Perform restore
+            from backend.core.config import get_config
+            from backend.core.db_bootstrap import restore_specific_backup
+
+            config = get_config()
+            restore_specific_backup(config.backup_dir, backup_filename)
+            logging.info(f"[launcher] Restored {backup_filename}")
+
+            # Delete signal file
+            signal_path.unlink()
+
+            # Restart server
+            logging.info("[launcher] Restore complete, restarting server...")
+            self._start_server()
+
+        except Exception as e:
+            logging.exception(f"[launcher] Restore failed: {e}")
+            # Don't delete signal file so we can debug; but avoid infinite loop
+            error_path = signal_path.with_suffix(".error")
+            try:
+                signal_path.rename(error_path)
+            except Exception as rename_err:
+                logging.debug("[launcher] Failed to rename signal file: %s", rename_err)
+
+        # Schedule next check
+        self.root.after(5000, self._check_restore_signal)
 
     def _stop_server(self) -> None:
         self._stop_event.set()
