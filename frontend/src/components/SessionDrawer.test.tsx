@@ -6,6 +6,7 @@ import { SeatStatus } from '@/types/seat';
 import type { Seat } from '@/types/seat';
 import type { ReactNode } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useFeatureFlagStore } from '@/store/featureFlagStore';
 import type { UseQueryResult } from '@tanstack/react-query';
 
 vi.mock('./pos/POSPanel', () => ({ POSPanel: () => <div data-testid="pos-panel" /> }));
@@ -73,6 +74,11 @@ describe('SessionDrawer', () => {
     useAuthStore.setState({
       accessToken: 'tok',
       staff: { id: 's1', name: 'Admin', role: 'ADMIN', is_active: true },
+    });
+    useFeatureFlagStore.setState({
+      flags: {
+        enable_pos: false,
+      },
     });
     vi.mocked(useSeat).mockReturnValue(createMockQueryResult(inUseSeat, false, false, null));
   });

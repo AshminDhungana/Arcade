@@ -68,15 +68,15 @@ describe('FeatureFlagsTab', () => {
     vi.clearAllMocks();
   });
 
-  it('renders all 11 feature flags with labels and descriptions', () => {
+  it('renders all feature flags with labels and descriptions', () => {
     render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
 
     expect(screen.getByText('Require Print Before Release')).toBeInTheDocument();
-    expect(screen.getByText('Members')).toBeInTheDocument();
+    expect(screen.getByText('Members & Wallet')).toBeInTheDocument();
     expect(screen.getByText('Show the Members management surface')).toBeInTheDocument();
-    expect(screen.getByText('Packages')).toBeInTheDocument();
+    expect(screen.getByText('Time Packages')).toBeInTheDocument();
     expect(screen.getByText('Enable Packages and pricing management')).toBeInTheDocument();
-    expect(screen.getByText('Point of Sale')).toBeInTheDocument();
+    expect(screen.getByText('POS (Food/Drink)')).toBeInTheDocument();
     expect(screen.getByText('Enable POS sales and billing')).toBeInTheDocument();
     expect(screen.getByText('Inventory')).toBeInTheDocument();
     expect(screen.getByText('Enable inventory tracking')).toBeInTheDocument();
@@ -92,13 +92,37 @@ describe('FeatureFlagsTab', () => {
     expect(screen.getByText('Enable agent health monitoring')).toBeInTheDocument();
     expect(screen.getByText('Require Member for Session')).toBeInTheDocument();
     expect(screen.getByText('Require a member to start a session')).toBeInTheDocument();
+    expect(screen.getByText('Wake-on-LAN')).toBeInTheDocument();
+    expect(screen.getByText('Send Wake-on-LAN magic packets on boot')).toBeInTheDocument();
+    expect(screen.getByText('Remote Commands (H.1-H.4)')).toBeInTheDocument();
+    expect(screen.getByText('Enable remote restart/shutdown/message/screenshot (Section H)')).toBeInTheDocument();
+    expect(screen.getByText('Analytics Dashboard (K.1-K.3)')).toBeInTheDocument();
+    expect(screen.getByText('Enable analytics dashboard & reports (Section K)')).toBeInTheDocument();
+    expect(screen.getByText('Promotions Engine')).toBeInTheDocument();
+    expect(screen.getByText('Enable promotions engine (happy hour, flash, etc.)')).toBeInTheDocument();
+    expect(screen.getByText('Maintenance Mode (C.11)')).toBeInTheDocument();
+    expect(screen.getByText('Enable seat maintenance mode (C.11)')).toBeInTheDocument();
+    expect(screen.getByText('Tuya Smart Plugs')).toBeInTheDocument();
+    expect(screen.getByText('Enable Tuya smart plug control')).toBeInTheDocument();
+    expect(screen.getByText('Kiosk Branding')).toBeInTheDocument();
+    expect(screen.getByText('Enable custom cafe branding on agent overlay')).toBeInTheDocument();
+    expect(screen.getByText('Overlay Pauses Billing')).toBeInTheDocument();
+    expect(screen.getByText('Pause excludes time from billing calculation')).toBeInTheDocument();
+    expect(screen.getByText('Assigned Time Limit')).toBeInTheDocument();
+    expect(screen.getByText('Allow capping a session with a time limit that auto-locks the seat at expiry')).toBeInTheDocument();
+    expect(screen.getByText('Block Shift Close Unprinted')).toBeInTheDocument();
+    expect(screen.getByText('Block shift close if unprinted invoices exist')).toBeInTheDocument();
+    expect(screen.getByText('Loyalty Discounts (F.4)')).toBeInTheDocument();
+    expect(screen.getByText('Enable tier-based loyalty discounts at checkout (F.4)')).toBeInTheDocument();
+    expect(screen.getByText('Audit Export')).toBeInTheDocument();
+    expect(screen.getByText('Enable audit log export/download')).toBeInTheDocument();
   });
 
   it('renders a Switch for each flag reflecting current store value', () => {
     render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
 
     const switches = screen.getAllByRole('switch');
-    expect(switches).toHaveLength(12);
+    expect(switches).toHaveLength(23);
 
     switches.forEach((sw) => {
       expect(sw).not.toBeChecked();
@@ -123,7 +147,7 @@ describe('FeatureFlagsTab', () => {
   it('shows success toast when toggle mutation succeeds', async () => {
     render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
 
-    const membersSwitch = screen.getByRole('switch', { name: /members/i });
+    const membersSwitch = screen.getByRole('switch', { name: /members & wallet/i });
     fireEvent.click(membersSwitch);
 
     // Get the onSuccess callback and invoke it
@@ -134,13 +158,13 @@ describe('FeatureFlagsTab', () => {
     });
 
     const { toast } = await import('@/store/toastStore');
-    expect(toast.success).toHaveBeenCalledWith('Members enabled');
+    expect(toast.success).toHaveBeenCalledWith('Members & Wallet enabled');
   });
 
   it('shows error toast when toggle mutation fails', async () => {
     render(<FeatureFlagsTab />, { wrapper: makeWrapper() });
 
-    const membersSwitch = screen.getByRole('switch', { name: /members/i });
+    const membersSwitch = screen.getByRole('switch', { name: /members & wallet/i });
     fireEvent.click(membersSwitch);
 
     const callArgs = mutateFn.mock.calls[0];
@@ -150,7 +174,7 @@ describe('FeatureFlagsTab', () => {
     });
 
     const { toast } = await import('@/store/toastStore');
-    expect(toast.error).toHaveBeenCalledWith('Failed to toggle Members: Network error');
+    expect(toast.error).toHaveBeenCalledWith('Failed to toggle Members & Wallet: Network error');
   });
 
   it('disables switches while mutation is pending', () => {

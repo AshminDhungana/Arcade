@@ -132,7 +132,7 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('tab', { name: 'Feature Flags', selected: true })).toBeInTheDocument();
 
     // Feature Flags panel should show the flags list (not the old stub)
-    expect(screen.getByText('Members')).toBeInTheDocument();
+    expect(screen.getByText('Members & Wallet')).toBeInTheDocument();
     expect(screen.getByText('Show the Members management surface')).toBeInTheDocument();
   });
 
@@ -153,6 +153,6 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('button', { name: /add staff/i })).toBeInTheDocument();
 
     // Feature Flags panel should no longer be visible
-    expect(screen.queryByText('Members')).not.toBeInTheDocument();
+    expect(screen.queryByText('Members & Wallet')).not.toBeInTheDocument();
   });
 });
