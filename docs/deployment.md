@@ -39,23 +39,39 @@ curl -X PATCH http://localhost:8741/api/settings \
 Unknown / missing flags default to **off**. Defaults below are seeded by
 `backend/scripts/seed_dev.py`.
 
-| Flag                      | Default | Scope                                | Recommended setting                          |
-| ------------------------- | ------- | ------------------------------------ | -------------------------------------------- |
-| `enable_members`          | `true`  | Dashboard / Members page            | **ON** — core membership feature             |
-| `enable_packages`         | `true`  | Members / Packages & pricing        | **ON** unless you do not sell time packages  |
-| `enable_pos`             | `true`  | POS sales & billing                 | **ON** — core revenue feature                |
-| `enable_inventory`        | `false` | POS / Inventory tracking            | ON only if you track stock                  |
-| `enable_reservations`     | `true`  | Reservations                        | **ON** if you take seat bookings             |
-| `enable_vouchers`         | `false` | Vouchers & promotions               | ON to enable voucher batch generation        |
-| `enable_tournaments`      | `false` | Events / Tournaments (Phase 6)      | ON to run in-cafe tournaments               |
-| `enable_expense_tracking` | `false` | Expense tracking                    | OFF in v1.0 (no UI/endpoint yet)             |
-| `enable_health_monitoring`| `true`  | Agent health dashboard              | **ON** if agents report health metrics       |
-| `enable_wake_on_lan`      | `true`  | WoL magic packets on server start   | **ON** to auto-boot seats at startup (seats under MAINTENANCE are skipped) |
-| `enable_tuya`             | `false` | Tuya smart-plug power control (HW)  | ON only with paired Tuya plugs (see below)   |
+| Flag                      | Type   | Default | Scope                                | Recommended setting                          |
+| ------------------------- | ------ | ------- | ------------------------------------ | -------------------------------------------- |
+| **Core Features**         |        |         |                                      |                                              |
+| `enable_members`          | bool   | `true`  | Dashboard / Members page            | **ON** — core membership feature             |
+| `enable_packages`         | bool   | `true`  | Members / Packages & pricing        | **ON** unless you do not sell time packages  |
+| `enable_pos`             | bool   | `true`  | POS sales & billing                 | **ON** — core revenue feature                |
+| `enable_reservations`     | bool   | `true`  | Reservations                        | **ON** if you take seat bookings             |
+| `enable_wake_on_lan`      | bool   | `true`  | WoL magic packets on server start   | **ON** to auto-boot seats at startup (seats under MAINTENANCE are skipped) |
+| **Operations**            |        |         |                                      |                                              |
+| `enable_inventory`        | bool   | `false` | POS / Inventory tracking            | ON only if you track stock                  |
+| `enable_vouchers`         | bool   | `false` | Vouchers & promotions               | ON to enable voucher batch generation        |
+| `enable_tournaments`      | bool   | `false` | Events / Tournaments (Phase 6)      | ON to run in-cafe tournaments               |
+| `enable_expense_tracking` | bool   | `false` | Expense tracking                    | OFF in v1.0 (no UI/endpoint yet)             |
+| `enable_health_monitoring`| bool   | `true`  | Agent health dashboard              | **ON** if agents report health metrics       |
+| `enable_remote_commands`  | bool   | `false` | Remote restart/shutdown/message/screenshot (Section H) | OFF unless remote management needed |
+| `enable_analytics`        | bool   | `false` | Analytics dashboard & reports (Section K) | OFF unless analytics enabled              |
+| `enable_promotions`       | bool   | `false` | Promotions engine (happy hour, flash, etc.) | OFF unless promotions enabled          |
+| `enable_maintenance_mode` | bool   | `false` | Seat maintenance mode (C.11)        | OFF unless maintenance mode needed           |
+| **Agent/Overlay**         |        |         |                                      |                                              |
+| `enable_tuya`             | bool   | `false` | Tuya smart-plug power control (HW)  | ON only with paired Tuya plugs (see below)   |
+| `enable_kiosk_branding`   | bool   | `false` | Custom cafe branding on agent overlay | OFF unless custom branding needed            |
+| `overlay_pauses_billing`  | bool   | `true`  | Pause excludes time from billing calculation | **ON** for standard billing           |
+| `require_member_for_session` | bool | `false` | Require member to start session      | ON if walk-in play not allowed               |
+| `enable_assigned_time_limit` | bool | `false` | Allow capping session with time limit | OFF unless time limits needed              |
+| **Advanced**              |        |         |                                      |                                              |
+| `require_print_before_release` | bool | `false` | Block seat release until invoice printed | ON for strict audit trail              |
+| `block_shift_close_unprinted` | bool | `false` | Block shift close if unprinted invoices | ON for strict shift management          |
+| `enable_loyalty_discounts` | bool   | `false` | Tier-based loyalty discounts at checkout (F.4) | OFF unless loyalty enabled            |
+| `enable_audit_export`     | bool   | `false` | Audit log export/download           | OFF unless audit export needed               |
+| **Config Values**         |        |         |                                      |                                              |
+| `shift_cash_variance_threshold` | int | `5000` | Paise threshold for shift cash variance flag | Adjust per cafe policy (default 5000) |
 
-> `require_member_for_session` is a related config-style flag (default `false`):
-> when ON, starting a session requires attaching a member. It is not part of the
-> 10 UI feature flags above.
+> **Total:** 20 boolean flags + 4 config settings = 24 settings.
 
 ## Tuya Smart-Plug Pairing
 
