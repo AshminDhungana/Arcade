@@ -8,12 +8,16 @@ than ``backup_retain_days``. Mirrors the module-of-functions style of
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+import os
 import re
 import shutil
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -115,6 +119,38 @@ async def run_backup(
         )
         raise RuntimeError(msg)
 
+    # Compute SHA256 of the backup file
+    file_hash = hashlib.sha256(dst.read_bytes()).hexdigest()
+
+    # Write .sha256 file (standard sha256sum format: "<hex_digest>  <filename>")
+    sha256_path = dst.with_suffix(dst.suffix + ".sha256")
+    sha256_path.write_text(f"{file_hash}  {dst.name}\n")
+
+    # Update manifest.json atomically
+    manifest_path = target_dir / "manifest.json"
+    manifest = []
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text())
+
+    # Remove any existing entry for this filename (idempotent)
+    manifest = [e for e in manifest if e["filename"] != dst.name]
+
+    # Add new entry
+    manifest.append(
+        {
+            "filename": dst.name,
+            "sha256": file_hash,
+            "size_bytes": dst.stat().st_size,
+            "created_at": datetime.now(UTC).isoformat(),
+            "staff_id": staff_id,
+        }
+    )
+
+    # Atomic write
+    tmp_path = manifest_path.with_suffix(".json.tmp")
+    tmp_path.write_text(json.dumps(manifest, indent=2))
+    os.replace(tmp_path, manifest_path)
+
     await audit_service.log(
         db,
         action=AuditAction.BACKUP_CREATED,
@@ -129,6 +165,29 @@ async def run_backup(
         db, backup_dir=target_dir, retain_days=retain, staff_id=staff_id
     )
     return BackupResult(backup_path=dst, pruned_count=pruned)
+
+
+def verify_backup_integrity(backup_path: Path, manifest: list[dict[str, Any]]) -> bool:
+    """Verify backup file SHA256 matches manifest entry."""
+    entry = next((e for e in manifest if e["filename"] == backup_path.name), None)
+    if not entry:
+        return False
+    file_hash = hashlib.sha256(backup_path.read_bytes()).hexdigest()
+    sha256_value = entry.get("sha256")
+    if not isinstance(sha256_value, str):
+        return False
+    return file_hash == sha256_value
+
+
+def load_manifest(backup_dir: Path) -> list[dict[str, Any]]:
+    """Load manifest.json from backup directory."""
+    manifest_path = backup_dir / "manifest.json"
+    if not manifest_path.exists():
+        return []
+    data = json.loads(manifest_path.read_text())
+    if not isinstance(data, list):
+        return []
+    return data
 
 
 async def prune_old_backups(
@@ -164,6 +223,10 @@ async def prune_old_backups(
                 continue
             if ftime < cutoff:
                 f.unlink()
+                # Also delete corresponding .sha256 file
+                sha256_f = f.with_suffix(f.suffix + ".sha256")
+                if sha256_f.exists():
+                    sha256_f.unlink()
                 deleted += 1
 
     if deleted:
@@ -175,4 +238,16 @@ async def prune_old_backups(
             staff_id=staff_id,
             detail=f"deleted={deleted};retain_days={retain}",
         )
+
+    # After deletions, rebuild manifest to only include existing files
+    manifest_path = target_dir / "manifest.json"
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text())
+        # Keep only entries for files that still exist
+        existing_names = {f.name for f in target_dir.glob("arcade_*.db")}
+        manifest = [e for e in manifest if e["filename"] in existing_names]
+        tmp_path = manifest_path.with_suffix(".json.tmp")
+        tmp_path.write_text(json.dumps(manifest, indent=2))
+        os.replace(tmp_path, manifest_path)
+
     return deleted

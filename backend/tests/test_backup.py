@@ -199,3 +199,67 @@ async def test_run_backup_flushes_wal_before_copy(
             assert row[0] == "checkpoint-me"
     finally:
         await backup_engine.dispose()
+
+
+async def test_run_backup_creates_sha256_and_manifest(
+    db: AsyncSession, source_db: Path, tmp_path: Path
+) -> None:
+    import hashlib
+    import json
+
+    backup_dir = tmp_path / "backups"
+    result = await backup_service.run_backup(
+        db, source_db=source_db, backup_dir=backup_dir
+    )
+
+    # Check .sha256 file exists
+    sha256_path = result.backup_path.with_suffix(result.backup_path.suffix + ".sha256")
+    assert sha256_path.exists()
+
+    # Check format: "<hex_digest>  <filename>"
+    content = sha256_path.read_text().strip()
+    parts = content.split("  ")
+    assert len(parts) == 2
+    assert parts[1] == result.backup_path.name
+    assert len(parts[0]) == 64  # SHA256 hex length
+    assert all(c in "0123456789abcdef" for c in parts[0])
+
+    # Verify hash matches file
+    file_hash = hashlib.sha256(result.backup_path.read_bytes()).hexdigest()
+    assert parts[0] == file_hash
+
+    # Check manifest.json exists and has entry
+    manifest_path = backup_dir / "manifest.json"
+    assert manifest_path.exists()
+    manifest = json.loads(manifest_path.read_text())
+    assert len(manifest) == 1
+    entry = manifest[0]
+    assert entry["filename"] == result.backup_path.name
+    assert entry["sha256"] == file_hash
+    assert entry["size_bytes"] == result.backup_path.stat().st_size
+    assert "created_at" in entry
+    assert entry["staff_id"] is None
+
+
+async def test_verify_backup_integrity_detects_corruption(
+    db: AsyncSession, source_db: Path, tmp_path: Path
+) -> None:
+    import json
+
+    backup_dir = tmp_path / "backups"
+    result = await backup_service.run_backup(
+        db, source_db=source_db, backup_dir=backup_dir
+    )
+    backup_path = result.backup_path
+
+    # Load manifest
+    manifest = json.loads((backup_dir / "manifest.json").read_text())
+
+    # Valid backup passes
+    assert backup_service.verify_backup_integrity(backup_path, manifest) is True
+
+    # Corrupt the backup file
+    backup_path.write_bytes(b"corrupted")
+
+    # Verification fails
+    assert backup_service.verify_backup_integrity(backup_path, manifest) is False
