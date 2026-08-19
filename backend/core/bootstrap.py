@@ -39,6 +39,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, str] = {
     "shift_cash_variance_threshold": "5000",
     "overlay_pauses_billing": "true",
     "enable_assigned_time_limit": "false",
+    # New flags (all default OFF)
+    "enable_remote_commands": "false",
+    "enable_analytics": "false",
+    "enable_promotions": "false",
+    "enable_loyalty_discounts": "false",
+    "enable_maintenance_mode": "false",
+    "enable_kiosk_branding": "false",
+    "enable_audit_export": "false",
 }
 
 _DEFAULT_ZONE_NAME = "Standard PC"
