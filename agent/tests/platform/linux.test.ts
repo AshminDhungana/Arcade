@@ -381,3 +381,80 @@ describe('LinuxPlatformService', () => {
     });
   });
 });
+
+describe('LinuxPlatformService - Wayland', () => {
+  let service: LinuxPlatformService;
+
+  beforeEach(() => {
+    service = new LinuxPlatformService();
+    vi.clearAllMocks();
+    delete process.env.XDG_SESSION_TYPE;
+    delete process.env.WAYLAND_DISPLAY;
+  });
+
+  afterEach(() => {
+    (service as any).stopHotspotPolling?.();
+    service.hideKioskOverlay();
+  });
+
+  describe('isWayland detection', () => {
+    it('returns true when XDG_SESSION_TYPE=wayland', () => {
+      process.env.XDG_SESSION_TYPE = 'wayland';
+      expect(isWayland()).toBe(true);
+    });
+
+    it('returns true when WAYLAND_DISPLAY is set', () => {
+      process.env.WAYLAND_DISPLAY = 'wayland-0';
+      expect(isWayland()).toBe(true);
+    });
+
+    it('returns false on X11', () => {
+      delete process.env.XDG_SESSION_TYPE;
+      delete process.env.WAYLAND_DISPLAY;
+      expect(isWayland()).toBe(false);
+    });
+  });
+
+  describe('Wayland kiosk flags', () => {
+    it('applies setKiosk, maximize, setAlwaysOnTop when isWayland()', () => {
+      process.env.XDG_SESSION_TYPE = 'wayland';
+      service.showKioskOverlay({
+        cafeName: 'Test',
+        announcements: [],
+        callStaffEnabled: true,
+        sessionActive: false,
+      });
+      const mockWindow = (service as any).kioskWindow;
+      expect(mockWindow.setKiosk).toHaveBeenCalledWith(true);
+      expect(mockWindow.maximize).toHaveBeenCalled();
+      expect(mockWindow.setAlwaysOnTop).toHaveBeenCalledWith(true, 'screen-saver');
+    });
+
+    it('does NOT apply Wayland flags on X11', () => {
+      delete process.env.XDG_SESSION_TYPE;
+      delete process.env.WAYLAND_DISPLAY;
+      service.showKioskOverlay({
+        cafeName: 'Test',
+        announcements: [],
+        callStaffEnabled: true,
+        sessionActive: false,
+      });
+      const mockWindow = (service as any).kioskWindow;
+      expect(mockWindow.setKiosk).not.toHaveBeenCalled();
+      expect(mockWindow.maximize).not.toHaveBeenCalled();
+      expect(mockWindow.setAlwaysOnTop).not.toHaveBeenCalledWith(true, 'screen-saver');
+    });
+  });
+
+  describe('Screenshot fallback on Wayland', () => {
+    it('throws clear error when no screen sources available', async () => {
+      vi.mocked(desktopCapturer.getSources).mockResolvedValueOnce([]);
+      await expect(service.captureScreenshot()).rejects.toThrow(/Screenshot unavailable/);
+    });
+
+    it('throws when thumbnail not available', async () => {
+      vi.mocked(desktopCapturer.getSources).mockResolvedValueOnce([{ id: 'screen:0:0', name: 'Screen 1', thumbnail: null }]);
+      await expect(service.captureScreenshot()).rejects.toThrow(/Screenshot thumbnail not available/);
+    });
+  });
+});
