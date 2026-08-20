@@ -97,23 +97,30 @@ describe('MacOSPlatformService - shortcuts', () => {
   it('blocks Cmd+Q (Meta+Q)', () => {
     const handler = vi.mocked(mockWebContents.on).mock.calls.find((c) => c[0] === 'before-input-event')?.[1];
     expect(handler).toBeDefined();
-    handler?.({ key: 'q', meta: true, control: false, alt: false, shift: false }, { preventDefault: vi.fn() });
-    // Verify preventDefault was called - this will fail until shortcuts are updated
+    const preventDefault = vi.fn();
+    handler?.({ key: 'q', meta: true, control: false, alt: false, shift: false }, { preventDefault });
+    expect(preventDefault).toHaveBeenCalled();
   });
 
   it('blocks Cmd+W (Meta+W)', () => {
     const handler = vi.mocked(mockWebContents.on).mock.calls.find((c) => c[0] === 'before-input-event')?.[1];
-    handler?.({ key: 'w', meta: true, control: false, alt: false, shift: false }, { preventDefault: vi.fn() });
+    const preventDefault = vi.fn();
+    handler?.({ key: 'w', meta: true, control: false, alt: false, shift: false }, { preventDefault });
+    expect(preventDefault).toHaveBeenCalled();
   });
 
   it('blocks Cmd+H (Meta+H)', () => {
     const handler = vi.mocked(mockWebContents.on).mock.calls.find((c) => c[0] === 'before-input-event')?.[1];
-    handler?.({ key: 'h', meta: true, control: false, alt: false, shift: false }, { preventDefault: vi.fn() });
+    const preventDefault = vi.fn();
+    handler?.({ key: 'h', meta: true, control: false, alt: false, shift: false }, { preventDefault });
+    expect(preventDefault).toHaveBeenCalled();
   });
 
   it('blocks Cmd+M (Meta+M)', () => {
     const handler = vi.mocked(mockWebContents.on).mock.calls.find((c) => c[0] === 'before-input-event')?.[1];
-    handler?.({ key: 'm', meta: true, control: false, alt: false, shift: false }, { preventDefault: vi.fn() });
+    const preventDefault = vi.fn();
+    handler?.({ key: 'm', meta: true, control: false, alt: false, shift: false }, { preventDefault });
+    expect(preventDefault).toHaveBeenCalled();
   });
 });
 ```
@@ -739,11 +746,13 @@ git commit -m "docs(autostart): add production systemd, LaunchAgent, XDG unit fi
 ```typescript
 // agent/tests/platform/autostart.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WindowsPlatformService } from '../../src/main/platform/windows.js';
-import { LinuxPlatformService } from '../../src/main/platform/linux.js';
-import { MacOSPlatformService } from '../../src/main/platform/macos.js';
 import { exec } from 'child_process';
-import * as fs from 'node:fs/promises';
+
+// Mock isTestMode BEFORE importing services - use vi.hoisted for setup
+const mockIsTestMode = vi.hoisted(() => ({ value: true }));
+vi.mock('../../src/main/platform/safety.js', () => ({
+  isTestMode: () => mockIsTestMode.value,
+}));
 
 vi.mock('child_process', async (importOriginal) => {
   const actual = await importOriginal();
@@ -753,23 +762,30 @@ vi.mock('child_process', async (importOriginal) => {
 const mockFs = vi.hoisted(() => ({ mkdir: vi.fn().mockResolvedValue(undefined), writeFile: vi.fn().mockResolvedValue(undefined), rm: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('node:fs', () => ({ default: { promises: mockFs }, promises: mockFs }));
 
+// Import AFTER mocks are set up
+import { WindowsPlatformService } from '../../src/main/platform/windows.js';
+import { LinuxPlatformService } from '../../src/main/platform/linux.js';
+import { MacOSPlatformService } from '../../src/main/platform/macos.js';
+
 describe('Auto-Start - Windows', () => {
   let service: WindowsPlatformService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsTestMode.value = false; // Enable real behavior for these tests
     service = new WindowsPlatformService();
   });
 
+  afterEach(() => {
+    mockIsTestMode.value = true;
+  });
+
   it('enableAutoStart writes to HKCU Run registry', async () => {
-    // Mock isTestMode to return false for this test
-    vi.doMock('../../src/main/platform/safety.js', () => ({ isTestMode: () => false }), { virtual: true });
     await service.enableAutoStart();
     expect(exec).toHaveBeenCalledWith(expect.stringContaining('reg.exe add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"'), expect.any(Function));
   });
 
   it('disableAutoStart removes from HKCU Run registry', async () => {
-    vi.doMock('../../src/main/platform/safety.js', () => ({ isTestMode: () => false }), { virtual: true });
     await service.disableAutoStart();
     expect(exec).toHaveBeenCalledWith(expect.stringContaining('reg.exe delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"'), expect.any(Function));
   });
@@ -780,18 +796,21 @@ describe('Auto-Start - Linux', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsTestMode.value = false;
     service = new LinuxPlatformService();
   });
 
+  afterEach(() => {
+    mockIsTestMode.value = true;
+  });
+
   it('enableAutoStart writes .desktop file to ~/.config/autostart/', async () => {
-    vi.doMock('../../src/main/platform/safety.js', () => ({ isTestMode: () => false }), { virtual: true });
     await service.enableAutoStart();
     expect(mockFs.mkdir).toHaveBeenCalledWith(expect.stringContaining('.config/autostart'), { recursive: true });
     expect(mockFs.writeFile).toHaveBeenCalledWith(expect.stringContaining('arcade-agent.desktop'), expect.stringContaining('Exec='), { mode: 0o644 });
   });
 
   it('disableAutoStart removes .desktop file', async () => {
-    vi.doMock('../../src/main/platform/safety.js', () => ({ isTestMode: () => false }), { virtual: true });
     await service.disableAutoStart();
     expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('arcade-agent.desktop'), { force: true });
   });
@@ -802,18 +821,21 @@ describe('Auto-Start - macOS', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsTestMode.value = false;
     service = new MacOSPlatformService();
   });
 
+  afterEach(() => {
+    mockIsTestMode.value = true;
+  });
+
   it('enableAutoStart writes plist to ~/Library/LaunchAgents/', async () => {
-    vi.doMock('../../src/main/platform/safety.js', () => ({ isTestMode: () => false }), { virtual: true });
     await service.enableAutoStart();
     expect(mockFs.mkdir).toHaveBeenCalledWith(expect.stringContaining('Library/LaunchAgents'), { recursive: true });
     expect(mockFs.writeFile).toHaveBeenCalledWith(expect.stringContaining('com.neurotech.arcade.agent.plist'), expect.stringContaining('ProgramArguments'), { mode: 0o644 });
   });
 
   it('disableAutoStart removes plist', async () => {
-    vi.doMock('../../src/main/platform/safety.js', () => ({ isTestMode: () => false }), { virtual: true });
     await service.disableAutoStart();
     expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('com.neurotech.arcade.agent.plist'), { force: true });
   });
@@ -847,22 +869,65 @@ git commit -m "test(autostart): add enableAutoStart/disableAutoStart tests for a
 
 ---
 
-## Task 7: Frontend Auto-Start Toggle Test
+## Task 7: Frontend Auto-Start Toggle Component & Test
 
 **Files:**
+- Create: `frontend/src/components/AutoStartToggle.tsx`
 - Create: `frontend/src/components/AutoStartToggle.test.tsx`
 
 **Interfaces:**
-- Consumes: WebSocket store, feature flag store
-- Produces: Test for Settings → Agent → Auto-Start toggle
+- Consumes: `useWebSocketStore`, `useAuthStore` (for role), `useFeatureFlagStore`
+- Produces: Toggle component for Settings → Agent → Auto-Start
 
-- [ ] **Step 1: Write frontend test**
+- [ ] **Step 1: Create AutoStartToggle component**
+
+```tsx
+// frontend/src/components/AutoStartToggle.tsx
+import { useWebSocketStore } from '../store/websocketStore';
+import { useAuthStore } from '../store/authStore';
+import { useFeatureFlagStore } from '../store/featureFlagStore';
+import { Switch } from '../components/ui/Switch';
+
+interface AutoStartToggleProps {
+  seatId: string;
+}
+
+export function AutoStartToggle({ seatId }: AutoStartToggleProps) {
+  const { send } = useWebSocketStore();
+  const { user } = useAuthStore();
+  const { isEnabled } = useFeatureFlagStore();
+
+  const isAdmin = user?.role === 'ADMIN';
+  const autoStartEnabled = isEnabled('agent_auto_start');
+
+  if (!isAdmin || !autoStartEnabled) {
+    return null;
+  }
+
+  const handleToggle = (enabled: boolean) => {
+    send('SET_AUTO_START', { seat_id: seatId, enabled });
+  };
+
+  return (
+    <label className="flex items-center gap-2">
+      <Switch
+        checked={false} // Would be controlled by seat state in real implementation
+        onCheckedChange={handleToggle}
+        disabled={!isAdmin}
+      />
+      <span className="text-sm">Auto-Start on Boot</span>
+    </label>
+  );
+}
+```
+
+- [ ] **Step 2: Write frontend test**
 
 ```tsx
 // frontend/src/components/AutoStartToggle.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { AutoStartToggle } from './AutoStartToggle'; // or wherever it lives
+import { AutoStartToggle } from './AutoStartToggle';
 
 vi.mock('../store/websocketStore', () => ({
   useWebSocketStore: () => ({
@@ -871,9 +936,15 @@ vi.mock('../store/websocketStore', () => ({
   }),
 }));
 
+vi.mock('../store/authStore', () => ({
+  useAuthStore: () => ({
+    user: { id: '1', role: 'ADMIN', staff_id: 'admin' },
+  }),
+}));
+
 vi.mock('../store/featureFlagStore', () => ({
   useFeatureFlagStore: () => ({
-    isEnabled: () => true,
+    isEnabled: (flag: string) => flag === 'agent_auto_start',
   }),
 }));
 
@@ -882,27 +953,44 @@ describe('AutoStartToggle', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the mock send
+    vi.mocked(useWebSocketStore).mockReturnValue({
+      send: mockSend,
+      isConnected: true,
+    } as any);
   });
 
-  it('renders toggle for admin users', () => {
-    render(<AutoStartToggle seatId="seat_001" isAdmin={true} />);
+  it('renders toggle for admin users when feature flag enabled', () => {
+    render(<AutoStartToggle seatId="seat_001" />);
     expect(screen.getByRole('switch')).toBeInTheDocument();
+    expect(screen.getByText('Auto-Start on Boot')).toBeInTheDocument();
   });
 
   it('does not render for cashier users', () => {
-    render(<AutoStartToggle seatId="seat_001" isAdmin={false} />);
+    vi.mocked(useAuthStore).mockReturnValue({
+      user: { id: '2', role: 'CASHIER', staff_id: 'cashier' },
+    } as any);
+    render(<AutoStartToggle seatId="seat_001" />);
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
   });
 
-  it('sends SET_AUTO_START true when toggled on', async () => {
-    render(<AutoStartToggle seatId="seat_001" isAdmin={true} />);
+  it('does not render when feature flag disabled', () => {
+    vi.mocked(useFeatureFlagStore).mockReturnValue({
+      isEnabled: () => false,
+    } as any);
+    render(<AutoStartToggle seatId="seat_001" />);
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  });
+
+  it('sends SET_AUTO_START true when toggled on', () => {
+    render(<AutoStartToggle seatId="seat_001" />);
     const toggle = screen.getByRole('switch');
     fireEvent.click(toggle);
     expect(mockSend).toHaveBeenCalledWith('SET_AUTO_START', { seat_id: 'seat_001', enabled: true });
   });
 
-  it('sends SET_AUTO_START false when toggled off', async () => {
-    render(<AutoStartToggle seatId="seat_001" isAdmin={true} />);
+  it('sends SET_AUTO_START false when toggled off', () => {
+    render(<AutoStartToggle seatId="seat_001" />);
     const toggle = screen.getByRole('switch');
     fireEvent.click(toggle); // on
     fireEvent.click(toggle); // off
@@ -911,17 +999,17 @@ describe('AutoStartToggle', () => {
 });
 ```
 
-- [ ] **Step 2: Run test**
+- [ ] **Step 3: Run test**
 
 ```bash
 cd frontend && npx vitest run src/components/AutoStartToggle.test.tsx -v
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add frontend/src/components/AutoStartToggle.test.tsx
-git commit -m "test(frontend): add AutoStartToggle test for Settings → Agent → Auto-Start"
+git add frontend/src/components/AutoStartToggle.tsx frontend/src/components/AutoStartToggle.test.tsx
+git commit -m "feat(frontend): add AutoStartToggle component + test for Settings → Agent → Auto-Start"
 ```
 
 ---
