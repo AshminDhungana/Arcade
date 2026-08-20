@@ -23,13 +23,16 @@ const AUTO_START_FILE = path.join(AUTO_START_DIR, 'com.neurotech.arcade.agent.pl
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BLOCKED_SHORTCUTS = [
-  'Alt+F4',
-  'Alt+Shift+I',
-  'Control+Shift+I',
-  'Control+P',
-  'F12',
-  'F11',
-  'Escape',
+  'Meta+q',           // Cmd+Q — quit app
+  'Meta+w',           // Cmd+W — close window
+  'Meta+h',           // Cmd+H — hide app
+  'Meta+m',           // Cmd+M — minimize
+  'Meta+Shift+i',     // Cmd+Shift+I — devtools
+  'Control+Shift+i',  // Ctrl+Shift+I — devtools (fallback)
+  'Control+p',        // Ctrl+P / Cmd+P — print
+  'F12',              // DevTools
+  'F11',              // Fullscreen toggle
+  'Escape',           // Exit fullscreen
 ];
 
 export class MacOSPlatformService implements IPlatformService {
