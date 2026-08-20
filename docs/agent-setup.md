@@ -208,10 +208,9 @@ Value data: `"C:\Program Files\ArcadeAgent\ArcadeAgent.exe"`
 
 Same as Windows — the server sends `SET_AUTO_START`; the agent calls `DarwinPlatformService.enableAutoStart()` (creates a user `LaunchAgent`).
 
-**Manual (LaunchAgent plist):**
+**Production LaunchAgent plist** (`docs/autostart/com.arcade.agent.plist`):
 
 ```xml
-<!-- ~/Library/LaunchAgents/com.arcade.agent.plist -->
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -229,12 +228,12 @@ Same as Windows — the server sends `SET_AUTO_START`; the agent calls `DarwinPl
     <key>StandardOutPath</key>
     <string>/tmp/arcade-agent.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/arcade-agent.err</string>
+    <string>/tmp/arcade-agent.err.log</string>
 </dict>
 </plist>
 ```
 
-Load it: `launchctl load ~/Library/LaunchAgents/com.arcade.agent.plist`
+Install: `cp docs/autostart/com.arcade.agent.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.arcade.agent.plist`
 
 **Disable:** `launchctl unload ~/Library/LaunchAgents/com.arcade.agent.plist`
 
@@ -246,6 +245,27 @@ Load it: `launchctl load ~/Library/LaunchAgents/com.arcade.agent.plist`
 
 Same flow — the agent calls `LinuxPlatformService.enableAutoStart()` (writes an XDG autostart `.desktop` file).
 
+**Production systemd user service** (`docs/autostart/arcade-agent.service`):
+
+```ini
+[Unit]
+Description=Arcade Agent
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/opt/arcade-agent/arcade-agent
+Restart=on-failure
+RestartSec=5
+Environment=DISPLAY=:0
+# For Wayland: Environment=WAYLAND_DISPLAY=wayland-0
+
+[Install]
+WantedBy=graphical-session.target
+```
+
+Install: `cp docs/autostart/arcade-agent.service ~/.config/systemd/user/ && systemctl --user enable --now arcade-agent.service`
+
 **Manual (XDG autostart):**
 
 ```ini
@@ -253,7 +273,7 @@ Same flow — the agent calls `LinuxPlatformService.enableAutoStart()` (writes a
 [Desktop Entry]
 Type=Application
 Name=Arcade Agent
-Exec=/opt/ArcadeAgent/arcade-agent
+Exec=/opt/arcade-agent/arcade-agent
 X-GNOME-Autostart-enabled=true
 X-GNOME-Autostart-Delay=5
 ```
@@ -262,13 +282,14 @@ X-GNOME-Autostart-Delay=5
 
 **Power control:** `systemctl reboot` / `systemctl poweroff` (falls back to `loginctl reboot` / `loginctl poweroff`). The launching user needs polkit permission to power off / reboot the machine.
 
-**Wayland (not recommended for v1.0):** On a native Wayland session, no Electron app-level API can prevent the user from switching away — the compositor owns window stacking. The agent applies `setKiosk` + a `screen-saver` always-on-top hint and logs a warning, but the overlay is **not** bypass-proof on Wayland. For true lockdown, run the agent under a dedicated single-app Wayland compositor, e.g.:
+**Wayland (not recommended for v1.0):** On a native Wayland session, no Electron app-level API can prevent the user from switching away — the compositor owns window stacking. The agent applies `setKiosk` + a `screen-saver` always-on-top hint and logs a warning, but the overlay is **not** bypass-proof on Wayland. For true lockdown, run the agent under a dedicated single-app Wayland compositor:
 
-```
-cage /opt/ArcadeAgent/arcade-agent --ozone-platform-hint=auto
-```
-
-(`gnome-kiosk` and `ubuntu-frame` are alternatives.) This is the secure deployment path; X11 is the simpler one.
+- **GNOME Wayland:** `setAlwaysOnTop('screen-saver')` non-functional (`electron#50403`). KWin/GNOME Shell may allow some hints but overlay is not bypass-proof.
+- **KDE Wayland:** Similar limitations; KWin may allow some kiosk hints but cannot guarantee lockdown.
+- **X11 Fallback (recommended):** Use `cage`, `gnome-kiosk`, or `ubuntu-frame`:
+  ```
+  cage /opt/arcadeAgent/arcade-agent --ozone-platform-hint=auto
+  ```
 
 **Screenshots:** Work natively on X11. On Wayland they go through the PipeWire portal and require a user-granted screen-share prompt; if denied or unavailable, the capture fails with a clear error (see Troubleshooting).
 
@@ -450,7 +471,9 @@ The following vectors **cannot be blocked at the application level** and are doc
 |--------|----------|-------------------------|
 | **Cmd+Option+Esc** (Force Quit) | Critical | OS-level, uninterceptable. |
 | **Ctrl+Cmd+Power** (Power dialog) | Critical | OS-level, uninterceptable. |
-| **Cmd+Q**, **Cmd+Tab**, **Cmd+Space** | Medium | Handled by agent / kiosk flag; see verification matrix. |
+| **Cmd+Tab** | Critical | OS-level, uninterceptable. |
+| **Cmd+Space** (Spotlight) | Critical | OS-level, uninterceptable. |
+| **Cmd+Q**, **Cmd+W**, **Cmd+H**, **Cmd+M** | Medium | Blocked by agent (verified in AC-13). |
 
 ### Linux — X11
 
