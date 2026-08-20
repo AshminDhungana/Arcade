@@ -27,11 +27,11 @@ export function AutoStartToggle({ seatId }: AutoStartToggleProps) {
   const isAdmin = user?.role === 'ADMIN';
   const autoStartEnabled = isEnabled('agent_auto_start');
 
+  const [checked, setChecked] = useState(false);
+
   if (!isAdmin || !autoStartEnabled) {
     return null;
   }
-
-  const [checked, setChecked] = useState(false);
 
   const handleToggle = async (enabled: boolean) => {
     setChecked(enabled);

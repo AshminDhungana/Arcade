@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { AppSettings } from '@/types/pos';
-import { FLAG_KEYS, CONFIG_KEYS, FlagKey, ConfigKey } from '@/api/featureFlags';
+import type { FlagKey, ConfigKey } from '@/api/featureFlags';
 
 /** Default feature flags — all OFF until loaded from backend. */
 const DEFAULT_FLAGS: AppSettings = {
