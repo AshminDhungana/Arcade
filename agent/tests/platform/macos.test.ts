@@ -30,11 +30,6 @@ vi.mock('electron', async () => {
   return { ...actual, default: { BrowserWindow: MockBrowserWindow, desktopCapturer: mockDesktopCapturer, screen: mockScreen, powerMonitor: mockPowerMonitor }, BrowserWindow: MockBrowserWindow, desktopCapturer: mockDesktopCapturer, screen: mockScreen, powerMonitor: mockPowerMonitor };
 });
 
-vi.mock('child_process', async (importOriginal) => {
-  const actual = await importOriginal();
-  return { ...actual, exec: vi.fn().mockImplementation((_, optionsOrCallback, maybeCallback) => { const callback = typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback; if (callback) callback(null, 'stdout', 'stderr'); return undefined; }) };
-});
-
 vi.mock('sharp', () => ({ default: vi.fn().mockReturnValue({ resize: vi.fn().mockReturnThis(), jpeg: vi.fn().mockReturnThis(), toBuffer: vi.fn().mockResolvedValue(Buffer.from('compressed-jpg')) }) }));
 
 vi.mock('systeminformation', () => ({ default: { cpu: vi.fn().mockResolvedValue({ brand: 'Apple M2', cores: 8 }), mem: vi.fn().mockResolvedValue({ total: 34359738368 }), diskLayout: vi.fn().mockResolvedValue([{ size: 1000000000000 }]) } }));
@@ -63,18 +58,7 @@ describe('MacOSPlatformService - shortcuts', () => {
     const handler = vi.mocked(mockWebContents.on).mock.calls.find((c) => c[0] === 'before-input-event')?.[1];
     expect(handler).toBeDefined();
     const preventDefault = vi.fn();
-    // Debug: log what shortcut would be generated
     const input = { key: 'q', meta: true, control: false, alt: false, shift: false };
-    const shortcut = [
-      input.alt ? 'Alt' : '',
-      input.control ? 'Control' : '',
-      input.shift ? 'Shift' : '',
-      input.meta ? 'Meta' : '',
-      input.key,
-    ].filter(Boolean).join('+');
-    console.log('Test shortcut:', shortcut);
-    console.log('BLOCKED_SHORTCUTS would match:', ['Meta+q', 'Meta+w', 'Meta+h', 'Meta+m', 'Meta+Shift+i', 'Control+Shift+i', 'Control+p', 'F12', 'F11', 'Escape'].includes(shortcut));
-    // Handler signature: (event, input) - event has preventDefault
     handler?.({ preventDefault }, input);
     expect(preventDefault).toHaveBeenCalled();
   });
@@ -98,5 +82,51 @@ describe('MacOSPlatformService - shortcuts', () => {
     const preventDefault = vi.fn();
     handler?.({ preventDefault }, { key: 'm', meta: true, control: false, alt: false, shift: false });
     expect(preventDefault).toHaveBeenCalled();
+  });
+});
+
+describe('MacOSPlatformService - restart/shutdown', () => {
+  let service: MacOSPlatformService;
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalVitest = process.env.VITEST;
+
+  beforeEach(() => {
+    // Disable test mode for these tests
+    delete process.env.NODE_ENV;
+    delete process.env.VITEST;
+    service = new MacOSPlatformService();
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    process.env.NODE_ENV = originalNodeEnv;
+    process.env.VITEST = originalVitest;
+    (service as any).stopHotspotPolling?.();
+    service.hideKioskOverlay();
+  });
+
+  it('restartPC calls osascript for restart', async () => {
+    const execAsyncSpy = vi.spyOn(service as any, 'execAsync').mockResolvedValue({ stdout: '', stderr: '' });
+    await service.restartPC();
+    expect(execAsyncSpy).toHaveBeenCalledWith("osascript -e 'tell app \"System Events\" to restart'");
+    execAsyncSpy.mockRestore();
+  });
+
+  it('shutdownPC calls osascript for shutdown', async () => {
+    const execAsyncSpy = vi.spyOn(service as any, 'execAsync').mockResolvedValue({ stdout: '', stderr: '' });
+    await service.shutdownPC();
+    expect(execAsyncSpy).toHaveBeenCalledWith("osascript -e 'tell app \"System Events\" to shut down'");
+    execAsyncSpy.mockRestore();
+  });
+
+  it('does not execute commands in test mode', async () => {
+    // Re-enable test mode
+    process.env.NODE_ENV = 'test';
+    const testService = new MacOSPlatformService();
+    const execAsyncSpy = vi.spyOn(testService as any, 'execAsync').mockResolvedValue({ stdout: '', stderr: '' });
+    await testService.restartPC();
+    await testService.shutdownPC();
+    expect(execAsyncSpy).not.toHaveBeenCalled();
+    execAsyncSpy.mockRestore();
   });
 });

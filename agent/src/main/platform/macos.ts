@@ -269,12 +269,19 @@ export class MacOSPlatformService implements IPlatformService {
 
   async restartPC(): Promise<void> {
     if (isTestMode()) return;
-    await execAsync('sudo shutdown -r now');
+    await this.execAsync("osascript -e 'tell app \"System Events\" to restart'");
   }
 
   async shutdownPC(): Promise<void> {
     if (isTestMode()) return;
-    await execAsync('sudo shutdown -h now');
+    await this.execAsync("osascript -e 'tell app \"System Events\" to shut down'");
+  }
+
+  /** Override in tests to mock execAsync. */
+  protected async execAsync(cmd: string): Promise<{ stdout: string; stderr: string }> {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    return promisify(exec)(cmd);
   }
 
   async captureScreenshot(): Promise<Buffer> {
