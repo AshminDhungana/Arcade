@@ -309,13 +309,20 @@ export class WindowsPlatformService implements IPlatformService {
   async enableAutoStart(): Promise<void> {
     if (isTestMode()) return;
     const command = `reg.exe add "${AUTO_START_KEY}" /v "${APP_NAME}" /d "${process.execPath}" /f`;
-    await execAsync(command);
+    await this.execAsync(command);
   }
 
   async disableAutoStart(): Promise<void> {
     if (isTestMode()) return;
     const command = `reg.exe delete "${AUTO_START_KEY}" /v "${APP_NAME}" /f`;
-    await execAsync(command);
+    await this.execAsync(command);
+  }
+
+  /** Override in tests to mock execAsync. */
+  protected async execAsync(cmd: string): Promise<{ stdout: string; stderr: string }> {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    return promisify(exec)(cmd);
   }
 
   async getSystemInfo(): Promise<SystemInfo> {
