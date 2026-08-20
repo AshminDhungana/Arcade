@@ -38,8 +38,26 @@ def test_restore_latest_backup_copies_and_clears_sidecars(
 ) -> None:
     backup_dir = tmp_path / "backups"
     backup_dir.mkdir()
-    (backup_dir / "arcade_20260101_0000.db").write_bytes(b"OLD")
-    (backup_dir / "arcade_20260718_0300.db").write_bytes(b"BACKUP")
+    old_content = b"OLD"
+    backup_content = b"BACKUP"
+    (backup_dir / "arcade_20260101_0000.db").write_bytes(old_content)
+    (backup_dir / "arcade_20260718_0300.db").write_bytes(backup_content)
+
+    # Create manifest.json with correct SHA256 hashes
+    import hashlib
+    import json
+
+    manifest = [
+        {
+            "filename": "arcade_20260101_0000.db",
+            "sha256": hashlib.sha256(old_content).hexdigest(),
+        },
+        {
+            "filename": "arcade_20260718_0300.db",
+            "sha256": hashlib.sha256(backup_content).hexdigest(),
+        },
+    ]
+    (backup_dir / "manifest.json").write_text(json.dumps(manifest))
 
     db = tmp_path / "arcade.db"
     db.write_bytes(b"STALE")

@@ -93,7 +93,38 @@ def _reset_test_schema() -> None:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
 
-    asyncio.run(_recreate())
+    async def _enable_test_feature_flags() -> None:
+        """Enable feature flags required by tests."""
+        from sqlalchemy import select
+
+        from backend.core.database import AsyncSessionLocal
+        from backend.models import AppSettings
+
+        flags_to_enable = {
+            "enable_analytics": "true",
+            "enable_promotions": "true",
+            "enable_remote_commands": "true",
+            "enable_maintenance_mode": "true",
+            "enable_vouchers": "true",  # needed for promotions tests
+        }
+
+        async with AsyncSessionLocal() as session:
+            for key, value in flags_to_enable.items():
+                existing = await session.execute(
+                    select(AppSettings).where(AppSettings.key == key)
+                )
+                row = existing.scalar_one_or_none()
+                if row:
+                    row.value = value
+                else:
+                    session.add(AppSettings(key=key, value=value))
+            await session.commit()
+
+    async def _run_all() -> None:
+        await _recreate()
+        await _enable_test_feature_flags()
+
+    asyncio.run(_run_all())
     _stamp_alembic_head()
 
 

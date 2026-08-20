@@ -7,6 +7,12 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+# Import all models to register them with Base before create_all
+from backend.models import (
+    Staff,
+    StaffRole,
+)
+
 
 async def test_backup_scheduler_runs_daily_at_0300(
     integration_client, integration_db, seeded_zone, seeded_seat
@@ -283,21 +289,18 @@ async def test_launcher_detects_restore_signal_and_restores(tmp_path):
     This test verifies the restore_specific_backup function directly since the
     full launcher GUI test would be complex.
     """
+    from sqlalchemy import URL
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
     from backend.core.config import get_config
+    from backend.core.database import Base
+    from backend.core.security import hash_pin
     from backend.services.backup_service import run_backup
 
     config = get_config()
     config.backup_dir = str(tmp_path / "backups")
 
     # Create a source DB with some data
-    from sqlalchemy import URL
-    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-
-    from backend.core.database import Base
-    from backend.core.security import hash_pin
-    from backend.models._enums import StaffRole
-    from backend.models.staff import Staff
-
     src = tmp_path / "arcade.db"
     engine = create_async_engine(URL.create("sqlite+aiosqlite", database=str(src)))
     async with engine.begin() as conn:
@@ -371,8 +374,6 @@ async def test_launcher_skips_invalid_signal_file(tmp_path):
     from backend.core.config import get_config
     from backend.core.database import Base
     from backend.core.security import hash_pin
-    from backend.models._enums import StaffRole
-    from backend.models.staff import Staff
     from backend.services.backup_service import run_backup
 
     config = get_config()
