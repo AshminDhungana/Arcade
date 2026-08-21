@@ -199,3 +199,10 @@
   html { font-family: var(--font-sans); }
   body { background-color: var(--background); color: var(--foreground); }
 }
+
+@layer utilities {
+  .touch-target-min {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
