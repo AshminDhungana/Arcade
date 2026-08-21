@@ -4,22 +4,23 @@ import { AutoStartToggle } from './AutoStartToggle';
 
 vi.mock('../store/authStore', () => ({
   useAuthStore: () => ({
-    user: { id: '1', role: 'ADMIN', staff_id: 'admin' },
+    staff: { id: '1', name: 'Admin', role: 'ADMIN', is_active: true },
   }),
 }));
 
 vi.mock('../store/featureFlagStore', () => ({
   useFeatureFlagStore: () => ({
-    isEnabled: (flag: string) => flag === 'agent_auto_start',
+    getFlag: (flag: string) => flag === 'agent_auto_start',
   }),
 }));
 
-global.fetch = vi.fn();
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
 
 describe('AutoStartToggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
     localStorage.setItem('access_token', 'test-token');
   });
 

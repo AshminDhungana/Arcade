@@ -7,7 +7,7 @@ export default function RequireFeature({
   flag,
   children,
 }: {
-  flag: keyof FeatureFlags;
+  flag: keyof FeatureFlags & string;
   children: ReactNode;
 }) {
   const enabled = useFeatureFlagStore((s) => s.flags[flag]);

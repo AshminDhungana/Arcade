@@ -35,6 +35,8 @@ export const FLAG_KEYS = [
   'block_shift_close_unprinted',
   'enable_loyalty_discounts',
   'enable_audit_export',
+  // Agent
+  'agent_auto_start',
 ] as const;
 
 /** Config keys (numbers/strings). */

@@ -54,6 +54,8 @@ export interface FeatureFlags {
   block_shift_close_unprinted: boolean;
   enable_loyalty_discounts: boolean;
   enable_audit_export: boolean;
+  agent_auto_start: boolean;
+  [key: string]: boolean;
 }
 
 /** Full app settings from `GET /api/settings` — includes both feature flags and config values. */
@@ -82,7 +84,9 @@ export interface AppSettings {
   enable_maintenance_mode: boolean;
   enable_kiosk_branding: boolean;
   enable_audit_export: boolean;
+  agent_auto_start: boolean;
   // Config values (numbers/strings)
   shift_cash_variance_threshold: number;
   // Add other config values here as needed
+  [key: string]: boolean | number;
 }

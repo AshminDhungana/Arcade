@@ -31,6 +31,8 @@ const DEFAULT_FLAGS: AppSettings = {
   block_shift_close_unprinted: false,
   enable_loyalty_discounts: false,
   enable_audit_export: false,
+  // Agent
+  agent_auto_start: false,
   // Config
   shift_cash_variance_threshold: 5000,
 };
@@ -54,7 +56,7 @@ export const useFeatureFlagStore = create<FeatureFlagStore>((set, get) => ({
   flags: { ...DEFAULT_FLAGS },
   flagsLoaded: false,
 
-  setFlags: (flags) => set((state) => ({ flags: { ...state.flags, ...flags }, flagsLoaded: true })),
+  setFlags: (flags) => set((state) => ({ flags: { ...state.flags, ...flags } as AppSettings, flagsLoaded: true })),
 
   getFlag: (name) => get().flags[name] ?? false,
 

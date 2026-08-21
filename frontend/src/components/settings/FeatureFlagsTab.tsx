@@ -99,10 +99,6 @@ const CONFIG_LABELS: Record<string, string> = {
   shift_cash_variance_threshold: 'Shift Cash Variance Threshold (paise)',
 };
 
-const CONFIG_DESCRIPTIONS: Record<string, string> = {
-  shift_cash_variance_threshold: 'Paise threshold for shift variance flag',
-};
-
 export function FeatureFlagsTab() {
   const flags = useFeatureFlagStore((s) => s.flags);
   const toggle = useToggleFlag();
@@ -160,31 +156,30 @@ export function FeatureFlagsTab() {
           <section key={groupName} className="space-y-3">
             <h3 className="text-lg font-medium text-gray-900">{groupName}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {keys.map((key) => (
-                <div key={key} className="flex flex-col gap-2">
-                  <label className="text-sm text-gray-700">{CONFIG_LABELS[key]}</label>
-                  <Input
-                    type="number"
-                    value={flags[key] as number}
-                    onChange={(e) =>
-                      toggle.mutate(
-                        { key, value: parseInt(e.target.value, 10) },
-                        {
-                          onSuccess: () => {
-                            const label = CONFIG_LABELS[key];
-                            toast.success(`${label} updated`);
-                          },
-                          onError: (err: Error) => {
-                            const label = CONFIG_LABELS[key];
-                            toast.error(`Failed to update ${label}: ${err.message}`);
-                          },
+{keys.map((key) => (
+                    <div key={key} className="flex flex-col gap-2">
+                      <label className="text-sm text-gray-700">{CONFIG_LABELS[key]}</label>
+                      <Input
+                        type="number"
+                        value={flags[key] as number}
+                        onChange={(e) =>
+                          toggle.mutate(
+                            { key, value: parseInt(e.target.value, 10) },
+                            {
+                              onSuccess: () => {
+                                const label = CONFIG_LABELS[key];
+                                toast.success(`${label} updated`);
+                              },
+                              onError: (err: Error) => {
+                                const label = CONFIG_LABELS[key];
+                                toast.error(`Failed to update ${label}: ${err.message}`);
+                              },
+                            }
+                          )
                         }
-                      )
-                    }
-                    description={CONFIG_DESCRIPTIONS[key]}
-                  />
-                </div>
-              ))}
+                      />
+                    </div>
+                  ))}
             </div>
           </section>
         ))}

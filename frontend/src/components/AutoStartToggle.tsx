@@ -21,11 +21,11 @@ async function setAutoStart(seatId: string, enabled: boolean): Promise<void> {
 }
 
 export function AutoStartToggle({ seatId }: AutoStartToggleProps) {
-  const { user } = useAuthStore();
-  const { isEnabled } = useFeatureFlagStore();
+  const { staff } = useAuthStore();
+  const { getFlag } = useFeatureFlagStore();
 
-  const isAdmin = user?.role === 'ADMIN';
-  const autoStartEnabled = isEnabled('agent_auto_start');
+  const isAdmin = staff?.role === 'ADMIN';
+  const autoStartEnabled = getFlag('agent_auto_start');
 
   const [checked, setChecked] = useState(false);
 
