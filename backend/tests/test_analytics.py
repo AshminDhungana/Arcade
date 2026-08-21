@@ -60,14 +60,29 @@ async def db() -> AsyncGenerator[AsyncSession]:
         await conn.run_sync(Base.metadata.create_all)
     Session = async_sessionmaker(engine, expire_on_commit=False)
     async with Session() as session:
+        # Enable feature flags required by analytics tests
+        from sqlalchemy import insert
+
+        from backend.models import AppSettings
+
+        await session.execute(
+            insert(AppSettings).values(key="enable_analytics", value="true")
+        )
+        await session.commit()
         yield session
     await engine.dispose()
 
 
 @pytest_asyncio.fixture
 async def admin_client(db: AsyncSession) -> AsyncGenerator[AsyncClient]:
+    from backend.core.feature_flags import load_flags
+
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_current_staff] = lambda: _mock(StaffRole.ADMIN)
+
+    # Load feature flags for this test's database into the cache
+    await load_flags(db)
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
@@ -77,8 +92,14 @@ async def admin_client(db: AsyncSession) -> AsyncGenerator[AsyncClient]:
 
 @pytest_asyncio.fixture
 async def cashier_client(db: AsyncSession) -> AsyncGenerator[AsyncClient]:
+    from backend.core.feature_flags import load_flags
+
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_current_staff] = lambda: _mock(StaffRole.CASHIER)
+
+    # Load feature flags for this test's database into the cache
+    await load_flags(db)
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

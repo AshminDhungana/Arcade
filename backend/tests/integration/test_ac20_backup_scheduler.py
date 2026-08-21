@@ -8,10 +8,8 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 # Import all models to register them with Base before create_all
-from backend.models import (
-    Staff,
-    StaffRole,
-)
+import backend.models  # noqa: F401
+from backend.models import Staff, StaffRole
 
 
 async def test_backup_scheduler_runs_daily_at_0300(

@@ -20,21 +20,36 @@ def isolated_lifespan_db():
 
     os.environ["ARCADE_DB_PATH"] = str(db_path)
     try:
+        # Reinitialize the engine with the new path without reloading modules
         import backend.core.database
         import backend.main
 
-        importlib.reload(backend.core.database)
+        # Store original engine for restoration
+        orig_engine = backend.core.database.async_engine
+        orig_session_factory = backend.core.database.AsyncSessionLocal
+
+        # Reinitialize engine with new path
+        backend.core.database.reinitialize_engine(f"sqlite+aiosqlite:///{db_path}")
+
+        # Reload main to pick up the new engine
         importlib.reload(backend.main)
+
         yield db_path
     finally:
+        # Restore original engine
+        import backend.core.database
+
+        backend.core.database.async_engine = orig_engine
+        backend.core.database.AsyncSessionLocal = orig_session_factory
+
         if orig_db_path is not None:
             os.environ["ARCADE_DB_PATH"] = orig_db_path
         else:
             os.environ.pop("ARCADE_DB_PATH", None)
-        import backend.core.database
+
+        # Reload main to restore original engine
         import backend.main
 
-        importlib.reload(backend.core.database)
         importlib.reload(backend.main)
         try:
             db_path.unlink(missing_ok=True)

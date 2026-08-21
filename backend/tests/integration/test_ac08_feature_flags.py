@@ -108,16 +108,24 @@ async def test_response_includes_feature_flags_list(
     integration_client, integration_db, seeded_zone, seeded_seat
 ):
     """GET /api/settings returns current feature flag states."""
+    from sqlalchemy import select
+
     from backend.models.settings import AppSettings
 
-    # Add some flags
-    integration_db.add_all(
-        [
-            AppSettings(key="enable_packages", value="true"),
-            AppSettings(key="enable_pos", value="false"),
-            AppSettings(key="enable_inventory", value="true"),
-        ]
-    )
+    # Update some flags to specific values for this test
+    for key, value in [
+        ("enable_packages", "true"),
+        ("enable_pos", "false"),
+        ("enable_inventory", "true"),
+    ]:
+        result = await integration_db.execute(
+            select(AppSettings).where(AppSettings.key == key)
+        )
+        row = result.scalar_one_or_none()
+        if row:
+            row.value = value
+        else:
+            integration_db.add(AppSettings(key=key, value=value))
     await integration_db.commit()
     await load_flags(integration_db)
 

@@ -35,6 +35,35 @@ async def integration_db() -> AsyncGenerator[AsyncSession]:
         await conn.run_sync(Base.metadata.create_all)
     Session = async_sessionmaker(engine, expire_on_commit=False)
     async with Session() as session:
+        # Enable feature flags required by integration tests
+        from sqlalchemy import insert
+
+        from backend.models import AppSettings
+
+        flags_to_enable = {
+            "enable_analytics": "true",
+            "enable_promotions": "true",
+            "enable_vouchers": "true",
+            "enable_remote_commands": "true",
+            "enable_maintenance_mode": "true",
+            "enable_tournaments": "true",
+            "enable_inventory": "true",
+            "enable_assigned_time_limit": "true",
+            "enable_tuya": "true",
+            "enable_expense_tracking": "true",
+            "enable_health_monitoring": "true",
+            "enable_wake_on_lan": "true",
+            "enable_loyalty_discounts": "true",
+            "enable_kiosk_branding": "true",
+            "enable_audit_export": "true",
+        }
+        # Use INSERT OR IGNORE to avoid UNIQUE constraint errors if flags already exist
+        await session.execute(
+            insert(AppSettings)
+            .values([{"key": k, "value": v} for k, v in flags_to_enable.items()])
+            .prefix_with("OR IGNORE")
+        )
+        await session.commit()
         yield session
     await engine.dispose()
 
@@ -60,8 +89,12 @@ async def integration_client(
     integration_db: AsyncSession,
 ) -> AsyncGenerator[AsyncClient]:
     from backend.api.deps import get_db
+    from backend.core.feature_flags import load_flags
 
     app.dependency_overrides[get_db] = lambda: integration_db
+
+    # Load feature flags for this test's database into the cache
+    await load_flags(integration_db)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
