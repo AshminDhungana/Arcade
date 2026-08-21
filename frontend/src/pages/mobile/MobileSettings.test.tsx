@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { MobileSettings } from './MobileSettings'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'

@@ -1,5 +1,4 @@
 import { formatDuration } from '@/utils/formatDuration'
-import { formatPaise } from '@/hooks/useFormatPaise'
 
 interface Session {
   id: string

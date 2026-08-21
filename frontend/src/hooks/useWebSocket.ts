@@ -53,6 +53,9 @@ function getWebSocketUrl(): string {
 // Hook
 // ---------------------------------------------------------------------------
 
+type SubscriptionCallback = () => void;
+type SubscriptionsMap = Map<string, Set<SubscriptionCallback>>;
+
 export function useWebSocket() {
   const queryClient = useQueryClient();
   const setHealth = useHealthStore((state) => state.setHealth);
@@ -62,6 +65,7 @@ export function useWebSocket() {
   const reconnectAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const subscriptionsRef = useRef<SubscriptionsMap>(new Map());
 
   /** Clean up any pending reconnect timer. */
   const clearReconnect = useCallback(() => {
@@ -134,7 +138,7 @@ export function useWebSocket() {
       if (!isMountedRef.current) return;
       try {
         const message = JSON.parse(event.data) as WSMessage<unknown>;
-        handleMessage(message, queryClient, setHealth);
+        handleMessage(message, queryClient, setHealth, subscriptionsRef.current);
       } catch {
         // Silently ignore malformed messages
       }
@@ -149,6 +153,28 @@ export function useWebSocket() {
   const connectRef = useRef(connect);
   connectRef.current = connect;
 
+  /** Subscribe to an event type (WebSocket or custom). Returns an unsubscribe function. */
+  const subscribe = useCallback((
+    eventType: string,
+    callback: SubscriptionCallback
+  ): (() => void) => {
+    const subs = subscriptionsRef.current;
+    if (!subs.has(eventType)) {
+      subs.set(eventType, new Set());
+    }
+    subs.get(eventType)!.add(callback);
+
+    return () => {
+      const callbacks = subs.get(eventType);
+      if (callbacks) {
+        callbacks.delete(callback);
+        if (callbacks.size === 0) {
+          subs.delete(eventType);
+        }
+      }
+    };
+  }, []);
+
   // -------------------------------------------------------------------------
   // Effect: connect on mount, disconnect on unmount
   // -------------------------------------------------------------------------
@@ -162,7 +188,7 @@ export function useWebSocket() {
     };
   }, [connect, disconnect]);
 
-  return { status };
+  return { status, subscribe };
 }
 
 // ---------------------------------------------------------------------------
@@ -173,7 +199,14 @@ function handleMessage(
   message: WSMessage<unknown>,
   queryClient: ReturnType<typeof useQueryClient>,
   setHealth: (seatId: string, data: import('@/store/healthStore').HealthMetrics) => void,
+  subscriptions: SubscriptionsMap,
 ): void {
+  // Trigger subscriptions for this event type
+  const callbacks = subscriptions.get(message.type);
+  if (callbacks) {
+    callbacks.forEach((cb) => cb());
+  }
+
   switch (message.type) {
     case 'seat_updated': {
       const payload = message.payload as SeatUpdatedPayload;
